@@ -326,17 +326,17 @@
       <div id="tab-shop" class="tab-content">
           <div class="glass-card shop-balance-card">
               <div style="display: flex; align-items: center; gap: 8px;">
-                  <div class="task-icon" style="width: 28px; height: 28px; font-size: 13px;">
-                      <i class="fa-solid fa-coins"></i>
+                  <div class="task-icon" style="width: 28px; height: 28px; font-size: 13px; color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.6);">
+                      <i class="fa-solid fa-fire"></i>
                   </div>
                   <div style="display: flex; flex-direction: column;">
-                      <span style="font-size: 11px; font-weight: 800; color: #fff;">Баланс монет</span>
+                      <span style="font-size: 11px; font-weight: 800; color: #fff;">Баланс гринд-монет</span>
                       <span style="font-size: 9px; color: var(--text-color-muted);">Для обмена в магазине</span>
                   </div>
               </div>
-              <div style="font-size: 16px; font-weight: 900; color: var(--accent-neon); display: flex; align-items: center; gap: 6px;">
+              <div style="font-size: 16px; font-weight: 900; color: #ff3b30; text-shadow: 0 0 12px rgba(255,59,48,0.5); display: flex; align-items: center; gap: 6px;">
                   <span id="shop-user-coins">0.0</span>
-                  <i class="fa-solid fa-coins" style="font-size: 14px;"></i>
+                  <i class="fa-solid fa-fire" style="font-size: 15px;"></i>
               </div>
           </div>
 
@@ -650,7 +650,8 @@
         } else if (isFinalDay) {
             btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
         } else {
-            btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-coins" style="font-size:10px; margin-left:2px;"></i>`;
+            // Награда в гринд-монетах с красным огоньком
+            btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ГРИНД-МОНЕТ`;
         }
 
         let linkHtml = '';
@@ -760,7 +761,7 @@
                 }
 
                 updateUI();
-                window.showSuccessModal(data.message || `Получено +${rewardVal} монет!`);
+                window.showSuccessModal(data.message || `Получено +${rewardVal} гринд-монет!`);
                 loadTelegramTasks(); 
             } else {
                 handleTaskError(data, taskKey, actionUrl);
@@ -846,10 +847,11 @@
             const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
 
             let btnHtml = '';
+            let btnHtml = '';
             if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
                 btnHtml = `<button class="premium-btn locked-state" disabled style="font-size: 9px;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
             } else {
-                btnHtml = `<button class="premium-btn ${isAffordable ? 'active-state' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО МОНЕТ'}</button>`;
+                btnHtml = `<button class="premium-btn ${isAffordable ? 'active-state' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО ГРИНД-МОНЕТ'}</button>`;
             }
 
             const extra = item.quantity !== undefined && item.quantity !== null ? `<span style="opacity:0.6; font-size:8px; display:block; margin-top:2px;">(Ост: ${item.quantity})</span>` : '';
@@ -857,7 +859,7 @@
             div.innerHTML = `
                 <i class="fa-solid ${item.icon || (item.type === 'ticket' ? 'fa-ticket' : 'fa-coins')}" style="font-size:22px; color:${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}80);"></i>
                 <div class="shop-item-title">${item.title}</div>
-                <div class="shop-item-cost">Цена: ${item.cost} монет ${extra}</div>
+                <div class="shop-item-cost">Цена: ${item.cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 9px;"></i> гринд-монет ${extra}</div>
                 <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
             `;
             container.appendChild(div);
@@ -875,7 +877,7 @@
     };
 
     window.exchangeCoins = async (cost, rewardTickets) => {
-        const confirmText = `Купить ${rewardTickets} билет(ов) за ${cost} монет?`;
+        const confirmText = `Купить ${rewardTickets} билет(ов) за ${cost} гринд-монет?`;
         const doExchange = async () => {
             try {
                 const response = await fetch('/api/v1/user/grind/exchange', {
