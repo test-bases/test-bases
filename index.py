@@ -25399,12 +25399,13 @@ async def claim_daily_task(
         
         is_done = False if task.get("is_daily") else True 
 
-        # 7. Обновляем баланс
-        user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "tickets"})
-        current_tickets = user_resp.json()[0].get("tickets", 0)
-        new_balance = current_tickets + reward
+       # 7. Обновляем баланс (начисляем гринд-монеты)
+        user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "coins"})
+        user_rows = user_resp.json()
+        current_coins = float(user_rows[0].get("coins", 0) if user_rows else 0)
+        new_coins = round(current_coins + float(reward), 4)
 
-        await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"tickets": new_balance})
+        await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins})
 
         # 8. Обновляем прогресс
         update_data = {
@@ -25426,7 +25427,7 @@ async def claim_daily_task(
             event_type="trial",
             title=event_title,
             description="Награда за активность в Telegram.",
-            coins_reward=0
+            coins_reward=reward if not (secret_code or custom_message) else 0
         )
 
         return JSONResponse({
@@ -25435,10 +25436,10 @@ async def claim_daily_task(
             "day": next_day, 
             "total_days": task.get("total_days", 7),
             "is_completed": is_done, 
-            "tickets": new_balance, 
+            "new_coins": new_coins, 
             "streak_reset": streak_reset, 
             "secret_code": secret_code, 
-            "message": custom_message if custom_message else (f"Секретный код получен!" if secret_code else f"Задание выполнено! +{reward} билетов")
+            "message": custom_message if custom_message else (f"Секретный код получен!" if secret_code else f"Задание выполнено! +{reward} монет")
         })
 
     except Exception as e:
