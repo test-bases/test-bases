@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>OBS Compact Raffle v2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* --- БАЗА --- */
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: transparent; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            /* Выравнивание в правый нижний угол */
+            display: flex; flex-direction: column;
+            justify-content: flex-end; align-items: flex-end;
+            padding: 20px; box-sizing: border-box;
+        }
+
+        /* --- ОБЩИЙ КОНТЕЙНЕР --- */
+        .obs-container {
+            width: 320px; /* Фиксированная ширина */
+            display: flex; flex-direction: column; gap: 8px;
+            /* Анимация только для первого появления */
+            opacity: 0; transform: translateX(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .obs-container.active { opacity: 1; transform: translateX(0); }
+
+        /* --- КОМПАКТНАЯ КАРТОЧКА --- */
+        .compact-card {
+            position: relative; width: 100%;
+            min-height: 115px; /* Чуть увеличили минимальную высоту */
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 15px; box-sizing: border-box;
+            border-radius: 16px; overflow: hidden;
+            
+            background: #0a0a0a;
+            /* Используем цвет рарности для фона */
+            background-image: radial-gradient(circle at 70% 50%, rgba(var(--rarity-rgb), 0.15) 0%, rgba(10, 10, 10, 1) 90%);
+            border: 1px solid rgba(var(--rarity-rgb), 0.4);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6), inset 0 0 20px rgba(var(--rarity-rgb), 0.05);
+        }
+
+        /* Блик */
+        .compact-card::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+            transform: rotate(30deg); pointer-events: none; animation: shine 8s infinite linear;
+        }
+        @keyframes shine { from { transform: translateX(-100%) rotate(30deg); } to { transform: translateX(100%) rotate(30deg); } }
+
+        /* БЕЙДЖИК */
+        .mini-badge {
+            position: absolute; top: 8px; left: 12px;
+            font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.9);
+            background: rgba(var(--rarity-rgb), 0.25);
+            padding: 2px 6px; border-radius: 4px;
+            border: 1px solid rgba(var(--rarity-rgb), 0.3);
+        }
+
+        /* ЛЕВАЯ ЧАСТЬ (ТЕКСТ) */
+        .card-left {
+            display: flex; flex-direction: column; justify-content: center;
+            z-index: 5; max-width: 50%; /* Чуть уменьшили ширину текста, чтобы дать место скину */
+            margin-top: 14px;
+        }
+
+        .mini-quality {
+            font-size: 9px; font-weight: 700; color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 2px; text-transform: uppercase;
+        }
+
+        .mini-name {
+            font-size: 14px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 6px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+        }
+
+        /* ТАЙМЕР (ЧЧ:ММ:СС) */
+        .mini-timer {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(0,0,0,0.6); padding: 4px 6px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1); font-size: 10px; color: #bbb; font-weight: 600;
+            width: fit-content;
+        }
+        .timer-val { font-family: 'Courier New', monospace; color: #fff; font-weight: 800; font-size: 12px; }
+
+        /* КАРТИНКА (УВЕЛИЧЕНА) */
+        .card-img {
+            position: absolute; right: -15px; bottom: -5px; /* Чуть опустили и сдвинули */
+            height: auto; 
+            max-height: 115px; /* 🔥 УВЕЛИЧИЛИ РАЗМЕР 🔥 */
+            width: auto;
+            max-width: 55%;
+            object-fit: contain;
+            z-index: 10;
+            image-rendering: -webkit-optimize-contrast;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.8));
+            animation: weaponFloat 6s ease-in-out infinite;
+        }
+        @keyframes weaponFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* --- БЛОК ПРИЗЫВА К ДЕЙСТВИЮ (CTA) --- */
+        .cta-box {
+            background: rgba(12, 12, 12, 1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 8px 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 11px; color: #999; font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+        /* 🔥 ЦВЕТ !lavka ТЕМНЕЕ И ЧЕТЧЕ 🔥 */
+        .cta-highlight {
+            font-weight: 800;
+            font-size: 12px;
+            color: rgb(var(--rarity-rgb)); /* Чистый цвет рарности */
+            text-shadow: 0 0 10px rgba(var(--rarity-rgb), 0.4); /* Легкое свечение в цвет */
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="obs-overlay" class="obs-container"></div>
+
+    <script>
+        const API_URL = '/api/v1/raffles/active';
+        const CYCLE_INTERVAL = 10000; // 10 секунд на слайд
+
+        let activeRaffles = [];
+        let currentIndex = 0;
+        let cycleTimer = null;
+        let countdownTimer = null;
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 215, 0';
+        }
+
+        async function fetchRaffles() {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ initData: "" }) 
+                });
+                if(!res.ok) throw new Error('API Error');
+                const data = await res.json();
+                activeRaffles = data.filter(r => r.status === 'active');
+
+                if (activeRaffles.length > 0) {
+                    startCycle();
+                    // Показываем контейнер, если есть розыгрыши
+                    document.getElementById('obs-overlay').classList.add('active');
+                } else {
+                    document.getElementById('obs-overlay').classList.remove('active');
+                    setTimeout(() => { document.getElementById('obs-overlay').innerHTML = ''; }, 500);
+                }
+            } catch (e) { console.error("OBS Fetch Error:", e); }
+        }
+
+        function renderCard(raffle) {
+            const container = document.getElementById('obs-overlay');
+            const s = raffle.settings || {};
+            const img = s.card_image || s.prize_image || '';
+            const rarityColor = s.rarity_color || '#ffd700';
+            const rgbColor = hexToRgb(rarityColor);
+            const quality = s.skin_quality || 'FT';
+            const prizeName = s.prize_name || 'Prize';
+
+            // HTML с новыми таймерами и цветами
+            container.innerHTML = `
+                <div class="compact-card" style="--rarity-rgb: ${rgbColor}">
+                    <div class="mini-badge">Активный розыгрыш</div>
+                    <div class="card-left">
+                        <div class="mini-quality" style="color:${rarityColor}">${quality}</div>
+                        <div class="mini-name">${prizeName}</div>
+                        <div class="mini-timer" id="obs-timer">
+                            <i class="fa-regular fa-clock" style="font-size:10px"></i>
+                            <span class="timer-val h-v">00</span>:
+                            <span class="timer-val m-v">00</span>:
+                            <span class="timer-val s-v">00</span>
+                        </div>
+                    </div>
+                    <img src="${img}" class="card-img" alt="Skin">
+                </div>
+                
+                <div class="cta-box" style="--rarity-rgb: ${rgbColor}">
+                    Подробнее <span class="cta-highlight">!lavka</span> в чат, заходи и участвуй!
+                </div>
+            `;
+
+            startTimer(raffle.end_time);
+        }
+
+        function startCycle() {
+            if (activeRaffles.length === 0) return;
+            
+            const showNext = () => {
+                // 🔥 БЕСШОВНОЕ ПЕРЕКЛЮЧЕНИЕ (без fade-out) 🔥
+                renderCard(activeRaffles[currentIndex]);
+                currentIndex = (currentIndex + 1) % activeRaffles.length;
+            };
+
+            // Первый рендер сразу
+            showNext();
+
+            if (activeRaffles.length > 1) {
+                if (cycleTimer) clearInterval(cycleTimer);
+                cycleTimer = setInterval(showNext, CYCLE_INTERVAL);
+            }
+        }
+
+        function startTimer(endTimeStr) {
+            if (countdownTimer) clearInterval(countdownTimer);
+            const update = () => {
+                const el = document.getElementById('obs-timer');
+                if (!el) return;
+                const end = new Date(endTimeStr);
+                const now = new Date();
+                const diff = end - now;
+                if (diff <= 0) { el.innerHTML = 'ЗАВЕРШЕНО'; return; }
+                
+                // 🔥 ДОБАВЛЕНЫ СЕКУНДЫ 🔥
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff / (1000 * 60)) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                el.querySelector('.h-v').innerText = String(h).padStart(2, '0');
+                el.querySelector('.m-v').innerText = String(m).padStart(2, '0');
+                el.querySelector('.s-v').innerText = String(s).padStart(2, '0');
+            };
+            update();
+            countdownTimer = setInterval(update, 1000);
+        }
+
+        fetchRaffles();
+        setInterval(fetchRaffles, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

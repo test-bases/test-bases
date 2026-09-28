@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Chat Giveaways</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --card-bg: rgba(30, 30, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #ffd700;
+            --accent: #28a745;
+            --danger: #ff4d4d;
+            --text: #ffffff;
+            --text-sec: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 20px;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 100px;
+        }
+
+        /* --- Header & Tabs --- */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--text-sec); font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .back-btn:active { color: var(--text); transform: scale(0.95); }
+        .page-title { font-size: 20px; font-weight: 800; margin: 0; background: linear-gradient(45deg, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .tabs { display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 14px; margin-bottom: 20px; gap: 4px; overflow-x: auto; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab { flex: 1; border: none; background: none; color: var(--text-sec); padding: 10px 5px; font-weight: 600; font-size: 12px; border-radius: 10px; transition: 0.3s; cursor: pointer; text-align: center; white-space: nowrap; }
+        .tab.active { background: rgba(255,255,255,0.1); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+
+        /* --- Forms --- */
+        .admin-form label { display: block; font-size: 12px; color: var(--text-sec); margin: 12px 0 5px; font-weight: 500; }
+        .admin-form input, .admin-form textarea, .admin-form select {
+            width: 100%; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--card-border);
+            color: var(--text); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;
+        }
+        .admin-form input:focus, .admin-form textarea:focus, .admin-form select:focus { border-color: var(--primary); background: rgba(255,255,255,0.03); }
+        
+        .section-box { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .sec-title { font-size: 13px; color: var(--primary); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .cond-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* --- Toggle Switch --- */
+        .toggle-container { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 14px; margin-bottom: 20px; }
+        .toggle-label { font-size: 15px; font-weight: 700; color: #fff; }
+        .toggle-desc { font-size: 11px; color: var(--text-sec); margin-top: 4px; }
+        
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: .3s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Buttons --- */
+        .action-submit-btn { border: none; padding: 15px; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; width: 100%; margin-top: 20px; background: var(--primary); color: #000; }
+        .action-submit-btn:active { transform: scale(0.97); opacity: 0.8; }
+        .action-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-green { background: var(--accent); color: #fff; }
+        .btn-outline { background: rgba(255, 215, 0, 0.1); border: 1px solid var(--primary); color: var(--primary); }
+
+        /* --- Cards List --- */
+        .giveaway-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 15px; margin-bottom: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { font-weight: 700; font-size: 15px; }
+        .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: rgba(40, 167, 69, 0.2); color: var(--accent); }
+        .card-info { font-size: 12px; color: var(--text-sec); margin-bottom: 15px; line-height: 1.5; }
+        .card-info span { color: #fff; font-weight: 600; }
+        .btn-danger { background: rgba(255, 77, 77, 0.15); color: var(--danger); border: 1px solid rgba(255, 77, 77, 0.3); padding: 10px; border-radius: 10px; width: 100%; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .btn-add { background: rgba(40,167,69,0.15); color: var(--accent); border-color: rgba(40,167,69,0.3); }
+
+        /* --- Pool Item Card --- */
+        .pool-item, .select-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 10px; border-radius: 12px; margin-bottom: 10px; }
+        .pool-item-info { display: flex; align-items: center; gap: 12px; }
+        .pool-img { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; background: rgba(0,0,0,0.5); }
+        .pool-name { font-size: 13px; font-weight: 600; color: #fff; }
+        .pool-id-tag { font-size: 10px; color: var(--text-sec); }
+        .btn-icon { background: rgba(255, 77, 77, 0.15); color: var(--danger); border: none; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:active { transform: scale(0.9); }
+        
+        .select-item { cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
+        .select-item:active { transform: scale(0.98); background: rgba(255,255,255,0.05); }
+        .select-item.selected { border-color: var(--accent); background: rgba(40,167,69,0.1); }
+        .select-item .check-icon { display: none; color: var(--accent); font-size: 18px; }
+        .select-item.selected .check-icon { display: block; }
+        .select-item.selected .chevron-icon { display: none; }
+
+        /* --- Modals & Bottom Sheet --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-active { display: flex; }
+        .alert-box { background: #252525; width: 85%; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--card-border); }
+        .alert-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .alert-msg { font-size: 14px; color: var(--text-sec); margin-bottom: 20px; }
+        .alert-btn { background: var(--primary); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; width: 100%; cursor: pointer; }
+        .alert-btn.cancel { background: transparent; color: var(--text-sec); margin-top: 5px; }
+        .hidden { display: none !important; }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .bottom-sheet-container { position: absolute; bottom: 0; width: 100%; background: #1c1c1e; border-radius: 24px 24px 0 0; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; animation: slideUp 0.3s ease-out; height: 90vh; }
+        
+        .sort-control { display: flex; gap: 10px; margin-bottom: 15px; }
+        .sort-control select { flex: 1; padding: 8px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); outline: none; font-size: 13px; }
+        
+        .chance-badge { background: rgba(255,215,0,0.2); color: var(--primary); font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <button onclick="goBack()" class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <h1 class="page-title">Комментарии CS2</h1>
+        <div style="width: 36px;"></div> 
+    </div>
+
+    <div class="tabs">
+        <button id="tab-btn-auto" class="tab active" onclick="switchTab('auto')">Авто 🎁</button>
+        <button id="tab-btn-pool" class="tab" onclick="switchTab('pool')">Пул 💎</button>
+        <button id="tab-btn-create" class="tab" onclick="switchTab('create')">Ручной</button>
+        <button id="tab-btn-list" class="tab" onclick="switchTab('list')">Активные</button>
+    </div>
+
+    <!-- АВТОМАТИЧЕСКИЕ НАСТРОЙКИ -->
+    <div id="tab-auto" class="tab-content">
+        <form id="auto-form" class="admin-form">
+            <div class="toggle-container">
+                <div>
+                    <div class="toggle-label">Авто-розыгрыши CS2</div>
+                    <div class="toggle-desc">Включить хаотичные розыгрыши</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="auto_toggle_enabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="section-box">
+                <h3 class="sec-title"><i class="fa-solid fa-dice"></i> Вероятность появления</h3>
+                <div style="font-size:11px;color:#aaa;margin-bottom:15px;">Укажи шанс в процентах. Если поставить 30%, розыгрыш будет срабатывать примерно на 3 из 10 постов. Эффект казино! 🎰</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="auto_chance" min="1" max="100" value="100" required style="width: 80px; text-align: center; font-weight: bold;">
+                    <span style="font-size: 18px; font-weight: bold;">%</span>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <h3 class="sec-title"><i class="fa-solid fa-users"></i> Настройки (Уникальные юзеры)</h3>
+                <div style="font-size:11px;color:#aaa;margin-bottom:15px;">Бот сам сгенерирует число участников между этими значениями, чтобы никто не знал точный конец розыгрыша.</div>
+
+                <div class="cond-grid">
+                    <div>
+                        <label>Мин. уникальных</label>
+                        <input type="number" id="auto_min_msg" value="10" required>
+                    </div>
+                    <div>
+                        <label>Макс. уникальных</label>
+                        <input type="number" id="auto_max_msg" value="25" required>
+                    </div>
+                </div>
+
+                <label>Текст ответа при победе</label>
+                <textarea id="auto_reply_text" rows="3" required>🎉 Поздравляем! Твой комментарий оказался счастливым! Скин отправлен в инвентарь.</textarea>
+            </div>
+
+            <button type="button" onclick="submitAutoSettings()" class="action-submit-btn btn-green">
+                <i class="fa-solid fa-save"></i>
+                <span>СОХРАНИТЬ НАСТРОЙКИ</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- ПУЛ ПРЕДМЕТОВ -->
+    <div id="tab-pool" class="tab-content hidden">
+        <div class="section-box admin-form">
+            <h3 class="sec-title"><i class="fa-solid fa-box-open"></i> Добавить скины в витрину</h3>
+            <div style="font-size:11px;color:#aaa;margin-bottom:15px;">Выберите скины со склада. Они будут бесконечно и хаотично выпадать в авто-розыгрышах.</div>
+            
+            <button type="button" onclick="openCSModal()" class="action-submit-btn btn-outline" style="margin-top: 5px;">
+                <i class="fa-solid fa-list-ul"></i> Выбрать предметы со склада
+            </button>
+        </div>
+
+        <h3 style="font-size: 14px; margin-bottom: 10px;">Скины в пуле:</h3>
+        <div id="pool-list-container">
+            <div style="text-align:center; padding: 20px; color: var(--text-sec);">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...
+            </div>
+        </div>
+    </div>
+
+    <!-- РУЧНОЕ СОЗДАНИЕ -->
+    <div id="tab-create" class="tab-content hidden">
+        <form id="create-form" class="admin-form">
+            <div class="section-box">
+                <h3 class="sec-title"><i class="fa-solid fa-link"></i> Привязка к посту</h3>
+                <label>ID сообщения в чате комментариев</label>
+                <input type="number" id="manual_post_id" placeholder="Например: 15432" required>
+            </div>
+
+            <div class="section-box">
+                <h3 class="sec-title"><i class="fa-solid fa-users"></i> Участники</h3>
+                <div class="cond-grid">
+                    <div>
+                        <label>Мин. уникальных</label>
+                        <input type="number" id="manual_min_msg" value="5" required>
+                    </div>
+                    <div>
+                        <label>Макс. уникальных</label>
+                        <input type="number" id="manual_max_msg" value="15" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="submitManualGiveaway()" class="action-submit-btn">
+                <i class="fa-solid fa-bolt"></i>
+                <span>ЗАПУСТИТЬ НА ЭТОТ ПОСТ</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- СПИСОК АКТИВНЫХ -->
+    <div id="tab-list" class="tab-content hidden">
+        <div id="list-container">
+            <div style="text-align:center; padding: 40px; color: var(--text-sec);">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM SHEET ДЛЯ МАССОВОГО ВЫБОРА СКИНОВ -->
+    <div id="modal-cs-items" class="modal-overlay" style="align-items: flex-end;" onclick="if(event.target===this) closeModal('modal-cs-items')">
+        <div class="bottom-sheet-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <h3 style="margin:0">Выберите скины</h3>
+                <button type="button" onclick="closeModal('modal-cs-items')" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="sort-control">
+                <select id="cs_sort_select" onchange="sortCSItems(this.value)">
+                    <option value="desc">Сначала дорогие</option>
+                    <option value="asc">Сначала дешевые</option>
+                </select>
+            </div>
+
+            <div id="cs-items-list" style="overflow-y: auto; display: flex; flex-direction: column; flex: 1; padding-bottom: 10px;">
+                <!-- Сюда подгружаются предметы -->
+            </div>
+            
+            <button id="btn-add-selected" class="action-submit-btn btn-green" style="margin-top: 10px; margin-bottom: 10px;" onclick="addSelectedPoolItems()" disabled>
+                Добрать выбранные (0)
+            </button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА АЛЕРТОВ -->
+    <div id="modal-alert" class="modal-overlay">
+        <div class="alert-box">
+            <div class="alert-title" id="alert-title">Title</div>
+            <div class="alert-msg" id="alert-msg">Message</div>
+            <button class="alert-btn" id="alert-ok">OK</button>
+            <button class="alert-btn cancel hidden" id="alert-cancel">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            if (document.getElementById('modal-alert').classList.contains('modal-active')) {
+                closeModal('modal-alert'); return;
+            }
+            if (document.getElementById('modal-cs-items').classList.contains('modal-active')) {
+                closeModal('modal-cs-items'); return;
+            }
+            window.location.href = '/admin';
+        });
+
+        function goBack() { window.location.href = '/admin'; }
+        
+        function switchTab(t) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden'));
+            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+            document.getElementById('tab-' + t).classList.remove('hidden');
+            document.getElementById('tab-btn-' + t).classList.add('active');
+            
+            if(t === 'list') loadGiveaways(); 
+            if(t === 'pool') loadPoolItems();
+        }
+
+        // --- ЗАГРУЗКА И СОХРАНЕНИЕ АВТО-НАСТРОЕК ---
+        async function loadAutoSettings() {
+            try {
+                const res = await fetch('/api/v1/admin/comment_giveaways/settings/get');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'success' && data.data) {
+                        document.getElementById('auto_toggle_enabled').checked = data.data.is_auto_giveaway_enabled || false;
+                        document.getElementById('auto_chance').value = data.data.auto_gw_chance || 100;
+                        document.getElementById('auto_min_msg').value = data.data.auto_gw_min_msg || 10;
+                        document.getElementById('auto_max_msg').value = data.data.auto_gw_max_msg || 25;
+                        document.getElementById('auto_reply_text').value = data.data.auto_gw_reply_text || '🎉 Поздравляем! Твой комментарий оказался счастливым! Скин отправлен в инвентарь.';
+                    }
+                }
+            } catch(e) { console.log('Ошибка предзагрузки', e); }
+        }
+
+        async function submitAutoSettings() {
+            const chanceVal = parseInt(document.getElementById('auto_chance').value);
+            if (chanceVal < 1 || chanceVal > 100 || isNaN(chanceVal)) {
+                showCustomAlert('Ошибка', 'Шанс должен быть от 1 до 100%');
+                return;
+            }
+
+            const payload = {
+                is_enabled: document.getElementById('auto_toggle_enabled').checked,
+                chance: chanceVal,
+                min_msg: parseInt(document.getElementById('auto_min_msg').value),
+                max_msg: parseInt(document.getElementById('auto_max_msg').value),
+                reply_text: document.getElementById('auto_reply_text').value
+            };
+
+            tg.MainButton.showProgress();
+            try {
+                const res = await fetch('/api/v1/admin/comment_giveaways/settings/update', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    showCustomAlert('Успех!', 'Настройки сохранены.');
+                }
+            } catch (error) {
+                showCustomAlert('Ошибка', 'Проверьте соединение');
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        // --- УПРАВЛЕНИЕ ПУЛОМ И МАССОВЫЙ ВЫБОР СКИНА ---
+        let allCSItems = [];
+        let selectedCSItemIds = new Set();
+
+        async function loadPoolItems() {
+            const container = document.getElementById('pool-list-container');
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка...</div>';
+            
+            try {
+                const res = await fetch('/api/v1/admin/comment_giveaways/pool');
+                const result = await res.json();
+                
+                if (result.status === 'success') {
+                    if(result.data.length === 0) {
+                        container.innerHTML = '<div style="text-align:center; opacity:0.5; padding:20px;">Пул пуст</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    result.data.forEach(item => {
+                        const img = item.image_url ? `<img src="${item.image_url}" class="pool-img">` : `<div class="pool-img"></div>`;
+                        html += `
+                        <div class="pool-item">
+                            <div class="pool-item-info">
+                                ${img}
+                                <div>
+                                    <div class="pool-name">${item.name}</div>
+                                    <div class="pool-id-tag">ID: ${item.item_id} | ${item.price}₽</div>
+                                </div>
+                            </div>
+                            <button class="btn-icon" onclick="removePoolItem(${item.pool_id})">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                }
+            } catch(e) { 
+                container.innerHTML = '<p style="text-align:center; color:#ff4d4d;">Ошибка загрузки</p>';
+            }
+        }
+
+        async function openCSModal() {
+            const m = document.getElementById('modal-cs-items');
+            m.classList.add('modal-active');
+            
+            const list = document.getElementById('cs-items-list');
+            list.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка склада...</div>';
+            
+            selectedCSItemIds.clear(); 
+            updateAddButtonState();
+
+            try {
+                const res = await fetch('/api/v1/admin/comment_giveaways/available_cs_items');
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    allCSItems = data.data;
+                    sortCSItems(document.getElementById('cs_sort_select').value);
+                } else {
+                    list.innerHTML = '<div style="text-align:center; color:var(--danger);">Ошибка базы данных</div>';
+                }
+            } catch(e) {
+                list.innerHTML = '<div style="text-align:center; color:var(--danger);">Ошибка сети</div>';
+            }
+        }
+
+        function sortCSItems(direction) {
+            if (!allCSItems || allCSItems.length === 0) {
+                document.getElementById('cs-items-list').innerHTML = '<div style="text-align:center; color:var(--danger); padding:20px;">Нет предметов на складе!</div>';
+                return;
+            }
+
+            allCSItems.sort((a, b) => {
+                const priceA = parseFloat(a.price) || 0;
+                const priceB = parseFloat(b.price) || 0;
+                return direction === 'desc' ? priceB - priceA : priceA - priceB;
+            });
+
+            renderCSItemsList();
+        }
+
+        function renderCSItemsList() {
+            const list = document.getElementById('cs-items-list');
+            let html = '';
+            
+            allCSItems.forEach(item => {
+                const img = item.image_url ? `<img src="${item.image_url}" class="pool-img">` : `<div class="pool-img"></div>`;
+                const isSelected = selectedCSItemIds.has(item.id);
+                const activeClass = isSelected ? 'selected' : '';
+                
+                html += `
+                <div class="select-item ${activeClass}" id="cs-item-${item.id}" onclick="toggleCSItemSelect(${item.id})">
+                    <div class="pool-item-info">
+                        ${img}
+                        <div>
+                            <div class="pool-name">${item.name}</div>
+                            <div class="pool-id-tag">ID: ${item.id} | <b>${item.price}₽</b></div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right chevron-icon" style="color:var(--text-sec)"></i>
+                    <i class="fa-solid fa-circle-check check-icon"></i>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        function toggleCSItemSelect(id) {
+            const el = document.getElementById(`cs-item-${id}`);
+            if (selectedCSItemIds.has(id)) {
+                selectedCSItemIds.delete(id);
+                el.classList.remove('selected');
+            } else {
+                selectedCSItemIds.add(id);
+                el.classList.add('selected');
+            }
+            tg.HapticFeedback.selectionChanged();
+            updateAddButtonState();
+        }
+
+        function updateAddButtonState() {
+            const btn = document.getElementById('btn-add-selected');
+            const count = selectedCSItemIds.size;
+            btn.innerText = `Добавить выбранные (${count})`;
+            btn.disabled = count === 0;
+        }
+
+        async function addSelectedPoolItems() {
+            if (selectedCSItemIds.size === 0) return;
+            
+            tg.MainButton.showProgress();
+            const btn = document.getElementById('btn-add-selected');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Добавляем...';
+            btn.disabled = true;
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const id of selectedCSItemIds) {
+                try {
+                    const res = await fetch('/api/v1/admin/comment_giveaways/pool/add', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({item_id: id})
+                    });
+                    if (res.ok) successCount++;
+                    else errorCount++;
+                } catch(e) { errorCount++; }
+            }
+
+            tg.MainButton.hideProgress();
+            closeModal('modal-cs-items');
+            loadPoolItems();
+
+            if (errorCount === 0) {
+                tg.HapticFeedback.notificationOccurred('success');
+                showCustomAlert('Успех', `Все предметы (${successCount} шт.) добавлены в пул!`);
+            } else {
+                tg.HapticFeedback.notificationOccurred('warning');
+                showCustomAlert('Внимание', `Добавлено: ${successCount}. Ошибок (или дубликатов): ${errorCount}.`);
+            }
+        }
+
+        async function removePoolItem(poolId) {
+            showConfirm('Удалить скин?', 'Он больше не будет выпадать в авто-розыгрышах.', async () => {
+                try {
+                    const res = await fetch('/api/v1/admin/comment_giveaways/pool/remove', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({pool_id: poolId})
+                    });
+                    if(res.ok) {
+                        tg.HapticFeedback.selectionChanged();
+                        loadPoolItems();
+                    }
+                } catch(e) { showCustomAlert('Ошибка', 'Сбой сети'); }
+            });
+        }
+
+        // --- РУЧНОЙ ЗАПУСК И СПИСОК АКТИВНЫХ ---
+        async function submitManualGiveaway() {
+            const payload = {
+                post_id: parseInt(document.getElementById('manual_post_id').value),
+                min_messages: parseInt(document.getElementById('manual_min_msg').value),
+                max_messages: parseInt(document.getElementById('manual_max_msg').value),
+                reply_text: "🎉 Поздравляем! Твой комментарий оказался счастливым! CS2 предмет отправлен в инвентарь."
+            };
+
+            tg.MainButton.showProgress();
+            try {
+                const res = await fetch('/api/admin/comment_giveaways/create', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    showCustomAlert('Успех!', `Сработает на ${data.target_message}-м юзере.`);
+                    document.getElementById('create-form').reset(); 
+                    switchTab('list'); 
+                } else {
+                    showCustomAlert('Ошибка', 'Проверьте, есть ли скины в пуле!');
+                }
+            } catch (error) { showCustomAlert('Ошибка', 'Сбой сети'); } 
+            finally { tg.MainButton.hideProgress(); }
+        }
+
+        async function loadGiveaways() {
+    const container = document.getElementById('list-container');
+    container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-sec);"><i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...</div>';
+    
+    try {
+        const res = await fetch('/api/admin/comment_giveaways/list');
+        const result = await res.json();
+        
+        if (result.status === 'success') {
+            const activeList = result.data ? result.data.filter(item => item.is_active === true) : [];
+            if(activeList.length === 0) {
+                container.innerHTML = '<div style="text-align:center; opacity:0.5; padding:40px;">Нет активных розыгрышей</div>';
+                return;
+            }
+            
+            let html = '';
+            activeList.forEach(item => {
+                const usersCount = item.unique_user_ids ? item.unique_user_ids.length : 0;
+                html += `
+                <div class="giveaway-card">
+                    <div class="card-header">
+                        <div class="card-title">Пост #${item.post_id}</div>
+                        <div class="status-badge">Активен</div>
+                    </div>
+                    <div class="card-info">
+                        Награда: <span>Скин (ID: ${item.item_id || 'Авто'})</span><br>
+                        Нужно юзеров: <span>${item.target_users || item.target_message}</span><br>
+                        Собрано: <span>${usersCount} уникальных</span>
+                    </div>
+                    <button onclick="manualAddUser(${item.post_id})" class="btn-danger btn-add"><i class="fa-solid fa-user-plus"></i> Добавить</button>
+                    <button onclick="forceCloseGiveaway(${item.post_id})" class="btn-danger"><i class="fa-solid fa-flag-checkered"></i> Завершить</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        } else {
+            // 🔥 ВМЕСТО ВЕЧНОЙ ЗАГРУЗКИ ВЫВОДИМ ТЕКСТ ОШИБКИ ИЗ БАЗЫ
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger);"><b>Ошибка бэкенда:</b><br>${result.message}</div>`;
+        }
+    } catch(e) { 
+        container.innerHTML = '<p style="text-align:center; color:#ff4d4d;">Ошибка соединения с сервером</p>'; 
+    }
+}
+
+        async function manualAddUser(postId) {
+            const identifier = window.prompt("Введите @username или цифровой ID участника:");
+            if (!identifier) return;
+            try {
+                const res = await fetch('/api/v1/admin/comment_giveaways/add_user', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ post_id: postId, user_id: identifier.trim() })
+                });
+                if (res.ok) {
+                    showCustomAlert('Готово!', (await res.json()).message);
+                    loadGiveaways();
+                } else { showCustomAlert('Ошибка', (await res.json()).detail); }
+            } catch(e) { showCustomAlert('Ошибка', 'Сбой сети'); }
+        }
+
+        async function forceCloseGiveaway(postId) {
+            showConfirm('Завершить?', 'Будет выбран победитель и выдан предмет.', async () => {
+                try {
+                    const res = await fetch('/api/v1/admin/raffles/force_close', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({post_id: postId})
+                    });
+                    if(res.ok) {
+                        showCustomAlert('Готово!', 'Завершено');
+                        loadGiveaways();
+                    }
+                } catch(e) {}
+            });
+        }
+
+        // --- Utils Modal ---
+        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        function showCustomAlert(title, msg) {
+            const m = document.getElementById('modal-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('alert-ok').onclick = () => m.classList.remove('modal-active');
+            document.getElementById('alert-cancel').classList.add('hidden');
+            m.classList.add('modal-active');
+        }
+        function showConfirm(title, msg, onYes) {
+            const m = document.getElementById('modal-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('alert-cancel').classList.remove('hidden');
+            document.getElementById('alert-cancel').onclick = () => m.classList.remove('modal-active');
+            document.getElementById('alert-ok').onclick = () => { onYes(); m.classList.remove('modal-active'); };
+            m.classList.add('modal-active');
+        }
+
+        // Init
+        loadAutoSettings();
+    </script>
+</body>
+</html>

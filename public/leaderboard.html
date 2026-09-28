@@ -1,0 +1,1312 @@
+<!DOCTYPE html> 
+<html lang="ru"> 
+<head>
+  <meta charset="UTF-8" />
+  <title>Лидерборд</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+  
+<style>
+    /* ========================================== */
+    /* 🔥 LIQUID GLASS VARIABLES (Из SPA Профиля) */
+    /* ========================================== */
+    :root {
+      --bg-color: #050505;
+      --surface-color: rgba(255, 255, 255, 0.02);
+      --text-color: #ffffff;
+      --text-color-muted: #8e8e93;
+      --tg-color: #0088cc;
+      --twitch-color: #9146ff;
+      --gold-glow: #ffd700;
+      --silver-glow: #c0c0c0;
+      --bronze-glow: #cd7f32;
+      --accent-green: #34c759;
+      --danger-color: rgba(255, 69, 58, 0.9);
+      
+      /* Glassmorphism */
+      --glass-bg: rgba(18, 18, 20, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+      --glass-blur: blur(25px);
+    }
+
+   /* === ✅ ГЛАВНЫЙ ФИКС СКРОЛЛА === */
+    html, body {
+        margin: 0; padding: 0; width: 100%;
+        height: var(--tg-viewport-height, 100%); 
+        position: fixed; 
+        overflow: hidden; 
+        overscroll-behavior-y: none;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+        display: flex; flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* === ✅ КОНТЕЙНЕР ДЛЯ КОНТЕНТА === */
+    #main-content {
+        height: 100%; 
+        flex: 1; 
+        min-height: 0; 
+        overflow-y: auto !important; 
+        -webkit-overflow-scrolling: touch; 
+        position: relative; z-index: 10;
+        display: block; box-sizing: border-box; 
+        padding: 15px 15px 120px 15px; 
+    }
+
+    /* 🔥 ИЗЯЩНЫЙ ФИКС ЛИНИИ СКРОЛЛА КАК В SPA 🔥 */
+    #main-content::-webkit-scrollbar {
+        width: 6px;
+        background: transparent;
+    }
+    #main-content::-webkit-scrollbar-track {
+        background: transparent;
+        margin-top: 15px;
+        margin-bottom: 90px;
+    }
+    #main-content::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.25);
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background-clip: content-box;
+    }
+    #main-content::-webkit-scrollbar-thumb:hover,
+    #main-content::-webkit-scrollbar-thumb:active {
+        background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* === ✅ КРУТИЛКА ОБНОВЛЕНИЯ === */
+    #pull-to-refresh {
+        position: fixed; top: -80px; left: 0; width: 100%; height: 80px;
+        display: flex; justify-content: center; align-items: center; 
+        z-index: 2000; pointer-events: none; will-change: transform;
+    }
+    #pull-to-refresh i {
+        font-size: 24px; color: #FFD700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    }
+
+    /* --- СУПЕР КОМПАКТНАЯ PREMIUM BLACK GLASS PANEL --- */
+    .glass-panel {
+        background: linear-gradient(180deg, rgba(15,15,15,0.9) 0%, rgba(10,10,12,0.7) 100%);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: var(--glass-shadow);
+        padding: 10px; /* Уменьшили отступы */
+        margin-bottom: 12px;
+        position: relative; overflow: hidden;
+    }
+
+    .header-controls { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2; }
+    .header-controls h2 { margin: 0; font-size: 14px; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .refresh-button, .toggle-btn { background: none; border: none; color: var(--text-color-muted); cursor: pointer; padding: 0; font-size: 16px; transition: color 0.2s ease, transform 0.2s ease; }
+    .refresh-button:active, .toggle-btn:active { transform: scale(0.9); }
+    .refresh-button:hover, .toggle-btn:hover { color: #fff; }
+    .hidden { display: none !important; }
+
+    .panel-body {
+        transition: max-height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease, margin-top 0.3s ease;
+        max-height: 500px; opacity: 1; overflow: hidden; margin-top: 10px; position: relative; z-index: 2;
+    }
+    .panel-body.collapsed { max-height: 0; opacity: 0; margin-top: 0; }
+
+    /* Премиальные кнопки Source (Компактные) */
+    .source-switcher { 
+        display: flex; background-color: rgba(255, 255, 255, 0.03); border-radius: 10px; padding: 2px; 
+        border: 1px solid var(--glass-border); margin-bottom: 8px; 
+    }
+    .source-switcher button { 
+        flex: 1; padding: 6px; border: 1px solid transparent; background-color: transparent; 
+        color: var(--text-color-muted); font-size: 11px; font-weight: 800; border-radius: 8px; 
+        cursor: pointer; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        display: flex; align-items: center; justify-content: center; gap: 4px; 
+    }
+    .source-switcher button.active.telegram { 
+        color: #0088cc; background: rgba(0, 136, 204, 0.15); border: 1px solid rgba(0, 136, 204, 0.3); text-shadow: 0 0 10px rgba(0, 136, 204, 0.4);
+    }
+    .source-switcher button.active.twitch { 
+        color: #9146ff; background: rgba(145, 70, 255, 0.15); border: 1px solid rgba(145, 70, 255, 0.3); text-shadow: 0 0 10px rgba(145, 70, 255, 0.4);
+    }
+    .source-switcher button.active.combined { 
+        color: #ff9500; background: rgba(255, 149, 0, 0.15); border: 1px solid rgba(255, 149, 0, 0.3); text-shadow: 0 0 10px rgba(255, 149, 0, 0.4);
+    }
+
+    /* Премиальные кнопки Периодов (Компактные) */
+    .period-buttons { 
+        display: flex; gap: 4px; background-color: rgba(255, 255, 255, 0.03); border-radius: 8px; 
+        padding: 2px; border: 1px solid var(--glass-border); margin-bottom: 8px; 
+    }
+    .period-buttons button {
+        flex: 1; width: 100%; background-color: transparent; border: 1px solid transparent;
+        color: var(--text-color-muted); font-size: 10px; font-weight: 800; padding: 4px; border-radius: 6px; 
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .period-buttons button.active { 
+        color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+    .period-buttons.twitch-active button.active { 
+        background: rgba(145, 70, 255, 0.15); border: 1px solid rgba(145, 70, 255, 0.3); color: #d3a1ff;
+    }
+    .period-buttons.combined-active button.active { 
+        background: rgba(255, 149, 0, 0.15); border: 1px solid rgba(255, 149, 0, 0.3); color: #ffcc00;
+    }
+
+    /* Блок Вы и Ваш результат (Компактный) */
+    .personal-stats-container {
+        margin-top: 0; padding: 8px 10px; 
+        border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.03); border-radius: 10px;
+        display: flex; align-items: center; gap: 10px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    }
+    .personal-avatar {
+        width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+        display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+    }
+    .personal-avatar.tg { color: #0088cc; text-shadow: 0 0 10px rgba(0, 136, 204, 0.6); }
+    .personal-avatar.tw { color: #9146ff; text-shadow: 0 0 10px rgba(145, 70, 255, 0.6); }
+    .personal-avatar.cb { color: #ff9500; text-shadow: 0 0 10px rgba(255, 149, 0, 0.6); }
+    .personal-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    
+    /* Стили текста удалены отсюда, так как теперь мы инжектим HTML с никами напрямую через JS */
+    .personal-value { font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; margin-top: 2px; }
+    .personal-value span { font-weight: 900; font-size: 11px; color: var(--accent-green); text-shadow: 0 0 10px rgba(52, 199, 89, 0.3); }
+
+    /* Ультра-компактный лидерборд (Стиль таблицы) */
+    table { width: 100%; border-collapse: collapse; background-color: transparent; border-radius: 8px; overflow: hidden; font-size: 12px; }
+    th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--glass-border); }
+    th { background-color: rgba(255,255,255,0.03); color: var(--text-color-muted); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+    td.rank { width: 24px; text-align: center; font-weight: 900; font-size: 14px; }
+    td.username { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; color: rgba(255,255,255,0.9); }
+    td.reward-col { width: 42px; text-align: center; }
+    td.count { text-align: right; font-family: monospace; font-weight: 800; color: var(--text-color-muted); font-size: 13px; }
+
+    .admin-gear-btn { background: transparent; border: none; color: rgba(255, 255, 255, 0.3); font-size: 14px; cursor: pointer; padding: 0 8px; transition: 0.2s; }
+    .admin-gear-btn:active { transform: scale(0.9); }
+    .admin-gear-btn:hover { color: #fff; }
+
+    /* --- МОДАЛЬНЫЕ ОКНА (OVERLAY ИЗ SPA) --- */
+    .gift-modal-overlay { 
+        display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+        background: rgba(0,0,0,0.7); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); 
+        z-index: 100000; opacity: 1; transition: opacity 0.3s ease; 
+    }
+    
+    /* 🔥 Оверрайды для админ-модалки, которая инжектится через JS 🔥 */
+    .admin-modal-box {
+        background: var(--glass-bg) !important;
+        backdrop-filter: var(--glass-blur) !important;
+        -webkit-backdrop-filter: var(--glass-blur) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 24px !important;
+        box-shadow: var(--glass-shadow) !important;
+        padding: 24px !important;
+    }
+    .custom-confirm-box { 
+        background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 24px; 
+        padding: 20px; text-align: center; box-shadow: var(--glass-shadow); 
+    }
+      
+    .leader-reward-img { width: 22px; height: 22px; vertical-align: middle; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); transition: 0.2s; }
+    .leader-reward-img:active { transform: scale(0.9); }
+
+    /* PREVIEW OVERLAY (Адаптация Fullscreen Weapon) */
+    #reward-preview-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 200000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: opacity 0.3s; }
+    .reward-preview-box { text-align: center; padding: 20px; }
+    .reward-preview-box img { width: 220px; height: 220px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 10px 40px rgba(255,255,255,0.2)); transform: scale(1.15); }
+    .reward-preview-box h2 { color: #FFD700; font-size: 28px; margin-bottom: 5px; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+    .reward-preview-box p { color: #fff; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+    .close-preview { position: absolute; top: max(env(safe-area-inset-top, 24px) + 20px, 40px); right: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 200001; transition: 0.2s; }
+    .close-preview:active { transform: scale(0.9); }
+      
+    .admin-row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .admin-select, .admin-input { 
+        width: 100%; background: rgba(0,0,0,0.5) !important; border: 1px solid var(--glass-border) !important;
+        color: #fff !important; padding: 10px 12px !important; border-radius: 10px !important; font-size: 12px !important; outline: none !important;
+        box-sizing: border-box; transition: 0.3s;
+    }
+    
+    /* Кнопки модалок в стиле iOS */
+    .confirm-btn {
+        border-radius: 12px !important; font-size: 13px !important; font-weight: 800 !important; 
+        text-transform: uppercase !important; cursor: pointer !important; transition: 0.2s !important; backdrop-filter: blur(5px) !important;
+    }
+    .confirm-btn:active { transform: scale(0.95); }
+    .btn-buy { background: rgba(52, 199, 89, 0.1) !important; border: 1px solid rgba(52, 199, 89, 0.2) !important; color: #34c759 !important; text-shadow: 0 0 10px rgba(52, 199, 89, 0.4) !important; }
+    .btn-cancel-modal { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid var(--glass-border) !important; color: var(--text-color-muted) !important; }
+    .btn-yellow-modal { background: rgba(255, 215, 0, 0.1) !important; border: 1px solid rgba(255, 215, 0, 0.2) !important; color: #ffd700 !important; text-shadow: 0 0 10px rgba(255, 215, 0, 0.4) !important; }
+      
+    /* 🔥 НЕОНОВЫЕ СВЕЧЕНИЯ ТОП-ОВ 🔥 */
+    #leaderboardBody tr { transition: background 0.3s; }
+    #leaderboardBody tr:active { background: rgba(255,255,255,0.05); }
+    #leaderboardBody tr.top-1 { background: radial-gradient(circle at 0% 50%, rgba(255, 215, 0, 0.15) 0%, transparent 60%); border-left: 3px solid #ffd700; } 
+    #leaderboardBody tr.top-2 { background: radial-gradient(circle at 0% 50%, rgba(235, 75, 75, 0.12) 0%, transparent 60%); border-left: 3px solid #eb4b4b; } 
+    #leaderboardBody tr.top-3 { background: radial-gradient(circle at 0% 50%, rgba(211, 44, 230, 0.10) 0%, transparent 60%); border-left: 3px solid #d32ce6; } 
+    #leaderboardBody tr.top-4 { background: radial-gradient(circle at 0% 50%, rgba(136, 71, 255, 0.08) 0%, transparent 60%); border-left: 3px solid #8847ff; } 
+    #leaderboardBody tr.top-5 { background: radial-gradient(circle at 0% 50%, rgba(75, 105, 255, 0.06) 0%, transparent 60%); border-left: 3px solid #4b69ff; } 
+    #leaderboardBody tr.top-6 { background: radial-gradient(circle at 0% 50%, rgba(94, 152, 217, 0.04) 0%, transparent 60%); border-left: 3px solid #5e98d9; } 
+
+    #leaderboardBody tr.top-1 .rank { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
+    #leaderboardBody tr.top-2 .rank { color: #eb4b4b; text-shadow: 0 0 10px rgba(235, 75, 75, 0.6); }
+    #leaderboardBody tr.top-3 .rank { color: #d32ce6; text-shadow: 0 0 10px rgba(211, 44, 230, 0.6); }
+    #leaderboardBody tr.top-4 .rank { color: #8847ff; font-weight: 900; }
+    #leaderboardBody tr.top-5 .rank { color: #4b69ff; font-weight: 900; }
+    #leaderboardBody tr.top-6 .rank { color: #5e98d9; font-weight: 900; }
+    
+    #leaderboardBody tr.top-1 .count { color: #ffd700; }
+    #leaderboardBody tr.top-2 .count { color: #eb4b4b; }
+    #leaderboardBody tr.top-3 .count { color: #d32ce6; }
+
+    .loader { margin-top: 30px; color: var(--text-color-muted); text-align: center; font-size: 14px; font-weight: 800; animation: pulse-opacity 1.5s infinite; }
+    @keyframes pulse-opacity { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+    /* Адаптация нижнего меню под стиль SPA */
+    .app-footer {
+        display: flex; justify-content: space-around; align-items: center;
+        background: linear-gradient(0deg, rgba(10,10,12,0.95) 0%, rgba(15,15,15,0.8) 100%); 
+        backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+        border-top: 1px solid var(--glass-border);
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
+        position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
+        padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        box-sizing: border-box; height: auto;
+    }
+    .footer-item {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        color: #8E8E93; text-decoration: none; flex: 1; cursor: pointer;
+        background: transparent; border: none; padding: 0; margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 10px; line-height: 1; font-weight: 500; transition: all 0.2s ease;
+    }
+    .footer-item .icon-wrapper {
+        display: flex; justify-content: center; align-items: center;
+        width: 24px; height: 24px; font-size: 22px; position: relative;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+    .footer-item.active { color: #FFFFFF; }
+    .footer-item.active span { font-weight: 800; }
+    .footer-item.active .icon-wrapper { color: var(--theme-color, #ffffff); transform: translateY(-2px); text-shadow: 0 0 12px var(--theme-color-shadow, rgba(255,255,255,0.4)); }
+    .footer-item.active .icon-wrapper::before {
+        content: ''; position: absolute; top: -8px; width: 24px; height: 3px;
+        background-color: var(--theme-color, #ffffff); border-radius: 4px; box-shadow: 0 0 8px var(--theme-color-glow, rgba(255,255,255,0.6));
+    }
+    
+    #app-container { padding-top: 0px !important; box-sizing: border-box !important; }
+
+    #twitch-period-buttons button[data-period="session"] { order: 1; }
+    #twitch-period-buttons button[data-period="week"]    { order: 2; }
+    #twitch-period-buttons button[data-period="month"]   { order: 3; }
+    #twitch-period-buttons button[data-period="global"]  { order: 4; }
+
+</style>
+</head>
+<body>
+
+  <main id="main-content">
+
+    <div id="pull-to-refresh">
+        <i class="fa-solid fa-rotate-right"></i>
+    </div>
+
+    <div class="glass-panel">
+        
+        <div class="header-controls">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <h2>ТОП ПО АКТИВНОСТИ</h2>
+                <button class="admin-gear-btn hidden admin-gear-icon" onclick="openAdminRewards()"><i class="fa-solid fa-gear"></i></button>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="refresh-button"><i class="fas fa-sync-alt"></i></button>
+                <button class="toggle-btn" id="toggle-panel-btn"><i class="fa-solid fa-chevron-up"></i></button>
+            </div>
+        </div>
+
+        <div id="panel-body" class="panel-body">
+            <div class="source-switcher">
+                <!-- Вкладка ОБЩАЯ теперь по умолчанию на первом месте -->
+                <button data-source="combined" class="active combined"><i class="fa-solid fa-users"></i> Общая</button>
+                <button data-source="telegram" class="telegram"><i class="fa-brands fa-telegram"></i> Telegram</button>
+                <button data-source="twitch" class="twitch"><i class="fa-brands fa-twitch"></i> Twitch</button>
+            </div>
+
+            <div class="period-buttons hidden" id="telegram-periods">
+                <button data-period="day" class="active">День</button>
+                <button data-period="week">Неделя</button>
+                <button data-period="month">Месяц</button>
+                <button data-period="all">Всё время</button>
+            </div>
+
+            <div class="period-buttons combined-active" id="combined-periods">
+                <button data-period="day" class="active">День</button>
+                <button data-period="week">Неделя</button>
+                <button data-period="month">Месяц</button>
+                <button data-period="all">Всё время</button>
+            </div>
+
+            <div class="period-buttons hidden twitch-controls" id="twitch-metric-buttons">
+                <button data-metric="message" class="active">Сообщения</button>
+                <button data-metric="uptime">Время</button>
+                <button data-metric="ranks">Ранги</button>
+            </div>
+
+            <div class="period-buttons hidden twitch-controls twitch-active" id="twitch-period-buttons">
+                <button data-period="session" class="active">Сессия</button>
+                <button data-period="week">Неделя</button>
+                <button data-period="month">Месяц</button>
+                <button data-period="global">Всё время</button>
+            </div>
+
+            <div id="info-box-telegram" class="hidden">
+                <div class="personal-stats-container" id="personal-telegram">
+                    <div class="personal-avatar tg"><i class="fa-brands fa-telegram"></i></div>
+                    <div class="personal-info">
+                        <span class="personal-name" id="tg-user-name">Загрузка...</span>
+                        <span class="personal-value" id="tg-user-stat">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="info-box-twitch" class="hidden">
+                <div class="personal-stats-container" id="personal-twitch">
+                    <div class="personal-avatar tw"><i class="fa-brands fa-twitch"></i></div>
+                    <div class="personal-info">
+                        <span class="personal-name" id="twitch-user-name">Загрузка...</span>
+                        <span class="personal-value" id="twitch-user-stat">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="info-box-combined">
+                <div class="personal-stats-container" id="personal-combined">
+                    <div class="personal-avatar cb"><i class="fa-solid fa-users"></i></div>
+                    <div class="personal-info">
+                        <span class="personal-name" id="cb-user-name">Загрузка...</span>
+                        <span class="personal-value" id="cb-user-stat">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <table>
+<thead>
+  <tr>
+    <th style="text-align: center;">#</th>
+    <th>Пользователь</th>
+    <th id="table-header-activity" style="text-align: center;">Сообщений</th> <th style="text-align: right;">Награда</th>
+  </tr>
+</thead>
+      <tbody id="leaderboardBody"></tbody>
+    </table>
+    <div id="loader" class="loader"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> Загрузка данных...</div>
+  
+  </main> 
+
+
+<div id="reward-preview-overlay" class="hidden">
+    <div class="close-preview" onclick="closeRewardPreview()"><i class="fa-solid fa-xmark"></i></div>
+    <div class="reward-preview-box">
+        <h2 id="prev-rank-title">1 МЕСТО</h2>
+        <img id="prev-img" src="">
+        <p id="prev-name">Награда</p>
+    </div>
+</div>
+
+<div id="admin-rewards-modal" class="gift-modal-overlay hidden" style="z-index: 100000;">
+    <div class="custom-confirm-box" style="width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto;">
+        <h3 class="confirm-title">Настройки Лидерборда</h3>
+        
+        <div id="rewards-form" style="text-align: left; display: flex; flex-direction: column; margin-top: 15px;">
+            </div>
+
+        <div class="confirm-buttons" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <button class="confirm-btn btn-buy" onclick="issueRewardsNow()" style="width: 100%; background: #34c759; color: #fff; font-weight: 800;">ВЫДАТЬ НАГРАДЫ ТЕКУЩЕМУ ТОП-3</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="confirm-btn btn-cancel-modal" style="flex:1;" onclick="document.getElementById('admin-rewards-modal').classList.add('hidden')">Отмена</button>
+                <button class="confirm-btn btn-yellow-modal" style="flex:1;" onclick="saveAdminRewards()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+  
+  <script src="/top_nav.js" defer></script>
+  <script src="/bottom-nav.js"></script>
+
+<script>
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+
+  window.makeApiRequest = async function(url, body = {}, method = 'GET', isSilent = false) {
+    try {
+        if (method !== 'GET' && method !== 'HEAD') {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                body.initData = window.Telegram.WebApp.initData;
+            }
+        }
+        
+        const options = {
+            method: method,
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': window.Telegram?.WebApp?.initData ? `Bearer ${window.Telegram.WebApp.initData}` : ''
+            }
+        };
+        
+        if (method !== 'GET' && method !== 'HEAD') {
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`🔥 Ошибка запроса к ${url}:`, error);
+        if (!isSilent && window.customAlert) {
+            window.customAlert("Произошла ошибка при обращении к серверу.");
+        }
+        throw error;
+    }
+};
+
+  const dom = {
+    sourceButtons: document.querySelectorAll('.source-switcher button'),
+    leaderboardBody: document.getElementById('leaderboardBody'),
+    loader: document.getElementById('loader'),
+    tableHeader: document.getElementById('table-header-activity'),
+    infoBoxTwitch: document.getElementById('info-box-twitch'),
+    infoBoxTelegram: document.getElementById('info-box-telegram'),
+    infoBoxCombined: document.getElementById('info-box-combined'),
+    refreshButtons: document.querySelectorAll('.refresh-button'),
+    
+    telegramPeriods: document.getElementById('telegram-periods'),
+    combinedPeriods: document.getElementById('combined-periods'),
+    twitchMetricButtons: document.getElementById('twitch-metric-buttons'),
+    twitchPeriodButtons: document.getElementById('twitch-period-buttons'),
+    
+    telegramPeriodButtons: document.querySelectorAll('#telegram-periods button'),
+    combinedPeriodButtons: document.querySelectorAll('#combined-periods button'),
+    twitchMetricButtonList: document.querySelectorAll('#twitch-metric-buttons button'),
+    twitchPeriodButtonList: document.querySelectorAll('#twitch-period-buttons button'),
+
+    tgUserName: document.getElementById('tg-user-name'),
+    tgUserStat: document.getElementById('tg-user-stat'),
+    twitchUserName: document.getElementById('twitch-user-name'),
+    twitchUserStat: document.getElementById('twitch-user-stat'),
+    cbUserName: document.getElementById('cb-user-name'),
+    cbUserStat: document.getElementById('cb-user-stat'),
+  };
+  
+  // 🔥 Изменен дефолтный source на 'combined' (Общая) 🔥
+  let state = {
+      source: 'combined', 
+      telegramPeriod: 'day',
+      combinedPeriod: 'day',
+      twitchMetric: 'message',
+      twitchPeriod: 'session',
+  };
+
+  let currentUser = null;
+
+  function haptic(style = 'light') {
+      if (Telegram.WebApp.HapticFeedback) {
+          Telegram.WebApp.HapticFeedback.impactOccurred(style);
+      }
+  }
+
+  const toggleBtn = document.getElementById('toggle-panel-btn');
+  const panelBody = document.getElementById('panel-body');
+  const toggleIcon = toggleBtn.querySelector('i');
+
+  const isCollapsed = localStorage.getItem('leaderboard_panel_collapsed') === 'true';
+  if (isCollapsed) {
+      panelBody.classList.add('collapsed');
+      toggleIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+      haptic('light');
+      const willCollapse = !panelBody.classList.contains('collapsed');
+      if (willCollapse) {
+          panelBody.classList.add('collapsed');
+          toggleIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+          localStorage.setItem('leaderboard_panel_collapsed', 'true');
+      } else {
+          panelBody.classList.remove('collapsed');
+          toggleIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+          localStorage.setItem('leaderboard_panel_collapsed', 'false');
+      }
+  });
+
+  async function loadCurrentUser() {
+      try {
+          const response = await fetch('/api/v1/user/me', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ initData: Telegram.WebApp.initData })
+          });
+          if (response.ok) {
+              currentUser = await response.json();
+          }
+      } catch (e) {
+          console.error("Ошибка загрузки профиля:", e);
+      }
+  }
+
+  // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ ВЫВОДА ВАШИХ ДАННЫХ 🔥
+  function updatePersonalStats(realTimeValue = null) {
+      const fallbackName = (Telegram.WebApp.initDataUnsafe?.user?.first_name) || 'Пользователь';
+      const tgName = currentUser ? (currentUser.full_name || currentUser.username) : fallbackName;
+      const twName = (currentUser && currentUser.twitch_login) ? currentUser.twitch_login : 'Не привязан';
+
+      // Единый красивый шаблон с двумя никами, как просили
+      const userNamesHtml = `
+          <div style="display:flex; flex-direction:column; gap:3px; margin-bottom:4px;">
+              <div style="display:flex; align-items:center; gap:4px; font-size:12px; color:#fff; font-weight:800; line-height:1;">
+                  <i class="fa-brands fa-telegram" style="color:#0088cc; font-size:11px;"></i> ${tgName}
+              </div>
+              <div style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-color-muted); font-weight:700; line-height:1;">
+                  <i class="fa-brands fa-twitch" style="color:#9146ff; font-size:11px;"></i> ${twName}
+              </div>
+          </div>
+      `;
+      
+      if (state.source === 'telegram') {
+          dom.tgUserName.innerHTML = userNamesHtml;
+          
+          let val = 0;
+          if (realTimeValue !== null) {
+              val = realTimeValue;
+          } else if (currentUser) {
+              if (state.telegramPeriod === 'day') val = currentUser.telegram_daily_message_count || 0;
+              else if (state.telegramPeriod === 'week') val = currentUser.telegram_weekly_message_count || 0;
+              else if (state.telegramPeriod === 'month') val = currentUser.telegram_monthly_message_count || 0;
+              else if (state.telegramPeriod === 'all') val = currentUser.telegram_total_message_count || 0;
+          }
+          dom.tgUserStat.innerHTML = `Ваш результат: <span>${val} сообщений</span>`;
+      } else if (state.source === 'combined') {
+          dom.cbUserName.innerHTML = userNamesHtml;
+          
+          let val = 0;
+          if (realTimeValue !== null) {
+              val = realTimeValue;
+          } else if (currentUser) {
+              if (state.combinedPeriod === 'day') val = (currentUser.telegram_daily_message_count || 0) + (currentUser.daily_message_count || 0);
+              else if (state.combinedPeriod === 'week') val = (currentUser.telegram_weekly_message_count || 0) + (currentUser.weekly_message_count || 0);
+              else if (state.combinedPeriod === 'month') val = (currentUser.telegram_monthly_message_count || 0) + (currentUser.monthly_message_count || 0);
+              else if (state.combinedPeriod === 'all') val = (currentUser.telegram_total_message_count || 0) + (currentUser.total_message_count || 0);
+          }
+          dom.cbUserStat.innerHTML = `Ваш результат: <span>${val} сообщений</span>`;
+      } else {
+          dom.twitchUserName.innerHTML = userNamesHtml;
+
+          if (currentUser && !currentUser.twitch_login) {
+              dom.twitchUserStat.innerHTML = `<a href="/profile" style="color:var(--twitch-color); text-decoration:none; font-weight:800; font-size:10px; display:inline-block; margin-top:2px;">Привязать профиль</a>`;
+              return;
+          }
+          
+          let val = 0;
+          let isFromTable = false;
+
+          if (realTimeValue !== null) {
+              val = realTimeValue;
+              isFromTable = true;
+          } else if (currentUser) {
+              if (state.twitchMetric === 'message') {
+                  if (state.twitchPeriod === 'session') val = currentUser.daily_message_count || 0;
+                  else if (state.twitchPeriod === 'week') val = currentUser.weekly_message_count || 0;
+                  else if (state.twitchPeriod === 'month') val = currentUser.monthly_message_count || 0;
+                  else val = currentUser.total_message_count || 0;
+              } else if (state.twitchMetric === 'uptime') {
+                  if (state.twitchPeriod === 'session') val = currentUser.daily_uptime_minutes || 0;
+                  else if (state.twitchPeriod === 'week') val = currentUser.weekly_uptime_minutes || 0;
+                  else if (state.twitchPeriod === 'month') val = currentUser.monthly_uptime_minutes || 0;
+                  else val = currentUser.total_uptime_minutes || 0;
+              }
+          }
+
+          if (state.twitchMetric === 'message') {
+              dom.twitchUserStat.innerHTML = `Ваш результат: <span>${val} сообщений</span>`;
+          } else if (state.twitchMetric === 'uptime') {
+              let displayVal = "";
+              if (isFromTable) {
+                  displayVal = formatUptime(val); 
+              } else {
+                  displayVal = formatUptime(val * 60);
+              }
+              dom.twitchUserStat.innerHTML = `Ваш результат: <span>${displayVal}</span>`;
+          } else {
+              dom.twitchUserStat.innerHTML = `<span>Ранги пока не отображаются</span>`;
+          }
+      }
+  }
+
+  function formatUptime(totalSeconds) {
+      if (totalSeconds < 60) return `~1 мин`;
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      let result = '';
+      if (hours > 0) result += `${hours} ч `;
+      if (minutes > 0) result += `${minutes} мин`;
+      return result.trim() || '0 мин';
+  }
+
+  function updateUI() {
+      dom.infoBoxTelegram.classList.toggle('hidden', state.source !== 'telegram');
+      dom.telegramPeriods.classList.toggle('hidden', state.source !== 'telegram');
+
+      dom.infoBoxCombined.classList.toggle('hidden', state.source !== 'combined');
+      dom.combinedPeriods.classList.toggle('hidden', state.source !== 'combined');
+      
+      dom.infoBoxTwitch.classList.toggle('hidden', state.source !== 'twitch');
+      dom.twitchMetricButtons.classList.toggle('hidden', state.source !== 'twitch');
+      
+      const showTwitchPeriods = state.source === 'twitch' && state.twitchMetric !== 'ranks';
+      dom.twitchPeriodButtons.classList.toggle('hidden', !showTwitchPeriods);
+
+      if (state.source === 'telegram' || state.source === 'combined') {
+          dom.tableHeader.textContent = 'Сообщений';
+      } else {
+          switch (state.twitchMetric) {
+              case 'message': dom.tableHeader.textContent = 'Сообщений'; break;
+              case 'uptime': dom.tableHeader.textContent = 'Время'; break;
+              case 'ranks': dom.tableHeader.textContent = 'Ранг (PTS)'; break;
+          }
+      }
+      updatePersonalStats(null);
+  }
+
+async function fetchAndRender() {
+    dom.leaderboardBody.innerHTML = '';
+    dom.loader.style.display = 'block';
+    dom.loader.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> Загрузка данных...';
+
+    let url = '';
+    if (state.source === 'telegram') {
+      url = `/api/v1/leaderboard?period=${state.telegramPeriod}`;
+    } else if (state.source === 'combined') {
+      url = `/api/v1/leaderboard/combined?period=${state.combinedPeriod}`;
+    } else {
+      if (state.twitchMetric === 'ranks') {
+        url = `/api/v1/leaderboard/wizebot?sub_type=ALL&limit=50`;
+      } else {
+        url = `/api/v1/leaderboard/wizebot/stats?metric=${state.twitchMetric}&period=${state.twitchPeriod}&limit=50`;
+      }
+    }
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Ошибка сети`);
+      const data = await response.json();
+      const leaderboardData = Array.isArray(data) ? data : data.leaderboard;
+
+      let myRealTimeStat = null;
+      let rawTgId = currentUser?.telegram_id || currentUser?.id || Telegram.WebApp.initDataUnsafe.user?.id;
+      const myTgIdStr = String(rawTgId); 
+      
+      if (Array.isArray(leaderboardData)) {
+          const myTwitchLogin = currentUser?.twitch_login?.toLowerCase();
+          const myUsername = currentUser?.username?.toLowerCase().replace('@', '');
+
+          const me = leaderboardData.find(entry => {
+              if (state.source === 'telegram' || state.source === 'combined') {
+                  const entryId = entry.telegram_id || entry.user_id || entry.id;
+                  if (entryId && String(entryId) === myTgIdStr) return true;
+                  const entryUser = entry.username?.toLowerCase().replace('@', '');
+                  if (entryUser && myUsername && entryUser === myUsername) return true;
+              }
+              if (state.source === 'twitch' && myTwitchLogin) {
+                  const entryName = (entry.user_name || entry.username || "").toLowerCase();
+                  if (entryName === myTwitchLogin) return true;
+              }
+              return false;
+          });
+          if (me) myRealTimeStat = me.total_activity ?? me.value ?? me.messages_count ?? 0;
+      }
+      
+      updatePersonalStats(myRealTimeStat);
+
+      const filteredLeaderboard = leaderboardData.filter(entry => {
+          const rawName = String(entry.full_name || entry.username || entry.user_name || '').toLowerCase().trim();
+          
+          // 🔥 ВЫРЕЗАЕМ ТЕБЯ ИЗ ЛИДЕРБОРДА
+          const entryId = String(entry.telegram_id || entry.user_id || entry.id);
+          if (entryId === '477521935') {
+              return false; // Если это твой ID — пропускаем и не рисуем
+          }
+
+          // Оригинальный фильтр системных имен
+          return !(rawName === 'channel' || rawName === 'telegram' || rawName === 'group');
+      });
+
+      if (!Array.isArray(filteredLeaderboard) || filteredLeaderboard.length === 0) {
+        dom.loader.textContent = 'Нет данных.';
+        return;
+      }
+
+      window.currentLeaderboardData = filteredLeaderboard;
+
+      filteredLeaderboard.forEach((entry, index) => {
+        const row = document.createElement('tr');
+        let rankContent = index + 1;
+        
+        if (index === 0) { row.classList.add('top-1'); rankContent = '🥇'; }  
+        else if (index === 1) { row.classList.add('top-2'); rankContent = '🥈'; }  
+        else if (index === 2) { row.classList.add('top-3'); rankContent = '🥉'; }
+        else if (index === 3) { row.classList.add('top-4'); }
+        else if (index === 4) { row.classList.add('top-5'); }
+        else if (index === 5) { row.classList.add('top-6'); }
+        
+      let rewardHtml = `<span style="opacity:0.05">•</span>`;
+      if (entry.reward) {
+          const r = entry.reward;
+          let displayTitle = r.value || '';
+          let modalImgUrl = r.image_url || '';
+
+          if (r.type === 'coins') {
+              displayTitle += ' Монет';
+              rewardHtml = `
+                  <div onclick="showRewardPreview('${index + 1}', '${displayTitle}', '${modalImgUrl}')" style="cursor: pointer; color: var(--gold-glow); display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; width: 100%;">
+                      <span style="font-family: 'SF Mono', monospace; font-weight: 700; font-size: 11px;">${r.value}</span>
+                      <i class="fa-solid fa-coins" style="font-size: 14px;"></i>
+                  </div>`;
+          } else if (r.type === 'tickets') {
+              displayTitle += ' Билетов';
+              rewardHtml = `
+                  <div onclick="showRewardPreview('${index + 1}', '${displayTitle}', '${modalImgUrl}')" style="cursor: pointer; color: var(--tg-color); display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; width: 100%;">
+                      <span style="font-family: 'SF Mono', monospace; font-weight: 700; font-size: 11px;">${r.value}</span>
+                      <i class="fa-solid fa-ticket" style="font-size: 14px;"></i>
+                  </div>`;
+          } else if (r.image_url) {
+              rewardHtml = `<img src="${r.image_url}" class="leader-reward-img" 
+                            onclick="showRewardPreview('${index + 1}', '${displayTitle}', '${r.image_url}')">`;
+          }
+      }
+
+      let name = String(entry.full_name || entry.username || entry.user_name || '...');
+      name = name.replace(/@[\w_]+|freeskins|ezzzskin|skinozbot|hatelavka|_bot/gi, '').trim();
+      name = name.replace(/^[.,\s]+|[.,\s]+$/g, '');
+      if (!name) name = 'Скрытое имя';
+
+      // Вытаскиваем Twitch ник, если он есть в данных
+      let twName = entry.twitch_login ? String(entry.twitch_login).trim() : '';
+
+      const isMe = String(entry.telegram_id || entry.user_id || entry.id) === myTgIdStr;
+      let value = entry.total_activity ?? entry.value ?? entry.messages_count ?? 0;
+      if (state.source === 'twitch' && state.twitchMetric === 'uptime') value = formatUptime(value);
+
+      row.innerHTML = `
+        <td class="rank">${rankContent}</td>
+        <td class="username">
+          <div style="display: flex; flex-direction: column; gap: 3px; justify-content: center;">
+            <div style="font-size: 12px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${isMe ? 'color:#FFD700; font-weight:900;' : 'color: rgba(255,255,255,0.9); font-weight:700;'}">
+              ${name} ${isMe ? '<span style="font-size:8px; font-weight:900; opacity:0.6; margin-left: 3px;">(ВЫ)</span>' : ''}
+            </div>
+            ${twName ? `<div style="font-size: 9px; line-height: 1; color: var(--text-color-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><i class="fa-brands fa-twitch" style="color: #9146ff; font-size: 9px; margin-right: 3px;"></i>${twName}</div>` : ''}
+          </div>
+        </td>
+        <td class="count" style="text-align: center;">${value}</td>
+        <td class="reward-col" style="text-align: right;">${rewardHtml}</td>
+      `;
+      dom.leaderboardBody.appendChild(row);
+    });
+    
+    dom.loader.style.display = 'none';
+    if (typeof syncMyPromos === 'function') syncMyPromos();
+
+    if (currentUser && currentUser.is_admin) {
+        document.querySelectorAll('.admin-gear-icon').forEach(el => el.classList.remove('hidden'));
+    }
+
+  } catch (error) {
+    dom.loader.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Ошибка загрузки.';
+  }
+}
+
+window.showRewardPreview = function(rank, name, imgUrl) {
+    haptic('light');
+    document.getElementById('prev-rank-title').innerText = rank + " МЕСТО";
+    document.getElementById('prev-name').innerText = name;
+    document.getElementById('prev-img').src = imgUrl;
+    document.getElementById('reward-preview-overlay').classList.remove('hidden');
+};
+
+window.closeRewardPreview = () => {
+    document.getElementById('reward-preview-overlay').classList.add('hidden');
+};
+
+function getCurrentLeaderboardKey() {
+    if (state.source === 'combined') return `combined_${state.combinedPeriod}`;
+    if (state.source === 'telegram') return `telegram_${state.telegramPeriod}`;
+    return `twitch_${state.twitchMetric}_${state.twitchPeriod}`;
+}
+
+function getCurrentLeaderboardName() {
+    if (state.source === 'combined') {
+        const p = state.combinedPeriod === 'day' ? 'День' : state.combinedPeriod === 'week' ? 'Неделя' : state.combinedPeriod === 'month' ? 'Месяц' : 'Всё время';
+        return `Общая (${p})`;
+    }
+    if (state.source === 'telegram') {
+        const p = state.telegramPeriod === 'day' ? 'День' : state.telegramPeriod === 'week' ? 'Неделя' : state.telegramPeriod === 'month' ? 'Месяц' : 'Всё время';
+        return `Telegram (${p})`;
+    }
+    const met = state.twitchMetric === 'message' ? 'Сообщения' : state.twitchMetric === 'uptime' ? 'Время' : 'Ранги';
+    const p = state.twitchPeriod === 'session' ? 'Сессия' : state.twitchPeriod === 'week' ? 'Неделя' : state.twitchPeriod === 'month' ? 'Месяц' : 'Всё время';
+    return `Twitch ${met} (${p})`;
+}
+  
+window.openAdminRewards = async function() {
+    haptic('medium'); 
+    
+    const oldModal = document.getElementById('admin-rewards-modal');
+    if (oldModal) oldModal.remove();
+
+    const m = document.createElement('div');
+    m.id = 'admin-rewards-modal';
+    m.className = 'gift-modal-overlay';
+    m.style.zIndex = '100000';
+    m.innerHTML = `
+        <style>
+            .admin-modal-box {
+                background: var(--glass-bg) !important;
+                backdrop-filter: var(--glass-blur) !important;
+                -webkit-backdrop-filter: var(--glass-blur) !important;
+                border: 1px solid var(--glass-border) !important;
+                border-radius: 24px !important;
+                box-shadow: var(--glass-shadow) !important;
+                padding: 24px !important;
+                text-align: center;
+                width: 90%; 
+                max-width: 360px; 
+                max-height: 85vh; 
+                overflow-y: auto;
+                transform: none !important; 
+                pointer-events: auto !important;
+            }
+        </style>
+        <div class="admin-modal-box">
+            <h3 class="confirm-title" id="admin-modal-title" style="color: #fff; font-size: 18px; margin: 0 0 15px; font-weight: 800; text-transform: uppercase;">Настройки ТОП-3</h3>
+            
+            <div id="rewards-form" style="text-align:left; display:flex; flex-direction:column; gap:12px; margin-bottom: 20px;">
+            </div>
+
+            <div class="confirm-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="confirm-btn btn-buy" onclick="issueRewardsNow()" style="width:100%; padding: 14px;">
+                    ВЫДАТЬ ТЕКУЩЕМУ ТОП-3
+                </button>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button class="confirm-btn btn-cancel-modal" style="flex:1; padding: 14px;" onclick="haptic('light'); document.getElementById('admin-rewards-modal').remove()">Отмена</button>
+                    <button class="confirm-btn btn-yellow-modal" style="flex:1; padding: 14px;" onclick="saveAdminRewards()">СОХРАНИТЬ</button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(m);
+
+    const form = document.getElementById('rewards-form');
+    form.innerHTML = '<div style="text-align:center; padding:20px; color:#fff;"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка...</div>';
+    
+    const titleEl = document.getElementById('admin-modal-title');
+    if (titleEl) titleEl.innerText = `Настройки ТОП-3:\n${getCurrentLeaderboardName()}`;
+
+    try {
+        let cases = JSON.parse(localStorage.getItem('shop_items_cache') || '{}')[2716312];
+        if (!cases || cases.length === 0) {
+            cases = await makeApiRequest('/api/v1/shop/goods?category_id=2716312', {}, 'GET', true);
+        }
+        
+        const safeCases = Array.isArray(cases) ? cases : (cases?.items || []);
+        
+        window.caseOptionsHtml = safeCases.filter(i => !i.is_folder)
+            .map(i => `<option value="${i.name}">${i.name.replace('Кейс | ', '')}</option>`).join('');
+
+        form.innerHTML = '';
+        
+        [1, 2, 3].forEach(num => {
+            form.innerHTML += `
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px;">
+                    <div style="font-size: 11px; font-weight: 900; color: #FFD700; margin-bottom: 8px; text-transform: uppercase;">
+                        ${num === 1 ? '🥇 Первое' : num === 2 ? '🥈 Второе' : '🥉 Третье'} место
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="rew-type-${num}" onchange="updateRewardInput(${num})" class="admin-select" style="width: 40%;">
+                            <option value="none">Пусто</option>
+                            <option value="case">Кейс</option>
+                            <option value="coins">Монеты</option>
+                            <option value="tickets">Билеты</option>
+                        </select>
+                        <div id="rew-val-container-${num}" style="width: 60%;">
+                            <input type="text" disabled class="admin-input" placeholder="---" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const isCombinedCron = state.source === 'combined' && state.combinedPeriod !== 'all';
+        const isTgCron = state.source === 'telegram' && state.telegramPeriod !== 'all';
+        const isTwitchCron = state.source === 'twitch' && state.twitchPeriod !== 'global';
+        const isTwitchSession = state.source === 'twitch' && state.twitchPeriod === 'session';
+        
+        if (isTwitchSession) {
+            form.innerHTML += `
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px;">
+                    <div style="font-size: 11px; font-weight: 900; color: #9146ff; margin-bottom: 8px; text-transform: uppercase;">🎬 Авто-выдача (Конец стрима)</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px; flex: 1; cursor: pointer;">
+                            <input type="checkbox" id="auto-enabled" style="accent-color: #9146ff; width: 18px; height: 18px;"> При завершении трансляции
+                        </label>
+                        <input type="hidden" id="auto-time" value="on_stream_end">
+                    </div>
+                </div>
+            `;
+        } else if (isTgCron || isTwitchCron || isCombinedCron) {
+            form.innerHTML += `
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px;">
+                    <div style="font-size: 11px; font-weight: 900; color: #34c759; margin-bottom: 8px; text-transform: uppercase;">⏰ Авто-выдача (CRON)</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px; flex: 1; cursor: pointer;">
+                            <input type="checkbox" id="auto-enabled" style="accent-color: #34c759; width: 18px; height: 18px;"> Включить
+                        </label>
+                        <input type="time" id="auto-time" class="admin-input" style="width: 120px;" value="00:00">
+                    </div>
+                </div>
+            `;
+        }
+
+        const lKey = getCurrentLeaderboardKey();
+        const cfg = await makeApiRequest(`/api/v1/admin/leaderboard/config?key=${lKey}`, {}, 'GET', true);
+        
+        if (cfg) {
+            [1, 2, 3].forEach(num => {
+                const item = cfg[num.toString()];
+                if (item && item.type) {
+                    const typeEl = document.getElementById(`rew-type-${num}`);
+                    if (typeEl) {
+                        typeEl.value = item.type;
+                        updateRewardInput(num, item.value);
+                    }
+                }
+            });
+            
+            if (cfg.auto_issue && document.getElementById('auto-enabled')) {
+                document.getElementById('auto-enabled').checked = cfg.auto_issue.enabled || false;
+                
+                const timeInput = document.getElementById('auto-time');
+                if (timeInput && timeInput.type !== 'hidden') {
+                    timeInput.value = cfg.auto_issue.time || "00:00";
+                }
+            }
+        }
+    } catch (e) { 
+        console.error("🔥 Ошибка в админке:", e);
+        if(window.customAlert) customAlert("Ошибка загрузки: " + e.message); 
+    }
+};
+  
+window.updateRewardInput = function(num, prefillValue = "") {
+    const type = document.getElementById(`rew-type-${num}`).value;
+    const container = document.getElementById(`rew-val-container-${num}`);
+    
+    if (type === "case") {
+        container.innerHTML = `<select id="rew-val-${num}" class="admin-select" style="width:100%; border-color: #9146ff !important;">${window.caseOptionsHtml}</select>`;
+    } else if (type === "coins" || type === "tickets") {
+        container.innerHTML = `<input type="number" id="rew-val-${num}" class="admin-input" style="width:100%;" placeholder="Кол-во...">`;
+    } else {
+        container.innerHTML = `<input type="text" disabled class="admin-input" placeholder="---">`;
+        return;
+    }
+
+    if (prefillValue) {
+        const valEl = document.getElementById(`rew-val-${num}`);
+        if (valEl) valEl.value = prefillValue;
+    }
+};
+
+window.saveAdminRewards = async function() {
+    haptic('medium'); 
+    const config = {};
+    let hasError = false;
+
+    [1, 2, 3].forEach(num => {
+        const type = document.getElementById(`rew-type-${num}`).value;
+        const valEl = document.getElementById(`rew-val-${num}`);
+        
+        if (type !== "none") {
+            if (!valEl || !valEl.value) { hasError = true; }
+            config[num.toString()] = { type: type, value: valEl ? valEl.value : "" };
+        } else {
+            config[num.toString()] = { type: "none", value: "" };
+        }
+    });
+
+    const autoEnabledEl = document.getElementById('auto-enabled');
+    const autoTimeEl = document.getElementById('auto-time');
+    
+    if (autoEnabledEl && autoTimeEl) {
+        config['auto_issue'] = { 
+            enabled: autoEnabledEl.checked, 
+            time: autoTimeEl.value 
+        };
+    }
+
+    if (hasError) {
+        return Telegram.WebApp.showAlert("Заполните значения для выбранных наград!");
+    }
+
+    try {
+        const lKey = getCurrentLeaderboardKey();
+        
+        await makeApiRequest('/api/v1/admin/leaderboard/config/save', { key: lKey, config }, 'POST');
+        
+        const isCombinedCron = state.source === 'combined' && state.combinedPeriod !== 'all';
+        const isTgCron = state.source === 'telegram' && state.telegramPeriod !== 'all';
+        const isTwitchCron = state.source === 'twitch' && state.twitchPeriod !== 'global';
+        
+        if (isTgCron || isTwitchCron || isCombinedCron) {
+            if (autoEnabledEl && autoTimeEl) {
+                let cronPeriod;
+                if (state.source === 'telegram') cronPeriod = state.telegramPeriod;
+                else if (state.source === 'combined') cronPeriod = state.combinedPeriod;
+                else cronPeriod = state.twitchPeriod;
+
+                if (cronPeriod === 'session') cronPeriod = 'stream_end';
+
+                await makeApiRequest('/api/v1/admin/cron/setup', { 
+                    source: state.source, 
+                    period: cronPeriod, 
+                    time: autoTimeEl.value, 
+                    is_enabled: autoEnabledEl.checked
+                }, 'POST');
+            }
+        }
+      
+        Telegram.WebApp.showAlert("✅ Настройки и расписание CRON сохранены!");
+        document.getElementById('admin-rewards-modal').classList.add('hidden');
+        fetchAndRender(); 
+    } catch (e) {
+        console.error("Ошибка при сохранении:", e);
+    }
+};
+
+window.issueRewardsNow = async function() {
+    haptic('medium'); 
+
+    if (!window.currentLeaderboardData || window.currentLeaderboardData.length === 0) {
+        return Telegram.WebApp.showAlert("Сначала загрузите данные лидерборда!");
+    }
+
+    document.getElementById('admin-rewards-modal').classList.add('hidden');
+
+    Telegram.WebApp.showConfirm("ВЫДАТЬ НАГРАДЫ?\n\nЭто начислит награды ТОП-3 игрокам прямо сейчас, исходя из текущих настроек в окне.", async (ok) => {
+        if (!ok) {
+            document.getElementById('admin-rewards-modal').classList.remove('hidden');
+            return;
+        }
+
+        const winners = [];
+        let hasError = false;
+
+        for (let i = 1; i <= 3; i++) {
+            const typeEl = document.getElementById(`rew-type-${i}`);
+            const valEl = document.getElementById(`rew-val-${i}`);
+            
+            const type = typeEl ? typeEl.value : "none";
+            const value = valEl ? valEl.value : "";
+
+            if (type !== "none" && !value) {
+                hasError = true;
+            }
+
+            const entry = window.currentLeaderboardData[i - 1]; 
+            if (entry && type !== "none" && value) {
+                winners.push({
+                    telegram_id: entry.telegram_id || entry.user_id || entry.id,
+                    rank: i,
+                    reward: { type: type, value: value }
+                });
+            }
+        }
+
+        if (hasError) {
+            document.getElementById('admin-rewards-modal').classList.remove('hidden');
+            return Telegram.WebApp.showAlert("Ошибка: Заполните значения для выбранных наград!");
+        }
+
+        if (winners.length === 0) {
+            document.getElementById('admin-rewards-modal').classList.remove('hidden');
+            return Telegram.WebApp.showAlert("У ТОП-3 не настроены награды в форме!");
+        }
+
+        try {
+            const lKey = getCurrentLeaderboardKey();
+            console.log("🔥 ОТПРАВЛЯЕМ ЗАПРОС НА ВЫДАЧУ:", { key: lKey, winners }); 
+            
+            const res = await makeApiRequest('/api/v1/admin/leaderboard/issue', { key: lKey, winners }, 'POST');
+            
+            console.log("✅ ОТВЕТ СЕРВЕРА:", res); 
+
+            if (res.success) {
+                const detailsText = (res.details && res.details.length > 0) 
+                    ? res.details.join('\n') 
+                    : "Сервер ничего не вернул в details";
+                    
+                const fullMsg = `Результат выдачи:\n\n${detailsText}`;
+                if (fullMsg.length > 200) {
+                    alert(fullMsg); 
+                } else {
+                    Telegram.WebApp.showAlert(fullMsg);
+                }
+            }
+        } catch (e) {
+            console.error("❌ ОШИБКА ВЫДАЧИ:", e);
+            document.getElementById('admin-rewards-modal').classList.remove('hidden');
+            Telegram.WebApp.showAlert("Произошла ошибка запроса (см. консоль F12)");
+        }
+    });
+};
+  
+  // --- ОБРАБОТЧИКИ КНОПОК С ВИБРАЦИЕЙ ---
+
+  dom.sourceButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('light');
+      state.source = button.dataset.source;
+      dom.sourceButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      updateUI();
+      fetchAndRender();
+    });
+  });
+
+  dom.telegramPeriodButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('light');
+      state.telegramPeriod = button.dataset.period;
+      dom.telegramPeriodButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      fetchAndRender();
+    });
+  });
+
+  dom.combinedPeriodButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('light');
+      state.combinedPeriod = button.dataset.period;
+      dom.combinedPeriodButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      fetchAndRender();
+    });
+  });
+
+  dom.twitchMetricButtonList.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('light');
+      state.twitchMetric = button.dataset.metric;
+      dom.twitchMetricButtonList.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      updateUI();
+      fetchAndRender();
+    });
+  });
+
+  dom.twitchPeriodButtonList.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('light');
+      state.twitchPeriod = button.dataset.period;
+      dom.twitchPeriodButtonList.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      fetchAndRender();
+    });
+  });
+  
+  dom.refreshButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      haptic('medium'); 
+      loadCurrentUser(); 
+      fetchAndRender();
+    });
+  });
+
+  document.querySelectorAll('.footer-item').forEach(item => {
+      item.addEventListener('click', () => {
+          haptic('light');
+      });
+  });
+
+  // === ✅ ФУНКЦИЯ PULL TO REFRESH ===
+  function initPullToRefresh() {
+      const mainContent = document.getElementById('main-content');
+      const ptrContainer = document.getElementById('pull-to-refresh');
+      const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
+      
+      if (!mainContent || !ptrContainer || !icon) return;
+
+      let startY = 0;
+      let pulledDistance = 0;
+      let isPulling = false;
+
+      mainContent.addEventListener('touchstart', (e) => {
+          if (mainContent.scrollTop <= 0) {
+              startY = e.touches[0].clientY;
+              isPulling = true;
+              mainContent.style.transition = 'none'; 
+              ptrContainer.style.transition = 'none'; 
+          } else {
+              isPulling = false;
+          }
+      }, { passive: true });
+
+      mainContent.addEventListener('touchmove', (e) => {
+          if (!isPulling) return;
+          const currentY = e.touches[0].clientY;
+          const diff = currentY - startY;
+
+          if (diff > 8 && mainContent.scrollTop <= 0) {
+              if (e.cancelable) e.preventDefault();
+              pulledDistance = Math.pow(diff, 0.85);
+              if (pulledDistance > 180) pulledDistance = 180;
+
+              mainContent.style.transform = `translateY(${pulledDistance}px)`;
+              ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
+              icon.style.transform = `rotate(${pulledDistance * 2.5}deg)`;
+              
+              icon.style.color = pulledDistance > 80 ? "#34c759" : "#FFD700";
+          }
+      }, { passive: false });
+
+      mainContent.addEventListener('touchend', () => {
+          if (!isPulling) return;
+          isPulling = false;
+          
+          mainContent.style.transition = 'transform 0.3s ease-out';
+          ptrContainer.style.transition = 'transform 0.3s ease-out';
+
+          if (pulledDistance > 80) {
+              mainContent.style.transform = `translateY(80px)`;
+              ptrContainer.style.transform = `translateY(80px)`;
+              icon.classList.add('fa-spin');
+              if (window.Telegram && Telegram.WebApp.HapticFeedback) {
+                  Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+              }
+              setTimeout(() => { window.location.reload(); }, 500);
+          } else {
+              mainContent.style.transform = 'translateY(0px)';
+              ptrContainer.style.transform = 'translateY(0px)';
+              icon.style.transform = 'rotate(0deg)';
+          }
+          pulledDistance = 0;
+      });
+  }
+
+  loadCurrentUser();
+  updateUI();
+  fetchAndRender();
+  initPullToRefresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Настройка ТГ Испытаний</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="admin.css"> 
+  <style>
+      /* Сброс стилей для гарантии скролла */
+      html {
+          box-sizing: border-box;
+      }
+      *, *:before, *:after {
+          box-sizing: inherit;
+      }
+
+      body { 
+          margin: 0;
+          padding: 15px; 
+          /* Большой отступ снизу, чтобы контент не заезжал под кнопку */
+          padding-bottom: 120px; 
+          background-color: #0f1014;
+          color: #fff;
+          font-family: 'Montserrat', sans-serif;
+          min-height: 100vh;
+          /* Важно: НЕ использовать overflow: hidden на body */
+          overflow-y: scroll; 
+          -webkit-overflow-scrolling: touch;
+      }
+      
+      .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+      .page-header-title { font-size: 20px; font-weight: 800; margin: 0; }
+
+      .tier-card {
+          background: #1a1b20;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          padding: 15px;
+          margin-bottom: 15px;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      }
+      
+      .tier-top-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 10px;
+      }
+
+      .tier-index-badge {
+          background: rgba(255,255,255,0.1);
+          color: #ffd700;
+          font-weight: 700;
+          font-size: 11px;
+          padding: 6px 8px;
+          border-radius: 6px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          margin-bottom: 2px;
+      }
+
+      .input-wrapper {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0; 
+      }
+      
+      .input-label {
+          font-size: 10px;
+          color: #888;
+          margin-bottom: 4px;
+          text-transform: uppercase;
+          font-weight: 700;
+      }
+
+      .compact-input {
+          background: #111;
+          border: 1px solid #333;
+          color: #fff;
+          padding: 10px;
+          border-radius: 8px;
+          font-size: 14px;
+          outline: none;
+          width: 100%;
+          transition: border-color 0.2s;
+      }
+      .compact-input:focus { border-color: #0088cc; }
+
+      .remove-btn {
+          background: rgba(255, 59, 48, 0.15);
+          color: #ff3b30;
+          border: none;
+          width: 38px; height: 38px;
+          border-radius: 8px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 1px;
+          flex-shrink: 0;
+      }
+
+      .rewards-selector {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap; 
+      }
+
+      .reward-option {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          user-select: none;
+          background: rgba(255,255,255,0.05);
+          padding: 10px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.1);
+          flex: 1;
+          min-width: 80px;
+      }
+      .reward-option.active {
+          background: rgba(0, 136, 204, 0.2);
+          border-color: #0088cc;
+          color: #fff;
+      }
+
+      .reward-inputs {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap; 
+          background: rgba(0,0,0,0.2);
+          padding: 10px;
+          border-radius: 8px;
+      }
+      .reward-inputs .input-wrapper { min-width: 100px; }
+
+      .hidden { display: none !important; }
+
+      .add-btn {
+          width: 100%; padding: 14px;
+          background: rgba(255,255,255,0.08); 
+          border: 1px dashed #555;
+          color: #ccc; border-radius: 12px; 
+          cursor: pointer; font-weight: 600; font-size: 14px;
+          margin-top: 10px;
+      }
+
+      /* Панель сохранения */
+      .save-bar {
+          position: fixed; 
+          bottom: 0; 
+          left: 0; 
+          width: 100%;
+          padding: 15px 20px 30px 20px; 
+          background: #1c1c1e; 
+          border-top: 1px solid #333;
+          z-index: 9999;
+          box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+      }
+      .save-btn {
+          width: 100%; padding: 16px;
+          background: #0088cc; color: #fff; border: none;
+          border-radius: 12px; font-weight: 800; font-size: 16px;
+          text-transform: uppercase;
+      }
+
+      /* Пустой блок в самом конце, чтобы контент прокручивался до конца */
+      #bottom-spacer {
+          height: 100px; 
+          width: 100%;
+          display: block;
+      }
+  </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <a href="/admin" class="back-button"><i class="fa-solid fa-arrow-left"></i> Админка</a>
+        <h1 class="page-header-title">ТГ Испытания</h1>
+        <div style="width: 60px;"></div>
+    </div>
+
+    <div id="tiers-container">
+        <p style="text-align: center; color: #666; margin-top: 30px;">Загрузка...</p>
+    </div>
+
+    <button class="add-btn" onclick="addTier()">
+        <i class="fa-solid fa-plus"></i> Добавить уровень
+    </button>
+
+    <div id="bottom-spacer"></div>
+
+    <div class="save-bar">
+        <button class="save-btn" onclick="saveAll()">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation(); // Чтобы случайно не закрыть свайпом
+
+        let tiersData = [];
+
+        async function loadData() {
+            const container = document.getElementById('tiers-container');
+            try {
+                const res = await fetch('/api/v1/admin/tg_challenge/get_config', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                const data = await res.json();
+                
+                tiersData = (data && data.tiers) ? data.tiers : [];
+                
+                if (tiersData.length === 0) {
+                    tiersData = [{ target: 5, rewards: { tickets: 2 } }];
+                }
+                
+                render();
+            } catch (e) {
+                container.innerHTML = `<p style="color:red; text-align:center;">Ошибка: ${e.message}</p>`;
+            }
+        }
+
+        function render() {
+            const container = document.getElementById('tiers-container');
+            container.innerHTML = '';
+
+            tiersData.forEach((tier, index) => {
+                const div = document.createElement('div');
+                div.className = 'tier-card';
+                
+                // Нормализация данных
+                const rewards = tier.rewards || {};
+                if (tier.reward && tier.type) {
+                    if (tier.type === 'tickets') rewards.tickets = tier.reward;
+                    if (tier.type === 'coins') rewards.coins = tier.reward;
+                    if (tier.type === 'skin_random') rewards.skin = { min: tier.min_price, max: tier.max_price };
+                }
+
+                const showTickets = rewards.tickets !== undefined;
+                const showCoins = rewards.coins !== undefined;
+                const showSkin = rewards.skin !== undefined;
+
+                div.innerHTML = `
+                    <div class="tier-top-row">
+                        <div class="tier-index-badge">#${index + 1}</div>
+                        <div class="input-wrapper">
+                            <span class="input-label">Цель (Сообщений)</span>
+                            <input type="number" class="compact-input inp-target" value="${tier.target}" placeholder="50">
+                        </div>
+                        <button class="remove-btn" onclick="removeTier(${index})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+
+                    <div class="input-wrapper">
+                        <span class="input-label">Награды (Комбинация)</span>
+                        <div class="rewards-selector">
+                            <div class="reward-option ${showTickets ? 'active' : ''}" onclick="toggleReward(this, 'tickets')">
+                                <i class="fa-solid fa-ticket"></i> Билеты
+                            </div>
+                            <div class="reward-option ${showCoins ? 'active' : ''}" onclick="toggleReward(this, 'coins')">
+                                <i class="fa-solid fa-coins"></i> Монеты
+                            </div>
+                            <div class="reward-option ${showSkin ? 'active' : ''}" onclick="toggleReward(this, 'skin')">
+                                <i class="fa-solid fa-gift"></i> Скин
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reward-inputs ${(!showTickets && !showCoins) ? 'hidden' : ''}" id="inputs-values-${index}">
+                        <div class="input-wrapper inp-tickets ${showTickets ? '' : 'hidden'}">
+                            <span class="input-label">Билетов</span>
+                            <input type="number" class="compact-input val-tickets" value="${rewards.tickets || ''}" placeholder="10">
+                        </div>
+                        <div class="input-wrapper inp-coins ${showCoins ? '' : 'hidden'}">
+                            <span class="input-label">Монет</span>
+                            <input type="number" class="compact-input val-coins" value="${rewards.coins || ''}" placeholder="100">
+                        </div>
+                    </div>
+
+                    <div class="reward-inputs inp-skin ${showSkin ? '' : 'hidden'}" style="background: rgba(255, 215, 0, 0.05); border-color: rgba(255, 215, 0, 0.3);">
+                         <div class="input-wrapper">
+                            <span class="input-label" style="color:#ffd700">Мин. Цена</span>
+                            <input type="number" class="compact-input val-min" value="${rewards.skin?.min || 0}">
+                        </div>
+                        <div class="input-wrapper">
+                            <span class="input-label" style="color:#ffd700">Макс. Цена</span>
+                            <input type="number" class="compact-input val-max" value="${rewards.skin?.max || 500}">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.toggleReward = (el, type) => {
+            el.classList.toggle('active');
+            const card = el.closest('.tier-card');
+            const isActive = el.classList.contains('active');
+            
+            const inputField = card.querySelector(`.inp-${type}`);
+            if(inputField) inputField.classList.toggle('hidden', !isActive);
+
+            const ticketActive = card.querySelector('.reward-option[onclick*="tickets"]').classList.contains('active');
+            const coinActive = card.querySelector('.reward-option[onclick*="coins"]').classList.contains('active');
+            
+            const valuesContainer = card.querySelector('.reward-inputs:not(.inp-skin)');
+            if (valuesContainer) {
+                valuesContainer.classList.toggle('hidden', (!ticketActive && !coinActive));
+            }
+        }
+
+        window.addTier = () => {
+            tiersData.push({ target: '', rewards: { tickets: 5 } });
+            render();
+            // Скролл вниз с небольшой задержкой, чтобы DOM обновился
+            setTimeout(() => {
+                const spacer = document.getElementById('bottom-spacer');
+                if(spacer) spacer.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        window.removeTier = (index) => {
+            if(confirm('Удалить этот этап?')) {
+                tiersData.splice(index, 1);
+                render();
+            }
+        }
+
+        window.saveAll = async () => {
+            const cards = document.querySelectorAll('.tier-card');
+            const newTiers = [];
+            let isValid = true;
+
+            cards.forEach(card => {
+                const target = parseInt(card.querySelector('.inp-target').value);
+                if (!target) isValid = false;
+
+                const rewards = {};
+                
+                if (!card.querySelector('.inp-tickets').classList.contains('hidden')) {
+                    const val = parseInt(card.querySelector('.val-tickets').value);
+                    if (val > 0) rewards.tickets = val;
+                }
+                if (!card.querySelector('.inp-coins').classList.contains('hidden')) {
+                    const val = parseInt(card.querySelector('.val-coins').value);
+                    if (val > 0) rewards.coins = val;
+                }
+                if (!card.querySelector('.inp-skin').classList.contains('hidden')) {
+                    const min = parseInt(card.querySelector('.val-min').value) || 0;
+                    const max = parseInt(card.querySelector('.val-max').value) || 500;
+                    rewards.skin = { min, max };
+                }
+
+                if (Object.keys(rewards).length === 0) isValid = false;
+
+                newTiers.push({ target, rewards });
+            });
+
+            if (!isValid) return tg.showAlert("Заполните цель и выберите хотя бы одну награду!");
+
+            newTiers.sort((a,b) => a.target - b.target);
+
+            const payload = {
+                mode: "tiered",
+                tiers: newTiers
+            };
+
+            try {
+                const btn = document.querySelector('.save-btn');
+                btn.textContent = "Сохранение...";
+                btn.disabled = true;
+
+                await fetch('/api/v1/admin/tg_challenge/save_config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ initData: tg.initData, config: payload })
+                });
+
+                tg.showPopup({message: "Сохранено!"});
+            } catch(e) {
+                tg.showAlert("Ошибка: " + e.message);
+            } finally {
+                document.querySelector('.save-btn').textContent = "СОХРАНИТЬ ИЗМЕНЕНИЯ";
+                document.querySelector('.save-btn').disabled = false;
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

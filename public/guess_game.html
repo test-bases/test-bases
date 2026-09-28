@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HATElove | Guess The Word Admin</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        
+        :root {
+            /* Динамические переменные для изменения размера в OBS */
+            --tile-size: 8rem;
+            --tile-font: 5.5rem;
+            --custom-text-font: 3rem;
+        }
+
+        body {
+            background-color: #0a0a0c; color: #fff; font-family: 'Montserrat', sans-serif;
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* ========================================================= */
+        /* --- OBS СТИЛИ (СТРОГО 1920x1080, ПРИЖАТО К НИЗУ) --- */
+        /* ========================================================= */
+        body.obs-mode { 
+            background: transparent !important; 
+            overflow: hidden; 
+            width: 1920px; 
+            height: 1080px; 
+            position: relative;
+        }
+        
+        body.obs-mode #obs-view {
+            width: 1920px;
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; 
+            align-items: center;
+            padding-bottom: 20px; 
+            box-sizing: border-box;
+        }
+
+        body.obs-mode #obs-custom-text {
+            font-size: var(--custom-text-font); font-weight: 900; color: #fff;
+            text-transform: uppercase; letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(145, 70, 255, 0.8), 0 5px 5px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        body.obs-mode .letter-tile {
+            background: linear-gradient(135deg, #9146FF 0%, #6b21b6 100%);
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            color: white; font-weight: 900; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 16px; box-shadow: 0 10px 30px rgba(145, 70, 255, 0.5);
+            text-shadow: 0 0 15px rgba(255,255,255,0.4); margin: 0 8px;
+            width: var(--tile-size); 
+            height: var(--tile-size); 
+            font-size: var(--tile-font);
+            transition: all 0.3s ease;
+        }
+        
+        body.obs-mode .timer-container { 
+            width: 100%; max-width: 1000px; background: rgba(0,0,0,0.6); 
+            height: 12px; border-radius: 6px; overflow: hidden; margin-top: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.05);
+            display: none !important;
+        }
+        
+        body.obs-mode .timer-bar { 
+            height: 100%; background-color: #ff4d4d; width: 100%; 
+            transition: width 1s linear; box-shadow: 0 0 25px rgba(255, 77, 77, 1); 
+        }
+
+        body.obs-mode .waiting-text {
+            font-size: 4.5rem; font-weight: 900; color: #9146FF; 
+            text-shadow: 0 0 30px rgba(145, 70, 255, 0.6); letter-spacing: 4px;
+        }
+
+        /* --- СТИЛИ АДМИНКИ --- */
+        h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; line-height: 1.2; margin-bottom: 0;}
+        h1 span { color: #9146FF; }
+        h2 { font-size: 12px; color: #aaa; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(145, 70, 255, 0.08) 0%, rgba(145, 70, 255, 0.02) 100%);
+            border: 1px solid rgba(145, 70, 255, 0.2); border-radius: 10px; padding: 12px; position: relative; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); animation: fadeIn 0.3s ease;
+        }
+        .glass-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #9146FF; }
+
+        .btn-custom {
+            border: none; border-radius: 6px; font-size: 10px; font-weight: 900; padding: 8px 12px;
+            text-transform: uppercase; cursor: pointer; transition: 0.2s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-custom:active { transform: scale(0.96); }
+        .btn-custom:disabled { opacity: 0.6; }
+        
+        .btn-purple { background: #9146FF; color: #fff; box-shadow: 0 4px 15px rgba(145, 70, 255, 0.3); }
+        .btn-purple-outline { background: rgba(145, 70, 255, 0.05); border: 1px solid #9146FF; color: #fff; }
+        .btn-green { background: #28a745; color: #fff; }
+        .btn-yellow { background: #FFB800; color: #fff; }
+        .btn-red { background: #ff4d4d; color: #fff; }
+        .btn-blue { background: #007bff; color: #fff; }
+
+        .input-custom {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff; border-radius: 6px; padding: 8px 10px; font-family: 'Montserrat', sans-serif;
+            font-weight: 700; font-size: 11px; outline: none; transition: border-color 0.2s; width: 100%; box-sizing: border-box;
+        }
+        .input-custom:focus { border-color: #9146FF; background: rgba(145, 70, 255, 0.05);}
+        select.input-custom option { background-color: #1a1a2e; color: #ffffff; font-weight: 700; }
+
+        .list-item {
+            background: rgba(255, 255, 255, 0.03); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px; 
+            margin-bottom: 6px; 
+            transition: all 0.2s;
+        }
+
+        .twitch-logo { font-size: 40px; color: #9146FF; margin-bottom: 10px; filter: drop-shadow(0 0 15px rgba(145, 70, 255, 0.4)); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+        ::-webkit-scrollbar-thumb { background: rgba(145,70,255,0.3); border-radius: 4px; }
+        
+        .modal-overlay {
+            backdrop-filter: blur(5px);
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
+        .tg-scrollable {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none; 
+            touch-action: pan-y;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="obs-view" class="hidden">
+        <div id="obs-custom-text"></div>
+        <div id="word-container" class="flex flex-wrap justify-center mb-6"></div>
+        <div class="timer-container" id="obs-timer-container"><div id="timer-progress" class="timer-bar"></div></div>
+    </div>
+
+    <div id="auth-view" class="hidden flex-col items-center justify-center min-h-screen p-4 text-center">
+        <i class="fa-brands fa-twitch twitch-logo animate-pulse"></i>
+        <h1>Загрузка<br><span>Guess Word</span></h1>
+        <div id="auth-status" class="text-[10px] font-bold text-gray-400 mt-2"><i class="fa-solid fa-spinner fa-spin"></i> Проверка прав...</div>
+    </div>
+
+    <div id="admin-view" class="hidden max-w-lg mx-auto p-3 pb-20">
+        
+        <div class="flex justify-between items-center mb-3 bg-[rgba(255,255,255,0.02)] p-2 rounded-lg border border-[rgba(255,255,255,0.05)]">
+            <div class="flex items-center gap-2">
+                <i class="fa-brands fa-twitch text-xl text-[#9146FF]"></i>
+                <div>
+                    <h1>Guess Word <span>Panel</span></h1>
+                    <span class="text-[8px] font-bold text-[#28a745] uppercase tracking-wider"><i class="fa-solid fa-circle text-[5px] animate-pulse relative -top-[1px]"></i> Online</span>
+                </div>
+            </div>
+            <button onclick="window.history.back()" class="text-gray-400 hover:text-white transition text-[9px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Назад
+            </button>
+        </div>
+
+        <div class="glass-card mb-3" style="background: rgba(145, 70, 255, 0.12); border-color: #9146FF; text-align: center;">
+            <div class="text-[9px] text-purple-300 uppercase font-bold mb-1 tracking-widest" id="admin-status-label">Сейчас на стриме:</div>
+            <div id="admin-current-word" class="text-2xl font-black text-white uppercase tracking-[4px] drop-shadow-md">...</div>
+            <div id="admin-current-mode-label" class="text-[9px] text-gray-300 mt-1 font-bold">Ожидание...</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <button onclick="openModal('modal-leaderboard')" class="btn-custom btn-purple-outline flex-col !py-2 text-[9px]">
+                <i class="fa-solid fa-trophy text-[14px] mb-1"></i> Топ
+            </button>
+            <button onclick="openModal('modal-dictionary')" class="btn-custom btn-purple-outline flex-col !py-2 text-[9px]">
+                <i class="fa-solid fa-book text-[14px] mb-1"></i> Слова
+            </button>
+            <button onclick="openModal('modal-rewards')" class="btn-custom btn-purple-outline flex-col !py-2 text-[9px]">
+                <i class="fa-solid fa-gift text-[14px] mb-1"></i> Призы
+            </button>
+            <button onclick="openModal('modal-events')" class="btn-custom btn-purple-outline flex-col !py-2 text-[9px]">
+                <i class="fa-solid fa-bullseye text-[14px] mb-1"></i> Сбор на старт
+            </button>
+        </div>
+        
+        <div class="glass-card mb-4">
+            <h2>Управление Игрой</h2>
+            
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                    <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1">Режим:</label>
+                    <select id="game-mode-select" class="input-custom" onchange="changeGameMode()">
+                        <option value="classic">🟦 Классика</option>
+                        <option value="anagram">🔀 Анаграмма</option>
+                        <option value="edges">↔️ Края</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1 flex justify-between">
+                        <span>Размер букв (OBS):</span>
+                        <span id="letter-size-val" class="text-[#9146FF]">8</span>
+                    </label>
+                    <input type="range" id="letter-size-slider" min="1.5" max="15" value="8" step="0.5" oninput="changeLetterSize(this.value)" class="w-full accent-[#9146FF] mt-1">
+                </div>
+            </div>
+
+            <div class="mb-3 bg-[rgba(0,0,0,0.3)] p-2 rounded-lg border border-[rgba(255,255,255,0.05)]">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-[9px] text-gray-400 uppercase font-bold">Текст над буквами (OBS):</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[8px] text-gray-500 font-bold">РАЗМЕР: <span id="text-size-val" class="text-[#9146FF]">3</span></span>
+                        <input type="range" id="text-size-slider" min="1" max="8" value="3" step="0.1" oninput="changeTextSize(this.value)" class="w-16 accent-[#9146FF]">
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-1">
+                    <input type="text" id="custom-text-input" class="input-custom" placeholder="УГАДАЙ СЛОВО И ПОЛУЧИ КЕЙС">
+                    <button onclick="setCustomText()" class="btn-custom btn-purple px-4"><i class="fa-solid fa-check"></i></button>
+                </div>
+            </div>
+
+            <div class="mb-3 bg-[rgba(0,0,0,0.3)] p-2 rounded-lg border border-[rgba(255,255,255,0.05)]">
+                <h3 class="text-[9px] text-gray-400 uppercase font-bold mb-2">Обложки (Фон приложения)</h3>
+                <label class="block text-[8px] text-gray-500 uppercase font-bold mb-1">Фон по умолчанию (Без сбора):</label>
+                <input type="text" id="admin-default-cover-input" class="input-custom mb-2" placeholder="https://...">
+
+                <label class="block text-[8px] text-[#9146FF] uppercase font-bold mb-1">Фон во время игры:</label>
+                <input type="text" id="admin-game-cover-input" class="input-custom mb-2" placeholder="https://...">
+
+                <div class="grid grid-cols-1 gap-2 mt-3 mb-3 border-t border-[rgba(255,255,255,0.05)] pt-2">
+                    <div>
+                        <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1 flex justify-between">
+                            <span>Позиция X (Влево/Вправо):</span>
+                            <span id="cover-x-val" class="text-[#9146FF]">50%</span>
+                        </label>
+                        <input type="range" id="cover-x-slider" min="0" max="100" value="50" step="1" oninput="changeCoverSetting('x', this.value)" class="w-full accent-[#9146FF]">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1 flex justify-between">
+                            <span>Позиция Y (Вверх/Вниз):</span>
+                            <span id="cover-y-val" class="text-[#9146FF]">50%</span>
+                        </label>
+                        <input type="range" id="cover-y-slider" min="0" max="100" value="50" step="1" oninput="changeCoverSetting('y', this.value)" class="w-full accent-[#9146FF]">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1 flex justify-between">
+                            <span>Масштаб (Zoom):</span>
+                            <span id="cover-zoom-val" class="text-[#9146FF]">100%</span>
+                        </label>
+                        <input type="range" id="cover-zoom-slider" min="100" max="300" value="100" step="1" oninput="changeCoverSetting('zoom', this.value)" class="w-full accent-[#9146FF]">
+                    </div>
+                </div>
+
+                <button onclick="setCovers()" class="btn-custom btn-purple w-full py-2"><i class="fa-solid fa-image"></i> Сохранить ссылки</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button onclick="adminAction('/api/v1/admin/guess/start', this)" class="btn-custom btn-green"><i class="fa-solid fa-play"></i> Выдать слово</button>
+                <button onclick="adminAction('/api/v1/admin/guess/skip', this)" class="btn-custom btn-yellow"><i class="fa-solid fa-forward-step"></i> Скип</button>
+            </div>
+            <button onclick="stopAndRewardBtn(this)" class="btn-custom btn-red w-full"><i class="fa-solid fa-stop"></i> Завершить и наградить</button>
+        </div>
+    </div>
+
+    <div id="modal-events" class="fixed inset-0 bg-black/80 modal-overlay hidden z-50 flex items-center justify-center p-3">
+        <div class="glass-card w-full max-w-md bg-[#0f0f13] m-0">
+            <div class="flex justify-between items-center mb-3 shrink-0">
+                <h2 class="!mb-0 text-white"><i class="fa-solid fa-bullseye text-[#007bff] mr-2"></i> Сбор на старт игры</h2>
+                <button onclick="closeModal('modal-events')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            
+            <div class="bg-[rgba(0,0,0,0.3)] p-3 rounded-lg border border-[rgba(255,255,255,0.05)] mb-3 shrink-0">
+                <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1">Название сбора:</label>
+                <input type="text" id="ev-title" class="input-custom mb-2" value="Начинаем отгадайку!" oninput="saveEventSettings()">
+                
+                <label class="block text-[9px] text-gray-400 uppercase font-bold mb-1">Обложка сбора (URL или GIF):</label>
+                <input type="text" id="ev-cover" class="input-custom mb-3" placeholder="https://..." oninput="saveEventSettings()">
+                
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div>
+                        <label class="block text-[8px] text-gray-400 uppercase font-bold mb-1">Цель:</label>
+                        <input type="number" id="ev-target" class="input-custom" value="2000" oninput="saveEventSettings()">
+                    </div>
+                    <div>
+                        <label class="block text-[8px] text-gray-400 uppercase font-bold mb-1">Цена (Баллы):</label>
+                        <input type="number" id="ev-twitch" class="input-custom" value="500" oninput="saveEventSettings()">
+                    </div>
+                    <div>
+                        <label class="block text-[8px] text-[#9146FF] uppercase font-bold mb-1">Дает (Очков):</label>
+                        <input type="number" id="ev-twitch-gain" class="input-custom" value="20" oninput="saveEventSettings()">
+                    </div>
+                </div>
+
+                <div class="bg-[rgba(255,255,255,0.02)] p-2 rounded border border-[rgba(255,255,255,0.1)] mb-3">
+                    <label class="block text-[9px] text-gray-400 uppercase font-bold mb-2 text-center">Очки за валюту бота</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-coins text-[#ffd700] text-[14px]"></i>
+                            <input type="number" id="ev-coin-val" class="input-custom text-center" value="10" oninput="saveEventSettings()">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-ticket text-[#007bff] text-[14px]"></i>
+                            <input type="number" id="ev-ticket-val" class="input-custom text-center" value="5" oninput="saveEventSettings()">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="startEvent()" class="btn-custom btn-purple w-full py-2"><i class="fa-solid fa-rocket"></i> Запустить Сбор</button>
+            </div>
+            
+            <button onclick="window.location.href='event_page.html'" class="btn-custom btn-blue w-full py-2" style="background: rgba(0, 123, 255, 0.15); border: 1px solid rgba(0, 123, 255, 0.5); color: #fff;">
+                <i class="fa-solid fa-desktop"></i> Открыть страницу экрана
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-leaderboard" class="fixed inset-0 bg-black/80 modal-overlay hidden z-50 flex items-center justify-center p-3">
+        <div class="glass-card w-full max-w-md max-h-[85vh] flex flex-col bg-[#0f0f13] m-0">
+            <div class="flex justify-between items-center mb-3 shrink-0">
+                <h2 class="!mb-0 text-white"><i class="fa-solid fa-trophy text-[#ffd700] mr-2"></i> Лидерборд</h2>
+                <button onclick="closeModal('modal-leaderboard')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            <div id="admin-leaderboard" class="flex-1 tg-scrollable pr-1 space-y-1 w-full">
+                <div class="text-gray-500 text-center mt-6 text-[10px]">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-dictionary" class="fixed inset-0 bg-black/80 modal-overlay hidden z-50 flex items-center justify-center p-3">
+        <div class="glass-card w-full max-w-md bg-[#0f0f13] m-0">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="!mb-0 text-white"><i class="fa-solid fa-book text-[#007bff] mr-2"></i> Словарь игры</h2>
+                <button onclick="closeModal('modal-dictionary')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            <p class="text-[9px] text-gray-400 mb-2">Вставь слова столбиком. Бот выберет случайно.</p>
+            <textarea id="words-list-input" class="input-custom mb-3 h-40 resize-none text-[10px]" placeholder="КЕЙС&#10;СТРИМЕР&#10;ПОДАРОК"></textarea>
+            <button onclick="saveDictionary()" class="btn-custom btn-blue w-full py-2"><i class="fa-solid fa-save"></i> Сохранить</button>
+        </div>
+    </div>
+
+    <div id="modal-rewards" class="fixed inset-0 bg-black/80 modal-overlay hidden z-50 flex items-center justify-center p-3">
+        <div class="glass-card w-full max-w-md max-h-[90vh] flex flex-col bg-[#0f0f13] m-0">
+            <div class="flex justify-between items-center mb-3 shrink-0">
+                <h2 class="!mb-0 text-white"><i class="fa-solid fa-gift text-[#ff4d4d] mr-2"></i> Настройки призов</h2>
+                <button onclick="closeModal('modal-rewards')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            
+            <div class="bg-[rgba(0,0,0,0.3)] p-2 rounded-lg border border-[rgba(255,255,255,0.05)] mb-3 shrink-0">
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <input type="number" id="rew-place" placeholder="Место" class="input-custom text-center col-span-1">
+                    <select id="rew-type" onchange="toggleCaseInput()" class="input-custom text-center col-span-2">
+                        <option value="coins">💰 Монеты</option>
+                        <option value="tickets">🎟 Билеты</option>
+                        <option value="case">🎁 Кейс (Drops)</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 mb-2">
+                    <input type="number" id="rew-amount" placeholder="Количество" class="input-custom text-center w-full">
+                    <select id="rew-case-name" class="input-custom text-center hidden w-full">
+                        <option value="">Загрузка кейсов...</option>
+                    </select>
+                </div>
+                <button onclick="addReward()" class="btn-custom btn-purple w-full py-2 text-[10px]"><i class="fa-solid fa-plus"></i> Добавить приз</button>
+            </div>
+            
+            <div id="rewards-list" class="flex-1 tg-scrollable pr-1 space-y-1"></div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp с безопасной проверкой
+        let tg = null;
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                if (tg.expand) tg.expand();
+            }
+        } catch(e) {
+            console.warn("Telegram WebApp not fully initialized:", e);
+        }
+
+        // Безопасные обертки для нативных вызовов TG 
+        function showAlert(msg) {
+            if (tg && tg.showAlert) tg.showAlert(msg);
+            else alert(msg);
+        }
+
+        function showConfirm(msg, callback) {
+            if (tg && tg.showConfirm) tg.showConfirm(msg, callback);
+            else callback(confirm(msg));
+        }
+
+        const SUPABASE_URL = 'https://pyeuckjcrsiaseyqrsek.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isObs = urlParams.get('mode') === 'obs';
+        
+        let currentWord = "";
+        let currentMode = "classic";
+        let revealedIndices = [];
+        let timerSeconds = 30;
+        let scrambledWord = ""; 
+        let rewardsConfig = [];
+
+        // 🔥 НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ТАЙМЕРА КУЛДАУНА 🔥
+        let isCooldownActive = false;
+        let cooldownTimerSeconds = 20;
+
+        function saveEventSettings() {
+            const settings = {
+                title: document.getElementById('ev-title').value,
+                cover: document.getElementById('ev-cover').value,
+                target: document.getElementById('ev-target').value,
+                twitchCost: document.getElementById('ev-twitch').value,
+                twitchGain: document.getElementById('ev-twitch-gain').value,
+                coinVal: document.getElementById('ev-coin-val').value,
+                ticketVal: document.getElementById('ev-ticket-val').value,
+            };
+            localStorage.setItem('hatelove_event_settings', JSON.stringify(settings));
+        }
+
+        function loadEventSettings() {
+            const saved = localStorage.getItem('hatelove_event_settings');
+            if (saved) {
+                try {
+                    const settings = JSON.parse(saved);
+                    if(settings.title) document.getElementById('ev-title').value = settings.title;
+                    if(settings.cover) document.getElementById('ev-cover').value = settings.cover;
+                    if(settings.target) document.getElementById('ev-target').value = settings.target;
+                    if(settings.twitchCost) document.getElementById('ev-twitch').value = settings.twitchCost;
+                    if(settings.twitchGain) document.getElementById('ev-twitch-gain').value = settings.twitchGain;
+                    if(settings.coinVal) document.getElementById('ev-coin-val').value = settings.coinVal;
+                    if(settings.ticketVal) document.getElementById('ev-ticket-val').value = settings.ticketVal;
+                } catch(e) {}
+            }
+        }
+
+        async function apiCall(endpoint, additionalBody = {}) {
+            const bodyData = { ...additionalBody, initData: tg ? tg.initData : "" };
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyData)
+                });
+                if (!res.ok) throw new Error("API Error");
+                return await res.json();
+            } catch (e) {
+                if(tg && tg.HapticFeedback && !isObs) tg.HapticFeedback.notificationOccurred('error');
+                throw e;
+            }
+        }
+
+        async function forceSyncState() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('guess_state')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                
+                if (data && !error) {
+                    handleStateChange(data);
+                }
+            } catch(e) {
+                console.warn('Ошибочка синхронизации стейта:', e);
+            }
+        }
+
+        async function adminAction(endpoint, btnEl) {
+            const origHTML = btnEl.innerHTML;
+            btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btnEl.disabled = true;
+            try {
+                await apiCall(endpoint);
+                setTimeout(forceSyncState, 300);
+            } catch(e) {
+                showAlert("Ошибка: " + e.message);
+            } finally {
+                btnEl.innerHTML = origHTML;
+                btnEl.disabled = false;
+            }
+        }
+
+        async function stopAndRewardBtn(btnEl) {
+            showConfirm("Выдать награды согласно списку?", async (ok) => {
+                if (ok) {
+                    const origHTML = btnEl.innerHTML;
+                    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Выдача...';
+                    btnEl.disabled = true;
+                    try {
+                        const res = await apiCall('/api/v1/admin/guess/finish_and_reward');
+                        showAlert("Раздача завершена!\n\n" + (res.log ? res.log.join("\n") : "Ок"));
+                        setTimeout(forceSyncState, 300);
+                    } catch(e) {
+                        showAlert("Ошибка!");
+                    } finally {
+                        btnEl.innerHTML = origHTML;
+                        btnEl.disabled = false;
+                    }
+                }
+            });
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; 
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.disableVerticalSwipes) {
+                window.Telegram.WebApp.disableVerticalSwipes();
+            }
+            if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.body.style.overflow = ''; 
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.enableVerticalSwipes) {
+                window.Telegram.WebApp.enableVerticalSwipes();
+            }
+        }
+
+        async function startEvent() {
+            const title = document.getElementById('ev-title').value;
+            const coverUrl = document.getElementById('ev-cover').value;
+            const target = parseInt(document.getElementById('ev-target').value);
+            const twitchCost = parseInt(document.getElementById('ev-twitch').value);
+            const twitchGain = parseInt(document.getElementById('ev-twitch-gain').value); 
+            
+            const coinVal = parseInt(document.getElementById('ev-coin-val').value) || 10;
+            const ticketVal = parseInt(document.getElementById('ev-ticket-val').value) || 5;
+
+            if (!title || !target || !twitchCost || !twitchGain) {
+                return showAlert("Укажите все параметры сбора (включая очки за Твич)!");
+            }
+
+            saveEventSettings(); 
+
+            showConfirm(`Запустить сбор "${title}"?\nСтарые активные сборы будут отключены!`, async (ok) => {
+                if (ok) {
+                    try {
+                        await apiCall('/api/v1/admin/community_events/create', {
+                            title: title,
+                            cover_url: coverUrl || "",
+                            target_points: target,
+                            twitch_reward_cost: twitchCost,
+                            twitch_reward_gain: twitchGain, 
+                            coin_multiplier: coinVal,
+                            ticket_multiplier: ticketVal
+                        });
+                        showAlert("Сбор на старт игры успешно запущен!");
+                        closeModal('modal-events');
+                        
+                        setTimeout(checkEventStatus, 1000); 
+                    } catch (e) {
+                        showAlert("Ошибка при создании: " + e.message);
+                    }
+                }
+            });
+        }
+
+        async function loadCases() {
+            try {
+                const { data, error } = await supabaseClient.from('shop_cache').select('data').eq('category_id', 2716312).single();
+                if (error) throw error;
+                const caseSelect = document.getElementById('rew-case-name');
+                if (!data || !data.data) {
+                    caseSelect.innerHTML = '<option value="">Нет кейсов</option>';
+                    return;
+                }
+                let casesList = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+                caseSelect.innerHTML = casesList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            } catch (e) {
+                document.getElementById('rew-case-name').innerHTML = '<option value="">Ошибка загрузки</option>';
+            }
+        }
+
+        function handleStateChange(state) {
+            const obsTextEl = document.getElementById('obs-custom-text');
+            if (obsTextEl) {
+                if (state.custom_text) {
+                    obsTextEl.style.display = 'block';
+                    obsTextEl.innerText = state.custom_text;
+                } else {
+                    obsTextEl.style.display = 'none';
+                }
+            }
+            if (!isObs && document.getElementById('custom-text-input').value === '' && state.custom_text) {
+                document.getElementById('custom-text-input').value = state.custom_text;
+            }
+
+            if (state.text_size) {
+                document.documentElement.style.setProperty('--custom-text-font', state.text_size + 'rem');
+                if (!isObs) {
+                    const slider = document.getElementById('text-size-slider');
+                    if (slider) slider.value = state.text_size;
+                    const valEl = document.getElementById('text-size-val');
+                    if (valEl) valEl.innerText = state.text_size;
+                }
+            }
+
+            if (state.letter_size) {
+                document.documentElement.style.setProperty('--tile-size', state.letter_size + 'rem');
+                document.documentElement.style.setProperty('--tile-font', (state.letter_size * 0.7) + 'rem');
+                if (!isObs) {
+                    document.getElementById('letter-size-slider').value = state.letter_size;
+                    document.getElementById('letter-size-val').innerText = state.letter_size;
+                }
+            }
+            
+            if (state.default_cover_url && !isObs && document.getElementById('admin-default-cover-input').value === '') {
+                document.getElementById('admin-default-cover-input').value = state.default_cover_url;
+            }
+            if (state.game_cover_url && !isObs && document.getElementById('admin-game-cover-input').value === '') {
+                document.getElementById('admin-game-cover-input').value = state.game_cover_url;
+            }
+
+            if (state.cover_offset_x !== undefined && !isObs) {
+                document.getElementById('cover-x-slider').value = state.cover_offset_x;
+                document.getElementById('cover-x-val').innerText = state.cover_offset_x + '%';
+            }
+            if (state.cover_offset_y !== undefined && !isObs) {
+                document.getElementById('cover-y-slider').value = state.cover_offset_y;
+                document.getElementById('cover-y-val').innerText = state.cover_offset_y + '%';
+            }
+            if (state.cover_zoom !== undefined && !isObs) {
+                document.getElementById('cover-zoom-slider').value = state.cover_zoom;
+                document.getElementById('cover-zoom-val').innerText = state.cover_zoom + '%';
+            }
+
+            // Защита от перетирания слова во время кулдауна
+            if (isCooldownActive && state.current_word && state.current_word.toUpperCase() === currentWord) {
+                return;
+            }
+
+            if (state.is_active && state.current_word) {
+                let serverIndices = state.revealed_indices || [];
+                if (typeof serverIndices === 'string') {
+                    try { serverIndices = JSON.parse(serverIndices); } catch(e) { serverIndices = []; }
+                }
+
+                if (state.current_word.toUpperCase() !== currentWord || state.current_mode !== currentMode) {
+                    currentWord = state.current_word.toUpperCase();
+                    currentMode = state.current_mode || "classic";
+                    revealedIndices = serverIndices; // СРАЗУ берем индексы с сервера
+                    timerSeconds = 30;
+                    isCooldownActive = false;
+                    
+                    if (currentMode === 'anagram') scrambledWord = shuffleString(currentWord);
+                    
+                    const timerEl = document.getElementById('obs-timer-container');
+                    if (timerEl) {
+                        timerEl.style.display = (currentMode === 'classic') ? 'block' : 'none';
+                    }
+                } else {
+                    if (serverIndices.length > revealedIndices.length) {
+                        revealedIndices = serverIndices;
+                    }
+                }
+
+                // 🔥 УНИВЕРСАЛЬНЫЙ ТРИГГЕР ПОБЕДЫ И КУЛДАУНА 🔥
+                // Проверяем всегда, даже если обновили страницу, а сокеты отвалились
+                if (revealedIndices.length === currentWord.length && !isCooldownActive) {
+                    isCooldownActive = true;
+                    cooldownTimerSeconds = 20;
+                    
+                    const timerEl = document.getElementById('obs-timer-container');
+                    const timerBar = document.getElementById('timer-progress');
+                    if (timerEl && timerBar) {
+                        timerEl.style.display = 'block';
+                        timerBar.style.backgroundColor = '#9146FF';
+                        timerBar.style.boxShadow = '0 0 25px rgba(145, 70, 255, 1)';
+                        timerBar.style.width = '100%';
+                    }
+                }
+
+                renderWord();
+
+                const wordEl = document.getElementById('admin-current-word');
+                if (wordEl) {
+                    wordEl.innerText = currentWord;
+                    wordEl.style.color = '#fff';
+                    
+                    const statusLabel = document.getElementById('admin-status-label');
+                    if (statusLabel) statusLabel.innerText = "Сейчас загадано:";
+                    
+                    const modeLabel = document.getElementById('admin-current-mode-label');
+                    if (modeLabel) modeLabel.innerText = `Режим: ${currentMode}`;
+                }
+            } else {
+                if (currentWord !== "") {
+                    currentWord = "";
+                    if (isObs) document.getElementById('word-container').innerHTML = '<div class="waiting-text">ОЖИДАНИЕ...</div>';
+                    checkEventStatus();
+                }
+            }
+        }
+        
+        async function checkEventStatus() {
+            try {
+                const res = await fetch('/api/v1/events/current?t=' + Date.now()); 
+                const data = await res.json();
+                
+                const wordEl = document.getElementById('admin-current-word');
+                const labelEl = document.getElementById('admin-status-label');
+                const modeEl = document.getElementById('admin-current-mode-label');
+
+                if (data.status === 'active' && data.event) {
+                    if (!currentWord) { 
+                        if (wordEl) {
+                            wordEl.innerText = "ИДЕТ СБОР";
+                            wordEl.style.color = '#ff9500';
+                        }
+                        if (labelEl) labelEl.innerText = "Статус:";
+                        if (modeEl) modeEl.innerText = `${data.event.current_points} / ${data.event.target_points} ОЧКОВ`;
+                    }
+                } else {
+                    if (!currentWord) {
+                        if (wordEl) {
+                            wordEl.innerText = "ИГРА ОСТАНОВЛЕНА";
+                            wordEl.style.color = '#ff4d4d';
+                        }
+                        if (labelEl) labelEl.innerText = "Статус:";
+                        if (modeEl) modeEl.innerText = "Сборов нет";
+                    }
+                }
+            } catch(e) {}
+        }
+
+function initRealtime() {
+            const channel = supabaseClient.channel('guess-state-changes');
+
+            channel.on('postgres_changes', 
+                { event: 'UPDATE', schema: 'public', table: 'guess_state', filter: 'id=eq.1' }, 
+                (payload) => handleStateChange(payload.new)
+            );
+
+            // 🔥 Мгновенный слушатель Broadcast от бэкенда с обработкой кулдауна 🔥
+            channel.on('broadcast', { event: 'force-update' }, (payload) => {
+                console.log("⚡ Получен мгновенный Broadcast!", payload.payload);
+                
+                if (payload.payload.action === 'cooldown') { 
+                    // Активируем кулдаун
+                    isCooldownActive = true;
+                    cooldownTimerSeconds = payload.payload.delay || 20;
+                    
+                    // Показываем угаданное слово (открываем все буквы)
+                    revealedIndices = Array.from(Array(currentWord.length).keys());
+                    renderWord();
+
+                    const timerEl = document.getElementById('obs-timer-container');
+                    const timerBar = document.getElementById('timer-progress');
+                    if (timerEl && timerBar) {
+                        timerEl.style.display = 'block';
+                        timerBar.style.backgroundColor = '#9146FF'; // Фиолетовый цвет для кулдауна
+                        timerBar.style.boxShadow = '0 0 25px rgba(145, 70, 255, 1)';
+                        timerBar.style.width = '100%';
+                    }
+                } else {
+                    // Обычное обновление (смена слова или открытие буквы)
+                    handleStateChange(payload.payload); 
+                    setTimeout(forceSyncState, 500); 
+                }
+            });
+
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    const { data } = await supabaseClient.from('guess_state').select('*').eq('id', 1).single();
+                    if (data) handleStateChange(data);
+                }
+            });
+
+            supabaseClient.channel('admin-events-changes').on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'community_events' }, 
+                () => checkEventStatus() 
+            ).subscribe();
+        }
+        
+        let leaderboardTimeout = null; 
+
+        function initLeaderboardRealtime() {
+            supabaseClient
+                .channel('leaderboard-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'guess_leaderboard' }, 
+                    () => {
+                        if (leaderboardTimeout) {
+                            clearTimeout(leaderboardTimeout);
+                        }
+                        leaderboardTimeout = setTimeout(() => {
+                            fetchLeaderboard();
+                        }, 500);
+                    }
+                )
+                .subscribe();
+                
+            fetchLeaderboard();
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const boardData = await apiCall('/api/v1/admin/guess/leaderboard');
+                const container = document.getElementById('admin-leaderboard');
+                
+                if (!boardData || boardData.length === 0) {
+                    container.innerHTML = '<div class="text-gray-500 text-center text-xs mt-4">Список пуст</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="flex flex-row flex-nowrap justify-between items-center px-3 py-1 text-[9px] text-gray-400 uppercase font-bold border-b border-[rgba(255,255,255,0.05)] mb-2 w-full box-border shrink-0">
+                        <div class="flex-1 text-left">Ник</div>
+                        <div class="w-16 text-center shrink-0">Авторизация</div>
+                        <div class="w-12 text-right shrink-0">Очки</div>
+                    </div>
+                `;
+
+                html += boardData.map((u, i) => {
+                    const authIcon = u.is_auth 
+                        ? '<i class="fa-solid fa-check text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]"></i>' 
+                        : '<i class="fa-solid fa-xmark text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"></i>';
+
+                    return `
+                    <div class="list-item" style="display: flex; align-items: center; padding: 8px 12px; width: 100%; box-sizing: border-box; font-size: 11px;">
+                        <div style="flex: 1; display: flex; align-items: center; min-width: 0; padding-right: 8px;">
+                            <span class="text-gray-500 mr-2 shrink-0">#${i+1}</span> 
+                            <span class="font-bold text-gray-200 truncate leading-none" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.twitch_login}</span>
+                        </div>
+                        <div style="width: 64px; text-align: center; flex-shrink: 0; font-size: 13px;">
+                            ${authIcon}
+                        </div>
+                        <div style="width: 48px; display: flex; justify-content: flex-end; align-items: center; gap: 4px; flex-shrink: 0;" class="text-[#ffd700] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded leading-none">
+                            ${u.score} <i class="fa-solid fa-star text-[0.7em]"></i>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                container.innerHTML = html;
+            } catch (e) {
+                console.error("Ошибка загрузки лидерборда:", e);
+                document.getElementById('admin-leaderboard').innerHTML = '<div class="text-red-500 text-center text-xs mt-4">Ошибка загрузки</div>';
+            }
+        }
+
+        function shuffleString(str) {
+            const arr = str.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr.join('');
+        }
+
+        function renderWord() {
+            const container = document.getElementById('word-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            // 🔥 ЕСЛИ ИДЕТ КУЛДАУН (OBS) - ПОКАЗЫВАЕМ ТОЛЬКО ТЕКСТ (БЕЗ ПЛИТОК) 🔥
+            if (isCooldownActive && isObs) {
+                const timerText = document.createElement('div');
+                timerText.id = 'cooldown-text';
+                
+                // Главная фишка: задаем высоту как у плиток, чтобы ничего не прыгало
+                timerText.style.height = 'var(--tile-size)'; 
+                timerText.style.display = 'flex';
+                timerText.style.alignItems = 'center';
+                timerText.style.justifyContent = 'center';
+                
+                timerText.style.width = '100%';
+                timerText.style.fontSize = 'var(--tile-font)'; // Тот же размер, что и у букв
+                timerText.style.fontWeight = '900';
+                timerText.style.color = '#22c55e'; // Зеленый цвет успеха
+                timerText.style.textShadow = '0 0 20px rgba(34, 197, 94, 0.6)';
+                timerText.style.letterSpacing = '2px';
+                timerText.innerText = `СМЕНА СЛОВА: ${cooldownTimerSeconds}С`;
+                
+                container.appendChild(timerText);
+                return; // Останавливаем выполнение, чтобы старые буквы не рисовались
+            }
+
+            // ОБЫЧНАЯ ОТРИСОВКА БУКВ (когда игра идет)
+            for (let i = 0; i < currentWord.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'letter-tile';
+                
+                if (currentMode === 'classic') {
+                    div.innerText = revealedIndices.includes(i) ? currentWord[i] : '';
+                } 
+                else if (currentMode === 'anagram') {
+                    div.innerText = scrambledWord[i] || '';
+                } 
+                else if (currentMode === 'edges') {
+                    div.innerText = (i === 0 || i === currentWord.length - 1) ? currentWord[i] : '';
+                }
+                container.appendChild(div);
+            }
+        }
+
+        // ==========================================
+        // ИНИЦИАЛИЗАЦИЯ И РАЗДЕЛЕНИЕ НА OBS/АДМИНКУ
+        // ==========================================
+
+       // 🔥 ЕДИНЫЙ ТАЙМЕР ДЛЯ ИГРЫ И КУЛДАУНА 🔥
+       setInterval(() => {
+            if (!currentWord) return;
+
+            const timerBar = document.getElementById('timer-progress');
+            const timerEl = document.getElementById('obs-timer-container');
+
+            if (isCooldownActive) {
+                // ЛОГИКА ОЖИДАНИЯ СЛЕДУЮЩЕГО СЛОВА (Работает везде)
+                cooldownTimerSeconds--;
+                if (timerBar) {
+                    timerBar.style.width = `${(cooldownTimerSeconds / 20) * 100}%`;
+                }
+                
+                // ОБНОВЛЯЕМ ТЕКСТ В OBS
+                const obsText = document.getElementById('cooldown-text');
+                if (obsText) obsText.innerText = `СМЕНА СЛОВА: ${cooldownTimerSeconds}С`;
+
+                // ОБНОВЛЯЕМ ТЕКСТ В АДМИНКЕ
+                const adminWordEl = document.getElementById('admin-current-word');
+                if (adminWordEl && !isObs) {
+                    adminWordEl.innerText = `СМЕНА СЛОВА: ${cooldownTimerSeconds}С`;
+                    adminWordEl.style.color = '#22c55e';
+                }
+                
+                if (cooldownTimerSeconds <= 0) {
+                    isCooldownActive = false;
+                    
+                    // Возвращаем красный цвет таймеру для новой игры
+                    if (timerBar) {
+                        timerBar.style.backgroundColor = '#ff4d4d';
+                        timerBar.style.boxShadow = '0 0 25px rgba(255, 77, 77, 1)';
+                        timerBar.style.width = '100%';
+                    }
+                    
+                    // Запрос за новым словом делает ТОЛЬКО OBS
+                    if (isObs) {
+                        let retryCount = 0; // Счетчик попыток
+                        
+                        const fetchNextWord = () => {
+                            // ❗️ Указываем абсолютный путь к твоему Vercel
+                            fetch('https://hatelavka-quest.vercel.app/api/v1/twitch/obs_next_round?t=' + Date.now())
+                                .then(res => res.json())
+                                .then(data => {
+                                    // Агрессивная повторная попытка, если сервер не отдал success
+                                    if (data.status !== 'success') {
+                                        retryCount++;
+                                        if (retryCount <= 5) {
+                                            setTimeout(fetchNextWord, 2000);
+                                        }
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Сетевая ошибка при запросе слова:", err);
+                                    retryCount++;
+                                    if (retryCount <= 5) {
+                                        setTimeout(fetchNextWord, 2000);
+                                    }
+                                });
+                        };
+                        fetchNextWord();
+                    }
+                }
+            } else {
+                // ОБЫЧНАЯ ЛОГИКА ОТКРЫТИЯ БУКВ
+                if (currentMode !== 'classic') return; 
+                
+                if (timerEl) timerEl.style.display = 'block';
+                
+                timerSeconds--;
+                if (timerBar) {
+                    timerBar.style.width = `${(timerSeconds / 30) * 100}%`;
+                }
+                
+                if (timerSeconds <= 0) {
+                    timerSeconds = 30; 
+                    // Буквы открывает ТОЛЬКО OBS
+                    if (currentWord.length - revealedIndices.length > 2 && isObs) {
+                        const unrevealed = Array.from(Array(currentWord.length).keys()).filter(i => !revealedIndices.includes(i));
+                        if (unrevealed.length > 0) {
+                            const randomIndex = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+                            revealedIndices.push(randomIndex);
+                            renderWord();
+                        }
+                    }
+                }
+            }
+        }, 1000);
+        
+        if (isObs) {
+            document.body.classList.add('obs-mode');
+            document.getElementById('obs-view').classList.remove('hidden');
+            
+            forceSyncState(); 
+            initRealtime();
+            
+            setInterval(forceSyncState, 3000); 
+        } else {
+            document.getElementById('auth-view').style.display = 'flex';
+            checkAccess();
+        }
+
+        async function checkAccess() {
+            try {
+                const userData = await apiCall('/api/v1/user/me');
+                if (userData?.is_admin) {
+                    document.getElementById('auth-view').style.display = 'none';
+                    document.getElementById('admin-view').style.display = 'block';
+                    
+                    loadEventSettings(); 
+
+                    await forceSyncState();
+                    checkEventStatus();
+
+                    initRealtime(); 
+                    initLeaderboardRealtime(); 
+                    
+                    setInterval(forceSyncState, 3000); 
+                    
+                    loadCases();
+                    loadDictionary();
+                    loadRewards();
+                } else {
+                    document.getElementById('auth-status').innerText = "Доступ запрещен";
+                }
+            } catch (e) { 
+                document.getElementById('auth-status').innerText = "Ошибка сети"; 
+            }
+        }
+
+        async function changeGameMode() {
+            const newMode = document.getElementById('game-mode-select').value;
+            await apiCall('/api/v1/admin/guess/mode/set', { mode: newMode });
+        }
+        
+        async function setCustomText() {
+            const text = document.getElementById('custom-text-input').value;
+            await apiCall('/api/v1/admin/guess/text/set', { custom_text: text });
+            showAlert("Текст обновлен!");
+        }
+        
+        async function setCovers() {
+            const defaultUrl = document.getElementById('admin-default-cover-input').value;
+            const gameUrl = document.getElementById('admin-game-cover-input').value;
+            
+            try {
+                await apiCall('/api/v1/admin/guess/covers/set', { default_cover_url: defaultUrl, game_cover_url: gameUrl });
+                showAlert("Фоны успешно обновлены!");
+            } catch (e) {
+                showAlert("Ошибка при сохранении: " + e.message);
+            }
+        }
+
+        let coverSettingTimeout;
+        function changeCoverSetting(axis, val) {
+            document.getElementById(`cover-${axis}-val`).innerText = val + '%';
+            clearTimeout(coverSettingTimeout);
+            
+            const x = parseInt(document.getElementById('cover-x-slider').value);
+            const y = parseInt(document.getElementById('cover-y-slider').value);
+            const zoom = parseInt(document.getElementById('cover-zoom-slider').value);
+
+            coverSettingTimeout = setTimeout(async () => {
+                try {
+                    await apiCall('/api/v1/admin/guess/covers/set', { 
+                        cover_offset_x: x, 
+                        cover_offset_y: y, 
+                        cover_zoom: zoom 
+                    });
+                } catch(e) { console.error(e); }
+            }, 300);
+        }
+
+        let textSizeTimeout;
+        function changeTextSize(val) {
+            document.getElementById('text-size-val').innerText = val;
+            clearTimeout(textSizeTimeout);
+            textSizeTimeout = setTimeout(async () => {
+                await apiCall('/api/v1/admin/guess/text_size/set', { text_size: parseFloat(val) });
+            }, 300);
+        }
+
+        let sizeTimeout;
+        function changeLetterSize(val) {
+            document.getElementById('letter-size-val').innerText = val;
+            clearTimeout(sizeTimeout);
+            sizeTimeout = setTimeout(async () => {
+                await apiCall('/api/v1/admin/guess/size/set', { letter_size: parseFloat(val) });
+            }, 300);
+        }
+
+        async function saveDictionary() {
+            const text = document.getElementById('words-list-input').value;
+            const words = text.split(/[\n,]+/).map(w => w.trim().toUpperCase()).filter(w => w.length > 2);
+            if(words.length === 0) return showAlert("Словарь пуст!");
+            await apiCall('/api/v1/admin/guess/words/set', { words: words });
+            showAlert("Сохранено!");
+            closeModal('modal-dictionary');
+        }
+
+        async function loadDictionary() {
+            try {
+                const res = await apiCall('/api/v1/admin/guess/words/get');
+                if (res.words) document.getElementById('words-list-input').value = res.words.join('\n');
+            } catch(e) {}
+        }
+
+        function toggleCaseInput() {
+            const type = document.getElementById('rew-type').value;
+            const isCase = type === 'case';
+            document.getElementById('rew-amount').classList.toggle('hidden', isCase);
+            document.getElementById('rew-case-name').classList.toggle('hidden', !isCase);
+        }
+
+        async function loadRewards() {
+            try {
+                const rewards = await apiCall('/api/v1/admin/guess/rewards_config/get');
+                const container = document.getElementById('rewards-list');
+                rewardsConfig = rewards.sort((a, b) => a.place - b.place);
+                
+                container.innerHTML = rewardsConfig.map(r => {
+                    let icon, title, desc;
+                    if(r.reward_type === 'case') { icon = '🎁'; title = 'Кейс'; desc = `«${r.target_case_name}»`; }
+                    else if(r.reward_type === 'tickets') { icon = '🎟'; title = 'Билеты'; desc = `${r.amount} шт.`; }
+                    else { icon = '<i class="fa-solid fa-coins text-[#ffd700]"></i>'; title = 'Монеты'; desc = `${r.amount} шт.`; }
+
+                    return `
+                    <div class="list-item" style="padding: 8px 12px; margin-bottom: 6px;">
+                        <div class="flex items-center gap-3 w-full justify-between">
+                            <div class="flex items-center gap-3">
+                                <div style="background: #9146FF; color: #fff; font-weight: 900; font-size: 11px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 4px; box-shadow: 0 0 10px rgba(145,70,255,0.4)">
+                                    ${r.place}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[8px] text-gray-400 uppercase font-bold tracking-wide">Победитель забирает:</span>
+                                    <span class="text-[11px] font-bold text-white mt-[2px]">${icon} ${title} <span class="text-[#9146FF]">${desc}</span></span>
+                                </div>
+                            </div>
+                            <button onclick="deleteReward(${r.place})" class="text-gray-500 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) {}
+        }
+
+        async function addReward() {
+            const place = parseInt(document.getElementById('rew-place').value);
+            const type = document.getElementById('rew-type').value;
+            const amount = parseInt(document.getElementById('rew-amount').value) || 0;
+            const caseName = document.getElementById('rew-case-name').value;
+            if (!place) return showAlert("Укажите место");
+            
+            if (type === 'case' && !caseName) return showAlert("Выберите кейс из списка");
+
+            await apiCall('/api/v1/admin/guess/rewards_config/add', { place, reward_type: type, amount, target_case_name: caseName });
+            
+            document.getElementById('rew-place').value = '';
+            document.getElementById('rew-amount').value = '';
+            
+            loadRewards();
+        }
+
+        async function deleteReward(place) {
+            await apiCall('/api/v1/admin/guess/rewards_config/delete', { place });
+            loadRewards();
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+aiogram==3.10.0
+jinja2==3.1.4
+python-dotenv==1.0.1
+httpx==0.27.0
+aiohttp==3.9.5
+requests==2.32.3
+PyJWT==2.8.0
+
+# --- ИСПРАВЛЕНИЯ ЗДЕСЬ ---
+# 1. Жестко закрепляем Pydantic v2 (т.к. fastapi 0.111 и supabase v2 его требуют)
+pydantic==2.7.1
+
+# 2. Закрепляем supabase на стабильной v2, которая использует gotrue (вместо supabase-auth)
+supabase[asyncio]==2.4.4
+# --- КОНЕЦ ИСПРАВЛЕНИЙ ---
+
+# --- STEAM AUTO-DELIVERY ---
+steampy
+ijson

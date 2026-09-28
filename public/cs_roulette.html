@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HATElove - Управление Кодами</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #0a0a0c;
+            --bg-card: #1c1c1e;
+            --bg-input: #2c2c2e;
+            --accent: #FFD700;
+            --accent-blue: #0a84ff;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden; /* Prevent body scroll, handle inside containers */
+        }
+
+        /* --- СКРИНЫ ЗАГРУЗКИ --- */
+        #loading-screen, #access-denied {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-main); z-index: 20000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #loading-screen { color: var(--accent); font-size: 16px; font-weight: 700; }
+        #access-denied { color: #ff3b30; font-size: 20px; font-weight: 800; text-align: center; padding: 20px; }
+        .hidden { display: none !important; }
+
+        /* --- ШАПКА --- */
+        .ios-header {
+            padding: calc(env(safe-area-inset-top, 20px) + 10px) 15px 15px 15px;
+            background: rgba(10, 10, 12, 0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            z-index: 100; flex-shrink: 0;
+        }
+        .back-btn {
+            background: none; border: none; color: var(--accent-blue);
+            font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 5px;
+            cursor: pointer; padding: 0;
+        }
+        .header-title { font-size: 17px; font-weight: 600; text-align: center; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+
+        /* --- ВКЛАДКИ --- */
+        .tabs-container { padding: 15px; flex-shrink: 0; }
+        .ios-tabs {
+            display: flex; background: var(--bg-input); border-radius: 8px; padding: 2px;
+        }
+        .ios-tab {
+            flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600;
+            border-radius: 6px; color: var(--text-muted); cursor: pointer; transition: 0.2s;
+        }
+        .ios-tab.active { background: #636366; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+        /* --- РАБОЧАЯ ОБЛАСТЬ --- */
+        .view-section {
+            flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 0 15px calc(env(safe-area-inset-bottom, 20px) + 20px) 15px;
+        }
+
+        /* --- ПОИСК И ФИЛЬТРЫ --- */
+        .search-box { position: relative; margin-bottom: 15px; }
+        .search-box i.fa-magnifying-glass { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+        .search-box input {
+            width: 100%; background: var(--bg-input); border: none; border-radius: 10px;
+            padding: 10px 45px 10px 35px; color: #fff; font-size: 15px; outline: none; box-sizing: border-box;
+            -webkit-appearance: none;
+        }
+        
+        .sort-btn {
+            position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; color: var(--accent-blue);
+            font-size: 18px; padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .filters-scroll {
+            display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            padding-bottom: 10px; margin-bottom: 5px;
+        }
+        .filters-scroll::-webkit-scrollbar { display: none; }
+        .filter-chip {
+            background: var(--bg-input); color: var(--text-muted); border: none; border-radius: 16px;
+            padding: 6px 14px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: 0.2s;
+        }
+        .filter-chip.active { background: var(--accent-blue); color: #fff; }
+
+        /* --- КАРТОЧКА КОДА --- */
+        .code-card {
+            background: var(--bg-card); border-radius: 12px; padding: 14px; margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;
+        }
+        .code-card:active { transform: scale(0.98); }
+        .cc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .cc-code { color: var(--accent); font-size: 16px; font-weight: 800; font-family: 'SF Mono', Consolas, monospace; letter-spacing: 0.5px; display: flex; align-items: center; }
+        
+        .cc-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; text-transform: uppercase; }
+        .st-active { background: rgba(52,199,89,0.15); color: #34c759; }  /* Доступен */
+        .st-full { background: rgba(255,149,0,0.15); color: #ff9500; }     /* Разобран (оранжевый) */
+        .st-used { background: rgba(255,59,48,0.15); color: #ff3b30; }     /* Использован (красный) */
+        
+        .cc-case { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .cc-desc { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+        .cc-stats { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+        .cc-stat-item { font-size: 11px; color: #aaa; }
+        .cc-stat-item b { color: #fff; }
+
+        /* --- ФОРМА СОЗДАНИЯ --- */
+        .form-group { margin-bottom: 15px; }
+        .form-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; display: block; text-transform: uppercase; }
+        .form-input {
+            width: 100%; background: var(--bg-input); border: none; border-radius: 10px;
+            padding: 14px; color: #fff; font-size: 15px; outline: none; box-sizing: border-box;
+            -webkit-appearance: none;
+        }
+        .form-row { display: flex; gap: 10px; }
+        .btn-dice {
+            background: #3a3a3c; border: none; border-radius: 10px; padding: 0 16px;
+            color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
+        }
+        .btn-submit {
+            background: #34c759; color: #000; border: none; border-radius: 12px;
+            padding: 16px; font-size: 15px; font-weight: 700; width: 100%; margin-top: 10px; cursor: pointer;
+        }
+        .btn-submit:disabled { opacity: 0.6; }
+        
+        /* ЧИПЫ ДЛЯ ДЛИНЫ КОДА */
+        .len-chip {
+            background: var(--bg-input); color: var(--text-muted); border: none; border-radius: 6px;
+            padding: 4px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
+        .len-chip.active { background: var(--accent-blue); color: #fff; }
+
+        /* --- ТУМБЛЕР (TOGGLE) --- */
+        .toggle-switch {
+            position: relative; width: 50px; height: 30px;
+            appearance: none; background: #3a3a3c;
+            border-radius: 15px; outline: none; cursor: pointer; transition: 0.3s;
+            flex-shrink: 0; margin: 0;
+        }
+        .toggle-switch:checked { background: #34c759; }
+        .toggle-switch::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 26px; height: 26px; background: #fff;
+            border-radius: 50%; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-switch:checked::after { transform: translateX(20px); }
+        .form-row-space {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-input); padding: 14px; border-radius: 10px;
+        }
+
+        /* --- КАСТОМНЫЙ SELECT (ДЛЯ КЕЙСОВ) --- */
+        .custom-select-wrapper { position: relative; width: 100%; }
+        .custom-select-btn { 
+            display: flex; justify-content: space-between; align-items: center; 
+            cursor: pointer; user-select: none; 
+        }
+        .custom-select-menu {
+            position: absolute; top: calc(100% + 5px); left: 0; width: 100%;
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; max-height: 200px; overflow-y: auto;
+            z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 5px 0;
+        }
+        .custom-option {
+            padding: 12px 14px; font-size: 14px; color: #fff; cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .custom-option:last-child { border-bottom: none; }
+        .custom-option:active { background: rgba(255,255,255,0.05); }
+
+        /* --- МОДАЛКА ЮЗЕРОВ --- */
+        .users-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 5000; display: none;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            opacity: 0; transition: 0.3s; padding: 20px; box-sizing: border-box;
+        }
+        .users-modal.active { display: flex; opacity: 1; }
+        .um-content {
+            background: var(--bg-card); width: 100%; max-width: 400px; border-radius: 16px;
+            max-height: 80vh; display: flex; flex-direction: column;
+        }
+        .um-header {
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .um-list {
+            padding: 15px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex-grow: 1;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .u-card {
+            background: var(--bg-input); padding: 12px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .u-names { display: flex; flex-direction: column; gap: 4px; }
+        .u-tg { font-size: 13px; font-weight: 600; color: #fff; }
+        .u-tw { font-size: 11px; color: #9146ff; display: flex; align-items: center; gap: 4px; }
+        .u-badge { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+        .b-activated { background: rgba(255,149,0,0.15); color: #ff9500; }
+        .b-used { background: rgba(52,199,89,0.15); color: #34c759; }
+
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 30px; margin-bottom: 15px;"></i>
+        <div>ПРОВЕРКА ПРАВ...</div>
+    </div>
+
+    <div id="access-denied" class="hidden">
+        <i class="fa-solid fa-shield-halved" style="font-size: 50px; margin-bottom: 15px;"></i>
+        <div>Доступ закрыт</div>
+        <div style="font-size: 13px; color: #888; margin-top: 10px; font-weight: normal;">У вас нет прав администратора</div>
+        <button class="btn-submit" style="background: #3a3a3c; color: #fff; margin-top: 30px; width: auto; padding: 12px 30px;" onclick="goBack()">Вернуться</button>
+    </div>
+
+    <div id="main-app" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
+        <!-- Шапка -->
+        <div class="ios-header">
+            <button class="back-btn" onclick="goBack()">
+                <i class="fa-solid fa-chevron-left"></i> Назад
+            </button>
+            <div class="header-title">Промокоды</div>
+            <div style="width: 60px;"></div> <!-- Spacer for center alignment -->
+        </div>
+
+        <!-- Переключатель -->
+        <div class="tabs-container">
+            <div class="ios-tabs">
+                <div class="ios-tab active" id="tab-list" onclick="switchTab('list')">Список</div>
+                <div class="ios-tab" id="tab-create" onclick="switchTab('create')">Создать</div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: СПИСОК -->
+        <div id="view-list" class="view-section">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-input" placeholder="Поиск (код, кейс, дата)..." oninput="filterCodes()">
+                <!-- Кнопка сортировки -->
+                <button class="sort-btn" onclick="toggleSort()">
+                    <i id="sort-icon" class="fa-solid fa-arrow-down-short-wide"></i>
+                </button>
+            </div>
+            
+            <div class="filters-scroll">
+                <button class="filter-chip active" onclick="setFilter('all', this)">Все</button>
+                <button class="filter-chip" onclick="setFilter('bypass', this)"><i class="fa-solid fa-bolt" style="color:var(--accent);"></i> Без лока</button>
+                <button class="filter-chip" onclick="setFilter('manual', this)">Мои коды</button>
+                <button class="filter-chip" onclick="setFilter('active', this)">Доступны</button>
+                <button class="filter-chip" onclick="setFilter('full', this)">Разобраны</button>
+                <button class="filter-chip" onclick="setFilter('used', this)">Использованы</button>
+            </div>
+
+            <div id="codes-container">
+                <!-- Карточки рендерятся тут -->
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: СОЗДАНИЕ -->
+        <div id="view-create" class="view-section hidden">
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label class="form-label" style="margin-bottom: 0;">Код купона</label>
+                    
+                    <!-- 🔥 НОВОЕ: ЯРЛЫЧКИ ДЛЯ ДЛИНЫ КОДА 🔥 -->
+                    <div style="display: flex; gap: 5px;">
+                        <button class="len-chip" data-len="4" onclick="setPromoLength(4, this)">4</button>
+                        <button class="len-chip" data-len="6" onclick="setPromoLength(6, this)">6</button>
+                        <button class="len-chip" data-len="8" onclick="setPromoLength(8, this)">8</button>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <input type="text" id="new-code" class="form-input" style="color: var(--accent); font-weight: 800; letter-spacing: 1px;" placeholder="aB3d... (8 символов)">
+                    <button class="btn-dice" onclick="generateCode()"><i class="fa-solid fa-dice"></i></button>
+                </div>
+            </div>
+            
+            <!-- 🔥 КАСТОМНЫЙ ВЫБОР КЕЙСА 🔥 -->
+            <div class="form-group">
+                <label class="form-label">Привязать кейс</label>
+                <div class="custom-select-wrapper" id="case-select-wrapper">
+                    <div id="custom-case-btn" class="form-input custom-select-btn" onclick="toggleCaseMenu()">
+                        <span id="custom-case-text">Загрузка кейсов...</span>
+                        <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                    </div>
+                    <div id="custom-case-menu" class="custom-select-menu hidden">
+                        <!-- Сюда вставятся кейсы -->
+                    </div>
+                    <!-- Скрытый инпут хранит реальное значение для функции submitCode() -->
+                    <input type="hidden" id="new-case" value="">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Количество активаций (Макс. мест)</label>
+                <input type="number" id="new-max" class="form-input" value="10" min="1">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Заметка / Описание (Опционально)</label>
+                <input type="text" id="new-desc" class="form-input" placeholder="Код для стрима 01.09">
+            </div>
+
+            <div class="form-group">
+                <div class="form-row-space">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px;">
+                            <i class="fa-solid fa-bolt" style="color: var(--accent); margin-right: 5px;"></i>Вывод без лимитов
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Запишет скин как raffle (без лока)</div>
+                    </div>
+                    <input type="checkbox" id="new-bypass-lock" class="toggle-switch">
+                </div>
+            </div>
+
+            <button class="btn-submit" id="submit-btn" onclick="submitCode()">СОЗДАТЬ КУПОН</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПОЛЬЗОВАТЕЛЕЙ -->
+    <div id="users-modal" class="users-modal">
+        <div class="um-content">
+            <div class="um-header">
+                <div style="font-weight: 700; font-size: 16px; color: #fff;">Статистика кода</div>
+                <button onclick="closeUsersModal()" style="background: rgba(255,255,255,0.1); border: none; color: #8e8e93; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="um-list" id="users-list">
+                <!-- Юзеры -->
+            </div>
+        </div>
+    </div>
+
+<script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+        tg.ready();
+        tg.expand();
+        if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+    }
+
+    // --- АВТОРИЗАЦИЯ ---
+    function getAuthPayload() {
+        let rawData = window.Telegram?.WebApp?.initData || window.location.search || window.location.hash || '';
+        if (rawData.startsWith('?') || rawData.startsWith('#')) rawData = rawData.slice(1);
+        return { initData: rawData, platform: 'tg' };
+    }
+    const payload = getAuthPayload();
+
+    // Глобальные переменные
+    let allCodes = [];
+    let usersMap = {};
+    let currentFilter = 'all';
+    let sortOrder = 'desc'; // desc = новые сверху, asc = старые сверху
+    
+    // 🔥 ПЕРЕМЕННАЯ ДЛЯ ДЛИНЫ КОДА (По умолчанию 8, или то, что в кэше)
+    let currentPromoLength = parseInt(localStorage.getItem('promo_length')) || 8;
+
+    // --- НАВИГАЦИЯ ---
+    function goBack() {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/menu'; 
+        }
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tab-list').classList.remove('active');
+        document.getElementById('tab-create').classList.remove('active');
+        document.getElementById('view-list').classList.add('hidden');
+        document.getElementById('view-create').classList.add('hidden');
+
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.getElementById(`view-${tab}`).classList.remove('hidden');
+
+        if (tab === 'list') filterCodes(); // Перерисовываем при возврате
+    }
+
+    // --- СТАРТ ПРИЛОЖЕНИЯ ---
+    async function initApp() {
+        try {
+            const res = await fetch('/api/v1/user/me', {
+                method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json'}
+            });
+            const user = await res.json();
+
+            document.getElementById('loading-screen').classList.add('hidden');
+
+            if (!user || !user.is_admin) {
+                document.getElementById('access-denied').classList.remove('hidden');
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            // 🔥 Инициализируем UI выбора длины при запуске
+            initPromoLengthUI();
+
+            loadCasesForSelect();
+            loadCodes();
+
+        } catch (e) {
+            document.getElementById('loading-screen').innerHTML = '<div style="color:#ff3b30;">Ошибка связи с сервером.</div>';
+        }
+    }
+
+    // --- 🔥 ЛОГИКА КАСТОМНОГО СЕЛЕКТА 🔥 ---
+    function toggleCaseMenu() {
+        document.getElementById('custom-case-menu').classList.toggle('hidden');
+    }
+
+    function selectCase(caseName) {
+        document.getElementById('new-case').value = caseName;
+        document.getElementById('custom-case-text').innerText = caseName;
+        document.getElementById('custom-case-text').style.color = "#fff";
+        document.getElementById('custom-case-menu').classList.add('hidden');
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    }
+
+    // Закрытие меню при клике в пустоту
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('case-select-wrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+            document.getElementById('custom-case-menu').classList.add('hidden');
+        }
+    });
+
+    // --- ЗАГРУЗКА КЕЙСОВ ---
+    async function loadCasesForSelect() {
+        const menu = document.getElementById('custom-case-menu');
+        const textBtn = document.getElementById('custom-case-text');
+
+        try {
+            const res = await fetch('/api/v1/admin/cases_list', {
+                method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            
+            if (data.cases && data.cases.length > 0) {
+                textBtn.innerText = "-- Выберите кейс --";
+                textBtn.style.color = "var(--text-muted)";
+                
+                menu.innerHTML = data.cases.map(c => {
+                    const safeName = c.replace(/'/g, "\\'");
+                    return `<div class="custom-option" onclick="selectCase('${safeName}')">${escapeHTML(c)}</div>`;
+                }).join('');
+            } else {
+                textBtn.innerText = "Кейсы не найдены";
+                menu.innerHTML = '<div class="custom-option" style="color:#888; text-align:center;">Пусто</div>';
+            }
+        } catch (e) {
+            textBtn.innerText = "Ошибка загрузки";
+            menu.innerHTML = '<div class="custom-option" style="color:#ff3b30; text-align:center;">Ошибка</div>';
+        }
+    }
+
+    // --- ЗАГРУЗКА И РЕНДЕР КОДОВ ---
+    async function loadCodes() {
+        const container = document.getElementById('codes-container');
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:#888;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+
+        try {
+            const res = await fetch('/api/v1/admin/codes/list', {
+                method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            
+            allCodes = data.codes || [];
+            usersMap = data.users_map || {};
+            
+            filterCodes(); 
+        } catch (e) {
+            container.innerHTML = '<div style="text-align:center; color:#ff3b30; padding:20px;">Ошибка загрузки кодов.</div>';
+        }
+    }
+
+    function toggleSort() {
+        sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+        const icon = document.getElementById('sort-icon');
+        icon.className = sortOrder === 'desc' ? 'fa-solid fa-arrow-down-short-wide' : 'fa-solid fa-arrow-up-wide-short';
+        
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        filterCodes();
+    }
+
+    function setFilter(filter, btnElement) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        filterCodes();
+    }
+
+    function filterCodes() {
+        const query = document.getElementById('search-input').value.toLowerCase().trim();
+        const container = document.getElementById('codes-container');
+
+        let filtered = allCodes.filter(c => {
+            // Форматируем дату для поиска по ней
+            let dateStr = '';
+            if (c.assigned_at || c.created_at) {
+                const d = new Date(c.assigned_at || c.created_at);
+                dateStr = d.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'});
+            }
+
+            // 1. Поиск
+            const matchQuery = c.code.toLowerCase().includes(query) || 
+                               (c.target_case_name || "").toLowerCase().includes(query) ||
+                               (c.description || "").toLowerCase().includes(query) ||
+                               dateStr.includes(query);
+            
+            // 2. Лимиты и статусы (МАТЕМАТИКА)
+            const actCount = (c.activated_by_ids || []).length;
+            const usedCount = (c.used_by_ids || []).length;
+            const maxUses = c.max_uses || 1;
+            const totalTaken = actCount + usedCount;
+            
+            const isUsed = usedCount >= maxUses; // Полностью использован
+            const isFull = totalTaken >= maxUses && !isUsed; // Полностью забронирован, но еще не открыт
+            const isActive = totalTaken < maxUses; // Есть свободные места
+
+            // Системные коды бота всегда имеют тире (MR-..., CP-...). Твои ручные коды (Whjbcxz...) - это сплошной текст без тире.
+            const isManual = !c.code.includes('-'); 
+
+            let matchStatus = true;
+            if (currentFilter === 'active') matchStatus = isActive && c.is_active;
+            if (currentFilter === 'full') matchStatus = isFull;
+            if (currentFilter === 'used') matchStatus = isUsed;
+            if (currentFilter === 'manual') matchStatus = isManual;
+            if (currentFilter === 'bypass') matchStatus = c.bypass_lock === true;
+
+            return matchQuery && matchStatus;
+        });
+
+        // 3. УМНАЯ СОРТИРОВКА (Сначала по Статусу, потом по Дате)
+        function getStatusCode(c) {
+            const actCount = (c.activated_by_ids || []).length;
+            const usedCount = (c.used_by_ids || []).length;
+            const maxUses = c.max_uses || 1;
+            const totalTaken = actCount + usedCount;
+            
+            if (usedCount >= maxUses) return 3; // Использован (Красный, вниз)
+            if (totalTaken >= maxUses) return 2; // Разобран (Оранжевый, середина)
+            return 1; // Доступен (Зеленый, самый верх)
+        }
+
+        filtered.sort((a, b) => {
+            const statusA = getStatusCode(a);
+            const statusB = getStatusCode(b);
+            
+            // Сначала группируем по цветам: 1 -> 2 -> 3
+            if (statusA !== statusB) {
+                return statusA - statusB;
+            }
+
+            // Внутри группы сортируем по дате или ID с учетом кнопки "Вверх/Вниз"
+            const timeA = new Date(a.assigned_at || a.created_at || 0).getTime();
+            const timeB = new Date(b.assigned_at || b.created_at || 0).getTime();
+            
+            if (timeA !== timeB && (timeA > 0 || timeB > 0)) {
+                return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+            }
+            return sortOrder === 'desc' ? (b.idx || 0) - (a.idx || 0) : (a.idx || 0) - (b.idx || 0);
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:30px; color:#666;">Ничего не найдено</div>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(c => {
+            const actCount = (c.activated_by_ids || []).length;
+            const usedCount = (c.used_by_ids || []).length;
+            const maxUses = c.max_uses || 1;
+            const totalTaken = actCount + usedCount;
+
+            // Логика статусов
+            let stClass = 'st-active';
+            let stText = 'ДОСТУПЕН';
+            
+            if (usedCount >= maxUses) {
+                stClass = 'st-used';
+                stText = 'ИСПОЛЬЗОВАН';
+            } else if (totalTaken >= maxUses) {
+                stClass = 'st-full';
+                stText = 'РАЗОБРАН';
+            }
+            
+            let dateStr = '';
+            if (c.assigned_at || c.created_at) {
+                const d = new Date(c.assigned_at || c.created_at);
+                dateStr = d.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'});
+            }
+
+            const safeCode = c.code.replace(/'/g, "\\'");
+
+            return `
+                <div class="code-card" onclick="openUsersModal('${safeCode}')">
+                    <div class="cc-header">
+                        <div class="cc-code">
+                            ${c.code}
+                            ${c.bypass_lock ? '<i class="fa-solid fa-bolt" style="color: #FFD700; font-size: 14px; margin-left: 8px;" title="Вывод без лимитов"></i>' : ''}
+                        </div>
+                        <div class="cc-status ${stClass}">${stText}</div>
+                    </div>
+                    <div class="cc-case"><i class="fa-solid fa-box" style="color:#2AABEE; margin-right:4px;"></i> ${escapeHTML(c.target_case_name || 'Неизвестный кейс')}</div>
+                    ${c.description ? `<div class="cc-desc">${escapeHTML(c.description)}</div>` : ''}
+                    
+                    <div class="cc-stats">
+                        <div class="cc-stat-item">Взяли: <b style="color:${totalTaken >= maxUses ? '#ff9500' : '#fff'};">${actCount}/${maxUses}</b></div>
+                        <div class="cc-stat-item">Открыли: <b style="color:${usedCount >= maxUses ? '#ff3b30' : '#34c759'};">${usedCount}/${maxUses}</b></div>
+                    </div>
+                    ${dateStr ? `<div style="font-size: 9px; color: #555; margin-top: 8px; text-align: right;">Создан: ${dateStr}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // --- ФУНКЦИИ ВЫБОРА ДЛИНЫ КОДА И ГЕНЕРАЦИЯ ---
+    function initPromoLengthUI() {
+        // Подсвечиваем нужный чип при запуске
+        document.querySelectorAll('.len-chip').forEach(btn => {
+            btn.classList.remove('active');
+            if (parseInt(btn.dataset.len) === currentPromoLength) {
+                btn.classList.add('active');
+            }
+        });
+        updateCodePlaceholder();
+    }
+
+    function setPromoLength(len, btnElement) {
+        currentPromoLength = len;
+        localStorage.setItem('promo_length', len); // Сохраняем в кэш
+        
+        // Визуал кнопок
+        document.querySelectorAll('.len-chip').forEach(b => b.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        
+        updateCodePlaceholder();
+        generateCode(); // Сразу генерим новый под нужную длину
+    }
+
+    function updateCodePlaceholder() {
+        const input = document.getElementById('new-code');
+        if (!input) return;
+        
+        let example = 'aB3d';
+        if (currentPromoLength === 6) example = 'aB3dEf';
+        if (currentPromoLength >= 8) example = 'aB3dEfGh';
+        
+        input.placeholder = `${example}... (${currentPromoLength} симв.)`;
+    }
+
+    function generateCode() {
+        // 🔥 Обновленная генерация с учетом выбранной длины
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let randStr = '';
+        for(let i=0; i<currentPromoLength; i++) {
+            randStr += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('new-code').value = randStr;
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    }
+
+    async function submitCode() {
+        const code = document.getElementById('new-code').value.trim();
+        const caseName = document.getElementById('new-case').value; // Берем из нашего скрытого инпута
+        const maxUses = parseInt(document.getElementById('new-max').value);
+        const desc = document.getElementById('new-desc').value.trim();
+        const bypassLock = document.getElementById('new-bypass-lock').checked;
+
+        if (!code) return alert("Сгенерируйте или введите код!");
+        if (!caseName) return alert("Выберите кейс из списка!");
+        if (isNaN(maxUses) || maxUses < 1) return alert("Укажите корректное количество мест!");
+
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> СОЗДАНИЕ...';
+
+        try {
+            const res = await fetch('/api/v1/admin/codes/create', {
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    ...payload, 
+                    code: code, 
+                    target_case_name: caseName, 
+                    max_uses: maxUses, 
+                    description: desc,
+                    bypass_lock: bypassLock
+                }),
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                alert("✅ Код успешно создан!");
+                document.getElementById('new-code').value = '';
+                document.getElementById('new-desc').value = '';
+                document.getElementById('new-bypass-lock').checked = false;
+                
+                // Сброс выбора кейса
+                document.getElementById('new-case').value = '';
+                const caseText = document.getElementById('custom-case-text');
+                caseText.innerText = '-- Выберите кейс --';
+                caseText.style.color = 'var(--text-muted)';
+                
+                // Перезагружаем список с сервера, чтобы новый код появился наверху
+                await loadCodes(); 
+                switchTab('list'); 
+            } else {
+                alert("❌ Ошибка: " + (data.detail || "Неизвестная ошибка"));
+            }
+        } catch (e) {
+            alert("Ошибка сети.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'СОЗДАТЬ КУПОН';
+        }
+    }
+
+    // --- МОДАЛКА СО СПИСКОМ ЮЗЕРОВ ---
+    function openUsersModal(codeStr) {
+        const codeObj = allCodes.find(c => c.code === codeStr);
+        if (!codeObj) return;
+
+        const modal = document.getElementById('users-modal');
+        const list = document.getElementById('users-list');
+        
+        // Собираем всех уникальных юзеров (и тех кто просто ввел, и тех кто открыл)
+        const actIds = codeObj.activated_by_ids || [];
+        const usdIds = codeObj.used_by_ids || [];
+        const allIds = [...new Set([...actIds, ...usdIds])];
+
+        if (allIds.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#666; padding: 20px;">Пока никто не активировал</div>';
+        } else {
+            list.innerHTML = allIds.map(id => {
+                const user = usersMap[String(id)] || { tg_name: "Неизвестно", twitch: "Не привязан" };
+                const hasOpened = usdIds.includes(id);
+                
+                const badgeClass = hasOpened ? 'b-used' : 'b-activated';
+                const badgeText = hasOpened ? 'ОТКРЫЛ КЕЙС' : 'ВЗЯЛ КОД';
+
+                return `
+                    <div class="u-card">
+                        <div class="u-names">
+                            <div class="u-tg">${escapeHTML(user.tg_name)}</div>
+                            <div class="u-tw"><i class="fa-brands fa-twitch"></i> ${escapeHTML(user.twitch)}</div>
+                        </div>
+                        <div class="u-badge ${badgeClass}">${badgeText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        modal.classList.add('active');
+    }
+
+    function closeUsersModal() {
+        document.getElementById('users-modal').classList.remove('active');
+    }
+
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[&<>"']/g, match => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[match]);
+    }
+
+    initApp();
+
+</script>
+</body>
+</html>

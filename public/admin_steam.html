@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление Складом</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --card-bg: rgba(30, 30, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #ffd700;
+            --action: #28a745;
+            --danger: #ff4d4d;
+            --info: #007bff;
+            --text: #ffffff;
+            --text-sec: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0; 
+            padding: calc(16px + env(safe-area-inset-top)) 16px 90px 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .back-btn { 
+            background: none; border: none; color: var(--text-sec); font-size: 15px; 
+            cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 0;
+        }
+        .page-title { font-size: 18px; font-weight: 800; margin: 0; color: var(--primary); text-transform: none; }
+
+        .dashboard-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .pools-panel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        
+        .dash-card {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            border-radius: 14px; padding: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .dash-card.highlight { border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05); }
+        .dash-card.clickable:active { transform: scale(0.96); background: rgba(255,255,255,0.05); transition: transform 0.1s; }
+        
+        .dash-title { font-size: 10px; color: var(--text-sec); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .dash-title-mini { font-size: 9px; margin-bottom: 4px; }
+        
+        .dash-value { font-size: 18px; font-weight: 800; color: var(--primary); }
+        .dash-value-mini { font-size: 14px; font-weight: 800; color: #fff; }
+        .rubles::after { content: ' ₽'; font-size: 0.7em; opacity: 0.8; }
+
+        .toggle-switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; margin-bottom: 4px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #39393d; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: var(--action); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        .btn-save { 
+            background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; 
+            border: none; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;
+            width: 100%; margin-top: 15px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+            transition: transform 0.1s;
+        }
+        .btn-save:active { transform: scale(0.97); }
+        .btn-allocate { background: linear-gradient(135deg, #007bff, #0056b3); color: white; margin-top: 0; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25); font-size: 12px; padding: 12px; }
+        .btn-transfer { background: linear-gradient(135deg, #28a745, #20c997); color: white; margin-top: 0; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25); font-size: 12px; padding: 12px; }
+
+        .section-title { font-size: 13px; color: var(--text-sec); text-transform: uppercase; font-weight: 800; margin-bottom: 10px; letter-spacing: 0.5px; }
+        .bots-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .bot-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 1 / 1; transition: transform 0.1s, background 0.2s; text-align: center; position: relative; }
+        .bot-card:active { transform: scale(0.96); background: rgba(255,255,255,0.05); }
+        .bot-icon { font-size: 36px; color: #fff; margin-bottom: 8px; opacity: 0.8; }
+        .bot-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+        .status-badge { font-size: 9px; font-weight: 800; padding: 4px 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-active { background: rgba(40, 167, 69, 0.2); color: var(--action); border: 1px solid rgba(40, 167, 69, 0.4); }
+        .status-error { background: rgba(255, 77, 77, 0.2); color: var(--danger); border: 1px solid rgba(255, 77, 77, 0.4); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: flex-end; backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.2s ease; }
+        .modal-active { opacity: 1; visibility: visible; }
+        .bottom-sheet { background: #1c1c1e; width: 100%; border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s ease; }
+        .modal-active .bottom-sheet { transform: translateY(0); }
+        .form-label { font-size: 11px; color: var(--text-sec); margin-bottom: 5px; display: block; margin-top: 12px; }
+        .form-input, .form-select { width: 100%; background: #252525; border: 1px solid var(--card-border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px; outline: none; box-sizing: border-box; user-select: text !important; -webkit-user-select: text !important; }
+        .form-select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; }
+        .form-input:focus, .form-select:focus { border-color: var(--primary); }
+        .info-text { font-size: 11px; color: var(--text-sec); margin-top: 8px; text-align: center; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <button class="back-btn" onclick="window.location.href='/admin'"><i class="fa-solid fa-chevron-left"></i> Назад</button>
+        <h1 class="page-title">Склад и Выдачи</h1>
+        <div style="width: 20px;"></div> 
+    </div>
+
+    <div class="dashboard-panel">
+        <div class="dash-card">
+            <div class="dash-title">Общий Маркет</div>
+            <div id="market-balance-total" class="dash-value">...</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-title">Режим выдачи</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="auto-delivery-toggle">
+                <span class="slider"></span>
+            </label>
+            <div id="delivery-status-text" style="font-size: 10px; font-weight: 800; color: #888;">...</div>
+        </div>
+    </div>
+
+    <div class="pools-panel">
+        <!-- 🔥 КЛИКАБЕЛЬНЫЙ ПУЛ МАГАЗИНА 🔥 -->
+        <div class="dash-card highlight clickable" style="cursor: pointer;" onclick="showShopLimits()">
+            <div class="dash-title dash-title-mini">Магазин <i class="fa-solid fa-circle-info" style="font-size: 8px;"></i></div>
+            <div id="pool-cases" class="dash-value-mini rubles">0.00</div>
+        </div>
+        <!-- 🔥 КЛИКАБЕЛЬНЫЙ ИВЕНТ ПУЛ 🔥 -->
+        <div class="dash-card clickable" style="cursor: pointer;" onclick="showEventsCost()">
+            <div class="dash-title dash-title-mini">Ивенты <i class="fa-solid fa-circle-info" style="font-size: 8px;"></i></div>
+            <div id="pool-events" class="dash-value-mini rubles">0.00</div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-title dash-title-mini" style="color:var(--danger)">Нераспред.</div>
+            <div id="pool-unassigned" class="dash-value-mini rubles">0.00</div>
+        </div>
+    </div>
+
+    <button class="btn-save btn-allocate" onclick="openAllocateModal()">
+        <i class="fa-solid fa-layer-group"></i> РАСПРЕДЕЛИТЬ БЮДЖЕТ
+    </button>
+
+    <button class="btn-save btn-transfer" onclick="openTransferModal()">
+        <i class="fa-solid fa-money-right-left"></i> ПОПОЛНИТЬ С ТВИНКА
+    </button>
+
+    <div class="section-title">Steam Аккаунты</div>
+    <div id="bots-grid" class="bots-grid">
+        <div style="text-align:center; color:#555; grid-column:1/-1;"><i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...</div>
+    </div>
+
+    <!-- 🔥 НОВАЯ УНИВЕРСАЛЬНАЯ КРАСИВАЯ МОДАЛКА АЛЕРТОВ 🔥 -->
+    <div id="modal-custom-alert" class="modal-overlay" onclick="if(event.target===this) closeAlertModal()">
+        <div class="bottom-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size: 16px; color: var(--primary);" id="alert-title">Внимание</h3>
+                <button onclick="closeAlertModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="alert-message" style="font-size: 13px; line-height: 1.5; color: #ddd; max-height: 60vh; overflow-y: auto; text-align: left;">
+                <!-- Текст подставляется из JS -->
+            </div>
+            <button onclick="closeAlertModal()" class="btn-save" style="margin-top: 20px;">ПОНЯТНО</button>
+        </div>
+    </div>
+
+    <div id="modal-auth" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="bottom-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size: 16px;" id="auth-title">Авторизация Бота</h3>
+                <button onclick="closeModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="info-text" style="text-align: left; margin-top: 5px;">Введите данные для получения API сессии.</p>
+            <form id="auth-form" onsubmit="event.preventDefault(); submitAuth();">
+                <input type="hidden" id="bot-id">
+                <label class="form-label">Имя бота</label>
+                <input type="text" id="inp-login" class="form-input" required>
+                <label class="form-label">sessionid</label>
+                <input type="text" id="inp-sessionid" class="form-input" required>
+                <label class="form-label">steamLoginSecure</label>
+                <input type="text" id="inp-secure" class="form-input" required>
+                <button type="submit" class="btn-save">СОХРАНИТЬ КУКИ</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-transfer" class="modal-overlay" onclick="if(event.target===this) closeTransferModal()">
+        <div class="bottom-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size: 16px;">Пополнение баланса</h3>
+                <button onclick="closeTransferModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dash-card" style="margin: 12px 0; padding: 10px;">
+                <div class="dash-title">Доступно на твинке</div>
+                <div id="second-balance-val" class="dash-value" style="font-size: 20px;">Загрузка...</div>
+            </div>
+            <form id="transfer-form" onsubmit="event.preventDefault(); submitTransfer();">
+                <label class="form-label">Сумма стягивания</label>
+                <input type="number" step="0.01" id="inp-transfer-amount" class="form-input" required>
+                <button type="submit" class="btn-save btn-transfer" id="btn-submit-transfer" style="margin-bottom: 0;">ПЕРЕВЕСТИ СРЕДСТВА</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-allocate" class="modal-overlay" onclick="if(event.target===this) closeAllocateModal()">
+        <div class="bottom-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size: 16px;">Распределение бюджета</h3>
+                <button onclick="closeAllocateModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="info-text" style="text-align: left; margin-top: 5px;">
+                Доступно нераспределенных: <b id="allocate-available" style="color:var(--danger)">0.00 ₽</b>
+            </p>
+            <form id="allocate-form" onsubmit="event.preventDefault(); submitAllocate();">
+                <label class="form-label">Куда направить средства?</label>
+                <select id="inp-allocate-target" class="form-select" required>
+                    <option value="cases_pool">В Магазин (cases_pool)</option>
+                    <option value="events_pool">На Ивенты (events_pool)</option>
+                </select>
+                <label class="form-label">Сумма (₽)</label>
+                <input type="number" step="0.01" id="inp-allocate-amount" class="form-input" placeholder="0.00" required>
+                <button type="submit" class="btn-save btn-allocate" id="btn-submit-allocate" style="margin-bottom: 0;">НАЗНАЧИТЬ</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // 🔥 КРАСИВЫЙ КАСТОМНЫЙ АЛЕРТ ВМЕСТО СТАНДАРТНОГО 🔥
+        function showCustomAlert(title, messageHtml) {
+            document.getElementById('alert-title').innerHTML = title;
+            document.getElementById('alert-message').innerHTML = messageHtml;
+            document.getElementById('modal-custom-alert').classList.add('modal-active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeAlertModal() {
+            document.getElementById('modal-custom-alert').classList.remove('modal-active');
+        }
+
+        if (tg.BackButton) {
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => {
+                window.location.href = '/admin';
+            });
+        }
+
+        let currentUnassigned = 0.0;
+        let currentEventsCost = 0.0; 
+
+        // 🔥 Функция по клику на Ивенты
+        function showEventsCost() {
+            showCustomAlert(
+                '🎟️ Бюджет Ивентов', 
+                `На актуальные розыгрыши (в которых еще нет победителя) потребуется примерно: <b style="color:var(--primary); font-size:15px;">${currentEventsCost} ₽</b>.<br><br>Следите, чтобы в пуле "Ивенты" хватало бюджета для бесперебойной выдачи призов!`
+            );
+        }
+
+        // 🔥 ИСПРАВЛЕННАЯ Функция по клику на Магазин (С красными лимитами)
+        function showShopLimits() {
+            const html = `
+                <p style="margin-bottom: 10px; color: #a1a1aa; font-size: 11px;">Эти лимиты действуют для обычных покупок и зависят от <b>бюджета лавки</b> и <b>Траста</b> игрока.</p>
+                
+                <b style="color: #fff;"><i class="fa-solid fa-comment-dots" style="color: #ffd700;"></i> Требования по сообщениям:</b>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 15px; font-size: 11px;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #a1a1aa;">
+                        <th style="text-align: left; padding: 4px;">Бюджет лавки</th>
+                        <th style="text-align: right; padding: 4px;">Сообщений</th>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 5000 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">50</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 3500 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">150</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 2000 ₽</td><td style="text-align: right; color: #ffd700; font-weight: bold;">300</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 1500 ₽</td><td style="text-align: right; color: #ffd700; font-weight: bold;">500</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 1000 ₽</td><td style="text-align: right; color: #ff9f0a; font-weight: bold;">750</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 500 ₽</td><td style="text-align: right; color: #ff9f0a; font-weight: bold;">1000</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 200 ₽</td><td style="text-align: right; color: #ff453a; font-weight: bold;">1500</td></tr>
+                    <tr><td>меньше 200 ₽</td><td style="text-align: right; color: #ff453a; font-weight: bold;">2000</td></tr>
+                </table>
+
+                <b style="color: #fff;"><i class="fa-solid fa-wallet" style="color: #34c759;"></i> Недельные лимиты вывода:</b>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 15px; font-size: 11px;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #a1a1aa;">
+                        <th style="text-align: left; padding: 4px;">Бюджет</th>
+                        <th style="text-align: center; padding: 4px; color: #ff453a;">Красный</th>
+                        <th style="text-align: center; padding: 4px;">Базовый</th>
+                        <th style="text-align: right; padding: 4px; color: #34c759;">Зеленый</th>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 3000 ₽</td><td style="text-align: center; color: #ff453a;">100 ₽</td><td style="text-align: center;">300 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">1000 ₽</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 2000 ₽</td><td style="text-align: center; color: #ff453a;">60 ₽</td><td style="text-align: center;">200 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">600 ₽</td></tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td>от 1000 ₽</td><td style="text-align: center; color: #ff453a;">40 ₽</td><td style="text-align: center;">100 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">300 ₽</td></tr>
+                    <tr><td>менее 1000 ₽</td><td style="text-align: center; color: #ff453a;">20 ₽</td><td style="text-align: center;">50 ₽</td><td style="text-align: right; color: #34c759; font-weight: bold;">150 ₽</td></tr>
+                </table>
+
+                <b style="color: #fff;"><i class="fa-solid fa-box-open" style="color: #2AABEE;"></i> Штук в неделю:</b>
+                <ul style="margin-top: 5px; margin-bottom: 5px; padding-left: 20px; font-size: 11px; color: #ddd;">
+                    <li>от 8000 ₽: <b>10 шт.</b></li>
+                    <li>от 4000 ₽: <b>8 шт.</b></li>
+                    <li>от 3000 ₽: <b>6 шт.</b></li>
+                    <li>меньше 3000 ₽: <b>4 шт.</b></li>
+                </ul>
+                <div style="font-size: 10px; color: #ff453a; margin-top: 0px; margin-bottom: 15px;">* У красного траста лимит всегда жесткий: <b>2 шт.</b></div>
+                
+                <div style="background: rgba(255, 69, 58, 0.1); border-left: 3px solid #ff453a; padding: 8px 10px; border-radius: 4px; margin: 8px 0; font-size: 11px;">
+                    <b style="color: #ff453a;"><i class="fa-solid fa-triangle-exclamation"></i> Критический режим (Общак < 1000 ₽):</b><br>
+                    Включается жесткий суточный лимит <b>150 ₽ на весь проект</b>. Это общая касса: кто первый встал, того и тапки. Лимит откатывается постепенно каждые 24 часа.
+                </div>
+            `;
+            showCustomAlert('📊 Лимиты Магазина', html);
+        }
+
+        // 1. ЗАГРУЗКА ДАННЫХ
+        async function loadMarketData() {
+            try {
+                const res = await fetch('/api/v1/admin/market/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    const totalEl = document.getElementById('market-balance-total');
+                    if (data.market_success) {
+                        totalEl.classList.add('rubles');
+                        totalEl.innerText = parseFloat(data.pools.total_real).toFixed(2);
+                    } else {
+                        totalEl.innerText = "Ошибка API";
+                        totalEl.style.color = "var(--danger)";
+                    }
+
+                    document.getElementById('pool-cases').innerText = parseFloat(data.pools.cases_pool || 0).toFixed(2);
+                    document.getElementById('pool-events').innerText = parseFloat(data.pools.events_pool || 0).toFixed(2);
+                    
+                    currentUnassigned = parseFloat(data.pools.unassigned || 0);
+                    document.getElementById('pool-unassigned').innerText = currentUnassigned.toFixed(2);
+                    document.getElementById('allocate-available').innerText = currentUnassigned.toFixed(2) + ' ₽';
+
+                    currentEventsCost = parseFloat(data.active_events_cost || 0).toFixed(2);
+
+                    const toggle = document.getElementById('auto-delivery-toggle');
+                    const statusText = document.getElementById('delivery-status-text');
+                    const isAuto = data.auto_delivery_enabled === true;
+                    toggle.checked = isAuto;
+                    
+                    if (isAuto) {
+                        statusText.innerText = "АВТОВЫДАЧА";
+                        statusText.style.color = "var(--action)";
+                    } else {
+                        statusText.innerText = "РУЧНОЙ РЕЖИМ";
+                        statusText.style.color = "var(--danger)";
+                    }
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки данных", e);
+            }
+        }
+
+        document.getElementById('auto-delivery-toggle').addEventListener('change', async (e) => {
+            const isEnabled = e.target.checked;
+            const statusText = document.getElementById('delivery-status-text');
+            statusText.innerText = "СОХРАНЕНИЕ...";
+            statusText.style.color = "#888";
+
+            try {
+                const res = await fetch('/api/v1/admin/market/toggle_delivery', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData, enabled: isEnabled })
+                });
+                if (!res.ok) throw new Error("Сбой");
+                tg.HapticFeedback.impactOccurred(isEnabled ? 'medium' : 'light');
+                statusText.innerText = isEnabled ? "АВТОВЫДАЧА" : "РУЧНОЙ РЕЖИМ";
+                statusText.style.color = isEnabled ? "var(--action)" : "var(--danger)";
+            } catch (err) {
+                e.target.checked = !isEnabled;
+                showCustomAlert('Ошибка', 'Ошибка сохранения настройки!');
+                loadMarketData(); 
+            }
+        });
+
+        async function loadBots() {
+            const grid = document.getElementById('bots-grid');
+            grid.innerHTML = '<div style="text-align:center; color:#555; grid-column:1/-1;"><i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...</div>';
+            try {
+                const res = await fetch('/api/v1/admin/steam/list', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                if (!res.ok) throw new Error("Ошибка");
+                const bots = await res.json();
+                grid.innerHTML = '';
+                if (bots.length === 0) {
+                    grid.innerHTML = '<div style="text-align:center; color:#555; grid-column:1/-1;">Ботов пока нет</div>';
+                    return;
+                }
+                bots.forEach(bot => {
+                    const isActive = bot.status === 'active';
+                    const statusClass = isActive ? 'status-active' : 'status-error';
+                    const statusText = isActive ? '🟢 Работает' : '🔴 Вход';
+                    const iconColor = isActive ? 'var(--primary)' : 'var(--text-sec)';
+                    const div = document.createElement('div');
+                    div.className = 'bot-card';
+                    div.onclick = () => openAuthModal(bot.id, bot.username);
+                    div.innerHTML = `<div class="bot-icon" style="color: ${iconColor};"><i class="fa-brands fa-steam"></i></div>
+                                     <div class="bot-name">${bot.username}</div>
+                                     <div class="status-badge ${statusClass}">${statusText}</div>`;
+                    grid.appendChild(div);
+                });
+            } catch (e) {
+                grid.innerHTML = '<div style="text-align:center; color:var(--danger); grid-column:1/-1;">Ошибка соединения</div>';
+            }
+        }
+
+        function openAuthModal(id, name) {
+            document.getElementById('bot-id').value = id;
+            document.getElementById('auth-title').innerText = "Вход: " + name;
+            document.getElementById('auth-form').reset();
+            document.getElementById('modal-auth').classList.add('modal-active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        function closeModal() { document.getElementById('modal-auth').classList.remove('modal-active'); }
+        
+        async function submitAuth() {
+            const btn = document.querySelector('#auth-form .btn-save');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> СОХРАНЕНИЕ...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/admin/steam/auth', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData, bot_id: parseInt(document.getElementById('bot-id').value),
+                        username: document.getElementById('inp-login').value.trim(),
+                        sessionid: document.getElementById('inp-sessionid').value.trim(),
+                        steamLoginSecure: document.getElementById('inp-secure').value.trim()
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showCustomAlert('Успех', "✅ " + data.message);
+                    closeModal(); loadBots();
+                } else {
+                    showCustomAlert('Ошибка', "❌ Ошибка: " + (data.detail || "Сбой"));
+                }
+            } catch(e) { showCustomAlert('Ошибка', "Сбой сервера"); } 
+            finally { btn.innerHTML = 'СОХРАНИТЬ КУКИ'; btn.disabled = false; }
+        }
+
+        async function openTransferModal() {
+            document.getElementById('modal-transfer').classList.add('modal-active');
+            const balanceEl = document.getElementById('second-balance-val');
+            balanceEl.innerText = "Загрузка..."; balanceEl.classList.remove('rubles'); balanceEl.style.color = "var(--primary)";
+            document.getElementById('inp-transfer-amount').value = '';
+            tg.HapticFeedback.impactOccurred('light');
+            try {
+                const res = await fetch('/api/v1/market/second-balance');
+                if (res.ok) {
+                    const data = await res.json();
+                    balanceEl.innerText = parseFloat(data.money).toFixed(2);
+                    if(data.currency === 'RUB') balanceEl.classList.add('rubles');
+                } else {
+                    balanceEl.innerText = "Ошибка API"; balanceEl.style.color = "var(--danger)";
+                }
+            } catch (e) { balanceEl.innerText = "Сбой"; balanceEl.style.color = "var(--danger)"; }
+        }
+        function closeTransferModal() { document.getElementById('modal-transfer').classList.remove('modal-active'); }
+        
+        async function submitTransfer() {
+            const amount = parseFloat(document.getElementById('inp-transfer-amount').value.trim());
+            if (!amount || amount <= 0) return showCustomAlert('Внимание', "Введи корректную сумму!");
+            const btn = document.getElementById('btn-submit-transfer');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ПЕРЕВОД...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/market/transfer', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amount }) 
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showCustomAlert('Успех', `✅ Переведено: ${amount} ₽`);
+                    closeTransferModal(); loadMarketData();
+                } else {
+                    showCustomAlert('Ошибка', "❌ Ошибка: " + (data.detail || "Сбой"));
+                }
+            } catch(e) { showCustomAlert('Ошибка', "Сбой сервера"); } 
+            finally { btn.innerHTML = 'ПЕРЕВЕСТИ СРЕДСТВА'; btn.disabled = false; }
+        }
+
+        function openAllocateModal() {
+            if (currentUnassigned <= 0) {
+                showCustomAlert('Внимание', "Нет нераспределенных средств для назначения."); return;
+            }
+            document.getElementById('inp-allocate-amount').value = currentUnassigned.toFixed(2);
+            document.getElementById('modal-allocate').classList.add('modal-active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        function closeAllocateModal() { document.getElementById('modal-allocate').classList.remove('modal-active'); }
+        
+        async function submitAllocate() {
+            const target = document.getElementById('inp-allocate-target').value;
+            const amount = parseFloat(document.getElementById('inp-allocate-amount').value);
+            if (!amount || amount <= 0 || amount > currentUnassigned) {
+                showCustomAlert('Внимание', "Введена некорректная сумма."); return;
+            }
+            const btn = document.getElementById('btn-submit-allocate');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> НАЗНАЧЕНИЕ...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/admin/market/allocate', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData, target_pool: target, amount: amount })
+                });
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    closeAllocateModal(); loadMarketData();
+                } else {
+                    const err = await res.json();
+                    showCustomAlert('Ошибка', "Ошибка: " + (err.detail || "Неизвестный сбой"));
+                }
+            } catch (e) { showCustomAlert('Ошибка', "Ошибка сети"); } 
+            finally { btn.innerHTML = 'НАЗНАЧИТЬ'; btn.disabled = false; }
+        }
+
+        loadMarketData();
+        loadBots();
+    </script>
+</body>
+</html>

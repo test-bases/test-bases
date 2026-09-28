@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HATElove | Общий Сбор & Игра</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        
+        body {
+            background-color: #050505; color: #fff; font-family: 'Montserrat', sans-serif;
+            margin: 0; min-height: 100vh; overflow: hidden; overscroll-behavior: none;
+        }
+
+        /* --- ГЛОБАЛЬНЫЙ ЛОАДЕР --- */
+        #global-loader {
+            position: fixed; inset: 0; background-color: #050505; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #global-loader.hidden {
+            display: none !important;
+            pointer-events: none;
+        }
+
+        /* --- Анимация обложки --- */
+        @keyframes breathe {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        #event-cover {
+            position: fixed; top: -10vh; left: -10vw; width: 120vw; height: 120vh;
+            background-repeat: no-repeat;
+            background-size: cover; 
+            background-position: 50% 50%;
+            animation: breathe 15s infinite ease-in-out;
+            z-index: 0;
+            transition: width 0.4s ease, height 0.4s ease, top 0.4s ease, left 0.4s ease, background-position 0.4s ease;
+        }
+
+        .cover-overlay {
+            position: fixed; top: -10vh; left: -10vw; width: 120vw; height: 120vh;
+            background: linear-gradient(to bottom, rgba(5,5,5,0.1) 0%, rgba(5,5,5,0.6) 50%, #050505 85%, #050505 100%);
+            z-index: 1;
+        }
+
+        /* --- Glass-Card для интерфейса --- */
+        .glass-panel {
+            position: absolute; bottom: 0; left: 0; width: 100%; 
+            height: auto; min-height: 25vh;
+            background: linear-gradient(180deg, rgba(20, 20, 22, 0.4) 0%, rgba(10, 10, 12, 0.9) 100%);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(145, 70, 255, 0.3);
+            border-radius: 30px 30px 0 0;
+            padding: 15px 15px 90px 15px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column; z-index: 10;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- Неоновый Прогресс-бар --- */
+        .progress-bg {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 100px; width: 100%; height: 12px;
+            position: relative; overflow: hidden; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .progress-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #9146FF 0%, #ff4d4d 100%);
+            border-radius: 100px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px rgba(145, 70, 255, 0.8), inset 0 0 10px rgba(255,255,255,0.5);
+            position: relative; overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer { 100% { left: 200%; } }
+
+        /* --- Кнопки --- */
+        .action-btn {
+            border: none; border-radius: 8px; font-weight: 900; text-transform: uppercase;
+            padding: 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; flex: 1;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn:disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+        
+        .btn-coins { background: linear-gradient(135deg, #FFD700, #F5A623); color: #000; box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); }
+        .btn-tickets { background: linear-gradient(135deg, #007aff, #0056b3); color: #fff; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.3); }
+        .btn-purple { background: linear-gradient(135deg, #9146FF, #6b21b6); color: #fff; box-shadow: 0 5px 15px rgba(145, 70, 255, 0.3); }
+        .btn-outline { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; }
+        
+        .input-donate {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            color: white; border-radius: 8px; padding: 6px; text-align: center;
+            font-size: 16px; font-weight: 900; width: 100%; box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+        .input-donate:focus { border-color: #9146FF; background: rgba(145,70,255,0.1); }
+
+        .admin-btn-floating {
+            position: absolute; top: calc(env(safe-area-inset-top, 20px) + 10px); right: 20px;
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(145,70,255,0.4);
+            color: #9146FF; width: 28px; height: 28px; border-radius: 50%; font-size: 14px;
+            z-index: 50; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px); transition: 0.2s; cursor: pointer;
+        }
+        .admin-btn-floating:active { transform: scale(0.9); }
+
+        .loader {
+            border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #9146FF;
+            border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Стили для модалок --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center; z-index: 100; 
+            padding: 15px 15px 95px 15px;
+            overscroll-behavior: none; touch-action: none;
+            opacity: 1; transition: opacity 0.2s ease;
+        }
+        .modal-overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
+        
+        .glass-card {
+            background: linear-gradient(135deg, #13131a 0%, #0a0a0c 100%);
+            border: 1px solid rgba(145, 70, 255, 0.3); border-radius: 16px; padding: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); width: 100%; max-width: 320px;
+            display: flex; flex-direction: column; max-height: 80vh; position: relative;
+        }
+        .tg-scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: none; touch-action: pan-y; }
+
+        /* ПЛАВАЮЩИЙ ФУТЕР */
+        .floating-bottom-bar {
+            position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); 
+            width: 85%; max-width: 360px;
+            background: rgba(40, 40, 40, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex; justify-content: space-around; align-items: center; 
+            padding: 6px 12px; z-index: 1000;
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            color: #8E8E93; text-decoration: none; gap: 2px; padding: 6px 10px; 
+            border-radius: 20px; transition: all 0.3s ease; 
+        }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 9px; font-weight: 600; }
+        .nav-item.active { background: transparent; color: #FFFFFF; }
+    </style>
+</head>
+<body>
+
+    <!-- ГЛОБАЛЬНЫЙ ЗАГРУЗОЧНЫЙ ЭКРАН -->
+    <div id="global-loader">
+        <div class="loader mb-4 !w-10 !h-10 border-[3px]"></div>
+        <p class="text-[#9146FF] text-[10px] uppercase font-black tracking-widest animate-pulse">Загрузка...</p>
+    </div>
+
+    <!-- КНОПКА АДМИНА -->
+    <button onclick="window.location.href='guess_game.html'" id="admin-btn" class="admin-btn-floating hidden">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+
+    <!-- ОБЛОЖКА -->
+    <div id="event-cover"></div>
+    <div class="cover-overlay"></div>
+
+    <!-- КОНТЕНТ (Glass Panel) -->
+    <div class="glass-panel" id="content-panel">
+        
+        <!-- 🔥 СОСТОЯНИЕ 1: СТРИМ ОФФЛАЙН (С КНОПКАМИ НАГРАД) 🔥 -->
+        <div id="offline-state" class="hidden flex-col items-center justify-center py-4 text-center">
+            <i class="fa-brands fa-twitch text-4xl text-gray-600 mb-3"></i>
+            <h2 class="text-[14px] font-black text-gray-300 uppercase tracking-widest mb-1">Стрим оффлайн</h2>
+            <p class="text-[9px] text-gray-500 mt-1 px-4 leading-relaxed mb-4">
+                Игра "отгадай слово" начнется, как только Валька запустит трансляцию.
+            </p>
+            <div class="grid grid-cols-2 gap-2 w-full shrink-0">
+                <button onclick="openModal('modal-leaderboard')" class="action-btn btn-purple">
+                    <span class="text-[9px]"><i class="fa-solid fa-trophy mr-1"></i> Топ Игроков</span>
+                </button>
+                <button onclick="openModal('modal-rules')" class="action-btn btn-outline">
+                    <span class="text-[9px]"><i class="fa-solid fa-circle-info mr-1"></i> Правила & Призы</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- СОСТОЯНИЕ 2: ПУСТО (Нет сбора и игры) -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-4">
+            <i class="fa-solid fa-bed text-2xl text-gray-600 mb-2"></i>
+            <h2 class="text-[12px] font-black text-gray-400 uppercase">Пока тихо</h2>
+            <p class="text-[8px] text-gray-500 mt-1 text-center">Стример отдыхает или готовит что-то грандиозное.</p>
+        </div>
+
+        <!-- СОСТОЯНИЕ 3: ИДЕТ СБОР -->
+        <div id="event-state" class="hidden flex-col">
+            <div class="text-center shrink-0">
+                <h1 id="ev-title" class="text-[13px] font-black uppercase tracking-wide drop-shadow-lg leading-tight mb-1">...</h1>
+                <div class="flex items-center justify-center">
+                    <span id="ev-percent" class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9146FF] to-[#ff4d4d] drop-shadow-[0_0_10px_rgba(145,70,255,0.6)]">0%</span>
+                </div>
+                <p class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1"><span id="ev-current">0</span> / <span id="ev-target">0</span> ОЧКОВ</p>
+            </div>
+            <div class="w-full my-2 shrink-0">
+                <div class="progress-bg"><div id="ev-bar" class="progress-fill"></div></div>
+            </div>
+            <div id="controls-section" class="w-full shrink-0 flex justify-center mt-1">
+                <button onclick="startDonateFlow()" class="action-btn btn-purple w-[60%] max-w-[200px] py-2.5 text-[11px] shadow-[0_0_15px_rgba(145,70,255,0.4)] hover:scale-105">
+                    <i class="fa-solid fa-fire text-[16px] mb-1 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]"></i>
+                    Внести вклад
+                </button>
+            </div>
+        </div>
+
+        <!-- СОСТОЯНИЕ 4: ИДЕТ ИГРА НА ТВИЧЕ -->
+        <div id="game-state" class="hidden flex-col">
+            <div class="text-center shrink-0 flex flex-col items-center py-2">
+                <div class="inline-flex items-center justify-center bg-[rgba(255,77,77,0.2)] text-[#ff4d4d] px-2 py-0.5 rounded-full font-bold text-[8px] uppercase tracking-widest mb-2 border border-[rgba(255,77,77,0.3)] animate-pulse">
+                    <i class="fa-solid fa-circle text-[4px] mr-1"></i> Игра началась
+                </div>
+                <i class="fa-brands fa-twitch text-[28px] text-[#9146FF] mb-2 drop-shadow-[0_0_10px_rgba(145,70,255,0.6)]"></i>
+                <h2 class="text-[12px] font-black text-white uppercase tracking-wider mb-1 leading-tight">Угадывай на стриме</h2>
+                <p class="text-[8px] text-gray-400 font-bold px-2">Пиши правильный ответ первым прямо в чат Twitch!</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2 shrink-0">
+                <button onclick="openModal('modal-leaderboard')" class="action-btn btn-purple">
+                    <span class="text-[9px]"><i class="fa-solid fa-trophy mr-1"></i> Топ Игроков</span>
+                </button>
+                <button onclick="openModal('modal-rules')" class="action-btn btn-outline">
+                    <span class="text-[9px]"><i class="fa-solid fa-circle-info mr-1"></i> Правила & Призы</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА: ПОЭТАПНЫЙ ДОНАТ -->
+    <div id="modal-donate" class="hidden modal-overlay !z-[150]">
+        <div class="glass-card text-center relative overflow-hidden transition-all duration-300">
+            <button id="donate-back-btn" onclick="donateGoBack()" class="absolute top-0 left-0 p-5 text-gray-400 hover:text-white hidden z-[60]"><i class="fa-solid fa-arrow-left text-lg pointer-events-none"></i></button>
+            <button onclick="closeModal('modal-donate')" class="absolute top-0 right-0 p-5 text-gray-400 hover:text-white z-[60]"><i class="fa-solid fa-times text-lg pointer-events-none"></i></button>
+
+            <!-- ШАГ 1 -->
+            <div id="donate-step-1" class="py-2 mt-4">
+                <div class="text-[32px] mb-2 text-[#9146FF] drop-shadow-[0_0_10px_rgba(145,70,255,0.4)]"><i class="fa-solid fa-wallet"></i></div>
+                <h3 class="text-white font-black uppercase text-[12px] mb-4">Чем будем вкладываться?</h3>
+                <div class="flex gap-2 w-full justify-center mb-4">
+                    <button onclick="donateSelectCurrency('coins')" class="action-btn btn-coins py-4"><i class="fa-solid fa-coins text-[18px] mb-1"></i> Монеты</button>
+                    <button onclick="donateSelectCurrency('tickets')" class="action-btn btn-tickets py-4"><i class="fa-solid fa-ticket text-[18px] mb-1"></i> Билеты</button>
+                </div>
+                <div class="bg-[rgba(145,70,255,0.08)] border border-[rgba(145,70,255,0.2)] rounded-lg p-3 text-left shadow-[inset_0_0_10px_rgba(145,70,255,0.1)]">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-brands fa-twitch text-[#9146FF] text-lg"></i>
+                        <span class="text-[10px] font-black text-white uppercase tracking-wider">За баллы канала</span>
+                    </div>
+                    <p class="text-[9px] text-gray-300 leading-relaxed mb-3">Внести очки в общий сбор можно прямо на стриме. Покупай специальную награду сбора за баллы канала (Channel Points), чтобы продвинуть шкалу!</p>
+                    <a href="https://twitch.tv/hatelove_ttv" target="_blank" class="block text-center bg-[#9146FF] hover:bg-[#7b35e0] transition text-white font-bold uppercase text-[9px] py-2 rounded shadow-[0_0_15px_rgba(145,70,255,0.4)]">Перейти на стрим</a>
+                </div>
+            </div>
+
+            <!-- ШАГ 2 -->
+            <div id="donate-step-2" class="hidden py-2 mt-4">
+                <div id="donate-icon-2" class="text-[32px] mb-2 text-[#ffd700] drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]"><i class="fa-solid fa-coins"></i></div>
+                <h3 class="text-white font-black uppercase text-[12px] mb-1">Введите количество</h3>
+                <p id="donate-desc-2" class="text-[9px] text-gray-400 mb-4 font-bold tracking-wide">1 монета = 10 очков</p>
+                <input type="text" inputmode="numeric" id="donate-amount-modal" class="input-donate mb-3 py-3 text-lg bg-[rgba(0,0,0,0.6)]" placeholder="0" oninput="this.value = this.value.replace(/[^0-9]/g, ''); updateDonatePreview();">
+                <div class="text-center mb-4 h-4">
+                    <span id="points-preview-modal" class="text-[10px] font-bold text-[#9146FF] uppercase tracking-widest hidden bg-[rgba(145,70,255,0.1)] px-3 py-1 rounded-lg">
+                        Взнос: <span id="preview-val-modal" class="text-white">0</span> ОЧКОВ
+                    </span>
+                </div>
+                <button onclick="donateGoStep3()" class="action-btn btn-purple w-full py-3 text-[11px] shadow-[0_0_15px_rgba(145,70,255,0.4)]">Далее <i class="fa-solid fa-arrow-right ml-1"></i></button>
+            </div>
+
+            <!-- ШАГ 3 -->
+            <div id="donate-step-3" class="hidden py-2 mt-4">
+                <div class="text-[32px] mb-2 text-[#28a745] drop-shadow-[0_0_10px_rgba(40,167,69,0.4)]"><i class="fa-solid fa-check-circle"></i></div>
+                <h3 class="text-white font-black uppercase text-[12px] mb-4">Подтверждение</h3>
+                <div class="bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 mb-5 text-left">
+                    <div class="flex justify-between items-center mb-2 border-b border-[rgba(255,255,255,0.05)] pb-2">
+                        <span class="text-[10px] text-gray-400 uppercase font-bold">Спишется:</span>
+                        <span id="confirm-cost" class="text-[12px] font-black text-white flex items-center gap-1">...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-gray-400 uppercase font-bold">В шкалу сбора:</span>
+                        <span id="confirm-gain" class="text-[12px] font-black text-[#9146FF]">...</span>
+                    </div>
+                </div>
+                <button id="final-donate-btn" onclick="executeDonate()" class="action-btn btn-purple w-full py-3 text-[11px] shadow-[0_0_20px_rgba(145,70,255,0.6)]">
+                    <i class="fa-solid fa-rocket mr-1"></i> Внести в сбор!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА: ЛИДЕРБОРД -->
+    <div id="modal-leaderboard" class="hidden modal-overlay">
+        <div class="glass-card relative">
+            <div class="flex justify-between items-center mb-2 shrink-0">
+                <h2 class="!mb-0 text-white font-black text-[12px] uppercase"><i class="fa-solid fa-trophy text-[#ffd700] mr-1"></i> Лидерборд</h2>
+                <button onclick="closeModal('modal-leaderboard')" class="absolute top-0 right-0 p-4 text-gray-400 hover:text-white text-lg z-50"><i class="fa-solid fa-times pointer-events-none"></i></button>
+            </div>
+            <div class="flex flex-row justify-between items-center px-2 py-1 text-[8px] text-gray-400 uppercase font-bold border-b border-[rgba(255,255,255,0.1)] mb-1 shrink-0 mt-2">
+                <div class="flex-1">Twitch-Ник</div>
+                <div class="w-10 text-right">Очки</div>
+            </div>
+            <div id="public-leaderboard" class="flex-1 tg-scrollable space-y-1 w-full max-h-[50vh]">
+                <div class="text-gray-500 text-center mt-4 text-[9px]">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА: ПРАВИЛА И ПРИЗЫ -->
+    <div id="modal-rules" class="hidden modal-overlay">
+        <div class="glass-card relative">
+            <div class="flex justify-between items-center mb-2 shrink-0">
+                <h2 class="!mb-0 text-white font-black text-[12px] uppercase"><i class="fa-solid fa-book-open text-[#007bff] mr-1"></i> Правила</h2>
+                <button onclick="closeModal('modal-rules')" class="absolute top-0 right-0 p-4 text-gray-400 hover:text-white text-lg z-50"><i class="fa-solid fa-times pointer-events-none"></i></button>
+            </div>
+            <div class="tg-scrollable pr-1 text-[9px] text-gray-300 space-y-2 max-h-[55vh] mt-2">
+                <div class="bg-[rgba(255,255,255,0.05)] p-2 rounded-lg border border-[rgba(255,255,255,0.1)]">
+                    <p class="font-bold text-white mb-1"><i class="fa-solid fa-keyboard text-[#9146FF]"></i> Как играть?</p>
+                    <p class="leading-relaxed">Смотри на экран трансляции и отгадывай зашифрованное слово. Пиши ответ первым прямо в <b>чат Twitch</b>! За каждое слово бот начислит тебе <i class="fa-solid fa-star text-[#ffd700]"></i> очки.</p>
+                </div>
+                <div class="mt-3">
+                    <h3 class="font-black text-white uppercase text-[9px] mb-2"><i class="fa-solid fa-gift text-[#ff4d4d]"></i> Призы Победителям:</h3>
+                    <div id="public-rewards-list" class="space-y-1">
+                        <div class="text-center text-[8px] text-gray-500 py-1">Загрузка призов...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- КАСТОМНЫЙ ДИАЛОГ -->
+    <div id="custom-dialog" class="hidden modal-overlay !z-[999]">
+        <div class="glass-card !max-w-[280px] text-center p-5">
+            <div id="dialog-icon" class="text-3xl mb-2 text-[#9146FF]"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h3 id="dialog-title" class="text-white font-black uppercase text-[12px] mb-2">Внимание</h3>
+            <p id="dialog-text" class="text-gray-300 text-[10px] mb-4 leading-relaxed"></p>
+            <div id="dialog-buttons" class="flex gap-2 w-full justify-center"></div>
+        </div>
+    </div>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ -->
+<script src="/bottom-nav.js"></script>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+
+        let openModalsStack = [];
+        function updateBackButton() { tg.BackButton.show(); }
+
+        tg.BackButton.onClick(() => {
+            if (openModalsStack.length > 0) {
+                const lastModal = openModalsStack[openModalsStack.length - 1];
+                if (lastModal === 'modal-donate' && currentDonateStep > 1) { donateGoBack(); } 
+                else { closeModal(lastModal); }
+            } else { window.history.back(); }
+        });
+        updateBackButton();
+
+        const SUPABASE_URL = 'https://pyeuckjcrsiaseyqrsek.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isObs = urlParams.get('mode') === 'obs';
+        
+        let currentWord = "";
+        let currentMode = "classic";
+        let revealedIndices = [];
+        let timerSeconds = 30;
+        let scrambledWord = ""; 
+        let rewardsConfig = [];
+
+        let isGameActive = false;
+        let isEventActive = false;
+        
+        let isInitialGameLoaded = false;
+        let isInitialEventLoaded = false;
+        
+        // Снижено разрешение картинок для моментальной загрузки (w=800, q=60)
+        let defaultCoverUrl = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=60&w=800&auto=format&fit=crop";
+        let gameCoverUrl = "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?q=60&w=800&auto=format&fit=crop";
+        let currentEventCoverUrl = "";
+
+        // 🔥 ПО умолчанию null, чтобы не было морганий
+        let isStreamLive = null; 
+
+        // ПЕРЕМЕННЫЕ ПОЗИЦИИ КАРТИНКИ
+        let coverZoom = 100;
+        let coverOffsetX = 50;
+        let coverOffsetY = 50;
+        
+        const MULTIPLIERS = { coins: 10, tickets: 5 };
+
+        function showCustomAlert(text, title = "Внимание", icon = "fa-circle-exclamation text-[#9146FF]") {
+            document.getElementById('dialog-icon').innerHTML = `<i class="fa-solid ${icon}"></i>`;
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('dialog-text').innerHTML = text.replace(/\n/g, '<br>');
+            document.getElementById('dialog-buttons').innerHTML = `<button onclick="closeModal('custom-dialog')" class="action-btn btn-purple w-full max-w-[120px] py-2 text-[10px]">ОК</button>`;
+            document.getElementById('custom-dialog').classList.remove('hidden');
+            if (!openModalsStack.includes('custom-dialog')) openModalsStack.push('custom-dialog');
+            updateBackButton();
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (!openModalsStack.includes(id)) openModalsStack.push(id);
+            updateBackButton();
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            openModalsStack = openModalsStack.filter(m => m !== id);
+            updateBackButton();
+        }
+        
+        async function apiCall(endpoint, body = {}, method = 'POST') {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (method !== 'GET') options.body = JSON.stringify({ ...body, initData: tg.initData });
+            const res = await fetch(endpoint, options);
+            if (!res.ok) throw new Error((await res.json()).detail || "API Error");
+            return await res.json();
+        }
+
+        let currentDonateStep = 1;
+        let donateData = { currency: '', amount: 0, points: 0 };
+
+        function startDonateFlow() {
+            currentDonateStep = 1;
+            document.getElementById('donate-amount-modal').value = '';
+            document.getElementById('points-preview-modal').classList.add('hidden');
+            switchDonateStep(1);
+            openModal('modal-donate');
+        }
+
+        function switchDonateStep(step) {
+            currentDonateStep = step;
+            document.getElementById('donate-step-1').classList.add('hidden');
+            document.getElementById('donate-step-2').classList.add('hidden');
+            document.getElementById('donate-step-3').classList.add('hidden');
+            document.getElementById(`donate-step-${step}`).classList.remove('hidden');
+            const backBtn = document.getElementById('donate-back-btn');
+            if (step === 1) backBtn.classList.add('hidden'); else backBtn.classList.remove('hidden');
+        }
+
+        function donateGoBack() { if (currentDonateStep > 1) switchDonateStep(currentDonateStep - 1); }
+
+        function donateSelectCurrency(curr) {
+            donateData.currency = curr;
+            const icon = document.getElementById('donate-icon-2');
+            const desc = document.getElementById('donate-desc-2');
+            if (curr === 'coins') {
+                icon.innerHTML = '<i class="fa-solid fa-coins"></i>';
+                icon.className = 'text-[32px] mb-2 text-[#ffd700] drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]';
+                desc.innerText = `1 монета = ${MULTIPLIERS.coins} очков`;
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-ticket"></i>';
+                icon.className = 'text-[32px] mb-2 text-[#007bff] drop-shadow-[0_0_10px_rgba(0,123,255,0.4)]';
+                desc.innerText = `1 билет = ${MULTIPLIERS.tickets} очков`;
+            }
+            updateDonatePreview();
+            switchDonateStep(2);
+        }
+
+        function updateDonatePreview() {
+            const amountStr = document.getElementById('donate-amount-modal').value;
+            const amount = parseInt(amountStr);
+            const previewBox = document.getElementById('points-preview-modal');
+            const previewVal = document.getElementById('preview-val-modal');
+            if (!amount || amount <= 0 || isNaN(amount)) { previewBox.classList.add('hidden'); return; }
+            const multiplier = donateData.currency === 'coins' ? MULTIPLIERS.coins : MULTIPLIERS.tickets;
+            donateData.points = amount * multiplier;
+            donateData.amount = amount;
+            previewVal.innerText = `~${donateData.points}`;
+            previewBox.classList.remove('hidden');
+        }
+
+        function donateGoStep3() {
+            const amountStr = document.getElementById('donate-amount-modal').value;
+            const amount = parseInt(amountStr);
+            if (!amount || amount <= 0 || isNaN(amount)) { return showCustomAlert("Введите сумму больше нуля!"); }
+            const currIcon = donateData.currency === 'coins' ? '<i class="fa-solid fa-coins text-[#ffd700]"></i>' : '<i class="fa-solid fa-ticket text-[#007bff]"></i>';
+            document.getElementById('confirm-cost').innerHTML = `${amount} ${currIcon}`;
+            document.getElementById('confirm-gain').innerHTML = `+${donateData.points} ОЧКОВ <i class="fa-solid fa-fire text-[#ff4d4d]"></i>`;
+            switchDonateStep(3);
+        }
+
+        async function executeDonate() {
+            const btn = document.getElementById('final-donate-btn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xl"></i>'; btn.disabled = true;
+            try {
+                const res = await apiCall('/api/v1/events/donate', { currency_type: donateData.currency, amount: donateData.amount });
+                tg.HapticFeedback.notificationOccurred('success');
+                updateEventUI({
+                    title: document.getElementById('ev-title').innerText,
+                    target_points: parseInt(document.getElementById('ev-target').innerText),
+                    current_points: res.new_total,
+                    is_active: !res.is_finished
+                });
+                closeModal('modal-donate');
+                showCustomAlert(`Взнос успешно отправлен в сбор! Спасибо за поддержку.`, "Супер!", "fa-check-circle text-[#28a745]");
+            } catch (e) {
+                tg.HapticFeedback.notificationOccurred('error');
+                showCustomAlert(e.message, "Ошибка", "fa-xmark text-[#ff4d4d]");
+            } finally {
+                btn.innerHTML = originalHtml; btn.disabled = false;
+            }
+        }
+
+        // 🔥 ИЗМЕНЕНО: Строгая логика отрисовки. Никакого снятия лоадера внутри этой функции.
+        function updateMainView() {
+            // Если данные еще не загрузились - ничего не делаем.
+            if (!isInitialGameLoaded || !isInitialEventLoaded || isStreamLive === null) return;
+            
+            const coverEl = document.getElementById('event-cover');
+            let targetUrl = defaultCoverUrl;
+
+            // Скрываем все стейты по умолчанию
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('event-state').classList.add('hidden');
+            document.getElementById('game-state').classList.add('hidden');
+            document.getElementById('offline-state').classList.add('hidden');
+
+            if (isStreamLive === false) {
+                // ЕСЛИ СТРИМ ОФФЛАЙН (Кнопки есть внутри этого блока)
+                document.getElementById('offline-state').classList.remove('hidden');
+                targetUrl = defaultCoverUrl;
+            } else if (isGameActive === true) {
+                // ЕСЛИ ИГРА ИДЕТ
+                document.getElementById('game-state').classList.remove('hidden');
+                targetUrl = gameCoverUrl;
+            } else if (isEventActive === true) {
+                // ЕСЛИ ИДЕТ СБОР
+                document.getElementById('event-state').classList.remove('hidden');
+                targetUrl = currentEventCoverUrl ? currentEventCoverUrl : defaultCoverUrl;
+            } else {
+                // НИЧЕГО НЕ ПРОИСХОДИТ
+                document.getElementById('empty-state').classList.remove('hidden');
+                targetUrl = defaultCoverUrl;
+            }
+
+            // ПРИМЕНЯЕМ НАСТРОЙКИ ПОЗИЦИИ И ЗУМА И ФОН
+            if (coverEl) {
+                const targetW = 120 * (coverZoom / 100);
+                const targetH = 120 * (coverZoom / 100);
+                const leftPos = (100 - targetW) * (coverOffsetX / 100);
+                const topPos = (100 - targetH) * (coverOffsetY / 100);
+
+                coverEl.style.width = `${targetW}vw`;
+                coverEl.style.height = `${targetH}vh`;
+                coverEl.style.top = `${topPos}vh`;
+                coverEl.style.left = `${leftPos}vw`;
+                
+                coverEl.style.backgroundPosition = 'center';
+                coverEl.style.backgroundSize = 'cover';
+                coverEl.style.backgroundImage = `url('${targetUrl}')`; // Меняем картинку мгновенно
+            }
+        }
+
+        function updateEventUI(eventData) {
+            isEventActive = eventData.is_active;
+            if (eventData.cover_url) currentEventCoverUrl = eventData.cover_url;
+            if (!isEventActive) return updateMainView();
+            document.getElementById('ev-title').innerText = eventData.title;
+            document.getElementById('ev-target').innerText = eventData.target_points;
+            document.getElementById('ev-current').innerText = eventData.current_points;
+            let percent = Math.floor((eventData.current_points / eventData.target_points) * 100);
+            if (percent > 100) percent = 100;
+            document.getElementById('ev-percent').innerText = `${percent}%`;
+            document.getElementById('ev-bar').style.width = `${percent}%`;
+            if (percent >= 100) isEventActive = false; 
+            updateMainView();
+        }
+
+        async function fetchEventState() {
+            try {
+                const data = await (await fetch('/api/v1/events/current?t=' + Date.now())).json();
+                if (data.status === 'empty' || !data.event) { isEventActive = false; } 
+                else { updateEventUI(data.event); }
+                updateMainView();
+            } catch (e) {}
+        }
+
+        function handleGameStateChange(state) {
+            isGameActive = state.is_active && !!state.current_word;
+            if (state.default_cover_url) defaultCoverUrl = state.default_cover_url;
+            if (state.game_cover_url) gameCoverUrl = state.game_cover_url;
+            
+            if (state.cover_zoom !== undefined) coverZoom = state.cover_zoom;
+            if (state.cover_offset_x !== undefined) coverOffsetX = state.cover_offset_x;
+            if (state.cover_offset_y !== undefined) coverOffsetY = state.cover_offset_y;
+            
+            if (isInitialGameLoaded && isInitialEventLoaded) { updateMainView(); }
+        }
+
+        function initSupabaseRealtime() {
+            supabaseClient.channel('guess-state-changes')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'guess_state', filter: 'id=eq.1' }, 
+                    (payload) => handleGameStateChange(payload.new)).subscribe();
+
+            supabaseClient.channel('public-leaderboard-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'guess_leaderboard' }, () => loadPublicLeaderboard()).subscribe();
+
+            supabaseClient.channel('public-rewards-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'guess_rewards_config' }, () => loadPublicRewards()).subscribe();
+
+            supabaseClient.channel('community-events-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'community_events' }, 
+                    (payload) => {
+                        if (payload.eventType === 'UPDATE' && payload.new.is_active) { updateEventUI(payload.new); } 
+                        else { fetchEventState(); }
+                    }).subscribe();
+        }
+
+        async function loadPublicLeaderboard() {
+            const container = document.getElementById('public-leaderboard');
+            try {
+                const { data, error } = await supabaseClient.from('guess_leaderboard').select('twitch_login, score').order('score', { ascending: false }).limit(50);
+                if (error) throw error;
+                if (!data || data.length === 0) { container.innerHTML = '<div class="text-gray-500 text-center py-4 text-[9px]">Пока никто не угадал слова. Будь первым!</div>'; return; }
+                container.innerHTML = data.map((u, i) => `
+                    <div class="flex items-center justify-between px-2 py-2 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] rounded-lg text-[9px]">
+                        <div class="flex items-center min-w-0 pr-2">
+                            <span class="text-gray-500 mr-2 font-bold shrink-0">#${i+1}</span>
+                            <span class="font-bold text-gray-200 truncate">${u.twitch_login}</span>
+                        </div>
+                        <div class="text-[#ffd700] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
+                            ${u.score} <i class="fa-solid fa-star text-[0.8em]"></i>
+                        </div>
+                    </div>`).join('');
+            } catch (e) { container.innerHTML = '<div class="text-[#ff4d4d] text-center text-xs mt-4">Ошибка загрузки</div>'; }
+        }
+
+        async function loadPublicRewards() {
+            const container = document.getElementById('public-rewards-list');
+            try {
+                const { data, error } = await supabaseClient.from('guess_rewards_config').select('*').order('place', { ascending: true });
+                if (error) throw error;
+                if (!data || data.length === 0) { container.innerHTML = '<div class="text-gray-500 text-center py-2 text-[9px]">Призы пока не настроены.</div>'; return; }
+                container.innerHTML = data.map(r => {
+                    let icon, title, desc;
+                    const caseName = r.target_case_name || ''; 
+                    if(r.reward_type === 'case') { icon = '🎁'; title = 'Кейс'; desc = caseName; }
+                    else if(r.reward_type === 'tickets') { icon = '🎟'; title = 'Билеты'; desc = `${r.amount} шт.`; }
+                    else { icon = '<i class="fa-solid fa-coins text-[#ffd700]"></i>'; title = 'Монеты'; desc = `${r.amount} шт.`; }
+                    return `
+                    <div class="flex items-center gap-2 p-2 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] rounded-lg">
+                        <div class="w-[20px] h-[20px] rounded bg-[#9146FF] text-white flex items-center justify-center font-black text-[9px] shadow-[0_0_10px_rgba(145,70,255,0.4)] shrink-0">${r.place}</div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-[8px] text-gray-400 uppercase font-bold tracking-wide">Место</span>
+                            <span class="text-[9px] font-bold text-white truncate">${icon} ${title} <span class="text-[#9146FF] ml-1">${desc}</span></span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) { container.innerHTML = '<div class="text-[#ff4d4d] text-center text-xs mt-2">Ошибка загрузки</div>'; }
+        }
+
+        // 🔥 НОВОЕ: Проверка админки и статуса твича (Мультиаккаунт)
+        async function checkAdmin() {
+            try {
+                // 1. Проверяем админку через API
+                const userData = await apiCall('/api/v1/user/me', {}, 'POST');
+                if (userData && userData.is_admin) { 
+                    document.getElementById('admin-btn').classList.remove('hidden'); 
+                }
+
+                // 2. 🔥 Прямой запрос в Supabase для проверки обоих стримеров
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('value')
+                    .in('key', ['twitch_status_883996654', 'twitch_status_755238101']);
+                
+                if (!error && data && data.length > 0) {
+                    // Если хотя бы один из каналов вернул true -> стрим идет
+                    isStreamLive = data.some(s => s.value === true || s.value === 'true');
+                } else {
+                    isStreamLive = false;
+                }
+            } catch(e) {
+                isStreamLive = false; // Фолбек при ошибке
+            }
+        }
+
+        // 🔥 ИЗМЕНЕНО: Грузим все данные ОДНОВРЕМЕННО. Лоадер снимается только когда всё готово.
+        async function loadInitialData() {
+            const p1 = supabaseClient.from('guess_state').select('*').eq('id', 1).single().then(res => {
+                if (res.data) handleGameStateChange(res.data);
+                isInitialGameLoaded = true;
+            }).catch(() => { isInitialGameLoaded = true; });
+
+            const p2 = fetch('/api/v1/events/current?t=' + Date.now()).then(res => res.json()).then(data => {
+                if (data.status === 'active' && data.event) {
+                    isEventActive = data.event.is_active;
+                    currentEventCoverUrl = data.event.cover_url || "";
+                    document.getElementById('ev-title').innerText = data.event.title;
+                    document.getElementById('ev-target').innerText = data.event.target_points;
+                    document.getElementById('ev-current').innerText = data.event.current_points;
+                    let percent = Math.floor((data.event.current_points / data.event.target_points) * 100);
+                    if (percent > 100) percent = 100;
+                    document.getElementById('ev-percent').innerText = `${percent}%`;
+                    document.getElementById('ev-bar').style.width = `${percent}%`;
+                } else { isEventActive = false; }
+                isInitialEventLoaded = true;
+            }).catch(() => { isInitialEventLoaded = true; });
+
+            const p3 = checkAdmin(); // Ждем статус Твича
+
+            // Ожидаем завершения всех 3-х проверок
+            await Promise.all([p1, p2, p3]);
+            
+            // Вызываем отрисовку правильного стейта ОДИН раз
+            updateMainView();
+            
+            // И только теперь снимаем лоадер
+            const globalLoader = document.getElementById('global-loader');
+            if (globalLoader) {
+                globalLoader.style.opacity = '0';
+                setTimeout(() => { globalLoader.classList.add('hidden'); }, 500);
+            }
+        }
+
+        loadPublicLeaderboard();
+        loadPublicRewards();
+        initSupabaseRealtime();
+        loadInitialData(); // Запускает всю цепочку
+    </script>
+</body>
+</html>

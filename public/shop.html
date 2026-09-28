@@ -1,0 +1,4031 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HATElavka Shop</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+    <style>
+        :root {
+            --primary-color: #ffcc00;
+            --primary-gradient: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --text-color: #ffffff;
+            --text-secondary: #8E8E93;
+            --surface-glass-bg: rgba(28, 28, 30, 0.85);
+            /* [NEW] Цвета для рулетки */
+            --rarity-blue: #4b69ff;
+            --rarity-purple: #8847ff;
+            --rarity-pink: #d32ce6;
+            --rarity-red: #eb4b4b;
+            --rarity-gold: #ffd700;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top center, #1a1a1a 0%, #000000 70%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            touch-action: pan-y;
+        }
+
+        /* --- ШАПКА --- */
+        .shop-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding-top: calc(10px + env(safe-area-inset-top));
+            padding-bottom: 10px;
+            padding-left: 16px;
+            padding-right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            user-select: none;
+            -webkit-user-select: none;
+            will-change: transform;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #007aff; /* Синий цвет (Action color) */
+            font-size: 12px; /* Размер 12px, как ты просил */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            padding: 5px 0;
+            text-decoration: none; /* Убираем подчеркивание, т.к. теперь это ссылка */
+        }
+
+        .back-btn:active {
+            opacity: 0.6;
+        }
+
+        /* Принудительно ставим размер иконки 12px */
+        .back-btn i {
+            font-size: 12px; 
+        }
+
+        /* --- НОВЫЕ СТИЛИ БАЛАНСОВ (КАПСУЛЫ) --- */
+        .balances-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .balance-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background-color: #0A0A0A; /* Темный фон как на скрине */
+            border-radius: 999px; /* Форма капсулы */
+            font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            font-weight: 800; /* Жирные цифры */
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s ease, background 0.2s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .balance-pill:active {
+            transform: scale(0.95);
+        }
+
+        /* Цвета для монет (желтые) */
+        .balance-pill.coins {
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        .balance-pill.coins:active { background: rgba(255, 204, 0, 0.15); }
+
+        /* Цвета для билетов (голубые, взял из твоих стилей) */
+        .balance-pill.tickets {
+            border: 1px solid #bdecff;
+            color: #bdecff;
+        }
+        .balance-pill.tickets:active { background: rgba(189, 236, 255, 0.15); }
+
+        /* Иконка обновления внутри плашки */
+        .balance-pill .refresh-icon {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-left: 2px;
+            transition: transform 0.5s ease;
+        }
+
+        /* --- ИНФО БАННЕР --- */
+        .info-banner {
+            margin: 16px;
+            background: linear-gradient(145deg, #2c2c2e, #1c1c1e);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            width: calc(100% - 32px);
+            /* Оптимизация рендеринга */
+            content-visibility: auto; 
+        }
+
+        .info-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .info-text h3 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .info-text p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Плашка "Посмотреть дроп" поверх картинки кейса */
+.case-info-overlay {
+    position: absolute;
+    top: 80%; /* Начало линии (настрой как тебе нравится) */
+    left: 0;
+    right: 0;
+    
+    /* Магия: тянем линию далеко вниз, она обрежется краем карточки */
+    bottom: -200px; 
+    
+    background: rgba(0, 0, 0, 0.6); 
+    backdrop-filter: blur(2px);
+    color: var(--primary-color);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-align: center;
+    padding-top: 8px; /* Отступ текста от верхнего края линии */
+    
+    /* Слой ставим минимальный, чтобы кнопки были выше */
+    z-index: 1; 
+    
+    pointer-events: none; 
+    letter-spacing: 0.5px;
+}
+        
+/* Эффект при наведении/нажатии на карточку кейса */
+.shop-item:active .case-info-overlay {
+}
+
+        /* --- ПАРТНЕРЫ (ОПТИМИЗИРОВАНО НА CSS) --- */
+        .partners-wrapper {
+            width: 100%;
+            overflow: hidden;
+            margin-top: 5px;
+            padding-bottom: 15px;
+            position: relative;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            touch-action: pan-x;
+        }
+
+        /* Контейнер для CSS анимации */
+        .partners-track {
+            display: flex;
+            gap: 10px;
+            padding: 0 16px;
+            width: max-content; /* Ширина по контенту */
+            /* GPU ускорение */
+            will-change: transform;
+            /* Анимация */
+            animation: scroll-partners 30s linear infinite;
+        }
+        
+        /* Пауза при наведении или таче */
+        .partners-wrapper:active .partners-track,
+        .partners-wrapper:hover .partners-track {
+            animation-play-state: paused;
+        }
+
+        @keyframes scroll-partners {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } /* Сдвигаем на 50%, так как контент дублирован */
+        }
+
+        .partner-card {
+            flex: 0 0 auto;
+            width: 260px;
+            min-width: 260px;
+            background: #1c1c1e;
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+            /* Убрали transform отсюда, чтобы не конфликтовал с анимацией трека */
+        }
+
+        .partner-card.topskin {
+            background: linear-gradient(135deg, rgba(255, 87, 34, 0.15) 0%, rgba(255, 87, 34, 0.05) 100%);
+            border-color: rgba(255, 87, 34, 0.3);
+        }
+        .partner-card.xplay {
+            background: linear-gradient(135deg, #3a3a3c 0%, #2c2c2e 100%);
+            border-color: #555;
+        }
+
+        .partner-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            padding: 2px;
+        }
+
+        .partner-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .partner-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            pointer-events: none;
+            align-items: center;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .partner-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .partner-desc {
+            font-size: 10px;
+            color: #b0b0b0;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .partner-highlight {
+            color: #fff;
+            font-weight: 600;
+            background: rgba(255,255,255,0.1);
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 10px;
+            vertical-align: middle;
+        }
+
+        .hot-badge { font-size: 9px; background: #ffcc00; color: #000; padding: 1px 5px; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 11px;
+            margin-left: 2px;
+            pointer-events: auto;
+        }
+
+        /* --- СЕТКА ТОВАРОВ --- */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 0 16px;
+            margin-top: 5px;
+            width: 100%;
+            box-sizing: border-box;
+            padding-bottom: calc(180px + env(safe-area-inset-bottom));
+            /* Оптимизация списка */
+            content-visibility: auto; 
+            contain-intrinsic-size: 1000px; /* Примерная высота */
+        }
+
+        .shop-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.1s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            min-width: 0;
+            /* Ускорение отрисовки */
+            will-change: transform; 
+        }
+        .shop-item:active { transform: scale(0.98); }
+
+        .item-image-wrapper {
+            width: 100%;
+            padding-top: 100%;
+            position: relative;
+            background: #141416;
+            cursor: pointer;
+        }
+
+        /* Основной стиль картинки (ОБНОВЛЕННЫЙ) */
+        .item-image {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            object-fit: contain; /* Важно для обычных предметов, чтобы не обрезались */
+            border-radius: 8px;
+            opacity: 0;
+            /* Ускоряем анимацию появления */
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            
+            /* --- ФИКС ДЛЯ ПК (Убирает резкость/лесенку) --- */
+            transform: translateZ(0); /* Включает GPU сглаживание */
+            backface-visibility: hidden;
+            image-rendering: -webkit-optimize-contrast; /* Лучшее сглаживание в Chrome */
+            will-change: opacity; /* Сообщаем браузеру, что будет анимация */
+        }
+
+        .item-image.loaded { opacity: 1; }
+
+        /* --- СТИЛЬ ТОЛЬКО ДЛЯ КЕЙСОВ (БОЛЬШАЯ КАРТИНКА) --- */
+        /* Увеличенный стиль для кейсов */
+/* Увеличенный стиль для кейсов (БЕЗ СВЕЧЕНИЯ + ПОДНЯТ ВЫШЕ) */
+.item-image.case-zoom {
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    padding: 0 !important;
+    border-radius: 12px;
+    object-fit: contain;
+    
+    /* --- ЛОГИКА РАЗМЕРА И ПОЗИЦИИ --- */
+    /* scale(1.4) -> Увеличение на 40%.
+       translateY(-15px) -> Сдвиг ВВЕРХ по вертикали на 15px. 
+       👉 Если нужно еще выше — ставь -20px или -25px. 
+       👉 Если слишком высоко — ставь -5px или -10px.
+    */
+    transform: scale(1.4) translateY(-15px); 
+    
+    /* Точка, откуда начинается рост (от верхнего центра, то есть от текста) */
+    transform-origin: top center; 
+    
+    margin-top: 0; /* Убеждаемся, что нет лишних отступов сверху */
+
+    /* --- УБРАЛИ ЖЕЛТУЮ ПОДСВЕТКУ --- */
+    /* filter: drop-shadow(0 0 15px rgba(255, 204, 0, 0.2)); <--- ЭТУ СТРОКУ МЫ УДАЛИЛИ */
+    filter: none; /* Явно выключаем фильтры */
+    box-shadow: none; /* На всякий случай выключаем обычные тени */
+
+    transition: transform 0.3s ease; /* Плавность при появлении */
+}
+        .item-info {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 4px;
+            text-align: center;
+            z-index: 8; /* Этот слой выше, чем линия (1) */
+        }
+
+        .item-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.2;
+            min-height: 34px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-transform: capitalize;
+            text-align: center;
+        }
+
+        .item-subtitle {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .item-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 10px;
+            margin-bottom: 6px;
+        }
+
+        .item-stock { color: var(--text-secondary); }
+        .item-stock.out { color: #ff453a; }
+
+        .item-price {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 13px;
+        }
+
+        .action-btn {
+            margin-top: auto;
+            width: 100%;
+            height: 34px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            z-index: 500; /* Кнопки на самом верху */
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-buy {
+            background: var(--primary-gradient);
+            color: #000;
+            box-shadow: 0 2px 10px rgba(255, 204, 0, 0.2);
+        }
+
+        .btn-folder {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+
+        /* --- LIGHTBOX --- */
+        .image-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease; /* Ускорили */
+            backdrop-filter: blur(10px);
+            touch-action: none;
+        }
+        .image-modal-overlay.open { display: flex; opacity: 1; }
+
+        .modal-image-container {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-full-image {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- SKELETON (Упрощенная анимация) --- */
+        .skeleton {
+            background: #2c2c2e; /* Статичный фон легче для рендера */
+            border-radius: 12px;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Блик через псевдоэлемент, чтобы не перерисовывать весь блок */
+        .skeleton::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        .empty-msg {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px;
+            font-size: 14px;
+        }
+
+        /* --- ФУТЕР --- */
+        .app-footer {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: rgba(28, 28, 30, 0.95); /* Меньше блюра для скорости */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            padding-top: 8px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            box-sizing: border-box;
+            height: auto;
+            touch-action: none;
+        }
+
+        .footer-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: #8E8E93;
+            text-decoration: none;
+            flex: 1;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 500;
+            transition: color 0.1s ease; /* Убрали трансформации для скорости */
+        }
+
+        /* --- ПРЕВЬЮ ВЫБРАННОГО КЕЙСА --- */
+        .case-preview-card {
+            background: linear-gradient(145deg, #252525, #1a1a1a);
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            /* Анимация появления */
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        .case-preview-card.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .preview-image {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+            z-index: 2;
+        }
+
+        .preview-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 5px;
+            z-index: 2;
+        }
+
+        .preview-price {
+            font-size: 14px;
+            color: #ffd700;
+            font-weight: 600;
+            background: rgba(255, 204, 0, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            z-index: 2;
+        }
+
+        .footer-item .icon-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 24px;
+            height: 24px;
+            font-size: 22px;
+            position: relative;
+        }
+        /* --- СТИЛИ ДЛЯ ОБНОВЛЕНИЯ БАЛАНСА --- */
+        .balance-display {
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            user-select: none;
+        }
+        
+        .balance-display:active {
+            transform: scale(0.96);
+            background: rgba(255, 204, 0, 0.2);
+        }
+
+        .refresh-icon {
+            font-size: 12px;
+            opacity: 0.8;
+            transition: transform 0.5s ease;
+        }
+
+        /* --- НОВЫЕ КНОПКИ ДЛЯ КЕЙСОВ --- */
+/* --- СПЕЦИАЛЬНЫЙ ВИЗУАЛ ДЛЯ КЕЙСОВ --- */
+        .case-top-title {
+            padding: 10px 5px 0 5px;
+            font-size: 13px; /* Стартовый размер шрифта */
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+            line-height: 1.1;
+            position: relative;
+            z-index: 4;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+
+            /* --- МАГИЯ ОДНОЙ СТРОКИ --- */
+            white-space: nowrap; 
+            overflow: visible; /* Текст не прячется, скрипт его уменьшит */
+            display: block;
+        }
+        
+        .case-top-title .item-subtitle {
+            font-size: 11px;
+            color: var(--primary-color); /* Сделаем приписку ярче */
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .case-img-wrap {
+    padding-top: 80%;
+    background: #000000; /* Чистый черный специально для кейсов */
+}
+
+        .case-buttons-wrapper {
+            padding: 0 10px 12px 10px; /* Отступы для кнопок (снизу больше) */
+            display: flex;
+            flex-direction: column;
+            margin-top: auto;
+        }
+
+        .case-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px; /* Равномерный отступ между кнопками */
+            width: 100%;
+        }
+
+        .btn-buy-tickets {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(37, 117, 252, 0.2);
+            /* margin-top убрали, так как теперь работает gap */
+        }
+
+        /* --- НОВЫЕ СТИЛИ ДЛЯ WIN SCREEN --- */
+
+/* Кнопка продажи (фиолетовая/синяя) */
+.btn-sell-tickets {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(37, 117, 252, 0.3);
+    margin-top: 10px; /* Отступ от кнопки Забрать */
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Контейнер для нижнего ряда кнопок */
+.win-actions-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 280px; /* Ограничиваем ширину */
+    margin-top: 15px;
+    justify-content: space-between;
+}
+
+/* Маленькие кнопки (Профиль / Закрыть) */
+.btn-secondary-action {
+    flex: 1; /* Растягиваются равномерно */
+    background: rgba(255, 255, 255, 0.08);
+    color: #8E8E93;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    height: 36px; /* Чуть меньше основных */
+    font-size: 11px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-secondary-action:active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: scale(0.96);
+}
+
+/* Иконка билета */
+.ticket-icon {
+    color: #bdecff; /* Светло-голубой для билета */
+    margin-left: 4px;
+}
+        
+        .refresh-icon.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .footer-item:active { color: #ffffff; }
+
+        .footer-item.active { color: #FFFFFF; }
+        .footer-item.active .icon-wrapper {
+            color: #34c759;
+            text-shadow: 0 0 10px rgba(52, 199, 89, 0.4);
+        }
+        /* --- ОКНО ЗАГРУЗКИ ПОКУПКИ --- */
+        .purchase-loader {
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Темный фон */
+            backdrop-filter: blur(5px);      /* Размытие фона */
+            z-index: 21000;                 /* Поверх всего */
+            display: none;                  /* Скрыто по умолчанию */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        
+        .purchase-loader.active {
+            display: flex;
+        }
+
+        .loader-spinner {
+            font-size: 40px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loader-text {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- КОНТЕЙНЕР (ЦЕНТРИРОВАНИЕ) --- */
+        /* Этот блок держит кнопку и меню по центру внизу */
+        .admin-wrapper {
+            position: fixed;
+            /* Было 30px. Ставим 90px, чтобы кнопка была НАД футером */
+            bottom: calc(90px + env(safe-area-inset-bottom)); 
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* --- АДМИН МЕНЮ (FAB) --- */
+        .admin-fab-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            /* Полупрозрачный фон */
+            background: rgba(28, 28, 30, 0.4); 
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5); /* Бледный цвет иконки */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            /* flex-shrink: 0 гарантирует, что кнопка не сплющится */
+            flex-shrink: 0; 
+        }
+
+        .admin-fab-btn:active { 
+            transform: scale(0.9); 
+            background: rgba(255, 204, 0, 0.2); 
+            color: #ffcc00; 
+        }
+
+        .admin-fab-btn.toggle.active {
+            transform: rotate(180deg);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* --- СКРЫТЫЕ КНОПКИ МЕНЮ --- */
+        .admin-menu-items {
+            display: flex;
+            flex-direction: column; /* Кнопки меню друг над другом */
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(10px); /* Небольшой сдвиг для анимации */
+            pointer-events: none;
+            transition: all 0.3s ease;
+            align-items: center;
+        }
+
+        .admin-menu-items.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .admin-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 69, 58, 0.2); /* Красный оттенок */
+            color: #ff453a;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: transform 0.2s;
+        }
+
+        .admin-action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* --- КАСТОМНОЕ МОДАЛЬНОЕ ОКНО ПАРОЛЯ --- */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .custom-modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .pass-modal {
+            background: #1c1c1e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 80%;
+            max-width: 300px;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: scale(0.9);
+            transition: transform 0.2s;
+        }
+        .custom-modal-overlay.active .pass-modal { transform: scale(1); }
+
+        .pass-input {
+            width: 100%;
+            background: #2c2c2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            color: #fff;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+            box-sizing: border-box; 
+        }
+        .pass-input:focus { border-color: #ffcc00; } /* Добавил цвет фокуса, если переменной нет */
+
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-cancel { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .btn-confirm { background: linear-gradient(45deg, #ffcc00, #ff9500); color: #000; } /* Заменил переменную на градиент для примера */
+        /* --- СТИЛИ ДЛЯ P2P СИСТЕМЫ --- */
+        /* --- PREMIUM P2P MODAL DESIGN --- */
+
+        /* Фон затемнения с размытием */
+        .modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); /* Чуть прозрачнее, чтобы видно блюр */
+            backdrop-filter: blur(12px);      /* Эффект матового стекла */
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Карточка модалки */
+        .modal-content {
+            background: #1c1c1e;
+            width: 90%;
+            max-width: 360px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            padding: 24px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transform: scale(1);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            /* 👇👇👇 ДОБАВЛЕНО ДЛЯ СКРОЛЛА 👇👇👇 */
+            max-height: 85vh;       /* Ограничиваем высоту 85% от экрана */
+            overflow-y: auto;       /* Включаем скролл, если контент не влезает */
+            -webkit-overflow-scrolling: touch; /* Плавный скролл на iPhone */
+        }
+
+        .modal.hidden .modal-content {
+            transform: scale(0.95);
+        }
+
+        /* Заголовок */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .close-modal {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .close-modal:active { background: rgba(255,255,255,0.3); }
+
+        /* Поля ввода (Input & Select) */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            color: #8E8E93;
+            font-weight: 500;
+            margin-left: 4px;
+        }
+
+        .p2p-input, .p2p-select {
+            width: 100%;
+            background: #2c2c2e;
+            border: 1px solid rgba(255,255,255,0.05);
+            color: #fff;
+            padding: 14px 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            outline: none;
+            appearance: none; /* Убирает стандартные стрелки браузера */
+            -webkit-appearance: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .p2p-input:focus, .p2p-select:focus {
+            border-color: #ffcc00;
+            background: #3a3a3c;
+        }
+
+        /* Кастомная стрелка для Select */
+        .select-wrapper {
+            position: relative;
+        }
+        .select-wrapper::after {
+            content: '\f078'; /* FontAwesome chevron-down */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8E8E93;
+            pointer-events: none;
+            font-size: 12px;
+        }
+
+        /* Блок с расчетом (Summary Card GREEN) */
+        .summary-card {
+            background: rgba(46, 204, 113, 0.1); /* Зеленый фон */
+            border: 1px solid rgba(46, 204, 113, 0.2); /* Зеленая рамка */
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .summary-row.total {
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(46, 204, 113, 0.2); /* Зеленый разделитель */
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* ВАЖНО: Зеленые цифры */
+        .mono-num {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Mono", "Roboto Mono", monospace;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.5px;
+            color: #2ecc71; /* Ярко-зеленый текст */
+            font-weight: 700;
+        }
+
+        /* Список истории */
+        .history-section {
+            margin-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 15px;
+        }
+        .history-title {
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        /* --- ПРЕМИУМ УВЕДОМЛЕНИЕ О БОТЕ --- */
+        .bot-connect-banner {
+            background: rgba(42, 171, 238, 0.15); /* Голубой фон */
+            border: 1px solid rgba(42, 171, 238, 0.3); /* Голубая рамка */
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(42, 171, 238, 0.05);
+        }
+                
+        .bot-connect-banner:active {
+            transform: scale(0.98);
+        }
+
+        .bot-icon-box {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #2AABEE, #229ED9); /* Градиент Telegram */
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 4px 10px rgba(42, 171, 238, 0.3);
+        }
+
+        .bot-text-box h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .bot-text-box p {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* --- ПУЛЬСИРУЮЩАЯ КНОПКА АКТИВНОГО ТРЕЙДА --- */
+        /* Добавляем класс .premium-exchange-btn через запятую */
+        .p2p-history-btn.has-active-trade,
+        .premium-exchange-btn.has-active-trade {
+            background: linear-gradient(135deg, #ff3b30, #ff9500);
+            /* border: none; Убираем, чтобы не ломать границы, если они есть */
+            color: white;
+            /* font-weight: 800; Убираем, чтобы не менять жирность шрифтов внутри */
+            animation: premiumPulse 2s infinite;
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.4);
+        }
+
+        /* При активном трейде меняем цвет текстов внутри на белый */
+        .premium-exchange-btn.has-active-trade .p2p-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes premiumPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); transform: scale(1); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); transform: scale(1); }
+        }
+
+        /* --- КАРТОЧКА АКТИВНОГО ТРЕЙДА В ИСТОРИИ --- */
+        .active-trade-card {
+            border: 1px solid #ffcc00 !important;
+            background: rgba(255, 204, 0, 0.05) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .active-trade-card::before {
+            content: "REQUIRE ACTION";
+            position: absolute;
+            top: 10px;
+            right: -30px;
+            background: #ffcc00;
+            color: #000;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 4px 30px;
+            transform: rotate(45deg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        /* --- СТИЛИ ДЛЯ КНОПКИ ИСТОРИИ И ВТОРОГО ОКНА --- */
+
+        /* Кнопка-статус (умная кнопка) */
+        .history-status-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #8E8E93;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        /* Состояние: АКТИВНЫЙ ТРЕЙД (Пульсация) */
+        .history-status-btn.active-trade {
+            background: linear-gradient(135deg, #ffcc00 0%, #ff9500 100%);
+            color: #000;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+            animation: statusPulse 2s infinite;
+        }
+
+        .history-status-btn.active-trade .btn-icon {
+            background: rgba(0,0,0,0.2);
+            color: #fff;
+        }
+
+        @keyframes statusPulse {
+            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
+            50% { transform: scale(1.02); box-shadow: 0 4px 25px rgba(255, 204, 0, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3); }
+        }
+
+        /* Иконка внутри кнопки */
+        .btn-icon {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* --- ВТОРОЕ МОДАЛЬНОЕ ОКНО (Z-INDEX ВЫШЕ) --- */
+        .history-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); /* Темнее фон */
+            backdrop-filter: blur(5px);
+            z-index: 10005; /* ВАЖНО: Выше чем обычная модалка */
+            display: flex;
+            align-items: flex-end; /* Выезжает снизу или центр */
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .history-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .history-modal-content {
+            background: #1c1c1e;
+            width: 100%;
+            height: 80vh; /* На весь экран почти */
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+
+        .history-modal.active .history-modal-content {
+            transform: translateY(0);
+        }
+
+        /* --- PREMIUM P2P BUTTON --- */
+        .premium-exchange-btn {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 16px;
+            /* Твой любимый фиолетовый градиент, но с большей глубиной */
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 20px rgba(37, 117, 252, 0.3); /* Цветная тень (glow) */
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            text-align: left;
+        }
+
+        .premium-exchange-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 10px rgba(37, 117, 252, 0.2);
+        }
+
+        /* Эффект блика (Shine) */
+        .premium-exchange-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-20deg);
+            animation: shine 4s infinite; /* Блик пробегает каждые 4 секунды */
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; } /* Быстрый пролет */
+            100% { left: 200%; } /* Пауза */
+        }
+
+        /* Левая часть (Иконка) */
+        .p2p-icon-box {
+            width: 42px;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            margin-right: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Центр (Текст) */
+        .p2p-text-box {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 2; /* Чтобы текст был над бликом */
+        }
+
+        .p2p-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .p2p-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        /* Правая часть (Стрелка) */
+        .p2p-arrow {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        /* Список внутри истории */
+        .history-scroll-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-top: 15px;
+            padding-bottom: 30px;
+        }
+        /* --- ГЛОБАЛЬНЫЙ ЛОАДЕР --- */
+        .global-loader-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .global-loader-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .spinner-container {
+            width: 50px; /* Задаем явный размер контейнеру */
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            filter: drop-shadow(0 0 10px rgba(255, 204, 0, 0.4));
+        }
+
+        .spinner-container i {
+            font-size: 40px;
+            display: block; /* ВАЖНО: без этого не крутится! */
+            will-change: transform; /* Подсказка браузеру */
+            animation: global-spin 1s linear infinite !important; /* Принудительно */
+        }
+
+        @keyframes global-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- [NEW] СТИЛИ ДЛЯ РУЛЕТКИ (ВСТАВЛЕНО ЮВЕЛИРНО) --- */
+        /* --- [NEW] СТИЛИ ДЛЯ РУЛЕТКИ (ТОЧНАЯ КОПИЯ DAILY CHALLENGE) --- */
+        .r-modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 10006; 
+            display: none; justify-content: center; align-items: center; 
+            flex-direction: column; backdrop-filter: blur(10px); 
+        }
+        .r-game-area { 
+            width: 100%; height: 200px; position: relative; overflow: hidden; 
+            border-top: 1px solid #333; border-bottom: 1px solid #333; 
+            background: rgba(20,20,20,0.5); margin: 20px 0;
+        }
+        .r-track { display: flex; height: 100%; align-items: center; will-change: transform; }
+        
+        .r-card { 
+            width: 140px; height: 140px; margin: 0 4px; background: #1a1b20; 
+            border-radius: 8px; flex-shrink: 0; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            border-bottom: 3px solid transparent; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+        }
+        .r-card img { width: 100px; height: 70px; object-fit: contain; }
+        .r-card-name { 
+            font-size: 10px; color: #ccc; text-align: center; 
+            max-width: 90%; overflow: hidden; text-overflow: ellipsis; 
+            white-space: nowrap; margin-top: 10px;
+        }
+        
+        .r-marker { 
+            position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; 
+            background: #ffd700; transform: translateX(-50%); z-index: 10; 
+            box-shadow: 0 0 10px #ffd700; 
+        }
+
+        /* Цвета редкости 1в1 как в примере */
+        .r-blue { border-color: #4b69ff; background: radial-gradient(circle, rgba(75,105,255,0.1), #1a1b20); }
+        .r-purple { border-color: #8847ff; background: radial-gradient(circle, rgba(136,71,255,0.1), #1a1b20); }
+        .r-pink { border-color: #d32ce6; background: radial-gradient(circle, rgba(211,44,230,0.1), #1a1b20); }
+        .r-red { border-color: #eb4b4b; background: radial-gradient(circle, rgba(235,75,75,0.1), #1a1b20); }
+        .r-gold { border-color: #ffd700; background: radial-gradient(circle, rgba(255,215,0,0.1), #1a1b20); }
+
+        .win-screen { 
+            display: none; 
+            width: 100%;
+            text-align: center; 
+            animation: fadeIn 0.5s; 
+            padding: 20px; 
+            box-sizing: border-box;
+            /* Центрирование контента и кнопки */
+            flex-direction: column;
+            align-items: center;
+        }
+        .win-img { width: 180px; filter: drop-shadow(0 0 30px rgba(255,215,0,0.5)); animation: float 3s infinite ease-in-out; }
+        
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- СТИЛИ ДЛЯ КРАСИВОГО ПОДТВЕРЖДЕНИЯ (ИЗ PROFILE) --- */
+.custom-confirm-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 40000 !important; /* Увеличили с 20000 до 40000 */
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.custom-confirm-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.custom-confirm-box {
+    background: #1c1c1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 24px;
+    width: 85%;
+    max-width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.custom-confirm-overlay.visible .custom-confirm-box {
+    transform: scale(1);
+}
+
+.confirm-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.confirm-subtitle {
+    color: #8E8E93;
+    font-size: 13px;
+    margin: 0 0 20px 0;
+    line-height: 1.4;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s;
+}
+.confirm-btn:active { opacity: 0.8; }
+
+.btn-cancel-modal {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Желтая кнопка (стиль магазина) */
+.btn-yellow-modal {
+    background: #ffcc00;
+    color: #000;
+    box-shadow: 0 2px 10px rgba(255, 204, 0, 0.2);
+}
+
+/* Фиолетовая кнопка (для продажи) */
+.btn-purple-modal {
+    background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* --- КНОПКА "ЧТО ВНУТРИ" (INFO) НА КЕЙСЕ --- */
+.info-btn-case {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 10; /* Поверх картинки */
+    transition: all 0.2s;
+}
+
+.info-btn-case:active {
+    background: var(--primary-color);
+    color: #000;
+    transform: scale(0.9);
+}
+
+/* --- МОДАЛКА СОДЕРЖИМОГО КЕЙСА --- */
+.case-contents-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px 0;
+    
+    /* ФИКСЫ СВАЙПА: */
+    overflow-y: auto;      /* Разрешаем вертикальный скролл */
+    overflow-x: hidden;    /* Полностью блокируем горизонтальный скролл */
+    touch-action: pan-y;   /* Разрешаем только вертикальные жесты (палец вверх/вниз) */
+    
+    padding-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box; /* Чтобы отступы не распирали ширину */
+}
+
+/* Адаптив: на экранах пошире делаем 4 в ряд */
+@media (min-width: 380px) {
+    .case-contents-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.content-item {
+    background: #252525;
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    border-bottom: 2px solid transparent;
+}
+
+.content-item img {
+    width: 100%;
+    height: 50px;
+    object-fit: contain;
+    margin-bottom: 4px;
+}
+
+.content-name {
+    font-size: 9px;
+    color: #ddd;
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 20px; /* Фикс высоты */
+}
+
+.content-quality {
+    font-size: 8px;
+    color: #888;
+    margin-top: 2px;
+    background: rgba(255,255,255,0.05);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+/* Цвета редкости (снизу карточки) */
+.content-item.blue { border-bottom-color: var(--rarity-blue); }
+.content-item.purple { border-bottom-color: var(--rarity-purple); }
+.content-item.pink { border-bottom-color: var(--rarity-pink); }
+.content-item.red { border-bottom-color: var(--rarity-red); }
+.content-item.gold { border-bottom-color: var(--rarity-gold); }
+
+/* Цвета кнопок в окне подтверждения */
+#custom-confirm-btn[style*="#34c759"] { color: #000 !important; }
+#custom-confirm-btn[style*="#ff3b30"] { color: #fff !important; }
+
+   /* --- ПРОГРЕСС-БАР И НАЗВАНИЕ КЕЙСА (НОВОЕ) --- */
+       /* --- [NEW] СТИЛИ ДЛЯ РУЛЕТКИ (ЗАГОЛОВОК СВЕРХУ, БАР СНИЗУ) --- */
+        
+        /* Верхний контейнер для названия */
+        #r-top-header {
+            display: none; /* Скрыт по умолчанию */
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px; /* Небольшой отступ до рулетки */
+            z-index: 10;
+        }
+        
+        .r-case-title {
+            color: #fff;
+            font-size: 16px; /* Чуть крупнее */
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.9);
+            margin: 0;
+        }
+
+        /* Нижний контейнер для прогресс-бара и текста */
+        #r-bottom-progress {
+            display: none; /* Скрыт по умолчанию */
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 15px; /* Отступ от рулетки вниз */
+            z-index: 10;
+        }
+
+        .r-progress-bar {
+            display: flex;
+            gap: 8px; /* Чуть больше расстояние между точками */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .r-progress-dot {
+            width: 32px; /* Чуть меньше ширина */
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1); /* Более тусклый неактивный цвет */
+            border-radius: 4px;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Активная точка (пройденный этап) */
+        .r-progress-dot.active {
+            background: var(--primary-color);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+
+        /* ФИНАЛЬНАЯ 5-я точка (Гарант) - Огненная */
+        .r-progress-dot.guaranteed {
+            background: linear-gradient(90deg, #ffcc00, #ff3b30);
+            box-shadow: 0 0 15px rgba(255, 59, 48, 0.7);
+             /* Легкая пульсация для 5-го шага */
+            animation: pulse-guarantee 2s infinite;
+        }
+
+        @keyframes pulse-guarantee {
+            0% { box-shadow: 0 0 15px rgba(255, 59, 48, 0.7); }
+            50% { box-shadow: 0 0 25px rgba(255, 59, 48, 0.9); }
+            100% { box-shadow: 0 0 15px rgba(255, 59, 48, 0.7); }
+        }
+
+        /* Текст-подсказка под баром */
+        .r-progress-label {
+            margin-top: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #8E8E93; /* Вторичный цвет текста */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+/* --- СТИЛИ ДЛЯ ВЫБОРА ЗАМЕНЫ (В СТИЛЕ ТВОЕГО ИНВЕНТАРЯ) --- */
+.replacement-modal {
+    z-index: 30000 !important; /* Гарантированно поверх всего */
+}
+
+.replacement-modal .modal-content {
+    background: #1c1c1e;
+    max-height: 98vh;
+    padding: 16px;
+}
+
+.replacement-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.replacement-card {
+    background: #1c1c1e; /* Темный фон, как на твоих скринах */
+    border-radius: 14px;
+    padding: 10px;
+    /* Тонкая рамка по умолчанию, цвет меняется классом */
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    height: 170px; /* Компактная высота */
+    justify-content: space-between;
+    overflow: hidden;
+    z-index: 1;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.replacement-card:active { transform: scale(0.96); }
+
+/* ========================================================
+   ИСПРАВЛЕННЫЙ БЛОК: ВИЗУАЛ ПРЕДМЕТОВ + ИЕРАРХИЯ ОКОН
+   ======================================================== */
+
+/* --- 1. КАРТИНКА (ОРУЖИЕ, НАШИВКИ, БРЕЛОКИ) --- */
+.replacement-card img {
+    width: 85%;
+    height: 90px; 
+    object-fit: contain;
+    filter: drop-shadow(0 8px 15px rgba(0,0,0,0.5));
+    z-index: 2;
+    margin-top: 5px;
+    
+    /* Оптимальный зум для оружия, чтобы не вылезало за рамки */
+    transform: scale(1.15) translateZ(0); 
+    transition: transform 0.2s ease;
+}
+
+/* --- 2. КАРТИНКА (ТОЛЬКО НАКЛЕЙКИ) --- */
+/* Мощный зум, но с лимитом роста вниз, чтобы не перекрывать текст */
+.replacement-card.is-sticker img {
+    transform: scale(2.0) translateZ(0) !important; 
+    
+    /* 🔥 ТОТ САМЫЙ ЛИМИТ: Увеличиваем из точки "чуть выше центра". 
+       Картинка растет вверх и в стороны, низ остается на месте! */
+    transform-origin: center 35%; 
+    margin-top: 10px; 
+}
+
+.replacement-card:active img {
+    transform: scale(1.25) translateZ(0);
+}
+.replacement-card.is-sticker:active img {
+    transform: scale(2.1) translateZ(0) !important;
+}
+
+/* --- 3. ТЕКСТОВАЯ ЗОНА (УВЕЛИЧЕНА) --- */
+.replacement-text-zone {
+    width: 100%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex-grow: 1;
+    padding-bottom: 5px;
+}
+
+.replacement-name {
+    font-size: 10px; /* Чуть меньше шрифт, чтобы влезло больше текста */
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* РАЗРЕШАЕМ 3 СТРОКИ для длинных названий */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 33px; /* Фикс высота, чтобы карточки не плясали */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    text-transform: uppercase;
+}
+
+.replacement-condition {
+    font-size: 9px;
+    color: #8E8E93;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* --- 4. GLOW ЭФФЕКТ --- */
+.replacement-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0.25; 
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Цвета редкостей */
+.replacement-card.blue { border-color: #4b69ff; }
+.replacement-card.blue::after { background: radial-gradient(circle at 50% 40%, #4b69ff 0%, transparent 75%); }
+.replacement-card.purple { border-color: #8847ff; }
+.replacement-card.purple::after { background: radial-gradient(circle at 50% 40%, #8847ff 0%, transparent 75%); }
+.replacement-card.pink { border-color: #d32ce6; }
+.replacement-card.pink::after { background: radial-gradient(circle at 50% 40%, #d32ce6 0%, transparent 75%); }
+.replacement-card.red { border-color: #eb4b4b; }
+.replacement-card.red::after { background: radial-gradient(circle at 50% 40%, #eb4b4b 0%, transparent 75%); }
+.replacement-card.gold { border-color: #ffd700; }
+.replacement-card.gold::after { background: radial-gradient(circle at 50% 40%, #ffd700 0%, transparent 75%); }
+
+/* ========================================================
+   ЖЕСТКАЯ ИЕРАРХИЯ СЛОЕВ (ЧТОБЫ НИЧЕГО НЕ ПРЯТАЛОСЬ)
+   ======================================================== */
+
+/* Слой 1: Рулетка */
+.r-modal-overlay { z-index: 10000 !important; }
+
+/* Слой 2: Окно "Выберите замену" (Выше рулетки) */
+#replacement-modal { z-index: 80000 !important; }
+
+/* Слой 3: КАСТОМНОЕ ПОДТВЕРЖДЕНИЕ (Поверх выбора замен) */
+.custom-confirm-overlay { z-index: 90000 !important; }
+
+/* Слой 4: Лоадер (Поверх всего мира) */
+.purchase-loader { z-index: 99999 !important; }
+    
+        
+    </style>
+</head>
+<body>
+
+    <div id="global-loader" class="global-loader-overlay">
+        <div class="spinner-container">
+            <i class="fa-solid fa-circle-notch"></i>
+        </div>
+    </div>
+
+    <div id="r-modal" class="r-modal-overlay">
+        
+        <div id="r-top-header">
+            <div id="r-case-name" class="r-case-title">КЕЙС</div>
+        </div>
+
+        <div id="r-area" class="r-game-area">
+            <div class="r-marker"></div>
+            <div class="r-track" id="r-track"></div>
+        </div>
+
+        <div id="r-bottom-progress">
+            <div class="r-progress-bar" id="r-progress-bar-container">
+                <div class="r-progress-dot"></div>
+                <div class="r-progress-dot"></div>
+                <div class="r-progress-dot"></div>
+                <div class="r-progress-dot"></div>
+                <div class="r-progress-dot"></div> 
+            </div>
+            <div class="r-progress-label" id="r-progress-text">До гарантированного приза</div>
+        </div>
+
+        <div id="r-win" class="win-screen"></div>
+    </div>
+
+    <div class="shop-header">
+    <a href="#" id="header-back-btn" class="back-btn">
+        <i class="fa-solid fa-chevron-left"></i> <span id="nav-title">Назад</span>
+    </a>
+        
+    <div class="balances-wrapper">
+        <div class="balance-pill coins" onclick="checkBalance(true)">
+            <span id="user-balance">...</span> 
+            <i class="fa-solid fa-coins"></i>
+            <i class="fa-solid fa-rotate refresh-icon" id="refresh-icon" style="margin-left: 2px;"></i>
+        </div>
+        <div class="balance-pill tickets" onclick="checkBalance(true)">
+            <span id="user-tickets">0</span> 
+            <i class="fa-solid fa-ticket"></i>
+            <i class="fa-solid fa-rotate refresh-icon" id="refresh-icon-tickets" style="margin-left: 2px;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="info-banner">
+    <div class="info-icon">
+        <i class="fa-solid fa-gem"></i>
+    </div>
+    <div class="info-text">
+        <h3>Магазин Наград</h3>
+        <p>Зарабатывай монеты в челленджах и обменивай их на крутые товары.</p>
+    </div>
+</div>
+
+<div class="partners-wrapper">
+    <div class="partners-track" id="partners-track">
+        <a href="#" onclick="openPartnerLink('https://topskin.run')" class="partner-card topskin">
+            <div class="partner-icon">
+                <img src="https://i.postimg.cc/mZJjxLFf/FASTCUP-Top-Skin-Cup-allmode.png" loading="eager" alt="Topskin" class="partner-logo-img">
+            </div>
+            <div class="partner-info">
+                <div class="partner-title">Topskin <span class="hot-badge">Promo</span></div>
+                <div class="partner-desc">
+                    Код: <span class="partner-highlight">HATElove</span>
+                    <button class="copy-btn" onclick="copyCode(event, 'HATElove')"><i class="fa-regular fa-copy"></i></button>
+                    <br>Получи кэшбек в ручных заданиях!
+                </div>
+            </div>
+        </a>
+            
+            
+            <a href="#" onclick="openPartnerLink('https://xplay.gg/ref/hatelove')" class="partner-card xplay">
+                <div class="partner-icon">
+                    <img src="https://i.postimg.cc/gJXWJccF/0x0.png" loading="eager" alt="Xplay" class="partner-logo-img">
+                </div>
+                <div class="partner-info">
+                    <div class="partner-title">Xplay.gg <span class="hot-badge">Game</span></div>
+                    <div class="partner-desc">Получи <span class="partner-highlight">10 монет</span><br>в заданиях за регистрацию!</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="shop-actions" style="padding: 0 16px;">
+    <button onclick="openP2PModal()" class="premium-exchange-btn" id="open-p2p-modal-btn">
+        <div class="p2p-icon-box">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        </div>
+        
+        <div class="p2p-text-box">
+            <span class="p2p-title">Trade-In</span>
+            <span class="p2p-subtitle">Обмен кейсов на 🟡</span>
+        </div>
+
+        <div class="p2p-arrow">
+            <i class="fa-solid fa-chevron-right"></i>
+        </div>
+    </button>
+</div>
+
+    <div id="shop-grid" class="shop-grid"></div>
+
+    <div id="image-modal" class="image-modal-overlay" onclick="closeImageModal(event)">
+        <div class="modal-image-container">
+            <button class="modal-close-btn" onclick="closeImageModalForce()"><i class="fa-solid fa-xmark"></i></button>
+            <img id="full-image" src="" alt="Full View" class="modal-full-image">
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <a href="/leaderboard" class="footer-item">
+            <div class="icon-wrapper"><i class="fa-solid fa-trophy"></i></div>
+            <span>Лидерборд</span>
+        </a>
+        <a href="/quests" id="nav-quests" class="footer-item"><div class="icon-wrapper"><i class="fa-solid fa-check-double"></i></div><span>Задания</span></a>
+        <a href="/menu" class="footer-item">
+            <div class="icon-wrapper"><i class="fa-solid fa-house"></i></div>
+            <span>Главная</span>
+        </a>
+        <a href="/events" class="footer-item">
+            <div class="icon-wrapper"><i class="fa-solid fa-fire"></i></div>
+            <span>Гринд</span>
+        </a>
+        <a href="/auction" class="footer-item">
+            <div class="icon-wrapper"><i class="fa-solid fa-gavel"></i></div>
+            <span>Аукцион</span>
+        </a>
+    </footer>
+
+    <div id="purchase-loader" class="purchase-loader">
+        <i class="fa-solid fa-circle-notch loader-spinner"></i>
+        <div class="loader-text">Оформляем покупку...</div>
+    </div>
+    
+    <div id="admin-fab" class="admin-wrapper" style="display: none;">
+        <div class="admin-fab-btn toggle" onclick="toggleAdminMenu()">
+            <i class="fa-solid fa-chevron-up"></i>
+        </div>
+        
+        <div class="admin-menu-items" id="admin-menu-items">
+            <div class="admin-action-btn" onclick="openPassModal()">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="password-modal" class="custom-modal-overlay">
+        <div class="pass-modal">
+            <h3 style="margin: 0 0 5px 0; color: #fff;">Admin Access</h3>
+            <p style="margin: 0; color: #8e8e93; font-size: 12px;">Введите код доступа</p>
+            
+            <input type="password" id="admin-pass-input" class="pass-input" placeholder="••••" inputmode="numeric">
+            
+            <div class="modal-buttons">
+                <button class="modal-btn btn-cancel" onclick="closePassModal()">Отмена</button>
+                <button class="modal-btn btn-confirm" onclick="submitResetCache()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="case-contents-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 95%; max-height: 90vh;">
+        <div class="modal-header">
+            <h3>Содержимое кейса</h3>
+            <button onclick="closeContentsModal()" class="close-modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
+        <div id="contents-loader" style="text-align:center; padding:20px; color:#888;">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка скинов...
+        </div>
+
+        <div id="case-items-list" class="case-contents-grid" style="overflow-y: auto; max-height: 70vh;">
+            </div>
+    </div>
+</div>
+
+<div id="p2p-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Обмен Кейсов</h3>
+            <button onclick="closeP2PModal()" class="close-modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+            
+            <div class="bot-connect-banner" onclick="connectTelegramBot()" style="margin-bottom: 5px;">
+                <div class="bot-icon-box"><i class="fa-brands fa-telegram"></i></div>
+                <div class="bot-text-box">
+                    <h4>Включить уведомления</h4>
+                    <p>Нажми, чтобы бот присылал статус сделки</p>
+                </div>
+                <div style="margin-left: auto; color: #fff;"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Выберите кейс</label>
+                <div class="select-wrapper">
+                    <select id="p2p-case-select" onchange="calculateP2P()" class="p2p-select">
+                        <option value="">Загрузка...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="case-preview" class="case-preview-card">
+                <img id="preview-img" src="" class="preview-image">
+                <div id="preview-name" class="preview-title">Название кейса</div>
+                <div class="preview-price">Цена: <span id="preview-price-text">0</span> 🟡</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Количество</label>
+                <input type="number" id="p2p-quantity" value="1" min="1" oninput="calculateP2P()" class="p2p-input" placeholder="0">
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span>Цена за 1 шт:</span>
+                    <span class="mono-num"><span id="p2p-price-per-item">0</span> 🟡</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Вы получите:</span>
+                    <span class="mono-num" style="font-size: 18px;"><span id="p2p-total">0</span> 🟡</span>
+                </div>
+            </div>
+
+            <button onclick="createP2PTrade()" class="action-btn btn-buy" style="height: 48px; font-size: 16px; border-radius: 14px; width: 100%;">
+                Создать заявку
+            </button>
+            
+            <button id="smart-history-btn" class="history-status-btn" onclick="openHistoryModal()">
+                <span id="smart-btn-text">История сделок</span>
+                <div class="btn-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            </button>
+            
+        </div> </div> </div> <div id="history-modal-window" class="history-modal">
+    <div class="history-modal-content">
+        <div class="modal-header">
+            <h3>Мои сделки</h3>
+            <button onclick="closeHistoryModal()" class="close-modal">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+        </div>
+        
+        <div id="full-history-list" class="history-scroll-area">
+            </div>
+    </div>
+</div>
+
+  <div id="replacement-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Выберите замену</h3>
+            <button onclick="closeReplacementModal()" class="close-modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <p style="font-size: 10px; color: #8E8E93; margin: 0;">Оригинала нет, выберите любой скин — отправим его сразу:</p>
+        
+        <div id="replacement-options-list" class="replacement-grid">
+            </div>
+
+        <button onclick="closeReplacementModal()" class="action-btn btn-secondary-action" style="margin-top: 10px; height: 36px; font-size: 11px;">
+            Отмена
+        </button>
+    </div>
+</div>
+    
+    
+    <script>
+        // ==========================================
+    // 🛡️ ВСТАВЛЯЕМ СЮДА (САМЫЙ ВЕРХ)
+    // ==========================================
+    async function checkMaintenance() {
+        try {
+            // Проверяем статус сервера
+            const res = await fetch('/api/v1/bootstrap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // Используем безопасное получение initData
+                body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                
+                // Если включен режим сна (maintenance: true)
+                if (data.maintenance) {
+                    console.warn("⛔ Тех. режим включен. Редирект на главную.");
+                    // Скрываем интерфейс, чтобы не моргнул
+                    document.body.innerHTML = ""; 
+                    // Выкидываем на заглушку
+                    window.location.href = '/'; 
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка проверки статуса:", e);
+        }
+    }
+
+    // Запускаем проверку мгновенно
+    checkMaintenance();
+    // ==========================================
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        Telegram.WebApp.BackButton.show();
+        
+        Telegram.WebApp.setHeaderColor('#17212b'); 
+        Telegram.WebApp.setBackgroundColor('#17212b');
+
+        // [NEW] Haptic Feedback для рулетки
+        const haptic = Telegram.WebApp.HapticFeedback;
+
+        let categoryStack = []; 
+        let currentCategoryId = 0;
+        let itemsCache = {}; 
+        let hasTradeLink = false;
+        let cachedP2PCases = []; // СТАЛО: cachedP2PCases
+        
+        Telegram.WebApp.BackButton.onClick(() => {
+            goBack();
+        });
+
+// --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ЗАПРОСОВ ---
+async function makeApiRequest(url, method = 'GET', body = null) {
+    let fetchUrl = url;
+    const options = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+
+    // Автоматически добавляем initData
+    if (method.toUpperCase() !== 'GET') {
+        const payload = body || {};
+        if (!payload.initData) payload.initData = Telegram.WebApp.initData;
+        options.body = JSON.stringify(payload);
+    } else {
+        const separator = fetchUrl.includes('?') ? '&' : '?';
+        fetchUrl += `${separator}initData=${encodeURIComponent(Telegram.WebApp.initData)}`;
+    }
+
+    const response = await fetch(fetchUrl, options);
+    const data = await response.json();
+    
+    if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Ошибка запроса');
+    }
+    
+    return data;
+}
+        
+        // Открытие модалки
+// 1. ОТКРЫТИЕ МОДАЛКИ (Вызывай это при клике на кнопку "Обмен P2P")
+// 1. ОТКРЫТИЕ МОДАЛКИ
+async function openP2PModal() {
+    const modal = document.getElementById('p2p-modal');
+    modal.classList.remove('hidden');
+    
+    // Сброс полей
+    document.getElementById('p2p-quantity').value = 1;
+    document.getElementById('p2p-total').innerText = '0';
+    
+    // Загрузка данных
+    await loadP2PCasesForSelect();
+    
+    // ВАЖНО: Тут было старое название, меняем на новое:
+    await loadP2PHistoryData(); 
+}
+
+function closeP2PModal() {
+    document.getElementById('p2p-modal').classList.add('hidden');
+}
+
+// 2. ЗАГРУЗКА СПИСКА КЕЙСОВ (Обновленная)
+async function loadP2PCasesForSelect() {
+    const select = document.getElementById('p2p-case-select');
+    select.innerHTML = '<option value="">Загрузка...</option>';
+    
+    try {
+        const cases = await makeApiRequest('/api/v1/p2p/cases', 'GET');
+        cachedP2PCases = cases || []; // СТАЛО: без const (пишем в глобальную)
+        
+        select.innerHTML = '<option value="">-- Нажми, чтобы выбрать кейс --</option>';
+        
+        cachedP2PCases.forEach(item => {
+            // ВАЖНО: Добавили data-image="${item.image_url}"
+            // Экранируем название, чтобы не сломать HTML кавычками
+            const safeName = item.case_name.replace(/"/g, '&quot;');
+            
+            select.insertAdjacentHTML('beforeend', 
+                `<option value="${item.id}" 
+                         data-price="${item.price_in_coins}" 
+                         data-image="${item.image_url}"
+                         data-name="${safeName}">
+                    ${item.case_name}
+                </option>`
+            );
+        });
+    } catch (e) {
+        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+// 3. КАЛЬКУЛЯТОР + ВИЗУАЛИЗАЦИЯ (Обновленная)
+function calculateP2P() {
+    const select = document.getElementById('p2p-case-select');
+    const quantityInput = document.getElementById('p2p-quantity');
+    const priceDisplay = document.getElementById('p2p-price-per-item');
+    const totalDisplay = document.getElementById('p2p-total');
+    
+    // Элементы превью
+    const previewCard = document.getElementById('case-preview');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const previewPriceText = document.getElementById('preview-price-text');
+
+    // Получаем данные выбранной опции
+    const selectedOption = select.options[select.selectedIndex];
+    
+    // Если ничего не выбрано (значение пустое)
+    if (!select.value) {
+        previewCard.classList.remove('visible'); // Скрываем карточку
+        setTimeout(() => { 
+            if(!previewCard.classList.contains('visible')) previewCard.style.display = 'none'; 
+        }, 300); // Ждем конца анимации
+        
+        priceDisplay.innerText = 0;
+        totalDisplay.innerText = 0;
+        return;
+    }
+
+    // Если кейс выбран
+    const price = selectedOption.dataset.price ? parseInt(selectedOption.dataset.price) : 0;
+    const imageUrl = selectedOption.dataset.image || '';
+    const name = selectedOption.dataset.name || '';
+    const quantity = parseInt(quantityInput.value) || 0;
+
+    // 1. Обновляем цифры внизу
+    priceDisplay.innerText = price;
+    totalDisplay.innerText = price * quantity;
+
+    // 2. Обновляем и показываем КАРТОЧКУ
+    previewCard.style.display = 'flex'; // Сначала делаем flex, чтобы анимация сработала
+    // Небольшая задержка, чтобы браузер отрисовал display:flex перед добавлением класса opacity
+    requestAnimationFrame(() => {
+        previewCard.classList.add('visible');
+    });
+
+    previewImg.src = imageUrl;
+    previewName.innerText = name;
+    previewPriceText.innerText = price;
+}
+
+// 4. СОЗДАНИЕ СДЕЛКИ (Этой функции не хватало!)
+async function createP2PTrade() {
+    const select = document.getElementById('p2p-case-select');
+    const quantity = parseInt(document.getElementById('p2p-quantity').value);
+    const caseId = select.value;
+
+    if (!caseId || quantity <= 0) return Telegram.WebApp.showAlert("Выберите кейс и количество!");
+
+    try {
+        // Отправляем запрос на создание
+        await makeApiRequest('/api/v1/p2p/create', 'POST', {
+            case_id: parseInt(caseId),
+            quantity: quantity
+        });
+        
+        Telegram.WebApp.showAlert("✅ Заявка создана! Ждите подтверждения админа.");
+        
+        // Сброс и обновление интерфейса
+        select.value = "";
+        document.getElementById('p2p-quantity').value = 1;
+        calculateP2P(); // Сбросит превью
+        
+        // Обновляем историю и кнопку
+        await loadP2PHistoryData(); 
+        checkActiveTradesBackground();
+
+    } catch (e) {
+        Telegram.WebApp.showAlert(e.message || "Ошибка создания заявки");
+    }
+}        
+
+// 5. ИСТОРИЯ ВНУТРИ МОДАЛКИ (Самое важное!)
+// --- ЛОГИКА ИСТОРИИ И СТАТУСОВ ---
+
+        function openHistoryModal() {
+            document.getElementById('history-modal-window').classList.add('active');
+            // Принудительно обновляем список при открытии
+            loadP2PHistoryData(); 
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal-window').classList.remove('active');
+        }
+
+        // Главная функция: Грузит данные, строит список И обновляет кнопку
+        async function loadP2PHistoryData() {
+            const listContainer = document.getElementById('full-history-list');
+            const smartBtn = document.getElementById('smart-history-btn');
+            const smartBtnText = document.getElementById('smart-btn-text');
+            const smartBtnIcon = smartBtn.querySelector('.btn-icon');
+
+            // Лоадер в списке (если открыто окно)
+            if (document.getElementById('history-modal-window').classList.contains('active')) {
+                listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#666;"><i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка...</div>';
+            }
+
+            try {
+                // Запрос к API
+                const trades = await makeApiRequest('/api/v1/p2p/my_trades', 'POST');
+
+                // Сортировка (Активные сверху)
+                const priority = { 'active': 1, 'review': 2, 'pending': 3, 'completed': 4, 'canceled': 5 };
+                trades.sort((a, b) => priority[a.status] - priority[b.status]);
+
+                // --- ЛОГИКА УМНОЙ КНОПКИ ---
+                // Ищем самую важную активную сделку
+                const activeTrade = trades.find(t => ['active', 'review', 'pending'].includes(t.status));
+
+                if (activeTrade) {
+                    smartBtn.classList.add('active-trade');
+                    
+                    if (activeTrade.status === 'active') {
+                        smartBtnText.innerText = `🔥 ТРЕБУЕТ ДЕЙСТВИЯ`;
+                        smartBtnIcon.innerHTML = '<i class="fa-solid fa-fire"></i>';
+                    } else if (activeTrade.status === 'review') {
+                        smartBtnText.innerText = `👀 ПРОВЕРКА АДМИНОМ`;
+                        smartBtnIcon.innerHTML = '<i class="fa-solid fa-hourglass-half"></i>';
+                    } else {
+                        smartBtnText.innerText = `⏳ ОЖИДАНИЕ ЗАЯВКИ`;
+                        smartBtnIcon.innerHTML = '<i class="fa-regular fa-clock"></i>';
+                    }
+                } else {
+                    // Если всё тихо
+                    smartBtn.classList.remove('active-trade');
+                    smartBtnText.innerText = 'История сделок';
+                    smartBtnIcon.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i>';
+                }
+
+                // --- РЕНДЕР СПИСКА (для нового окна) ---
+                if (!trades || trades.length === 0) {
+                    listContainer.innerHTML = '<div style="text-align:center; margin-top:50px; color:#666;">История пуста</div>';
+                    return;
+                }
+
+                listContainer.innerHTML = trades.map(t => {
+                    // Ищем имя кейса
+                    let caseName = t.case_name;
+                    if (!caseName && t.case_id) {
+                        const found = cachedP2PCases.find(c => c.id == t.case_id);
+                        if (found) caseName = found.case_name;
+                    }
+                    if (!caseName) caseName = "Кейс #" + t.case_id;
+
+                    // HTML для карточки
+                    let statusBadge = '';
+                    let actionHtml = '';
+                    
+                    // Стилизация статусов
+                    switch(t.status) {
+                        case 'pending':
+                            statusBadge = '<span style="color:#aaa; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px; font-size:10px;">⏳ Ожидание</span>';
+                            break;
+                        case 'active':
+                            statusBadge = '<span style="color:#000; background:#ffcc00; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:bold;">🔥 Действуй</span>';
+                            // Кнопка действия прямо в карточке
+                            actionHtml = `
+                                <div style="margin-top:10px; background:rgba(255,204,0,0.1); padding:10px; border-radius:8px; border:1px dashed #ffcc00;">
+                                    <div style="font-size:11px; color:#ccc; margin-bottom:8px;">
+                                        1. Отправь трейд: <a href="${t.trade_url_given}" target="_blank" style="color:#2AABEE; font-weight:bold;">Открыть Steam</a>
+                                    </div>
+                                    <button onclick="confirmP2PSent(${t.id})" class="action-btn" style="width:100%; height:36px; font-size:12px; background:#ffcc00; color:#000; border-radius:8px;">
+                                        ✅ Я передал скин
+                                    </button>
+                                </div>
+                            `;
+                            break;
+                        case 'review':
+                            statusBadge = '<span style="color:#fff; background:#2AABEE; padding:2px 8px; border-radius:4px; font-size:10px;">👀 Проверка</span>';
+                            break;
+                        case 'completed':
+                            statusBadge = '<span style="color:#fff; background:#34c759; padding:2px 8px; border-radius:4px; font-size:10px;">✅ Готово</span>';
+                            break;
+                        case 'canceled':
+                            statusBadge = '<span style="color:#fff; background:#ff3b30; padding:2px 8px; border-radius:4px; font-size:10px;">❌ Отмена</span>';
+                            break;
+                    }
+
+                    return `
+                        <div style="background:#2c2c2e; border-radius:14px; padding:12px; border:1px solid rgba(255,255,255,0.05);">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px;">
+                                <div>
+                                    <div style="font-weight:700; font-size:14px; color:#fff;">${caseName}</div>
+                                    <div style="font-size:11px; color:#8E8E93;">Кол-во: ${t.quantity} шт.</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="color:#ffcc00; font-weight:700; font-size:14px;">+${t.total_coins}</div>
+                                    <div style="font-size:10px; color:#666;">#${t.id}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                                ${statusBadge}
+                                <div style="font-size:10px; color:#666;">${new Date(t.created_at || Date.now()).toLocaleDateString()}</div>
+                            </div>
+                            ${actionHtml}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                listContainer.innerHTML = `<div style="color:red; text-align:center;">Ошибка: ${e.message}</div>`;
+            }
+        }
+        
+// 6. ОТКРЫТЬ БОТА
+function connectTelegramBot() {
+    Telegram.WebApp.openTelegramLink("https://t.me/quest_hatelavka_bot?start=start");
+}
+
+function confirmP2PSent(tradeId) {
+    Telegram.WebApp.showConfirm("Вы точно передали предмет в Steam?", async (ok) => {
+        if (!ok) return;
+
+        try {
+            await makeApiRequest('/api/v1/p2p/confirm_sent', 'POST', {
+                trade_id: parseInt(tradeId)
+            });
+            
+            Telegram.WebApp.showAlert("Отлично! Админ проверит поступление и начислит монеты.");
+            
+            // ВАЖНО: Тут тоже меняем на новое название:
+            await loadP2PHistoryData();
+            checkActiveTradesBackground();
+
+        } catch (e) {
+            Telegram.WebApp.showAlert(e.message || "Ошибка подтверждения");
+        }
+    });
+}
+
+// 7. ФОНОВАЯ ПРОВЕРКА (ДЛЯ ГЛАВНОЙ КНОПКИ СНАРУЖИ)
+async function checkActiveTradesBackground() {
+    try {
+        const trades = await makeApiRequest('/api/v1/p2p/my_trades', 'POST');
+        
+        const activeTrades = trades.filter(t => ['pending', 'active', 'review'].includes(t.status));
+        const priority = { 'active': 1, 'review': 2, 'pending': 3 };
+        activeTrades.sort((a, b) => priority[a.status] - priority[b.status]);
+
+        const btn = document.getElementById('open-p2p-modal-btn'); 
+        if (!btn) return;
+
+        // Сохраняем результат в память, чтобы в следующий раз показать его мгновенно
+        if (activeTrades.length > 0) {
+            localStorage.setItem('p2p_last_state', JSON.stringify(activeTrades[0]));
+        } else {
+            localStorage.removeItem('p2p_last_state');
+        }
+
+        // Применяем визуализацию (вынесли в отдельную функцию, чтобы не дублировать код)
+        renderP2PButton(activeTrades.length > 0 ? activeTrades[0] : null);
+
+    } catch(e) {
+        console.error("Ошибка проверки трейдов:", e);
+    }
+}
+// Вспомогательная функция отрисовки кнопки
+function renderP2PButton(tradeData) {
+    const btn = document.getElementById('open-p2p-modal-btn'); 
+    if (!btn) return;
+
+    const titleEl = btn.querySelector('.p2p-title');
+    const subEl = btn.querySelector('.p2p-subtitle');
+    const iconBox = btn.querySelector('.p2p-icon-box');
+
+    if (tradeData) {
+        btn.classList.add('has-active-trade');
+        
+        if (tradeData.status === 'active') {
+            titleEl.innerText = "ТРЕБУЕТСЯ ДЕЙСТВИЕ";
+            subEl.innerText = "Передайте скин в Steam";
+            iconBox.innerHTML = '<i class="fa-solid fa-fire"></i>';
+        } else if (tradeData.status === 'review') {
+            titleEl.innerText = "ПРОВЕРКА АДМИНОМ";
+            subEl.innerText = "Ожидайте начисления монет";
+            iconBox.innerHTML = '<i class="fa-solid fa-hourglass-half"></i>';
+        } else {
+            titleEl.innerText = "ЗАЯВКА СОЗДАНА";
+            subEl.innerText = "Ожидание принятия...";
+            iconBox.innerHTML = '<i class="fa-regular fa-clock"></i>';
+        }
+    } else {
+        btn.classList.remove('has-active-trade');
+        titleEl.innerText = "Trade-In";
+        subEl.innerText = "Обмен кейсов на 🟡";
+        iconBox.innerHTML = '<i class="fa-solid fa-arrow-right-arrow-left"></i>';
+    }
+}
+
+// МГНОВЕННАЯ ЗАГРУЗКА ИЗ ПАМЯТИ (Убирает мигание)
+function preloadP2PState() {
+    try {
+        const cached = localStorage.getItem('p2p_last_state');
+        if (cached) {
+            const trade = JSON.parse(cached);
+            renderP2PButton(trade);
+        }
+    } catch (e) {
+        console.log('Cache error', e);
+    }
+}
+
+        // --- ОПТИМИЗИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПАРТНЕРОВ (CSS ANIMATION) ---
+        function initPartnersScroll() {
+            const track = document.getElementById('partners-track');
+            if (!track || track.children.length === 0) return;
+
+            // Клонируем элементы ОДИН раз для бесшовной CSS анимации
+            const items = Array.from(track.children);
+            items.forEach(item => {
+                const clone = item.cloneNode(true);
+                track.appendChild(clone);
+            });
+            // Еще раз клонируем для широких экранов, если нужно
+            if (window.innerWidth > 500) {
+                 items.forEach(item => {
+                    const clone = item.cloneNode(true);
+                    track.appendChild(clone);
+                });
+            }
+        }
+        // --- ОБНОВЛЕНИЕ БАЛАНСА ---
+        // Добавили аргумент updateUI (по умолчанию true)
+        // Если false -> запрос идет, сервер обновляется, но цифры на экране не скачут
+        // --- ОБНОВЛЕНИЕ БАЛАНСА ---
+        let isBalanceLoading = false;
+
+        function checkBalance(updateUI = true) {
+            if (isBalanceLoading) return Promise.resolve();
+            
+            isBalanceLoading = true;
+            
+            // Крутим обе иконки
+            const iconCoins = document.getElementById('refresh-icon');
+            const iconTickets = document.getElementById('refresh-icon-tickets'); // Добавили иконку билетов
+            if (iconCoins) iconCoins.classList.add('spinning');
+            if (iconTickets) iconTickets.classList.add('spinning');
+
+            return fetch('/api/v1/shop/smart_balance', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ initData: Telegram.WebApp.initData })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (updateUI) {
+                    // 1. Обновляем монеты
+                    let coins = data.balance || 0; 
+                    let displayBalance = (coins / 100).toFixed(0); 
+                    
+                    const balanceEl = document.getElementById('user-balance');
+                    if (balanceEl) {
+                        balanceEl.style.opacity = '0.5';
+                        setTimeout(() => {
+                            balanceEl.textContent = displayBalance;
+                            balanceEl.style.opacity = '1';
+                        }, 150);
+                    }
+
+                    // 2. ОБНОВЛЯЕМ БИЛЕТЫ (Этого блока у тебя не было!)
+                    let tickets = data.tickets || 0; // Берем билеты из ответа сервера
+                    const ticketsEl = document.getElementById('user-tickets');
+                    if (ticketsEl) {
+                        ticketsEl.style.opacity = '0.5';
+                        setTimeout(() => {
+                            ticketsEl.textContent = tickets;
+                            ticketsEl.style.opacity = '1';
+                        }, 150);
+                    }
+                }
+            })
+            .catch(err => {
+                console.warn("Ошибка обновления баланса:", err);
+            })
+            .finally(() => {
+                // Останавливаем анимацию
+                setTimeout(() => {
+                    isBalanceLoading = false;
+                    if (iconCoins) iconCoins.classList.remove('spinning');
+                    if (iconTickets) iconTickets.classList.remove('spinning');
+                }, 500);
+            });
+        }
+
+        async function initShop() {
+    // 1. Сначала статика
+    updateNavState();
+    initPartnersScroll();
+    preloadP2PState(); // [NEW] Загружаем состояние кнопки из кэша
+    
+    // 2. Создаем массив промисов (задач), которые должны выполниться
+    const tasks = [];
+
+    // Задача 1: Загрузка товаров
+    tasks.push(loadCategory(0)); 
+
+    // Задача 2: Загрузка баланса
+    tasks.push(checkBalance(true));
+
+    // Задача 3: Статус P2P трейдов
+    tasks.push(checkActiveTradesBackground());
+
+    // Задача 4: Профиль пользователя (трейд-ссылка и админка)
+    const profileTask = fetch('/api/v1/user/me', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ initData: Telegram.WebApp.initData })
+    }).then(r => r.json()).then(userData => {
+        if (userData && userData.trade_link) hasTradeLink = true;
+        if (userData && userData.is_admin) {
+            document.getElementById('admin-fab').style.display = 'flex';
+        }
+    }).catch(e => console.log("Profile load error", e));
+    
+    tasks.push(profileTask);
+
+    // 3. Ждем выполнения ВСЕХ задач (Promise.allSettled ждет даже если где-то ошибка)
+    await Promise.allSettled(tasks);
+
+    // 4. Когда всё загрузилось — плавно убираем лоадер
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.add('hidden');
+    }
+}
+
+        // --- ЛОГИКА АДМИН МЕНЮ ---
+        
+        function toggleAdminMenu() {
+            const toggleBtn = document.querySelector('.admin-fab-btn.toggle');
+            const menuItems = document.getElementById('admin-menu-items');
+            
+            toggleBtn.classList.toggle('active');
+            menuItems.classList.toggle('show');
+            
+            // Меняем иконку
+            const icon = toggleBtn.querySelector('i');
+            if (toggleBtn.classList.contains('active')) {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-xmark');
+            } else {
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-chevron-up');
+            }
+        }
+
+        // Открытие модалки
+        function openPassModal() {
+            document.getElementById('password-modal').classList.add('active');
+            document.getElementById('admin-pass-input').value = '';
+            document.getElementById('admin-pass-input').focus();
+        }
+
+        // Закрытие модалки
+        function closePassModal() {
+            document.getElementById('password-modal').classList.remove('active');
+        }
+
+        // Отправка запроса на сброс
+        function submitResetCache() {
+            const password = document.getElementById('admin-pass-input').value;
+            if (!password) return;
+
+            closePassModal(); // Закрываем окно
+            toggleAdminMenu(); // Сворачиваем меню
+
+            // Показываем лоадер
+            const loader = document.getElementById('purchase-loader');
+            if (loader) {
+                loader.querySelector('.loader-text').innerText = "Очистка кэша...";
+                loader.classList.add('active');
+            }
+
+            fetch('/api/v1/admin/shop/reset_cache', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    initData: Telegram.WebApp.initData,
+                    password: password 
+                })
+            })
+            .then(async r => {
+                const data = await r.json();
+                if (r.status === 200) {
+                    Telegram.WebApp.showAlert("✅ " + data.message);
+                    itemsCache = {}; // Чистим локальный JS кэш
+                    loadCategory(currentCategoryId); // Перезагружаем страницу
+                } else {
+                    Telegram.WebApp.showAlert("⛔ " + (data.detail || "Ошибка"));
+                }
+            })
+            .catch(err => {
+                Telegram.WebApp.showAlert("Ошибка соединения.");
+            })
+            .finally(() => {
+                if (loader) {
+                    loader.classList.remove('active');
+                    setTimeout(() => { loader.querySelector('.loader-text').innerText = "Оформляем покупку..."; }, 200);
+                }
+            });
+        }
+        
+        async function loadCategory(catId) {
+            const container = document.getElementById('shop-grid');
+            currentCategoryId = catId;
+            updateNavState();
+
+            // Если есть кэш - рендерим мгновенно
+            if (itemsCache[catId]) {
+                renderItems(itemsCache[catId]);
+                return;
+            }
+
+            renderSkeleton();
+
+            try {
+                const response = await fetch('/api/v1/shop/goods', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        initData: Telegram.WebApp.initData,
+                        category_id: catId 
+                    })
+                });
+                const items = await response.json();
+                itemsCache[catId] = items;
+                renderItems(items);
+            } catch (e) {
+                container.innerHTML = '<div class="empty-msg">Ошибка загрузки. Проверьте интернет.</div>';
+            }
+        }
+
+        function renderSkeleton() {
+            const container = document.getElementById('shop-grid');
+            // Генерируем HTML строку сразу, быстрее чем createElement в цикле
+            container.innerHTML = Array(6).fill('<div class="shop-item skeleton"></div>').join('');
+        }
+
+        function formatItemName(name) {
+            const splitIndex = name.indexOf('(');
+            if (splitIndex !== -1) {
+                const mainPart = name.substring(0, splitIndex).trim();
+                const subPart = name.substring(splitIndex).trim();
+                return `${escapeHtml(mainPart)}<span class="item-subtitle">${escapeHtml(subPart)}</span>`;
+            }
+            return escapeHtml(name);
+        }
+
+        // --- ОПТИМИЗИРОВАННЫЙ РЕНДЕР (DocumentFragment) ---
+        function renderItems(items) {
+            const container = document.getElementById('shop-grid');
+            container.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="empty-msg">В этой категории пока пусто.</div>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'shop-item';
+                
+                let buttonHtml = '';
+                let stockText = '';
+                let priceText = '';
+                
+                // ОБЪЯВЛЯЕМ ПЕРЕМЕННЫЕ ОДИН РАЗ
+                let clickAction = '';
+                let caseOverlayHtml = '';
+
+                // --- ДЕТЕКТОР КЕЙСА ---
+                const upperName = (item.name || "").toUpperCase();
+                const isCase = upperName.includes("КЕЙС |") || upperName.includes("CASE |");
+                
+                const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeImg = item.image_url || "";
+
+                // --- ЛОГИКА КЛИКА ПО КАРТИНКЕ ---
+                if (item.is_folder) {
+                    clickAction = `openFolder(${item.id})`;
+                } else if (isCase) {
+    // Если кейс — клик открывает содержимое + добавляем плашку
+    // ПЕРЕДАЕМ safeName ВТОРЫМ АРГУМЕНТОМ 👇
+    clickAction = `openCaseContents(event, '${safeName}')`; 
+    caseOverlayHtml = `
+        <div class="case-info-overlay">
+            <span>Посмотреть дроп</span>
+        </div>
+    `;
+                } else {
+                    // Для обычного товара — стандартный просмотр фото
+                    clickAction = `openImageModal('${safeImg}')`;
+                }
+
+                // --- ЛОГИКА ТЕКСТОВ И КНОПОК ---
+                if (item.is_folder) {
+                    stockText = ''; 
+                    buttonHtml = `<button class="action-btn btn-folder" onclick="openFolder(${item.id})">Открыть <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:3px;"></i></button>`;
+                } else {
+                    let isOutOfStock = false;
+                    
+                    if (isCase) {
+                        stockText = ''; 
+                        priceText = ''; // Убираем классическое отображение цены для кейсов
+                    } else {
+                        priceText = `<div class="item-price">${item.price} 🟡️</div>`;
+                        if (item.count === null) {
+                            stockText = `<div class="item-stock">∞ шт.</div>`;
+                        } else if (item.count === 0) {
+                            isOutOfStock = true;
+                            stockText = `<div class="item-stock out">0 шт.</div>`;
+                        } else {
+                            stockText = `<div class="item-stock">${item.count} шт.</div>`;
+                        }
+                    }
+
+                    if (isOutOfStock) {
+                        buttonHtml = `<button class="action-btn btn-disabled" disabled>Раскуплено</button>`;
+                    } else if (isCase) {
+                        // Делаем контейнер с двумя кнопками (цена внутри кнопок, билеты х2)
+                        buttonHtml = `
+                            <div class="case-buttons-container">
+                                <button class="action-btn btn-buy" onclick="openCase(${item.id}, ${item.price}, '${safeName}', '${safeImg}', 'coins')">
+                                    Открыть за ${item.price} 🟡
+                                </button>
+                                <button class="action-btn btn-buy-tickets" onclick="openCase(${item.id}, ${item.price * 2}, '${safeName}', '${safeImg}', 'tickets')">
+                                    Открыть за ${item.price * 2} 🎟️
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        buttonHtml = `<button class="action-btn btn-buy" onclick="buyItem(${item.id}, ${item.price}, '${safeName}', '${safeImg}')">Купить</button>`;
+                    }
+                }
+
+                const displayNameHtml = formatItemName(item.name);
+                const imgUrl = item.image_url || 'https://placehold.co/150?text=No+Image';
+
+               // Собираем финальный HTML (Уникальный дизайн для кейсов)
+                if (isCase) {
+                    // Очищаем название от "Кейс |" или "Case |"
+                    let cleanName = item.name.replace(/^(Кейс|Case)\s*\|\s*/i, '');
+                    
+                    const caseTitleHtml = formatItemName(cleanName);
+
+                    el.classList.add('case-card');
+
+                    // Делаем фон всей карточки прозрачным
+                    el.style.background = 'transparent'; 
+                    el.style.boxShadow = 'none';
+                    el.style.border = 'none';
+                    
+                    el.innerHTML = `
+                        <div class="item-title case-top-title">${caseTitleHtml}</div>
+                        
+                        <div class="item-image-wrapper case-img-wrap" onclick="${clickAction}" style="background: transparent;">
+                            ${caseOverlayHtml}
+                            <img src="${imgUrl}" 
+                                 class="item-image case-zoom" decoding="async" 
+                                 loading="lazy" 
+                                 onload="this.classList.add('loaded')" 
+                                 alt="${escapeHtml(item.name)}">
+                        </div>
+                        
+                        <div class="item-info" style="padding: 0 10px 10px 10px; flex-grow: 0;">
+                            ${buttonHtml}
+                        </div>
+                    `;
+                } else {
+                    // Дизайн Обычного товара: Картинка -> Заголовок -> Цена -> Кнопка
+                    el.innerHTML = `
+                        <div class="item-image-wrapper" onclick="${clickAction}">
+                            <img src="${imgUrl}" 
+                                 class="item-image" decoding="async" 
+                                 loading="lazy" 
+                                 onload="this.classList.add('loaded')" 
+                                 alt="${escapeHtml(item.name)}">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-title">${displayNameHtml}</div>
+                            <div class="item-meta">
+                                ${stockText}
+                                ${priceText}
+                            </div>
+                            ${buttonHtml}
+                        </div>
+                    `;
+                }
+                
+                fragment.appendChild(el);
+            });
+            
+            container.appendChild(fragment);
+
+            // --- ЛОГИКА АВТО-УМЕНЬШЕНИЯ ШРИФТА ДЛЯ ЗАГОЛОВКОВ КЕЙСОВ ---
+            container.querySelectorAll('.case-top-title').forEach(title => {
+                let fontSize = 13; // Стартовый размер из CSS
+                // Пока текст шире контейнера, уменьшаем шрифт (минимум до 7px)
+                while (title.scrollWidth > title.offsetWidth && fontSize > 7) {
+                    fontSize -= 0.5;
+                    title.style.fontSize = fontSize + 'px';
+                }
+            });
+        }
+        
+        // --- [NEW] ФУНКЦИЯ ОТКРЫТИЯ КЕЙСА (ЮВЕЛИРНОЕ ДОБАВЛЕНИЕ) ---
+        // Использует существующий API списания, но меняет визуальный результат
+       // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ КЕЙСА ---
+        window.openCase = async function(id, price, name, imageUrl, currency = 'coins') {
+            const currencyIcon = currency === 'coins' ? '🟡' : '🎟️';
+            
+            // 1. Подтверждение
+            Telegram.WebApp.showConfirm(`Открыть "${name}" за ${price} ${currencyIcon}?`, async (ok) => {
+                if (!ok) return;
+
+                const loader = document.getElementById('purchase-loader');
+                if (loader) loader.classList.add('active');
+
+                try {
+                    // 2. СНАЧАЛА ГРУЗИМ СОДЕРЖИМОЕ КЕЙСА (ДЛЯ КРАСИВОЙ РУЛЕТКИ)
+                    // Нам нужно знать, какие картинки показывать в ленте
+                    // Используем тот же эндпоинт, что и для просмотра содержимого
+                    const contentsResp = await makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(name)}`, 'GET');
+                    
+                    // Если кейс пустой, создадим заглушку, чтобы не сломаться
+                    const possibleItems = (contentsResp && contentsResp.length > 0) ? contentsResp : [{
+                        name: "Mystery Item",
+                        image_url: "https://placehold.co/100?text=?",
+                        rarity: "common"
+                    }];
+
+                    // 3. ТЕПЕРЬ ПОКУПАЕМ И ПОЛУЧАЕМ ПОБЕДИТЕЛЯ
+                    const buyResp = await fetch('/api/v1/shop/buy', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            initData: Telegram.WebApp.initData,
+                            item_id: id,
+                            price: price,
+                            title: name,
+                            image_url: imageUrl,
+                            currency: currency
+                        })
+                    });
+
+                    const resData = await buyResp.json();
+
+                    if (buyResp.status !== 200) {
+                        Telegram.WebApp.showAlert(resData.detail || "Недостаточно средств");
+                    } else {
+                        // 4. УСПЕХ! ГОТОВИМ РУЛЕТКУ
+                        let winner = resData.winner;
+                        
+                        // Фолбэк, если сервер не прислал победителя
+                        if (!winner) {
+                            winner = { name: "Error", image_url: imageUrl, rarity: 'common' };
+                        }
+
+                        // ГЕНЕРИРУЕМ ЛЕНТУ ИЗ РЕАЛЬНЫХ ПРЕДМЕТОВ КЕЙСА
+                        let strip = [];
+                        for(let i=0; i<80; i++) {
+                            // Берем случайный предмет из списка содержимого
+                            const randomItem = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+                            strip.push(randomItem);
+                        }
+                        
+                        // ВАЖНО: На 60-е место (финиш) ставим ПОБЕДИТЕЛЯ
+                        strip[60] = winner; 
+                        
+                        // Чтобы было честно, заменим и соседние (58-62) на реальные рандомные, 
+                        // чтобы не палить победителя заранее (хотя он уже определен)
+                        
+                        // Запускаем
+                        launchRoulette(strip, winner, resData.messages || [], resData.lacky, name);
+                        
+                        // Обновляем баланс
+                        checkBalance(true);
+                        delete itemsCache[currentCategoryId];
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    Telegram.WebApp.showAlert("Ошибка соединения или сервера");
+                } finally {
+                    if (loader) loader.classList.remove('active');
+                }
+            });
+        };
+        
+
+        // --- [NEW] ЛОГИКА РУЛЕТКИ (ЮВЕЛИРНОЕ ДОБАВЛЕНИЕ) ---
+    // --- [NEW] ФУНКЦИЯ ЗАПУСКА РУЛЕТКИ (С РАЗДЕЛЕННЫМ ИНТЕРФЕЙСОМ) ---
+function launchRoulette(items, winner, extraMessages, lacky, rawCaseName) {
+    const modal = document.getElementById('r-modal');
+    const area = document.getElementById('r-area');
+    const track = document.getElementById('r-track');
+    const winScreen = document.getElementById('r-win');
+    
+    // --- НОВЫЕ СЕЛЕКТОРЫ ДЛЯ ВЕРХА И НИЗА ---
+    const topHeader = document.getElementById('r-top-header');
+    const bottomProgress = document.getElementById('r-bottom-progress');
+    const caseNameEl = document.getElementById('r-case-name');
+    // Ищем точки именно внутри нижнего контейнера
+    const dots = document.querySelectorAll('#r-bottom-progress .r-progress-dot');
+
+    // 1. Настраиваем заголовок (очищаем имя)
+    let cleanName = (rawCaseName || "").replace(/^(Кейс|Case|Cays)\s*\|\s*/i, '').trim();
+    caseNameEl.innerText = cleanName;
+    
+    // 2. Настраиваем прогресс-бар
+    // 2. Настраиваем прогресс-бар и текст
+    let currentLacky = lacky || 1; 
+    const progressTextEl = document.getElementById('r-progress-text'); // Нашли наш текст
+
+    dots.forEach((dot, index) => {
+        dot.className = 'r-progress-dot'; 
+
+        if (index < currentLacky) {
+            dot.classList.add('active');
+
+            if (index === 4 && currentLacky === 5) {
+                 dot.classList.add('guaranteed');
+            }
+        }
+    });
+
+   // --- ЛОГИКА ТЕКСТА (С ПРАВИЛЬНЫМ СКЛОНЕНИЕМ) ---
+    const remaining = 5 - currentLacky;
+    
+    if (currentLacky === 5) {
+        // Если это финальная крутка
+        progressTextEl.innerHTML = '<span style="color: #ffcc00; font-size: 11px; text-shadow: 0 0 10px rgba(255,204,0,0.5);">🔥 ГАРАНТИРОВАННЫЙ ОКУП АКТИВЕН 🔥</span>';
+    } else {
+        // Склоняем слова "остаться" и "кейс"
+        let word = "кейсов";
+        let verb = "Осталось";
+
+        if (remaining === 1) {
+            word = "кейс";
+            verb = "Остался";
+        } else if (remaining >= 2 && remaining <= 4) {
+            word = "кейса";
+            verb = "Осталось";
+        }
+        
+        progressTextEl.innerHTML = `${verb} <span style="color: #fff; font-weight: 800;">${remaining} ${word}</span> до гаранта`;
+    }
+    // ------------------------------------------
+
+    // 3. Показываем интерфейс
+    topHeader.style.display = 'flex';
+    bottomProgress.style.display = 'flex';
+    // ----------------------------------------
+
+    // Сброс состояния рулетки перед запуском
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
+    track.innerHTML = '';
+    
+    area.style.display = 'block';
+    winScreen.style.display = 'none';
+    winScreen.style.flexDirection = 'column'; 
+    winScreen.style.alignItems = 'center';
+    
+    modal.style.display = 'flex';
+
+    // Константы анимации
+    const CARD_W = 148;
+    const WINNER_IDX = 80;    // Индекс карточки-победителя на ленте
+    const ANIMATION_TIME = 11000; // 11 секунд прокрутки
+
+    // 2. Генерируем длинную ленту для прокрутки
+    // Заполняем ленту случайными предметами из тех, что могут выпасть в этом кейсе
+    let fullList = [];
+    while (fullList.length < WINNER_IDX + 20) {
+        // Перемешиваем массив предметов для разнообразия на ленте
+        const shuffled = [...items].sort(() => 0.5 - Math.random());
+        fullList = fullList.concat(shuffled);
+    }
+    
+    // 3. Жестко ставим реального победителя на нужную позицию
+    fullList[WINNER_IDX] = winner; 
+
+    // 4. Рендер карточек на ленту
+    track.innerHTML = fullList.map(item => {
+        let rClass = 'r-common'; 
+        const r = (item.rarity || 'common').toLowerCase();
+        
+        if (r.includes('blue') || r.includes('rare')) rClass = 'r-blue';
+        else if (r.includes('purple') || r.includes('mythical')) rClass = 'r-purple';
+        else if (r.includes('pink') || r.includes('legendary')) rClass = 'r-pink';
+        else if (r.includes('red') || r.includes('ancient')) rClass = 'r-red';
+        else if (r.includes('gold')) rClass = 'r-gold';
+
+        const img = item.image_url || 'https://placehold.co/100?text=Item';
+        // Убираем техническую часть названия для ленты
+        const displayName = item.name.split('|').pop().trim();
+        
+        return `
+            <div class="r-card ${rClass}">
+                <img src="${img}">
+                <div class="r-card-name">${displayName}</div>
+            </div>
+        `;
+    }).join('');
+
+    // 5. Запуск анимации прокрутки
+    setTimeout(() => {
+        const screenCenter = window.innerWidth / 2;
+        const winnerCenter = (WINNER_IDX * CARD_W) + (CARD_W / 2);
+        
+        // Рандомный сдвиг внутри карточки, чтобы не останавливалось всегда строго по центру
+        const randomOffset = (Math.random() * 100) - 50; 
+
+        const finalPosition = -(winnerCenter - screenCenter + randomOffset);
+
+        // Настройка физики (плавное замедление к концу)
+        track.style.transition = `transform ${ANIMATION_TIME}ms cubic-bezier(0.15, 0, 0.05, 1)`; 
+        track.style.transform = `translateX(${finalPosition}px)`;
+        
+        // 6. Имитация звука трещотки через Haptic Feedback
+        let tickInterval = 50; 
+        let timer = 0;
+        
+        const ticker = () => {
+            if (timer >= ANIMATION_TIME - 300) return; 
+            
+            // Легкая вибрация при прохождении каждой карточки
+            haptic.selectionChanged();
+            
+            timer += tickInterval;
+            // Замедляем частоту вибрации вместе с лентой
+            if (timer < ANIMATION_TIME * 0.6) {
+                tickInterval = 50; 
+            } else if (timer < ANIMATION_TIME * 0.8) {
+                tickInterval = 120; 
+            } else {
+                tickInterval += 50; 
+            }
+            
+            setTimeout(ticker, tickInterval);
+        };
+        ticker();
+
+        // 7. Финал: Показ экрана победы
+        setTimeout(() => {
+            // Сильный удар в конце
+            haptic.impactOccurred('heavy'); 
+
+            setTimeout(() => {
+                haptic.notificationOccurred('success');
+                
+                area.style.display = 'none'; // Убираем рулетку
+                
+                // Данные для кнопок (ID истории и цена продажи)
+                const itemId = winner.id; 
+                const ticketPrice = winner.price || 0; 
+                const cleanWinnerName = winner.name;
+
+                // Генерация экрана победы
+                winScreen.innerHTML = `
+                    <h2 style="color:#ffcc00; margin-bottom:10px; text-transform:uppercase; text-shadow:0 0 20px rgba(255,215,0,0.5);">ВЫПАЛО ИЗ КЕЙСА!</h2>
+                    
+                    <img src="${winner.image_url}" class="win-img">
+                    
+                    <h3 style="color:#fff; margin-top:15px; margin-bottom: 20px; font-weight: 700; max-width: 90%; line-height: 1.4; text-align: center;">
+                        ${cleanWinnerName}
+                    </h3>
+                    
+                    <button class="action-btn btn-buy" style="width: 220px; height: 48px; font-size: 14px;" 
+                        onclick="claimItem(${itemId})">
+                        ЗАБРАТЬ
+                    </button>
+
+                    <button class="action-btn btn-sell-tickets" style="width: 220px; height: 44px; font-size: 13px;" 
+                        onclick="sellForTickets(${itemId}, ${ticketPrice})">
+                        ПРОДАТЬ ЗА ${ticketPrice} <i class="fa-solid fa-ticket ticket-icon"></i>
+                    </button>
+
+                    <div class="win-actions-row">
+                        <button class="action-btn btn-secondary-action" onclick="goToProfile()">
+                            <i class="fa-solid fa-user" style="margin-right:4px;"></i> Профиль
+                        </button>
+                        <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                        <button class="action-btn btn-secondary-action" onclick="closeRoulette()">
+                            <i class="fa-solid fa-xmark" style="margin-right:4px;"></i> Закрыть
+                        </button>
+                    </div>
+                `;
+                
+                winScreen.style.display = 'flex'; 
+            }, 800);
+
+        }, ANIMATION_TIME); 
+    }, 100);
+}
+        
+        // Закрытие рулетки
+        function closeRoulette() {
+    document.getElementById('r-modal').style.display = 'none';
+    // Скрываем верхний и нижний блоки
+    document.getElementById('r-top-header').style.display = 'none';
+    document.getElementById('r-bottom-progress').style.display = 'none';
+    
+    checkBalance(true);
+    loadCategory(currentCategoryId); 
+}
+        function openImageModal(imageUrl) {
+            const modal = document.getElementById('image-modal');
+            const img = document.getElementById('full-image');
+            img.src = imageUrl;
+            modal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal(event) {
+            if (event.target.id === 'image-modal') {
+                closeImageModalForce();
+            }
+        }
+
+        function closeImageModalForce() {
+            const modal = document.getElementById('image-modal');
+            modal.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function openPartnerLink(url) {
+            Telegram.WebApp.openLink(url);
+        }
+
+        function copyCode(event, code) {
+            event.stopPropagation(); 
+            event.preventDefault();  
+            
+            navigator.clipboard.writeText(code).then(() => {
+                Telegram.WebApp.showAlert('Промокод скопирован!');
+            }).catch(err => {
+                const textArea = document.createElement("textarea");
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("Copy");
+                textArea.remove();
+                Telegram.WebApp.showAlert('Промокод скопирован!');
+            });
+        }
+
+        window.openFolder = function(id) {
+            categoryStack.push(currentCategoryId);
+            loadCategory(id);
+        }
+
+        window.goBack = function() {
+            // 1. Приоритет: Если мы внутри папки - выходим из папки
+            if (categoryStack.length > 0) {
+                const prevId = categoryStack.pop();
+                loadCategory(prevId);
+            } 
+            // 2. Если папок нет - проверяем историю браузера (как в профиле)
+            else if (window.history.length > 1 && document.referrer) {
+                window.history.back();
+            } 
+            // 3. Если истории нет - идем в меню
+            else {
+                window.location.href = "/menu"; 
+            }
+        }
+
+        // Обработчик нажатия на HTML кнопку (синюю)
+        document.getElementById('header-back-btn').addEventListener('click', (e) => {
+            e.preventDefault(); // Чтобы не кидало вверх страницы
+            goBack();
+        });
+
+        // Нативная кнопка Telegram тоже вызывает эту функцию
+        Telegram.WebApp.BackButton.onClick(() => {
+            goBack();
+        });
+
+        function updateNavState() {
+            const titleEl = document.getElementById('nav-title');
+            if (categoryStack.length === 0) {
+                titleEl.textContent = "В меню";
+                Telegram.WebApp.BackButton.hide();
+            } else {
+                titleEl.textContent = "Назад";
+                Telegram.WebApp.BackButton.show();
+            }
+        }
+
+// ========================================================
+        // 🔒 СТРОГАЯ ПРОВЕРКА ТРЕЙД-ССЫЛКИ ПЕРЕД ПОКУПКОЙ
+        // ========================================================
+        async function validateUserTradeLink() {
+            const loader = document.getElementById('purchase-loader');
+            if (loader) {
+                loader.querySelector('.loader-text').innerText = "Проверка профиля...";
+                loader.classList.add('active');
+            }
+            
+            try {
+                const userCheckResp = await fetch('/api/v1/user/me', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ initData: Telegram.WebApp.initData })
+                });
+                const userData = await userCheckResp.json();
+                const tLink = userData?.trade_link || "";
+
+                // Строгая проверка: правильный домен + есть partner + есть token
+                const isValidLink = tLink.startsWith("https://steamcommunity.com/tradeoffer/new") && 
+                                    tLink.includes("partner=") && 
+                                    tLink.includes("token=");
+
+                if (!isValidLink) {
+                    if (loader) loader.classList.remove('active');
+                    Telegram.WebApp.showPopup({
+                        title: '❌ Нет трейд-ссылки',
+                        message: 'Для получения скинов нужна правильная Steam Trade ссылка (с partner и token).\n\nЗайдите в Профиль и привяжите её!',
+                        buttons: [
+                            { id: 'go_profile', type: 'default', text: 'Перейти в Профиль' }, 
+                            { type: 'cancel', text: 'Закрыть' }
+                        ]
+                    }, (buttonId) => {
+                        if (buttonId === 'go_profile') {
+                            window.location.href = '/profile';
+                        }
+                    });
+                    return false; 
+                }
+                
+                if (loader) loader.classList.remove('active');
+                return true; 
+            } catch(e) {
+                if (loader) loader.classList.remove('active');
+                Telegram.WebApp.showAlert("Ошибка проверки. Попробуйте еще раз.");
+                return false;
+            }
+        }
+
+        window.buyItem = async function(id, price, name, imageUrl) {
+            // 1. ЖЕСТКАЯ ПРОВЕРКА ССЫЛКИ ДО НАЖАТИЯ
+            const isLinkValid = await validateUserTradeLink();
+            if (!isLinkValid) return; // Останавливаем, если ссылки нет
+
+            // 2. Сначала спрашиваем подтверждение
+            Telegram.WebApp.showConfirm(`Купить "${name}" за ${price} звезд?`, async (ok) => {
+                if (!ok) return;
+
+                // 3. ВКЛЮЧАЕМ БЛОКИРОВКУ ЭКРАНА (сразу, чтобы не тыкали)
+                const loader = document.getElementById('purchase-loader');
+                if (loader) {
+                    loader.querySelector('.loader-text').innerText = "Оформляем покупку...";
+                    loader.classList.add('active');
+                }
+
+                try {
+                    // 4. ЕСЛИ ССЫЛКА ЕСТЬ — ДЕЛАЕМ ПОКУПКУ
+                    const buyResp = await fetch('/api/v1/shop/buy', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            initData: Telegram.WebApp.initData,
+                            item_id: id,
+                            price: price,
+                            title: name,
+                            image_url: imageUrl
+                        })
+                    });
+
+                    const resData = await buyResp.json();
+
+                    if (buyResp.status !== 200) {
+                        Telegram.WebApp.showAlert(resData.detail || "Ошибка при покупке");
+                    } else {
+                        Telegram.WebApp.showAlert("✅ Покупка успешна! Товар выдан.");
+                        
+                        // Чистим кэш и обновляем баланс (визуально)
+                        delete itemsCache[currentCategoryId];
+                        let currentBal = parseFloat(document.getElementById('user-balance').textContent);
+                        if (!isNaN(currentBal)) {
+                            document.getElementById('user-balance').textContent = (currentBal - price).toFixed(0);
+                        }
+                        // Перезагружаем категорию
+                        initShop(); 
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    Telegram.WebApp.showAlert("Ошибка соединения или сервера");
+                } finally {
+                    // 5. ВЫКЛЮЧАЕМ ЛОАДЕР (в любом случае - успех или ошибка)
+                    if (loader) loader.classList.remove('active');
+                }
+            });
+        }
+
+        // --- [NEW] ФУНКЦИИ ДЛЯ ЭКРАНА ПОБЕДЫ ---
+
+        // ========================================================
+        // 🎁 ОБНОВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ КЕЙСА
+        // ========================================================
+        window.openCase = async function(id, price, name, imageUrl, currency = 'coins') {
+            const currencyIcon = currency === 'coins' ? '🟡' : '🎟️';
+            
+            // 1. ЖЕСТКАЯ ПРОВЕРКА ССЫЛКИ ДО СПИСАНИЯ
+            const isLinkValid = await validateUserTradeLink();
+            if (!isLinkValid) return; // Останавливаем, если ссылки нет или она кривая
+
+            // 2. Подтверждение
+            Telegram.WebApp.showConfirm(`Открыть "${name}" за ${price} ${currencyIcon}?`, async (ok) => {
+                if (!ok) return;
+
+                const loader = document.getElementById('purchase-loader');
+                if (loader) {
+                    loader.querySelector('.loader-text').innerText = "Крутим барабан...";
+                    loader.classList.add('active');
+                }
+
+                try {
+                    // 2. СНАЧАЛА ГРУЗИМ СОДЕРЖИМОЕ КЕЙСА (ДЛЯ КРАСИВОЙ РУЛЕТКИ)
+                    const contentsResp = await makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(name)}`, 'GET');
+                    
+                    // Если кейс пустой, создадим заглушку, чтобы не сломаться
+                    const possibleItems = (contentsResp && contentsResp.length > 0) ? contentsResp : [{
+                        name: "Mystery Item", image_url: "https://placehold.co/100?text=?", rarity: "common"
+                    }];
+
+                    // 3. ТЕПЕРЬ ПОКУПАЕМ И ПОЛУЧАЕМ ПОБЕДИТЕЛЯ
+                    const buyResp = await fetch('/api/v1/shop/buy', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            initData: Telegram.WebApp.initData,
+                            item_id: id,
+                            price: price,
+                            title: name,
+                            image_url: imageUrl,
+                            currency: currency
+                        })
+                    });
+
+                    const resData = await buyResp.json();
+
+                    if (buyResp.status !== 200) {
+                        Telegram.WebApp.showAlert(resData.detail || "Недостаточно средств");
+                    } else {
+                        // 4. УСПЕХ! ГОТОВИМ РУЛЕТКУ
+                        let winner = resData.winner;
+                        
+                        // Фолбэк, если сервер не прислал победителя
+                        if (!winner) {
+                            winner = { name: "Error", image_url: imageUrl, rarity: 'common' };
+                        }
+
+                        // ГЕНЕРИРУЕМ ЛЕНТУ ИЗ РЕАЛЬНЫХ ПРЕДМЕТОВ КЕЙСА
+                        let strip = [];
+                        for(let i=0; i<80; i++) {
+                            const randomItem = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+                            strip.push(randomItem);
+                        }
+                        
+                        // ВАЖНО: На 60-е место (финиш) ставим ПОБЕДИТЕЛЯ
+                        strip[60] = winner; 
+                        
+                        // Запускаем
+                        launchRoulette(strip, winner, resData.messages || [], resData.lacky, name);
+                        
+                        // Обновляем баланс
+                        checkBalance(true);
+                        delete itemsCache[currentCategoryId];
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    Telegram.WebApp.showAlert("Ошибка соединения или сервера");
+                } finally {
+                    if (loader) loader.classList.remove('active');
+                }
+            });
+        };
+
+        // --- 1. УНИВЕРСАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ (CUSTOM MODAL) ---
+        function showShopModal({ title, subtitle, confirmText, confirmClass, onConfirm }) {
+            // Удаляем старое, если есть
+            const old = document.querySelector('.custom-confirm-overlay');
+            if (old) old.remove();
+
+            const overlay = document.createElement('div'); 
+            overlay.className = 'custom-confirm-overlay';
+            
+            overlay.innerHTML = `
+                <div class="custom-confirm-box">
+                    <h3 class="confirm-title">${title}</h3>
+                    <p class="confirm-subtitle">${subtitle}</p>
+                    <div class="confirm-buttons">
+                        <button class="confirm-btn btn-cancel-modal" id="modal-cancel">Отмена</button>
+                        <button class="confirm-btn ${confirmClass}" id="modal-confirm">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+
+            // Анимация появления
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+            
+            const close = () => {
+                overlay.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 200);
+            };
+            
+            overlay.querySelector('#modal-cancel').onclick = close;
+            
+            overlay.querySelector('#modal-confirm').onclick = () => { 
+                onConfirm(close); 
+            };
+            
+            // Закрытие по клику на фон
+            overlay.onclick = (e) => { if(e.target === overlay) close(); };
+        }
+
+        // --- 2. ЛОГИКА "ЗАБРАТЬ" (Желтая кнопка) ---
+        async function claimItem(itemId) {
+    if (!itemId) return Telegram.WebApp.showAlert("Ошибка: ID предмета не найден.");
+
+    showShopModal({
+        title: "Вывести этот предмет в Steam?",
+        subtitle: "Заявка будет создана. Ожидайте трейд в течение 24 часов.",
+        confirmText: "ЗАБРАТЬ",
+        confirmClass: "btn-yellow-modal", 
+        onConfirm: async (closeModal) => {
+            
+            const loader = document.getElementById('purchase-loader');
+            if (loader) {
+                loader.classList.add('active');
+                loader.querySelector('.loader-text').innerText = "Создаем заявку...";
+            }
+
+            try {
+                // Запрос к API
+                const res = await makeApiRequest('/api/v1/user/inventory/withdraw', 'POST', { 
+                    history_id: itemId 
+                });
+
+                // ==========================================
+                // 🎁 [НОВОЕ] ЛОГИКА ПРЕДЛОЖЕНИЯ ЗАМЕН
+                // ==========================================
+                if (res && res.status === 'offer_replacement') {
+                    closeModal(); // Закрываем окно подтверждения "Вывести предмет?"
+                    if (loader) loader.classList.remove('active'); // Убираем лоадер для выбора
+                    
+                    // Вызываем функцию показа сетки с 4 заменами
+                    showReplacementChoice(res.options, itemId);
+                    return; // Важно: прерываем выполнение, чтобы не показать Alert успеха
+                }
+                // ==========================================
+
+                // 1. СНАЧАЛА СООБЩЕНИЕ (Скрипт встанет на паузу тут, пока ты не нажмешь ОК)
+                if (res) {
+                     Telegram.WebApp.showAlert(`✅ Успешно!\n\nОжидайте трейд по указанной Вами ссылке в течение 24 часов.`);
+                }
+
+                // 2. ПОТОМ ЗАКРЫВАЕМ ОКНА (Когда нажал ОК)
+                closeModal();     
+                closeRoulette();   
+
+            } catch (e) {
+                Telegram.WebApp.showAlert(e.message || "Ошибка соединения");
+                closeModal(); 
+            } finally {
+                // 3. УБИРАЕМ ЛОАДЕР (если мы не ушли в ветку замен)
+                const finalLoader = document.getElementById('purchase-loader');
+                if (finalLoader) finalLoader.classList.remove('active');
+            }
+        }
+    });
+}
+
+        // --- 3. ЛОГИКА "ПРОДАТЬ ЗА БИЛЕТЫ" (Фиолетовая кнопка, API исправлен) ---
+        function sellForTickets(itemId, price) {
+            showShopModal({
+                title: `Продать скин за ${price} 🎟️?`,
+                subtitle: "Предмет будет продан системе, вы получите билеты моментально.",
+                confirmText: "ПРОДАТЬ",
+                confirmClass: "btn-purple-modal", // Фиолетовая кнопка
+                onConfirm: async (closeModal) => {
+                    
+                    const loader = document.getElementById('purchase-loader');
+                    if (loader) {
+                        loader.classList.add('active');
+                        loader.querySelector('.loader-text').innerText = "Продаем...";
+                    }
+
+                    try {
+                        // ИСПРАВЛЕННЫЙ ВЫЗОВ API (URL, METHOD, BODY)
+                        await makeApiRequest('/api/v1/user/inventory/sell', 'POST', { 
+                            history_id: itemId 
+                        });
+
+                        Telegram.WebApp.showAlert(`Успешно! +${price} билетов начислено.`);
+                        
+                        closeModal();      // Закрываем диалог
+                        closeRoulette();   // Закрываем рулетку
+
+                    } catch (e) {
+                        Telegram.WebApp.showAlert(e.message || "Ошибка обмена");
+                        closeModal();
+                    } finally {
+                        if (loader) loader.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        // --- ЛОГИКА ПРОСМОТРА СОДЕРЖИМОГО КЕЙСА ---
+        let cachedCaseContents = null; // Кэшируем, чтобы не грузить каждый раз
+
+        // Добавили аргумент caseName 👇
+        async function openCaseContents(event, caseName) {
+            // Если событие передано (клик по картинке или кнопке) - останавливаем всплытие
+            if (event && event.stopPropagation) {
+                event.stopPropagation();
+            }
+            
+            const modal = document.getElementById('case-contents-modal');
+            const list = document.getElementById('case-items-list');
+            const loader = document.getElementById('contents-loader');
+            
+            modal.classList.remove('hidden');
+            
+            loader.style.display = 'block';
+            list.innerHTML = '';
+
+            try {
+                // 👇 ОТПРАВЛЯЕМ НАЗВАНИЕ КЕЙСА В ПАРАМЕТРАХ ЗАПРОСА
+                const data = await makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(caseName)}`, 'GET');
+                
+                renderContentsList(data);
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center; grid-column:1/-1; color:#ff453a;">Пусто или ошибка</div>`;
+                console.error(e);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function closeContentsModal() {
+            document.getElementById('case-contents-modal').classList.add('hidden');
+        }
+
+        function renderContentsList(items) {
+            const list = document.getElementById('case-items-list');
+            
+            if (!items || items.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#888; grid-column:1/-1;">Пусто</div>';
+                return;
+            }
+
+            // --- ЛОГИКА СОРТИРОВКИ (САМОЕ ВАЖНОЕ) ---
+            const rarityWeight = {
+                'gold': 100,      // Золотое (Нож/Перчатки) - ТОП
+                'red': 80,        // Тайное (Красное)
+                'pink': 60,       // Засекреченное (Розовое)
+                'purple': 40,     // Запрещенное (Фиолетовое)
+                'blue': 20,       // Армейское (Синее)
+                'common': 0       // Ширпотреб
+            };
+
+            // Сортируем список
+            items.sort((a, b) => {
+                const rA = (a.rarity || 'common').toLowerCase();
+                const rB = (b.rarity || 'common').toLowerCase();
+
+                let weightA = 0;
+                let weightB = 0;
+
+                if (rA.includes('gold')) weightA = 100;
+                else if (rA.includes('red') || rA.includes('ancient')) weightA = 80;
+                else if (rA.includes('pink') || rA.includes('legendary')) weightA = 60;
+                else if (rA.includes('purple') || rA.includes('mythical')) weightA = 40;
+                else if (rA.includes('blue') || rA.includes('rare')) weightA = 20;
+
+                if (rB.includes('gold')) weightB = 100;
+                else if (rB.includes('red') || rB.includes('ancient')) weightB = 80;
+                else if (rB.includes('pink') || rB.includes('legendary')) weightB = 60;
+                else if (rB.includes('purple') || rB.includes('mythical')) weightB = 40;
+                else if (rB.includes('blue') || rB.includes('rare')) weightB = 20;
+
+                if (weightB !== weightA) {
+                    return weightB - weightA; 
+                }
+                return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+            });
+
+            // Рендер 
+            list.innerHTML = items.map(item => {
+                let rClass = 'blue'; 
+                const r = (item.rarity || '').toLowerCase();
+                
+                if (r.includes('purple') || r.includes('mythical')) rClass = 'purple';
+                else if (r.includes('pink') || r.includes('legendary')) rClass = 'pink';
+                else if (r.includes('red') || r.includes('ancient')) rClass = 'red';
+                else if (r.includes('gold')) rClass = 'gold';
+
+                const shortName = item.name.split('|').pop().trim(); 
+
+                return `
+                    <div class="content-item ${rClass}">
+                        <img src="${item.image_url}" loading="lazy">
+                        <div class="content-name">${shortName}</div>
+                        <div class="content-quality">${item.condition || 'Factory New'}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- 4. ПЕРЕХОД В ПРОФИЛЬ ---
+        function goToProfile() {
+            window.location.href = "/profile"; 
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // --- ФУНКЦИИ ВЫБОРА ЗАМЕНЫ ---
+
+// 1. Показ сетки 2х2
+function showReplacementChoice(options, historyId) {
+    const modal = document.getElementById('replacement-modal');
+    const container = document.getElementById('replacement-options-list');
+    
+    container.innerHTML = options.map(item => {
+        let r = (item.rarity || '').toLowerCase();
+        let rClass = 'blue';
+        if (r.includes('purple')) rClass = 'purple';
+        else if (r.includes('pink')) rClass = 'pink';
+        else if (r.includes('red')) rClass = 'red';
+        else if (r.includes('gold')) rClass = 'gold';
+
+        // Чистим название (убираем часть до '|')
+        const cleanName = item.name_ru.split('|').pop().trim();
+
+        // 🎯 УМНЫЙ ДЕТЕКТОР: Срабатывает ТОЛЬКО на наклейки.
+        // Оружие, "Остин" и "Лорена" получат стандартный красивый масштаб.
+        const isSticker = item.name_ru.toLowerCase().includes('наклейка');
+        const stickerClass = isSticker ? 'is-sticker' : '';
+
+        return `
+            <div class="replacement-card ${rClass} ${stickerClass}" onclick="initiateReplacementConfirm(${historyId}, '${item.assetid}', '${item.name_ru.replace(/'/g, "")}')">
+                
+                <img src="${item.icon_url}" loading="lazy">
+                
+                <div class="replacement-text-zone">
+                    <div class="replacement-name">${escapeHtml(cleanName)}</div>
+                    <div class="replacement-condition">${escapeHtml(item.condition || '-')}</div>
+                </div>
+                
+            </div>
+        `;
+    }).join('');
+
+    modal.classList.remove('hidden');
+}
+        
+function closeReplacementModal() {
+    document.getElementById('replacement-modal').classList.add('hidden');
+}
+
+// 2. ФИНАЛЬНОЕ КАСТОМНОЕ ПОДТВЕРЖДЕНИЕ (Подключаем к твоему showShopModal)
+function initiateReplacementConfirm(historyId, assetid, itemName) {
+    showShopModal({
+        title: "Подтвердить выбор?",
+        subtitle: `Вы выбрали "${itemName}" как замену. Трейд будет отправлен моментально.`,
+        confirmText: "ЗАБРАТЬ ЕГО",
+        confirmClass: "btn-yellow-modal",
+        onConfirm: async (closeConfirmWindow) => {
+            
+            const loader = document.getElementById('purchase-loader');
+            if (loader) {
+                loader.classList.add('active');
+                loader.querySelector('.loader-text').innerText = "Отправляем предмет...";
+            }
+
+            try {
+                const res = await makeApiRequest('/api/v1/user/inventory/confirm_replacement', 'POST', {
+                    history_id: historyId,
+                    assetid: assetid
+                });
+
+                if (res.success) {
+                    Telegram.WebApp.showAlert("✅ Успешно! Проверьте Steam Трейды.");
+                    closeConfirmWindow(); 
+                    closeReplacementModal();
+                    if(typeof closeRoulette === 'function') closeRoulette();
+                } else {
+                    Telegram.WebApp.showAlert("❌ " + res.message);
+                    closeConfirmWindow();
+                }
+            } catch (e) {
+                Telegram.WebApp.showAlert("Ошибка: " + e.message);
+                closeConfirmWindow();
+            } finally {
+                if (loader) loader.classList.remove('active');
+            }
+        }
+    });
+}
+        // --- ЗАПУСК ---
+        initShop();        
+    </script>
+</body>
+</html>

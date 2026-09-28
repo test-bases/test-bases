@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Twitch Награды - Админ-панель</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+    
+    <style>
+        /* ==========================================
+           БАЗОВЫЕ СТИЛИ (ОЧИЩЕНО ОТ ЛИШНЕГО)
+           ========================================== */
+        :root {
+            --bg-gradient: radial-gradient(ellipse at 50% 100%, #041a07, #000000);
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --text-color-muted: #b0b0b0;
+            --primary-color: #34c759;
+            --action-color: #007aff;
+            --surface-glass-bg: rgba(28, 28, 30, 0.75);
+            --divider-glass-color: rgba(58, 58, 60, 0.6);
+            --danger-color: #ff3b30;
+            --warning-color: #ff9500;
+            --twitch-color: #9146FF;
+        }
+        
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            position: fixed; overflow: hidden; overscroll-behavior-y: none;
+            background-color: var(--bg-color); background-image: var(--bg-gradient);
+            color: var(--text-color); font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Адаптация под шторки Telegram и iOS */
+        #app-container {
+            height: 100vh; 
+            overflow-y: auto !important; 
+            -webkit-overflow-scrolling: touch;
+            position: relative; z-index: 10; display: block; box-sizing: border-box;
+            padding-top: calc(var(--tg-viewport-safe-area-inset-top, env(safe-area-inset-top, 20px)) + 20px);
+            padding-bottom: calc(var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 20px)) + 80px);
+            padding-left: 15px; padding-right: 15px;
+        }
+
+        .hidden { display: none !important; }
+        
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-header-title { margin: 0; font-size: 20px; font-weight: 700; text-align: center; flex-grow: 1; }
+        .back-button { background: none; border: none; color: var(--action-color); font-size: 16px; cursor: pointer; padding: 5px; font-weight: 600; text-decoration: none; }
+        
+        .admin-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+        .admin-form input, .admin-form select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #555; background-color: #333; color: white; font-size: 15px; box-sizing: border-box; }
+        .admin-form label { font-weight: 600; font-size: 13px; margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+        
+        .admin-action-btn { flex-grow: 1; border: none; padding: 10px; border-radius: 8px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .admin-action-btn.approve { background-color: var(--primary-color); }
+        .admin-action-btn.reject { background-color: var(--danger-color); }
+        
+        /* Лоадер */
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Модалки - СДЕЛАЛ КОМПАКТНЕЕ (360px) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1001; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: env(safe-area-inset-top, 20px) 10px env(safe-area-inset-bottom, 20px); box-sizing: border-box; }
+        .modal-content { background-color: var(--surface-glass-bg); border: 1px solid var(--divider-glass-color); padding: 15px; border-radius: 16px; width: 100%; max-width: 360px; max-height: calc(100vh - env(safe-area-inset-top, 40px) - env(safe-area-inset-bottom, 40px)); display: flex; flex-direction: column; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-shrink: 0; }
+        .modal-title { font-size: 16px; font-weight: 700; margin: 0; }
+        .modal-close-btn { background: none; border: none; color: var(--text-color-muted); font-size: 24px; cursor: pointer; padding: 0 5px; }
+        .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex-grow: 1; padding-right: 5px; }
+        
+        .prompt-actions { display:flex; gap: 10px; margin-top: 15px; }
+        .prompt-actions > * { flex:1; padding: 10px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .prompt-actions .confirm-btn { background-color: var(--primary-color); color: white; }
+        .prompt-actions .cancel-btn { background-color: #555; color: white; }
+
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--divider-glass-color); }
+        .setting-label { font-size: 13px; font-weight: 500; }
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .toggle-slider { background-color: var(--primary-color); }
+        input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+        /* ==========================================
+           СЕТКА TWITCH (4 В РЯД) И ЦЕНТРОВКА
+           ========================================== */
+        .pending-actions-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); /* 4 значка в ряд */
+            gap: 8px; /* Уменьшил gap, чтобы точно влезли */
+            padding: 10px 0; 
+        }
+        
+        .admin-icon-button { display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; text-decoration: none; color: var(--text-color); gap: 6px; }
+        .admin-icon-button .icon-wrapper { 
+            width: 54px; height: 54px; 
+            background-color: var(--surface-glass-bg); 
+            border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 24px; 
+            position: relative; 
+            margin: 0 auto; /* Жесткая центровка */
+        }
+        .admin-icon-button .icon-wrapper img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; }
+        
+        /* ЖИРНЫЙ ШРИФТ ПОД ИКОНКАМИ */
+        .admin-icon-button span { font-size: 10px; font-weight: 700; line-height: 1.1; word-break: break-word; }
+        
+        .notification-badge { position: absolute; top: -6px; right: -6px; background-color: var(--danger-color); color: white; border-radius: 50%; min-width: 18px; height: 18px; padding: 0 4px; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; line-height: 1; box-sizing: border-box; box-shadow: 0 0 0 2px var(--surface-glass-bg); z-index: 3; }
+
+        .reward-shortcut-btn { position: absolute; top: -8px; left: -8px; width: 24px; height: 24px; background-color: #444; border: none; border-radius: 50%; color: white; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .reward-purchases-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; text-decoration: none; }
+
+        /* ==========================================
+           РАЗДЕЛЕННЫЕ КАРТОЧКИ ПОКУПОК
+           ========================================== */
+        .purchase-item { 
+            background-color: rgba(255, 255, 255, 0.05); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 12px; 
+            padding: 12px; 
+            margin-bottom: 12px; /* РАЗДЕЛЕНИЕ КАРТОЧЕК */
+            position: relative; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .purchase-item:last-child { margin-bottom: 0; }
+        
+        /* ЗАТЕМНЕНИЕ ВЫДАННЫХ КАРТОЧЕК */
+        .purchase-item.purchase-issued {
+            background-color: rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.03);
+            opacity: 0.6; /* Уходит на задний план */
+        }
+        
+        .purchase-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .purchase-item-header strong { font-size: 14px; font-weight: 800; }
+        .purchase-status-badge { font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 6px; color: white; }
+        .purchase-status-Привязан { background-color: var(--primary-color); }
+        .purchase-status-Не\.привязан { background-color: var(--text-color-muted); }
+        
+        .purchase-item p { margin: 4px 0; font-size: 12px; color: var(--text-color-muted); }
+        
+        /* СТАТУС ПРОСМОТРА */
+        .purchase-view-status { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; margin: 4px 0 8px; }
+        .purchase-view-status.status-not-viewed { background: rgba(255,255,255,0.1); color: var(--text-color-muted); }
+        .purchase-view-status.status-viewed { background: rgba(52, 199, 89, 0.15); color: var(--primary-color); }
+        
+        .purchase-user-input { background-color: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; font-family: monospace; font-size: 12px; margin-top: 8px; word-break: break-all; }
+        .purchase-user-input a { color: var(--action-color); text-decoration: underline; font-weight: bold; }
+        
+        /* ПЛАШКА "ВЫИГРЫШ" */
+        .purchase-win-info { font-weight: 700; color: var(--text-color); background-color: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.3); border-left: 3px solid #ffd700; padding: 8px 10px; border-radius: 8px; margin: 8px 0; word-break: break-word; font-size: 13px; }
+
+        /* ПЛАШКА "ТРЕЙД-ССЫЛКА" */
+        .purchase-trade-link { background: rgba(0, 122, 255, 0.15); border: 1px solid rgba(0, 122, 255, 0.3); padding: 8px 10px; border-radius: 8px; margin: 8px 0; font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .purchase-trade-link a { color: #00adee; text-decoration: none; font-weight: 700; }
+
+        .purchase-actions { margin-top: 12px; display: flex; gap: 8px; }
+        .purchase-actions .issue-promo-btn { background-color: var(--warning-color); font-size: 12px; padding: 8px; font-weight: 700; }
+        .purchase-actions .issue-tickets-btn { background-color: var(--action-color); font-size: 12px; padding: 8px; font-weight: 700; }
+        .purchase-actions .delete-purchase-btn { background-color: var(--danger-color); font-size: 14px; padding: 8px; flex-grow: 0; min-width: 40px; }
+        .purchase-actions .rewarded-info { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--primary-color); width: 100%; justify-content: center; background: rgba(52, 199, 89, 0.1); border-radius: 8px;}
+
+        .purchase-progress { font-size: 11px; font-weight: 600; margin: 8px 0 !important; background-color: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 6px; }
+        .purchase-progress .progress-good { color: var(--primary-color); }
+        .purchase-progress .progress-bad { color: var(--warning-color); }
+        
+        .purchase-warning { font-size: 11px; font-weight: 700; color: var(--warning-color); margin: 8px 0 !important; padding: 6px 10px; background-color: rgba(255, 149, 0, 0.1); border: 1px solid rgba(255, 149, 0, 0.3); border-radius: 6px; display: flex; align-items: center; gap: 6px; }
+    </style>
+</head>
+<body>
+
+    <div id="loader-overlay" class="loader-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <main id="app-container">
+        <div class="page-header">
+            <a href="admin.html" class="back-button"><i class="fa-solid fa-arrow-left"></i> Назад</a>
+            <h1 class="page-header-title">Twitch Награды</h1>
+            <button id="reload-twitch-rewards-btn" class="back-button" style="width: 40px; font-size: 18px; text-align: right; padding: 0;">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+
+        <div id="twitch-rewards-container" class="pending-actions-grid">
+            <p style="text-align: center; color: var(--text-color-muted); grid-column: 1/-1;">Загрузка наград...</p>
+        </div>
+    </main>
+
+    <div id="twitch-reward-settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="twitch-settings-title" class="modal-title">Настройки</h2>
+                <button class="modal-close-btn" data-close-modal="twitch-reward-settings-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="twitch-reward-settings-form" class="admin-form">
+                    <input type="hidden" name="reward_id">
+                    <div class="setting-item">
+                        <span class="setting-label">Активна в логах</span>
+                        <label class="toggle-switch"><input type="checkbox" name="is_active"><span class="toggle-slider"></span></label>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Уведомлять админа</span>
+                        <label class="toggle-switch"><input type="checkbox" name="notify_admin"><span class="toggle-slider"></span></label>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Показывать сообщение</span>
+                        <label class="toggle-switch"><input type="checkbox" name="show_user_input"><span class="toggle-slider"></span></label>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--divider-glass-color);">
+                        <label>Условие для выдачи</label>
+                        <select name="condition_type">
+                            <option value="">Нет условия</option>
+                            <option value="twitch_messages_session">Сообщения (за стрим)</option>
+                            <option value="twitch_messages_week">Сообщения (за неделю)</option>
+                            <option value="twitch_messages_month">Сообщения (за месяц)</option>
+                        </select>
+                        <input type="number" name="target_value" placeholder="Цель: 500" style="margin-top: 8px;">
+                    </div>
+                    
+                    <div style="margin-top: 10px;" id="legacy-promocode-field-wrapper">
+                      <label>Сумма промокода (звёзды)</label>
+                      <input type="number" name="promocode_amount" placeholder="Например, 10">
+                    </div>
+
+                    <div class="admin-feature-6971" style="display: none; margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--divider-glass-color);">
+                        <label>Тип награды</label>
+                        <select id="reward-type-select" name="reward_type">
+                            <option value="promocode">Промокод (Звёзды)</option>
+                            <option value="tickets">Билеты (Розыгрыши)</option>
+                            <option value="none">Нет (только лог)</option>
+                        </select>
+                        <label style="margin-top: 10px;">Количество</label>
+                        <input type="number" id="reward-amount-input" name="reward_amount" placeholder="Например, 10">
+                        
+                        <label style="margin-top: 10px;">Порядковый номер (#)</label>
+                        <input type="number" name="sort_order" placeholder="Пусто = в конец">
+                    </div>
+                    
+                    <div class="prompt-actions" style="margin-top: 20px;">
+                        <button type="button" class="cancel-btn" data-close-modal="twitch-reward-settings-modal">Отмена</button>
+                        <button type="submit" class="confirm-btn">Сохранить</button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button type="button" id="delete-twitch-reward-btn" class="admin-action-btn reject" style="width: 100%;">Удалить награду</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="twitch-purchases-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="twitch-purchases-title" class="modal-title">Покупки</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="refresh-purchases-btn" title="Обновить" style="background:none; border:none; color:var(--action-color); font-size:18px; cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button id="delete-all-purchases-btn" class="admin-action-btn reject hidden" style="padding: 5px 8px; font-size: 12px; width:auto;" title="Удалить все"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="modal-close-btn" data-close-modal="twitch-purchases-modal">&times;</button>
+                </div>
+            </div>
+            <div id="twitch-purchases-body" class="modal-body" style="padding-bottom: 20px;"></div>
+        </div>
+    </div>
+
+    <div id="password-prompt-overlay" class="modal-overlay hidden">
+        <div class="modal-content" style="text-align: center; max-width: 300px;">
+            <h3 style="margin-top: 0;">Пароль администратора</h3>
+            <input type="password" id="password-prompt-input" class="admin-form" style="width:100%; padding:10px; box-sizing:border-box;">
+            <div class="prompt-actions">
+                <button id="password-prompt-cancel" class="cancel-btn" data-close-modal="password-prompt-overlay">Отмена</button>
+                <button id="password-prompt-confirm" class="confirm-btn">Войти</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let hasAdminAccess = false;
+        const ADMIN_PASSWORD = '6971';
+        let afterPasswordCallback = null;
+
+        const CONDITION_TO_COLUMN = {
+            "twitch_messages_session": "daily_message_count",
+            "twitch_messages_week": "weekly_message_count",
+            "twitch_messages_month": "monthly_message_count",
+            "twitch_uptime_session": "daily_uptime_minutes",
+            "twitch_uptime_week": "weekly_uptime_minutes",
+            "twitch_uptime_month": "monthly_uptime_minutes"
+        };
+
+        // --- УТИЛИТЫ ---
+        function showLoader() { document.getElementById('loader-overlay').classList.remove('hidden'); }
+        function hideLoader() { document.getElementById('loader-overlay').classList.add('hidden'); }
+        
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>"']/g, match => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'})[match]);
+        }
+
+        // Делает ссылки кликабельными (аккуратно обрабатывая уже экранированный HTML)
+        function makeLinksClickable(text) {
+            if (!text) return '';
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, url => {
+                const cleanUrl = url.replace(/&amp;/g, '&'); // Возвращаем & для самой ссылки
+                return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            });
+        }
+
+        function showCustomConfirmHTML(text, onConfirmCallback, btnText = 'Удалить', btnColor = '#ff3b30') {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            const box = document.createElement('div');
+            box.className = 'modal-content';
+            box.style.cssText = 'max-width: 320px; text-align: center; animation: popIn 0.2s forwards; padding: 20px;';
+            
+            box.innerHTML = `
+                <h3 style="margin: 0 0 15px; font-size: 16px; font-weight: 700;">${text}</h3>
+                <div class="prompt-actions" style="margin-top: 10px;">
+                    <button id="custom-cancel-btn" class="cancel-btn">Отмена</button>
+                    <button id="custom-confirm-btn" class="confirm-btn" style="background-color: ${btnColor};">${btnText}</button>
+                </div>
+            `;
+            
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const close = () => overlay.remove();
+            overlay.querySelector('#custom-cancel-btn').onclick = close;
+            overlay.querySelector('#custom-confirm-btn').onclick = () => { onConfirmCallback(close); close(); };
+        }
+
+        async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false) {
+            if (!isSilent) showLoader();
+            try {
+                const options = { method: method, headers: { 'Content-Type': 'application/json' } };
+                if (method !== 'GET') {
+                    options.body = JSON.stringify({ ...body, initData: tg.initData });
+                }
+                const response = await fetch(url, options);
+                if (response.status === 204) return null;
+
+                let result;
+                try { result = await response.json(); } 
+                catch (e) {
+                    const text = await response.text();
+                    if (!response.ok) throw new Error(`Ошибка ${response.status}: ${text}`);
+                    return text;
+                }
+
+                if (!response.ok) {
+                    let msg = 'Неизвестная ошибка';
+                    if (result.detail) msg = Array.isArray(result.detail) ? result.detail[0].msg : result.detail;
+                    throw new Error(msg);
+                }
+                return result;
+            } catch (e) {
+                if (!isSilent) tg.showAlert(e.message);
+                throw e;
+            } finally {
+                if (!isSilent) hideLoader();
+            }
+        }
+
+        // --- ЛОГИКА TWITCH ---
+        
+        async function loadTwitchRewards() {
+            const container = document.getElementById('twitch-rewards-container');
+            container.innerHTML = '';
+            showLoader();
+            try {
+                const rewards = await makeApiRequest('/api/v1/admin/twitch_rewards/list', {}, 'GET', true); 
+                
+                if (!Array.isArray(rewards) || rewards.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-color-muted); grid-column: 1/-1;">Наград пока нет.</p>';
+                    return;
+                }
+
+                rewards.forEach((reward, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'admin-icon-button';
+                    
+                    const badgeHtml = (reward.pending_count || 0) > 0 ? `<span class="notification-badge">${reward.pending_count}</span>` : '';
+                    const iconUrl = reward.icon_url || 'https://static-cdn.jtvnw.net/custom-reward-images/default-4.png';
+
+                    itemDiv.innerHTML = `
+                        <div class="icon-wrapper">
+                            <a href="#" class="reward-purchases-link" data-reward-id="${reward.id}" data-reward-title="${escapeHTML(reward.title)}">
+                                <img src="${escapeHTML(iconUrl)}" alt="reward">
+                            </a>
+                            <button class="reward-shortcut-btn reward-settings-btn" data-reward='${JSON.stringify(reward)}'>
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                            ${badgeHtml}
+                        </div>
+                        <span>${escapeHTML(reward.title)}</span>
+                    `;
+                    container.appendChild(itemDiv);
+                }); 
+            } catch (e) {
+                container.innerHTML = `<p style="color: var(--danger-color); grid-column: 1/-1;">Ошибка: ${e.message}</p>`;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function openTwitchRewardSettings(reward) {
+            const modal = document.getElementById('twitch-reward-settings-modal');
+            const form = document.getElementById('twitch-reward-settings-form');
+            document.getElementById('twitch-settings-title').textContent = `Настройки`;
+
+            form.elements['reward_id'].value = reward.id;
+            form.elements['is_active'].checked = reward.is_active;
+            form.elements['notify_admin'].checked = reward.notify_admin;
+            form.elements['show_user_input'].checked = reward.show_user_input;
+            form.elements['condition_type'].value = reward.condition_type || "";
+            form.elements['target_value'].value = reward.target_value || "";
+            
+            if (hasAdminAccess) {
+                document.getElementById('legacy-promocode-field-wrapper').style.display = 'none';
+                modal.querySelector('.admin-feature-6971').style.display = 'block';
+                
+                const rewardType = reward.reward_type || 'promocode';
+                form.elements['reward_type'].value = rewardType;
+                form.elements['reward_amount'].value = reward.reward_amount ?? (reward.promocode_amount ?? 10); 
+                form.elements['promocode_amount'].required = false;
+                form.elements['sort_order'].value = reward.sort_order ?? '';
+
+                const isNone = rewardType === 'none';
+                const input = document.getElementById('reward-amount-input');
+                if (input) {
+                    input.required = !isNone;
+                    input.style.display = isNone ? 'none' : 'block';
+                    input.previousElementSibling.style.display = isNone ? 'none' : 'block';
+                }
+            } else {
+                document.getElementById('legacy-promocode-field-wrapper').style.display = 'block';
+                modal.querySelector('.admin-feature-6971').style.display = 'none';
+                
+                form.elements['promocode_amount'].value = reward.promocode_amount ?? (reward.reward_amount ?? 10);
+                form.elements['promocode_amount'].required = true;
+                if(form.elements['reward_amount']) form.elements['reward_amount'].required = false;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        async function openTwitchPurchases(rewardId, rewardTitle) {
+            const modal = document.getElementById('twitch-purchases-modal');
+            const body = document.getElementById('twitch-purchases-body');
+            document.getElementById('twitch-purchases-title').textContent = `Покупки`;
+            
+            const refreshBtn = document.getElementById('refresh-purchases-btn');
+            refreshBtn.dataset.rewardId = rewardId;
+            refreshBtn.dataset.rewardTitle = rewardTitle;
+            
+            const delAllBtn = document.getElementById('delete-all-purchases-btn');
+            delAllBtn.dataset.rewardId = rewardId;
+            
+            body.innerHTML = '<p style="text-align:center;">Загрузка...</p>';
+            modal.classList.remove('hidden');
+
+            try {
+                const data = await makeApiRequest(`/api/v1/admin/twitch_rewards/${rewardId}/purchases`, {}, 'GET', true);
+                if (!data.purchases || data.purchases.length === 0) {
+                    body.innerHTML = '<p style="text-align: center;">Нет покупок.</p>';
+                    delAllBtn.classList.add('hidden');
+                    return;
+                }
+                delAllBtn.classList.remove('hidden');
+
+                const { reward_settings } = data;
+                const rType = reward_settings?.reward_type || 'promocode';
+                const rAmount = reward_settings?.reward_amount ?? (reward_settings?.promocode_amount ?? 0);
+                const targetVal = reward_settings?.target_value || 0;
+                const condType = reward_settings?.condition_type || '';
+
+                body.innerHTML = data.purchases.map(p => {
+                    const date = new Date(p.created_at).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
+                    let progressHtml = '', warningHtml = '';
+                    let isConditionMet = true;
+
+                    if (targetVal > 0 && condType) {
+                        const col = CONDITION_TO_COLUMN[condType];
+                        const snapKey = 'snapshot_' + (col || '').replace('_message_count', '_messages').replace('_uptime_minutes', '_uptime');
+                        const snapProg = p[snapKey] || 0;
+                        isConditionMet = snapProg >= targetVal;
+
+                        progressHtml = `<div class="purchase-progress ${isConditionMet ? 'progress-good' : 'progress-bad'}">
+                            Прогресс: <strong>${snapProg} / ${targetVal}</strong></div>`;
+                        
+                        if (!isConditionMet) {
+                            warningHtml = `<div class="purchase-warning"><i class="fa-solid fa-triangle-exclamation"></i> Условие не выполнено!</div>`;
+                        }
+                    }
+
+                    const isIssued = !!p.rewarded_at;
+                    const issuedClass = isIssued ? 'purchase-issued' : '';
+
+                    const viewClass = p.viewed_by_admin ? 'status-viewed' : 'status-not-viewed';
+                    const viewText = p.viewed_by_admin ? `Просмотрено (${p.viewed_by_admin_name || 'Админ'})` : 'Не просмотрено';
+                    
+                    let actionBtns = '';
+                    if (isIssued) {
+                        actionBtns = `
+                            <div class="rewarded-info"><i class="fa-solid fa-check-circle"></i> Награда выдана</div>
+                            <button class="admin-action-btn reject delete-purchase-btn" data-purchase-id="${p.id}"><i class="fa-solid fa-trash"></i></button>`;
+                    } else {
+                        let issueBtn = '';
+                        if (p.status !== 'Привязан') {
+                            issueBtn = `<div class="rewarded-info" style="color: var(--text-color-muted); background: rgba(255,255,255,0.1);"><i class="fa-solid fa-link-slash"></i> Ждет привязки</div>`;
+                        } else {
+                            if (rType === 'tickets') issueBtn = `<button class="admin-action-btn issue-tickets-btn" data-purchase-id="${p.id}" data-amount="${rAmount}">Выдать ${rAmount} 🎟️</button>`;
+                            else if (rType === 'promocode') issueBtn = `<button class="admin-action-btn issue-promo-btn" data-purchase-id="${p.id}">Выдать ${rAmount} ⭐</button>`;
+                            else issueBtn = `<div class="rewarded-info" style="color: var(--text-color-muted); background: rgba(255,255,255,0.1);">Выдача не нужна</div>`;
+                        }
+                        actionBtns = `${issueBtn}<button class="admin-action-btn reject delete-purchase-btn" data-purchase-id="${p.id}"><i class="fa-solid fa-trash"></i></button>`;
+                    }
+
+                    // Отделение Трейд Ссылки и Выигрыша
+                    let tradeLinkHtml = '';
+                    if (p.trade_link) {
+                        tradeLinkHtml = `
+                            <div class="purchase-trade-link">
+                                <span><i class="fa-solid fa-link"></i> Трейд-ссылка:</span>
+                                <a href="${escapeHTML(p.trade_link)}" target="_blank">Открыть</a>
+                            </div>`;
+                    }
+
+                    let userInputHtml = '';
+                    let rouletteWinHtml = '';
+                    let rawUserInput = p.user_input || '';
+
+                    if (rawUserInput) {
+                        if (rawUserInput.startsWith("Выигрыш:")) {
+                            const parts = rawUserInput.split("| Сообщение:");
+                            rouletteWinHtml = `<div class="purchase-win-info"><i class="fa-solid fa-gift"></i> ${escapeHTML(parts[0].trim())}</div>`;
+                            rawUserInput = (parts.length > 1) ? parts[1].trim() : '';
+                        }
+                        if (rawUserInput) {
+                            userInputHtml = `<div class="purchase-user-input">${makeLinksClickable(escapeHTML(rawUserInput))}</div>`;
+                        }
+                    }
+
+                    return `
+                    <div class="purchase-item ${issuedClass}" id="purchase-item-${p.id}" data-purchase-id="${p.id}" data-condition-met="${isConditionMet}">
+                        <div class="purchase-item-header">
+                            <strong>${p.twitch_login || '???'}</strong>
+                            <span class="purchase-status-badge purchase-status-${p.status.replace(' ', '.')}">${p.status}</span>
+                        </div>
+                        <p>Дата: ${date}</p>
+                        <div class="purchase-view-status ${viewClass}">${viewText}</div>
+                        ${tradeLinkHtml}
+                        ${progressHtml} ${warningHtml} ${rouletteWinHtml} ${userInputHtml}
+                        <div class="purchase-actions">${actionBtns}</div>
+                    </div>`;
+                }).join('');
+
+            } catch(e) {
+                body.innerHTML = `<p style="color: var(--danger-color); text-align:center;">Ошибка: ${e.message}</p>`;
+            }
+        }
+
+        // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            
+            // 1. Проверка пользователя (Админ/Модер)
+            try {
+                const userData = await makeApiRequest("/api/v1/user/me", {}, 'POST', true);
+                if (userData && userData.is_admin) {
+                    hasAdminAccess = true; // Главный админ
+                }
+            } catch (e) {
+                console.error("Не удалось определить роль", e);
+            }
+
+            // Запускаем отрисовку списка
+            loadTwitchRewards();
+
+            // Делегирование кликов для динамических элементов
+            document.body.addEventListener('click', async (e) => {
+                const target = e.target;
+
+                // Закрытие модалок
+                const closeBtn = target.closest('[data-close-modal]');
+                if (closeBtn) {
+                    document.getElementById(closeBtn.dataset.closeModal)?.classList.add('hidden');
+                    return;
+                }
+
+                // Кнопка обновления
+                if (target.closest('#reload-twitch-rewards-btn')) {
+                    loadTwitchRewards();
+                    return;
+                }
+                
+                // Обновление покупок
+                if (target.closest('#refresh-purchases-btn')) {
+                    const btn = target.closest('#refresh-purchases-btn');
+                    openTwitchPurchases(btn.dataset.rewardId, btn.dataset.rewardTitle);
+                    return;
+                }
+
+                // Открытие настроек (Пароль починен)
+                const settingsBtn = target.closest('.reward-settings-btn');
+                if (settingsBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const data = JSON.parse(settingsBtn.dataset.reward);
+                    if (hasAdminAccess) {
+                        openTwitchRewardSettings(data);
+                    } else {
+                        afterPasswordCallback = () => openTwitchRewardSettings(data);
+                        document.getElementById('password-prompt-overlay').classList.remove('hidden');
+                        setTimeout(() => document.getElementById('password-prompt-input').focus(), 100);
+                    }
+                    return;
+                }
+
+                // Открытие покупок
+                const purchasesLink = target.closest('.reward-purchases-link');
+                if (purchasesLink) {
+                    e.preventDefault();
+                    openTwitchPurchases(purchasesLink.dataset.rewardId, purchasesLink.dataset.rewardTitle);
+                    return;
+                }
+
+                // Отметка "Просмотрено"
+                const link = target.closest('a');
+                // Игнорируем клик, если это внешняя ссылка (Трейд-ссылка или URL из текста)
+                if (link && link.closest('.purchase-item') && !link.target) {
+                    const item = link.closest('.purchase-item');
+                    const statusEl = item.querySelector('.purchase-view-status');
+                    if (statusEl && !statusEl.classList.contains('status-viewed')) {
+                        statusEl.textContent = 'Отмечаю...';
+                        makeApiRequest('/api/v1/admin/twitch_rewards/purchase/mark_viewed', { purchase_id: parseInt(item.dataset.purchaseId) }, 'POST', true)
+                            .then(res => {
+                                statusEl.innerHTML = `Просмотрено (${res.viewer || 'Вами'})`;
+                                statusEl.className = 'purchase-view-status status-viewed';
+                            }).catch(() => statusEl.textContent = 'Ошибка');
+                    }
+                }
+
+                // Удаление 1 покупки
+                const delBtn = target.closest('.delete-purchase-btn');
+                if (delBtn) {
+                    e.preventDefault(); e.stopPropagation();
+                    showCustomConfirmHTML('Удалить покупку навсегда?', () => {
+                        const pid = delBtn.dataset.purchaseId;
+                        document.getElementById(`purchase-item-${pid}`)?.remove();
+                        makeApiRequest('/api/v1/admin/twitch_rewards/purchase/delete', { purchase_id: parseInt(pid) }, 'POST', true)
+                            .catch(err => tg.showAlert(`Ошибка: ${err.message}`));
+                    });
+                    return;
+                }
+
+                // Удаление ВСЕХ покупок
+                const delAllBtn = target.closest('#delete-all-purchases-btn');
+                if (delAllBtn) {
+                    showCustomConfirmHTML('Удалить ВСЕ покупки для этой награды?', () => {
+                        document.getElementById('twitch-purchases-body').innerHTML = '<p style="text-align: center;">Нет покупок.</p>';
+                        delAllBtn.classList.add('hidden');
+                        makeApiRequest('/api/v1/admin/twitch_rewards/purchases/delete_all', { reward_id: parseInt(delAllBtn.dataset.rewardId) }, 'POST', true)
+                            .then(() => tg.showPopup({message: 'Все удалено'}))
+                            .catch(err => tg.showAlert(`Ошибка: ${err.message}`));
+                    });
+                    return;
+                }
+
+                // Выдача Промокода
+                const promoBtn = target.closest('.issue-promo-btn');
+                if (promoBtn) {
+                    const pid = promoBtn.dataset.purchaseId;
+                    const ok = promoBtn.closest('.purchase-item').dataset.conditionMet === 'true';
+                    showCustomConfirmHTML(ok ? 'Выдать награду (промокод)?' : '⚠️ Условие не выполнено. Выдать все равно?', () => {
+                        document.getElementById(`purchase-item-${pid}`)?.remove();
+                        makeApiRequest('/api/v1/admin/twitch_rewards/issue_promocode', { purchase_id: parseInt(pid) }, 'POST', true)
+                            .then(res => tg.showPopup({message: res.message || 'Выдано'}))
+                            .catch(err => tg.showAlert(`Ошибка: ${err.message}`));
+                    }, 'Выдать', '#ff9500');
+                    return;
+                }
+
+                // Выдача Билетов
+                const ticketBtn = target.closest('.issue-tickets-btn');
+                if (ticketBtn) {
+                    const pid = ticketBtn.dataset.purchaseId;
+                    const amount = ticketBtn.dataset.amount;
+                    const ok = ticketBtn.closest('.purchase-item').dataset.conditionMet === 'true';
+                    showCustomConfirmHTML(ok ? `Выдать ${amount} 🎟️?` : `⚠️ Условие не выполнено. Выдать ${amount} 🎟️?`, () => {
+                        document.getElementById(`purchase-item-${pid}`)?.remove();
+                        makeApiRequest('/api/v1/admin/twitch_rewards/issue_tickets', { purchase_id: parseInt(pid) }, 'POST', true)
+                            .then(() => tg.showPopup({message: 'Выдано'}))
+                            .catch(err => tg.showAlert(`Ошибка: ${err.message}`));
+                    }, 'Выдать', '#007aff');
+                    return;
+                }
+            });
+
+            // Сабмит формы настроек
+            document.getElementById('twitch-reward-settings-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const payload = {
+                    id: parseInt(form.elements['reward_id'].value),
+                    is_active: form.elements['is_active'].checked,
+                    notify_admin: form.elements['notify_admin'].checked,
+                    show_user_input: form.elements['show_user_input'].checked,
+                    condition_type: form.elements['condition_type'].value || null,
+                    target_value: form.elements['target_value'].value ? parseInt(form.elements['target_value'].value) : null
+                };
+
+                if (hasAdminAccess) {
+                    payload.reward_type = form.elements['reward_type'].value;
+                    payload.reward_amount = payload.reward_type === 'none' ? 0 : parseInt(form.elements['reward_amount'].value || 10);
+                    payload.promocode_amount = payload.reward_amount;
+                    payload.sort_order = form.elements['sort_order'].value ? parseInt(form.elements['sort_order'].value) : null;
+                } else {
+                    payload.promocode_amount = parseInt(form.elements['promocode_amount'].value);
+                    payload.reward_type = 'promocode'; 
+                    payload.reward_amount = payload.promocode_amount;
+                }
+
+                await makeApiRequest('/api/v1/admin/twitch_rewards/update', payload);
+                document.getElementById('twitch-reward-settings-modal').classList.add('hidden');
+                tg.showAlert('Настройки сохранены!');
+                loadTwitchRewards();
+            });
+
+            // Удаление награды
+            document.getElementById('delete-twitch-reward-btn').addEventListener('click', () => {
+                const rid = parseInt(document.getElementById('twitch-reward-settings-form').elements['reward_id'].value);
+                showCustomConfirmHTML('Удалить награду и ВСЕ ее покупки? Необратимо.', () => {
+                    makeApiRequest('/api/v1/admin/twitch_rewards/delete', { reward_id: rid }, 'POST')
+                        .then(() => {
+                            document.getElementById('twitch-reward-settings-modal').classList.add('hidden');
+                            loadTwitchRewards();
+                            tg.showPopup({ message: 'Награда удалена' });
+                        })
+                        .catch(err => tg.showAlert(`Ошибка: ${err.message}`));
+                });
+            });
+
+            // Смена типа
+            document.getElementById('reward-type-select').addEventListener('change', (e) => {
+                const isNone = e.target.value === 'none';
+                const input = document.getElementById('reward-amount-input');
+                input.required = !isNone;
+                input.style.display = isNone ? 'none' : 'block';
+                input.previousElementSibling.style.display = isNone ? 'none' : 'block';
+            });
+
+            // Пароль модератора
+            document.getElementById('password-prompt-confirm').addEventListener('click', async () => {
+                const pw = document.getElementById('password-prompt-input').value;
+                if (pw === ADMIN_PASSWORD) {
+                    hasAdminAccess = true;
+                    document.getElementById('password-prompt-overlay').classList.add('hidden');
+                    if (afterPasswordCallback) afterPasswordCallback();
+                } else {
+                    try {
+                        const res = await makeApiRequest('/api/v1/admin/verify_password', { password: pw });
+                        if (res.success) {
+                            document.getElementById('password-prompt-overlay').classList.add('hidden');
+                            if (afterPasswordCallback) afterPasswordCallback();
+                        } else tg.showAlert('Неверный пароль');
+                    } catch (e) { tg.showAlert('Ошибка проверки'); }
+                }
+            });
+            
+            document.getElementById('password-prompt-cancel').addEventListener('click', () => {
+                 document.getElementById('password-prompt-overlay').classList.add('hidden');
+                 document.getElementById('password-prompt-input').value = '';
+            });
+        });
+    </script>
+</body>
+</html>

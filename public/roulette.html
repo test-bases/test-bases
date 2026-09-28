@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Яркая Рулетка для Стрима</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: transparent;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        /* Надпись текущей награды — чуть ниже */
+        .current-prize {
+            position: absolute;
+            top: 10%; /* сдвинули вниз */
+            width: 100%;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #FFD700;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* Контейнер рулетки */
+        .roulette-wrapper {
+            position: relative;
+            width: 80%;
+            max-width: 1000px;
+            height: 200px;
+            margin-top: -100px;
+            opacity: 0;
+            transform: translateY(-50px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .roulette-wrapper.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .roulette-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        .roulette-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #111 0%, #333 100%);
+            filter: blur(25px);
+            transform: scale(1.2);
+            z-index: 0;
+        }
+
+        /* Указатель */
+        .pointer-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: #ffc107;
+            box-shadow: 0 0 18px #ffc107, 0 0 8px rgba(255, 255, 255, 0.8);
+            z-index: 10;
+        }
+        .pointer-line::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid #ffc107;
+        }
+        .pointer-line::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%) rotate(180deg);
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid #ffc107;
+        }
+
+        /* Лента с призами */
+        .reel {
+            display: flex;
+            position: absolute;
+            left: 50%;
+        }
+
+        /* Карточка приза — сдвиг вверх */
+        .item {
+            min-width: 180px;
+            height: 180px;
+            margin: 0 7px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, filter 0.3s ease;
+            filter: brightness(1.05);
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transform: scale(0.78);
+            position: relative;
+            top: -10px; /* сдвиг вверх */
+        }
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        .item.winner {
+            transform: scale(0.85);
+            border-color: #ffeb3b;
+            box-shadow: 0 0 35px #ffeb3b, 0 0 15px rgba(255, 255, 255, 0.9);
+            filter: brightness(1.2) contrast(1.1);
+        }
+
+        /* Окно победителя */
+        .winner-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: center;
+            color: #fff;
+            font-size: 26px;
+            font-weight: bold;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            z-index: 20;
+        }
+        .winner-display::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #222 0%, #555 100%);
+            filter: blur(20px);
+            border-radius: 18px;
+            z-index: 0;
+        }
+        .winner-display.visible { opacity: 1; }
+        .winner-display .winner-prize-image {
+            position: relative;
+            z-index: 1;
+            width: 130px;
+            height: 130px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        .winner-display .winner-prize-name {
+            position: relative;
+            z-index: 1;
+            font-size: 32px;
+            color: #FFD700;
+            margin-top: 12px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+        .winner-display .winner-user-name {
+            position: relative;
+            z-index: 1;
+            font-size: 38px;
+            color: #FFD700;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="current-prize" class="current-prize"></div>
+
+    <audio id="sound-start" src="/public/sounds/start.mp3"></audio>
+    <audio id="sound-tick" src="/public/sounds/tick.mp3" loop></audio>
+    <audio id="sound-win" src="/public/sounds/win.mp3"></audio>
+
+    <div class="roulette-wrapper" id="roulette-wrapper">
+        <div class="roulette-container">
+            <div class="pointer-line"></div>
+            <div class="reel" id="reel"></div>
+        </div>
+    </div>
+
+    <div class="winner-display" id="winner-display">
+        <div id="winner-user-text" class="winner-user-name"></div>
+        <img id="winner-prize-image" class="winner-prize-image" src="" alt="Winner Prize">
+        <div id="winner-prize-name" class="winner-prize-name"></div>
+    </div>
+
+<script>
+    const ITEM_WIDTH = 180;
+    const ITEM_MARGIN = 14;
+    const REEL_REPEAT_COUNT = 20;
+    const SCROLL_DURATION_SECONDS = 9;
+    const WINNER_DISPLAY_DURATION_MS = 8000;
+
+    const SUPABASE_URL = 'https://pyeuckjcrsiaseyqrsek.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg';
+
+    const rouletteWrapper = document.getElementById('roulette-wrapper');
+    const reel = document.getElementById('reel');
+    const winnerDisplay = document.getElementById('winner-display');
+    const winnerUserText = document.getElementById('winner-user-text');
+    const winnerPrizeImage = document.getElementById('winner-prize-image');
+    const winnerPrizeName = document.getElementById('winner-prize-name');
+    const currentPrizeText = document.getElementById('current-prize');
+
+    const soundStart = document.getElementById('sound-start');
+    const soundTick = document.getElementById('sound-tick');
+    const soundWin = document.getElementById('sound-win');
+
+    let isAnimating = false;
+    const animationQueue = [];
+    
+    // --- 🛡️ ПЕРЕМЕННЫЕ ЗАЩИТЫ ОТ ДУБЛЕЙ ---
+    let processedIds = new Set(); // Храним ID обработанных записей Supabase
+    let lastSpinTime = 0;         // Время последнего запуска
+    // -------------------------------------
+
+    // Безопасное воспроизведение звука (чтобы не было красных ошибок в консоли)
+    function playSound(audioElem) {
+        if (!audioElem) return;
+        audioElem.pause();
+        audioElem.currentTime = 0;
+        // Пытаемся воспроизвести, если ошибка — просто игнорируем
+        audioElem.play().catch(e => {
+            console.warn("Audio autoplay blocked by browser (normal for OBS without interaction).");
+        });
+    }
+
+    function stopSound(audioElem) {
+        if (audioElem) { audioElem.pause(); audioElem.currentTime = 0; }
+    }
+
+    function startRouletteAnimation(payload) {
+        const rowId = payload.new.id; // Уникальный ID записи в базе
+        const newPayload = payload.new.payload;
+        const now = Date.now();
+
+        console.log("📨 Получен сигнал Supabase. ID:", rowId);
+
+        // 1. ПРОВЕРКА ПО ID ЗАПИСИ
+        // Если мы уже крутили рулетку по этой записи из базы — игнорируем
+        if (processedIds.has(rowId)) {
+            console.warn("⛔ Дубликат по ID базы данных. Игнорируем.");
+            return;
+        }
+        
+        // 2. ПРОВЕРКА ПО ВРЕМЕНИ (Глобальный кулдаун 5 секунд)
+        // Если рулетка запустилась меньше 5 секунд назад — игнорируем всё
+        if (now - lastSpinTime < 5000) {
+             console.warn("⛔ Слишком частый запуск (анти-спам). Игнорируем.");
+             return;
+        }
+
+        // Добавляем ID в список обработанных и обновляем время
+        processedIds.add(rowId);
+        lastSpinTime = now;
+        
+        // Очищаем старые ID, чтобы память не текла (оставляем последние 50)
+        if (processedIds.size > 50) {
+            const arr = Array.from(processedIds);
+            processedIds = new Set(arr.slice(arr.length - 20));
+        }
+
+        console.log("✅ Валидация пройдена. Добавляем в очередь.");
+        animationQueue.push(payload);
+        
+        if (!isAnimating) processNextAnimation();
+    }
+
+    function processNextAnimation() {
+        if (!animationQueue.length) return;
+        const payload = animationQueue.shift();
+        isAnimating = true;
+        
+        runAnimation(payload).finally(() => {
+            isAnimating = false;
+            // Небольшая пауза перед следующим возможным запуском
+            setTimeout(processNextAnimation, 1000); 
+        });
+    }
+
+    function runAnimation(payload) {
+        return new Promise((resolve) => {
+            console.log("🚀 Старт анимации...");
+            const { prizes, winner_index, user_name, prize_name } = payload.new.payload;
+
+            currentPrizeText.textContent = prize_name;
+
+            reel.innerHTML = '';
+            reel.style.transition = 'none';
+            reel.style.transform = 'translateX(0px)';
+            winnerDisplay.classList.remove('visible');
+
+            const existingWinner = document.querySelector('.item.winner');
+            if (existingWinner) existingWinner.classList.remove('winner');
+
+            let fullPrizeList = [];
+            for (let i = 0; i < REEL_REPEAT_COUNT; i++) fullPrizeList.push(...prizes);
+
+            fullPrizeList.forEach(prize => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item';
+                itemElement.innerHTML = `<img src="${prize.image_url}" alt="${prize.skin_name}">`;
+                reel.appendChild(itemElement);
+            });
+
+            const itemFullWidth = ITEM_WIDTH + ITEM_MARGIN;
+            const winnerPositionInFullList = (REEL_REPEAT_COUNT - 2) * prizes.length + winner_index;
+            const randomShift = Math.random() * (ITEM_WIDTH * 0.5) - (ITEM_WIDTH * 0.25);
+            const distanceToWinnerCenter = (winnerPositionInFullList * itemFullWidth) + (ITEM_WIDTH / 2);
+            const stopPosition = -distanceToWinnerCenter + randomShift;
+
+            rouletteWrapper.classList.add('visible');
+            playSound(soundStart);
+
+            // Задержка перед началом вращения
+            setTimeout(() => {
+                reel.style.transition = `transform ${SCROLL_DURATION_SECONDS}s cubic-bezier(.25, 1, .5, 1)`;
+                reel.style.transform = `translateX(${stopPosition}px)`;
+                playSound(soundTick);
+            }, 800);
+
+            // Обработчик окончания вращения
+            const transitionEndHandler = function() {
+                reel.removeEventListener('transitionend', transitionEndHandler); // Важно удалить слушатель!
+                
+                stopSound(soundTick);
+                playSound(soundWin);
+
+                const allItems = document.querySelectorAll('.item');
+                const actualWinnerElement = allItems[winnerPositionInFullList];
+                if (actualWinnerElement) actualWinnerElement.classList.add('winner');
+
+                setTimeout(() => {
+                    rouletteWrapper.classList.remove('visible');
+                    winnerDisplay.classList.add('visible');
+                    winnerUserText.textContent = user_name;
+                    winnerPrizeImage.src = prizes[winner_index].image_url;
+                    winnerPrizeName.textContent = prizes[winner_index].skin_name;
+
+                    setTimeout(() => {
+                        winnerDisplay.classList.remove('visible');
+                        currentPrizeText.textContent = '';
+                        console.log("🏁 Анимация завершена.");
+                        resolve();
+                    }, WINNER_DISPLAY_DURATION_MS);
+
+                }, 1000);
+            };
+
+            reel.addEventListener('transitionend', transitionEndHandler);
+        });
+    }
+
+    try {
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log("📡 Подключение к Supabase...");
+        
+        supabaseClient.channel('roulette-triggers-channel')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'roulette_triggers' },
+                payload => startRouletteAnimation(payload)
+            ).subscribe((status) => {
+                console.log("Статус подписки Supabase:", status);
+            });
+    } catch (error) { console.error("Supabase Error:", error); }
+</script>
+</body>
+</html>

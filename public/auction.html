@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Аукцион</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/public/auction.css" />
+</head>
+<body>
+    <div id="loader-overlay" class="loader-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <main id="main-content">
+        <div id="pull-to-refresh">
+            <i class="fa-solid fa-rotate-right"></i>
+        </div>
+
+        <div class="container">
+            <div class="new-header-container" id="app-container">
+                <div class="page-header">
+                    <h2 class="page-title">АУКЦИОН</h2>
+                </div>
+            </div>
+            
+            <div id="auctions-list" class="auctions-container">
+            </div>
+
+            <button id="archive-btn" class="archive-toggle-btn">
+                <i class="fa-solid fa-box-archive"></i> Архив выигрышей
+            </button>
+
+            <div class="info-blocks-container">
+                <div class="info-block">
+                    <i class="fa-solid fa-gavel info-icon"></i>
+                    <div class="info-text-content">
+                        <h3 class="info-title">Как это работает?</h3>
+                        <p class="info-description">Делайте ставку. Ваша ставка должна быть выше текущей.</p>
+                    </div>
+                </div>
+                <div class="info-block">
+                    <i class="fa-solid fa-hourglass-half info-icon"></i>
+                    <div class="info-text-content">
+                        <h3 class="info-title">Таймер перехвата</h3>
+                        <p class="info-description">После каждой новой ставки запускается таймер. Если никто не перебьет вашу ставку за это время — вы победили.</p>
+                    </div>
+                </div>
+                <div class="info-block">
+                    <i class="fa-solid fa-shield-halved info-icon"></i>
+                    <div class="info-text-content">
+                        <h3 class="info-title">Честная игра</h3>
+                        <p class="info-description">Билеты списываются <b>только</b> у победителя. Если вашу ставку перебили, ваши билеты не тратятся.</p>
+                    </div>
+                </div>
+            </div> 
+        </div> 
+    </main> 
+    
+    <div id="bid-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="bid-modal-title" style="margin: 0;">Сделать ставку</h3>
+                <button type="button" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 14px; color: var(--text-secondary);">
+                    Ваш баланс: <strong id="user-balance-display" style="color: var(--text-primary);">0</strong> 🎟️
+                </p>
+                <form id="bid-modal-form" class="modal-form">
+                    <input type="hidden" id="bid-auction-id-input">
+                    <input type="hidden" id="bid-current-min-input"> 
+                    <label>Ваша ставка (билеты)</label>
+                    <input type="number" id="bid-amount-input" required min="1" placeholder="Больше чем...">
+                    <button type="submit">Подтвердить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="bids-history-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="bids-history-modal-title" style="margin: 0;">Все ставки</h3>
+                <button type="button" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul id="bids-history-list">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="archive-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0;">История побед</h3>
+                <button type="button" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="archive-list" class="archive-list">
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- НИЖНИЙ И ВЕРХНИЙ БАР -->
+<script src="/top_nav.js" defer></script>
+<script src="/bottom-nav.js"></script>
+
+    <script src="/public/auction.js"></script>
+</body>
+</html>

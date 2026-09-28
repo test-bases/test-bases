@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Ежедневный Гринд</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+  
+  <style>
+    :root {
+      --background-main: #111111;
+      --surface-primary: #1C1C1C;
+      --surface-secondary: #2C2C2C;
+      --border-color: #333333;
+      --text-primary: #f0f0f5;
+      --text-secondary: #AAAAAA;
+      --accent-primary: #FFD700; /* Золото */
+      --accent-secondary: #FF9500; /* Оранжевый */
+      --card-bg-glass: rgba(28, 28, 28, 0.75);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background-main);
+      color: var(--text-primary);
+      margin: 0;
+      /* ПАДДИНГИ УДАЛЕНЫ */
+      overflow-x: hidden;
+      background-image: url('https://i.postimg.cc/Dyks29xc/fon-variant1.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    /* ХЕДЕР */
+    .new-header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        margin-bottom: 20px; 
+        padding: 5px 0;
+    }
+
+    .header-back-button {
+        display: flex; 
+        align-items: center; 
+        gap: 6px;
+        background: none; 
+        border: none; 
+        color: #007aff; /* Синий цвет (Action color) как в профиле */
+        font-size: 12px; /* Размер шрифта как в профиле */
+        cursor: pointer; 
+        padding: 5px 0;
+        font-weight: 500; 
+        text-decoration: none;
+        position: relative; 
+        z-index: 2;
+        transition: opacity 0.2s ease;
+    }
+    .header-back-button:active { 
+        opacity: 0.7; 
+    }
+
+    .page-header {
+        position: absolute; left: 0; right: 0; top: 50%;
+        transform: translateY(-50%); text-align: center; z-index: 1;
+    }
+    .page-title {
+        font-size: 18px; font-weight: 700; margin: 0;
+        color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* КАРТОЧКИ */
+    .glass-card {
+        background-color: var(--card-bg-glass);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* БАЛАНСЫ */
+    .balance-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .balance-item {
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .balance-label {
+        font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;
+    }
+
+    .balance-value {
+        font-size: 16px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;
+        min-height: 20px;
+    }
+    
+    .coin-icon { color: var(--accent-primary); text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+    .ticket-icon { color: #00f2ea; text-shadow: 0 0 10px rgba(0, 242, 234, 0.4); }
+
+    /* ГРИНД */
+    .section-title {
+        font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px;
+        display: flex; align-items: center; gap: 6px; text-transform: uppercase;
+    }
+    .section-title i { color: var(--accent-secondary); }
+
+    .streak-wrapper {
+        display: flex; justify-content: space-between; align-items: center;
+        position: relative; margin: 20px 5px 25px;
+    }
+
+    .streak-line-bg {
+        position: absolute; top: 50%; left: 0; right: 0; height: 2px;
+        background: var(--border-color); transform: translateY(-50%); z-index: 0;
+    }
+
+    .streak-line-fill {
+        position: absolute; top: 50%; left: 0; height: 2px;
+        background: var(--accent-primary); transform: translateY(-50%); z-index: 1;
+        width: 0%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--accent-primary);
+    }
+
+    .streak-step {
+        width: 24px; height: 24px; background: var(--surface-primary);
+        border: 1px solid var(--border-color); border-radius: 50%; z-index: 2;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 9px; color: var(--text-secondary); font-weight: 700; transition: all 0.3s ease;
+    }
+
+    .streak-step.active {
+        border-color: var(--accent-primary); background: var(--background-main);
+        color: var(--text-primary); transform: scale(1.2); box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .streak-step.completed {
+        background: var(--accent-primary); border-color: var(--accent-primary); color: #000;
+    }
+
+    .grind-info {
+        text-align: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;
+        background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;
+    }
+    .grind-info span { color: var(--accent-primary); font-weight: 700; }
+
+    /* Буст Инфо */
+    .boost-details {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px dashed rgba(255,255,255,0.1);
+        font-size: 10px;
+        color: #34c759;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .boost-row { display: flex; justify-content: space-between; padding: 0 10px; }
+
+    .main-action-btn {
+        width: 100%; padding: 12px; background-color: var(--accent-primary);
+        color: #000; font-size: 13px; font-weight: 700; border: none; border-radius: 6px;
+        cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+        transition: transform 0.1s; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+        position: relative; overflow: hidden;
+    }
+    .main-action-btn:active { transform: scale(0.98); }
+    .main-action-btn:disabled {
+        background-color: var(--surface-secondary); color: var(--text-secondary);
+        cursor: not-allowed; box-shadow: none;
+    }
+
+    /* МАГАЗИН */
+    .open-shop-card {
+        display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        transition: transform 0.2s; border-color: var(--accent-secondary);
+    }
+    .open-shop-card:active { transform: scale(0.98); }
+    .shop-info-left { display: flex; align-items: center; gap: 12px; }
+    .shop-icon-large { font-size: 24px; color: var(--accent-secondary); }
+    .shop-text h4 { margin: 0; font-size: 13px; color: var(--text-primary); }
+    .shop-text p { margin: 2px 0 0; font-size: 10px; color: var(--text-secondary); }
+    .shop-arrow { color: var(--text-secondary); font-size: 12px; }
+
+    /* МОДАЛКА */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--tg-viewport-height, 100vh); /* 🔥 Точная высота под Telegram */
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    padding: 20px; 
+    box-sizing: border-box; 
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+    .modal-content {
+        background-color: var(--surface-primary); border: 1px solid var(--accent-primary);
+        border-radius: 12px; width: 90%; max-width: 360px;
+        box-shadow: 0 10px 40px rgba(255, 215, 0, 0.15);
+        display: flex; flex-direction: column; position: relative;
+        max-height: 85vh;
+    }
+
+    .modal-header {
+        padding: 15px; border-bottom: 1px solid var(--border-color);
+        display: flex; justify-content: space-between; align-items: center;
+        background: var(--surface-primary); border-radius: 12px 12px 0 0;
+    }
+    
+    .shop-tabs { display: flex; gap: 10px; }
+    .tab-btn {
+        background: transparent; border: none; color: var(--text-secondary);
+        font-size: 13px; font-weight: 600; padding: 5px 10px; cursor: pointer;
+        border-radius: 6px; transition: all 0.2s; text-transform: uppercase;
+    }
+    .tab-btn.active { background: rgba(255, 215, 0, 0.1); color: var(--accent-primary); }
+
+    .modal-close-btn { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
+    .modal-body { padding: 15px; overflow-y: auto; }
+    .shop-grid { display: flex; flex-direction: column; gap: 10px; min-height: 150px; }
+
+    .exchange-item {
+        background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
+        border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .exchange-details { display: flex; flex-direction: column; gap: 2px; }
+    .exchange-title { font-size: 12px; color: var(--text-primary); font-weight: 600; }
+    .exchange-cost { font-size: 10px; color: var(--accent-primary); }
+    
+    .mini-btn {
+        background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary);
+        padding: 6px 12px; font-size: 10px; font-weight: 600; border-radius: 4px;
+        text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+    }
+    .mini-btn:hover { background: var(--accent-primary); color: #000; }
+    .mini-btn:disabled { border-color: var(--border-color); color: var(--text-secondary); pointer-events: none; opacity: 0.5; }
+
+    /* БЕСПЛАТНЫЙ БИЛЕТ */
+    .free-ticket-section {
+        border: 1px dashed var(--text-secondary); padding: 12px; border-radius: 8px;
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: 10px; background: rgba(255,255,255,0.02);
+    }
+    .free-ticket-text { font-size: 11px; color: var(--text-secondary); }
+    .free-ticket-title { font-size: 12px; font-weight: 700; color: #fff; display: block; margin-bottom: 2px; }
+
+    /* FOOTER */
+    .app-footer {
+        display: flex; justify-content: space-around; align-items: center;
+        background-color: rgba(28, 28, 30, 0.85); backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.1);
+        position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
+        padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        box-sizing: border-box;
+    }
+    .footer-item {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        color: #8E8E93; text-decoration: none; flex: 1; cursor: pointer;
+        background: transparent; border: none; padding: 0; margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; line-height: 1; font-weight: 500;
+    }
+    .footer-item .icon-wrapper {
+        display: flex; justify-content: center; align-items: center; width: 24px; height: 24px;
+        font-size: 22px; position: relative; transition: transform 0.2s ease, color 0.2s ease;
+    }
+    .footer-item.active { color: #FFFFFF; }
+    .footer-item.active .icon-wrapper {
+        color: #34c759; transform: translateY(-2px); text-shadow: 0 0 12px rgba(52, 199, 89, 0.6);
+    }
+    .footer-item.active .icon-wrapper::before {
+        content: ''; position: absolute; top: -8px; width: 20px; height: 2px;
+        background-color: #34c759; border-radius: 2px; box-shadow: 0 0 5px rgba(52, 199, 89, 0.8);
+    }
+
+    .shine {
+        position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shine 3s infinite;
+    }
+    @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+    
+    .float-anim {
+        animation: floatUp 1s ease-out forwards;
+        position: absolute; font-weight: 800; font-size: 16px; pointer-events: none; z-index: 100;
+    }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
+
+    /* --- СТИЛИ ДЛЯ SUCCESS МОДАЛКИ --- */
+.success-modal-content {
+    background: linear-gradient(160deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
+    text-align: center;
+    padding: 30px 20px;
+    width: 85%;
+    max-width: 320px;
+    border-radius: 16px;
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.visible .success-modal-content {
+    transform: scale(1);
+}
+
+.success-icon-box {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 20px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid var(--accent-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+    position: relative;
+}
+
+.success-icon-box i {
+    font-size: 32px;
+    color: var(--accent-primary);
+    animation: popIn 0.5s ease;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.success-title-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.success-desc-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* Блок для промокода (если есть) */
+.promo-copy-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed var(--accent-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.promo-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.promo-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    font-family: monospace;
+    user-select: text; /* Чтобы можно было выделить */
+    cursor: pointer;
+}
+
+.btn-close-success {
+    background: var(--accent-primary);
+    color: #000;
+    border: none;
+    font-weight: 700;
+    padding: 12px 0;
+    width: 100%;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25);
+    transition: transform 0.1s;
+}
+
+.btn-close-success:active {
+    transform: scale(0.96);
+}
+    /* --- СТИЛИ ДЛЯ КНОПКИ "ГДЕ ИСПОЛЬЗОВАТЬ" И ПОПАПА ИНСТРУКЦИИ --- */
+
+/* Кнопка (копия из профиля) */
+.reward-how-to-use-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #007aff; /* Action color */
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    text-decoration: none;
+    margin-top: 5px;
+    margin-bottom: 15px; /* Отступ снизу в модалке */
+    width: 100%; /* На всю ширину в модалке */
+}
+.reward-how-to-use-btn i {
+    font-size: 13px;
+}
+.reward-how-to-use-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+.reward-how-to-use-btn:active {
+    transform: scale(0.96);
+}
+/* === ГЛАВНАЯ ЗАЩИТА ОТ СВОРАЧИВАНИЯ === */
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        /* Берем точную высоту экрана от Telegram, чтобы футер не проваливался */
+        height: var(--tg-viewport-height, 100%); 
+        position: fixed; 
+        overflow: hidden; 
+        overscroll-behavior-y: none; 
+        background-color: #111; 
+    }
+
+    /* === РАЗРЕШАЕМ СКРОЛЛ ВНУТРИ === */
+    #main-content {
+        height: 100%; 
+        overflow-y: auto !important; 
+        -webkit-overflow-scrolling: touch; 
+        box-sizing: border-box;
+        
+        /* 🔥 МЕНЯЕМ ЭТУ СТРОКУ: */
+        padding: 5px 15px 120px 15px; 
+    }
+    /* === PULL TO REFRESH СТИЛИ (ЭТОГО НЕ ХВАТАЛО) === */
+    #pull-to-refresh {
+        position: fixed;
+        top: -80px;      /* Спрятан НАД экраном */
+        left: 0;
+        width: 100%;
+        height: 80px;    
+        
+        display: flex;
+        justify-content: center;
+        align-items: center; 
+        
+        z-index: 2000;    /* Выше чем main-content */
+        
+        background: transparent;
+        pointer-events: none;
+        padding: 0;
+        will-change: transform;
+    }
+
+    #pull-to-refresh i {
+        font-size: 24px; 
+        color: #FFD700;
+        opacity: 1;          
+        transform: scale(1);
+        transition: opacity 0.2s, transform 0.2s;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    }
+
+/* Стили попапа "Как использовать" (адаптированные под events.html) */
+.custom-popup {
+    background-color: #1c1c1e;
+    border-radius: 14px;
+    padding: 20px;
+    width: 100%; 
+    max-width: 340px; /* Ограничиваем ширину */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transform: scale(0.95);
+    transition: transform 0.2s;
+    
+    /* 🔥 ГЛАВНЫЕ ИСПРАВЛЕНИЯ 🔥 */
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh; /* Высота не больше 85% от экрана */
+    overflow-y: auto; /* Включаем скролл, если не влезает */
+}
+.modal-overlay.visible .custom-popup {
+    transform: scale(1);
+}
+.custom-popup h3 { margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #fff; }
+.custom-popup p { margin: 0 0 15px 0; font-size: 14px; color: #b0b0b0; line-height: 1.4; }
+
+/* Кнопки внутри попапа */
+.popup-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+.popup-btn { 
+    width: 100%; border: none; padding: 12px; border-radius: 10px; 
+    font-size: 16px; font-weight: 600; cursor: pointer; 
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-decoration: none;
+}
+.popup-btn.primary { background-color: #34c759; color: white; } /* Green */
+.popup-btn.secondary { background-color: #3a3a3c; color: white; }
+
+/* Текст-подсказка "Сохранено в профиле" */
+.saved-in-profile-text {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 5px;
+    display: block;
+}
+/* Исправление для картинки/гифки */
+.custom-popup img {
+    max-width: 100%; /* Картинка не вылезет за ширину */
+    height: auto;    /* Пропорции сохранятся */
+    max-height: 40vh; /* Картинка не займет больше 40% высоты экрана */
+    object-fit: contain;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+.custom-popup h3 { 
+    margin: 0 0 10px 0; 
+    font-size: 18px; 
+    font-weight: 600; 
+    color: #fff;
+    flex-shrink: 0; /* Заголовок не сжимается */
+}
+
+.custom-popup p { 
+    margin: 0 0 10px 0; 
+    font-size: 14px; 
+    color: #b0b0b0; 
+    line-height: 1.4;
+    flex-shrink: 0; 
+}
+
+/* Кнопки */
+.popup-actions { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    margin-top: 10px; 
+    flex-shrink: 0; /* Кнопки не сжимаются и не исчезают */
+}
+
+  </style>
+</head>
+<body>
+<main id="main-content">
+  <div id="pull-to-refresh">
+      <i class="fa-solid fa-rotate-right"></i> 
+  </div>
+
+  <div class="new-header-container">
+    <div class="page-header">
+        <h1 class="page-title">Гринд</h1>
+    </div>
+  </div>
+
+  <div class="balance-grid">
+    <div class="balance-item">
+        <span class="balance-label">Гринд-монеты</span>
+        <div class="balance-value">
+            <span id="user-coins">...</span> <i class="fa-solid fa-coins coin-icon"></i>
+        </div>
+    </div>
+    <div class="balance-item">
+        <span class="balance-label">Билеты</span>
+        <div class="balance-value">
+            <span id="user-tickets">...</span> <i class="fa-solid fa-ticket ticket-icon"></i>
+        </div>
+    </div>
+  </div>
+
+  <div class="glass-card" style="padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; min-height: 50px;">
+      <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-crown" style="color: var(--accent-primary);"></i>
+          Статус аккаунта
+      </div>
+      
+      <div id="user-status" style="text-align: right; font-size: 13px; font-weight: 800; color: var(--accent-primary); line-height: 1.2;">
+          <span style="opacity: 0.5; font-size: 11px;">Загрузка...</span>
+      </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-fire"></i> Ежедневная Серия</div>
+    
+    <div class="streak-wrapper">
+        <div class="streak-line-bg"></div>
+        <div class="streak-line-fill" id="streak-bar"></div>
+        <div id="streak-steps" style="display: flex; justify-content: space-between; width: 100%; position: relative;"></div>
+    </div>
+
+    <div class="grind-info">
+        День серии: <span id="current-streak-day">1</span> / 10 <br>
+        Награда сегодня: <span id="today-reward">+0.1</span>
+        
+        <div id="boost-container" class="boost-details" style="display: none;">
+            </div>
+    </div>
+
+    <button id="grind-btn" class="main-action-btn" disabled>
+        <span id="grind-btn-text">Загрузка...</span>
+        <div class="shine"></div>
+    </button>
+  </div>
+
+  <div class="glass-card open-shop-card" onclick="openShopModal()">
+    <div class="shop-info-left">
+        <i class="fa-solid fa-shop shop-icon-large"></i>
+        <div class="shop-text">
+            <h4>Обменник гринд монет (магазин наград)</h4>
+            <p>Обмен гринд монет на билеты и промокоды</p>
+        </div>
+    </div>
+    <div class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+  </div>
+
+ <div class="free-ticket-section">
+    <div>
+        <span class="free-ticket-title">Ежедневный билет</span>
+        <span class="free-ticket-text" id="ticket-subtitle">Бесплатно раз в 24ч</span>
+    </div>
+    <div id="free-ticket-container"></div>
+  </div>
+
+</main> <!-- ЗАКРЫВАЕМ MAIN ЗДЕСЬ -->
+
+<!-- 🔥 ВЫНЕСЛИ МОДАЛКИ СЮДА, НАПРЯМУЮ В BODY 🔥 -->
+<div id="shop-modal" class="modal-overlay">
+  <div class="modal-content">
+      <div class="modal-header">
+          <div class="shop-tabs">
+              <button class="tab-btn active" id="tab-tickets" onclick="switchTab('tickets')">Билеты</button>
+              <button class="tab-btn" id="tab-promos" onclick="switchTab('promos')">Монеты</button>
+          </div>
+          <button class="modal-close-btn" onclick="closeShopModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+          <div class="shop-grid" id="shop-container"></div>
+      </div>
+  </div>
+</div>
+
+<div id="success-modal" class="modal-overlay">
+  <div class="success-modal-content">
+      <div class="success-icon-box">
+          <i class="fa-solid fa-check"></i>
+      </div>
+      <div class="success-title-text">Успешно!</div>
+      <div class="success-desc-text" id="success-message">
+          Покупка совершена. (зачисление может занять до минуты)
+      </div>
+      
+      <div id="success-promo-container" class="promo-copy-box" style="display: none;">
+          <span class="promo-label">Ваш код (нажмите чтобы скопировать):</span>
+          <span class="promo-value" id="success-promo-code" onclick="copyPromo(this)">CODE123</span>
+      </div>
+
+      <div id="promo-instruction-block" style="display: none;">
+          <span class="saved-in-profile-text">
+              <i class="fa-solid fa-floppy-disk"></i> Код также сохранен в вашем профиле
+          </span>
+          <button class="reward-how-to-use-btn" onclick="openHowToUsePopup()">
+              <i class="fa-solid fa-circle-question"></i> Как использовать?
+          </button>
+      </div>
+      <button class="btn-close-success" onclick="closeSuccessModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- НИЖНИЙ И ВЕРХНИЙ БАР -->
+<script src="/top_nav.js" defer></script>
+<script src="/bottom-nav.js"></script>
+
+<div id="how-to-use-popup" class="modal-overlay">
+    <div class="custom-popup">
+        <h3>Как использовать код?</h3>
+        <p>Скопируйте код и активируйте его в боте.</p>
+        
+        <img src="https://i.postimg.cc/k4WyP04y/IMG-9212.gif" alt="Инструкция">
+        
+        <div class="popup-actions">
+            <a href="https://t.me/HATElavka_bot" class="popup-btn primary">
+                <i class="fa-brands fa-telegram"></i> Открыть HATElavka
+            </a>
+            <button onclick="closeHowToUsePopup()" class="popup-btn secondary">
+                Закрыть
+            </button>
+        </div>
+    </div>
+</div>
+</footer>
+
+<script>
+  // ==========================================
+    // 🛡️ ВСТАВЛЯЕМ СЮДА (САМЫЙ ВЕРХ)
+    // ==========================================
+    async function checkMaintenance() {
+        try {
+            // Проверяем статус сервера
+            const res = await fetch('/api/v1/bootstrap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // Используем безопасное получение initData
+                body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                
+                // Если включен режим сна (maintenance: true)
+                if (data.maintenance) {
+                    console.warn("⛔ Тех. режим включен. Редирект на главную.");
+                    // Скрываем интерфейс, чтобы не моргнул
+                    document.body.innerHTML = ""; 
+                    // Выкидываем на заглушку
+                    window.location.href = '/'; 
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка проверки статуса:", e);
+        }
+    }
+
+    // Запускаем проверку мгновенно
+    checkMaintenance();
+
+  // Добавь это, чтобы top_nav.js мог делать запросы
+window.makeApiRequest = async function(url, data = {}, method = 'POST', silent = false) {
+    const options = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    // Автоматически подкидываем initData для авторизации
+    if (method === 'POST') {
+        options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data });
+    }
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error('API Error');
+    return await response.json();
+};
+    // ==========================================
+    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ФУНКЦИИ (Доступны всегда) ---
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // --- ЛОВИМ ФЛАГ ПОКУПОК ИЗ КЭША БУТСТРАПА ---
+    window.coinsPurchasesEnabled = true;
+    try {
+        const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+        if (cachedBootstrap?.menu?.coins_purchases_enabled !== undefined) {
+            window.coinsPurchasesEnabled = cachedBootstrap.menu.coins_purchases_enabled;
+        }
+    } catch(e) {}
+    // --------------------------------------------
+
+  // ==========================================
+    // 🔙 ЛОГИКА КНОПКИ НАЗАД (1в1 ИЗ ПРОФИЛЯ)
+
+  // ==========================================
+    // 🔙 ЛОГИКА КНОПКИ НАЗАД (1в1 ИЗ ПРОФИЛЯ)
+    // ==========================================
+    function goBack() {
+        // Проверяем историю браузера
+        if (window.history.length > 1 && document.referrer) {
+            window.history.back();
+        } else {
+            // Если истории нет, идем принудительно в меню
+            window.location.href = '/menu';
+        }
+    }
+
+    // 2. Настраиваем нативную кнопку Telegram (в шапке самого мессенджера)
+    tg.BackButton.show();
+    tg.BackButton.onClick(() => {
+        goBack();
+    });
+
+    // 1. Исправленная функция копирования
+    window.copyPromo = function(element) {
+        // Берем текст конкретно по ID, чтобы избежать ошибок с передачей 'this'
+        const codeElement = document.getElementById('success-promo-code');
+        if (!codeElement) return;
+
+        const codeToCopy = codeElement.innerText.trim(); // Убираем пробелы
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(codeToCopy)
+                .then(() => {
+                    tg.showPopup({ message: 'Код скопирован!' });
+                    // Визуальный эффект
+                    codeElement.style.opacity = '0.5';
+                    setTimeout(() => codeElement.style.opacity = '1', 200);
+                })
+                .catch(err => {
+                    // Если не сработал новый метод, пробуем старый (фоллбэк)
+                    fallbackCopyTextToClipboard(codeToCopy);
+                });
+        } else {
+            fallbackCopyTextToClipboard(codeToCopy);
+        }
+    };
+  
+
+    // Старый надежный метод копирования (если первый не сработал)
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; 
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            tg.showPopup({ message: 'Код скопирован!' });
+        } catch (err) {
+            tg.showAlert('Не удалось скопировать код автоматически.');
+        }
+        document.body.removeChild(textArea);
+    }
+
+    // 2. Функции закрытия окон (Явно привязаны к window)
+    window.closeSuccessModal = function() {
+        document.getElementById('success-modal').classList.remove('visible');
+    };
+
+    window.openHowToUsePopup = function() {
+        // Можно закрыть окно успеха, если нужно
+        // document.getElementById('success-modal').classList.remove('visible');
+        document.getElementById('how-to-use-popup').classList.add('visible');
+    };
+
+    window.closeHowToUsePopup = function() {
+        document.getElementById('how-to-use-popup').classList.remove('visible');
+    };
+
+    window.openShopModal = async function() {
+        document.getElementById('shop-modal').classList.add('visible');
+        document.getElementById('shop-container').innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
+        await fetchShopItems(); 
+        renderShopList();
+    };
+
+    window.closeShopModal = function() {
+        document.getElementById('shop-modal').classList.remove('visible');
+    };
+
+    window.switchTab = function(tab) {
+        currentTab = tab;
+        document.getElementById('tab-tickets').classList.toggle('active', tab === 'tickets');
+        document.getElementById('tab-promos').classList.toggle('active', tab === 'promos');
+        renderShopList();
+    };
+
+    // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
+    let userState = {
+        coins: 0.0,
+        tickets: 0,
+        streakDays: 1,
+        lastGrindTime: null, 
+        lastFreeTicket: null,
+        active_referrals_count: 0,
+        referral_activated_at: null,
+        twitch_status: null
+    };
+
+    let grindSettings = { 
+        twitch_status_boost_coins: 0.5,
+        twitch_status_free_tickets: 5,
+        ref_boost_coins_per_user: 0.1
+    };
+
+    let shopItems = [];
+    let currentTab = 'tickets';
+    const MAX_STREAK = 10;
+    const GRIND_COOLDOWN = 24 * 60 * 60 * 1000;
+
+    // Ссылки на DOM элементы
+    const dom = {
+        coinsDisplay: document.getElementById('user-coins'),
+        ticketsDisplay: document.getElementById('user-tickets'),
+        streakBar: document.getElementById('streak-bar'),
+        streakSteps: document.getElementById('streak-steps'),
+        streakDayDisplay: document.getElementById('current-streak-day'),
+        todayRewardDisplay: document.getElementById('today-reward'),
+        boostContainer: document.getElementById('boost-container'),
+        grindBtn: document.getElementById('grind-btn'),
+        grindBtnText: document.getElementById('grind-btn-text'),
+        freeTicketContainer: document.getElementById('free-ticket-container'),
+        ticketSubtitle: document.getElementById('ticket-subtitle'),
+        shopContainer: document.getElementById('shop-container'),
+      userStatus: document.querySelector('.user-status') || document.querySelector('.status-badge'),
+    };
+
+    // --- ОСНОВНАЯ ЛОГИКА ---
+    document.addEventListener('DOMContentLoaded', function() {
+        init();
+
+        // Обработчик кнопки ГРИНД
+        if(dom.grindBtn) {
+            dom.grindBtn.addEventListener('click', async () => {
+                if (dom.grindBtn.disabled) return;
+                tg.HapticFeedback.impactOccurred('medium');
+                dom.grindBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/v1/user/grind/claim', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || "Ошибка");
+                    }
+
+                    const res = await response.json();
+                    
+                    const claimed = parseFloat(res.reward_claimed).toFixed(2);
+                    showFloatText(dom.grindBtn, `+${claimed}`, 'var(--accent-primary)');
+                    
+                    userState.coins = parseFloat(res.new_coins);
+                    userState.streakDays = res.streak_days;
+                    userState.lastGrindTime = res.last_grind_at;
+
+                    updateUI();
+                    renderStreakVisuals();
+
+                } catch (e) {
+                    tg.showAlert(e.message);
+                    dom.grindBtn.disabled = false;
+                }
+            });
+        }
+    });
+
+    async function init() {
+        try {
+            const response = await fetch('/api/v1/user/me', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData: tg.initData })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                userState.tickets = data.tickets || 0;
+                userState.coins = parseFloat(data.coins || 0);
+                userState.streakDays = data.streak_days || 1;
+                userState.lastGrindTime = data.last_grind_at;
+                userState.lastFreeTicket = data.last_free_ticket_claimed_at;
+                userState.active_referrals_count = data.active_referrals_count || 0;
+                userState.referral_activated_at = data.referral_activated_at;
+                userState.twitch_status = data.twitch_status;
+                
+                if (data.grind_settings) {
+                    grindSettings = data.grind_settings;
+                }
+                
+                updateUI();
+                renderStreakVisuals();
+                startTimers();
+            }
+        } catch (e) {
+            console.error("Ошибка инициализации:", e);
+            if(dom.coinsDisplay) dom.coinsDisplay.textContent = "0.0";
+        }
+    }
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    function isTwitchBoostActive() {
+        return userState.twitch_status === 'vip' || userState.twitch_status === 'subscriber';
+    }
+
+    function isVipActive() {
+        if (!userState.referral_activated_at) return false;
+        const activatedTime = new Date(userState.referral_activated_at).getTime();
+        const now = new Date().getTime();
+        return (now - activatedTime) < (7 * 24 * 60 * 60 * 1000);
+    }
+
+    function calculateBoosts() {
+        let baseReward = (userState.streakDays * 0.1);
+        if (baseReward > 1.0) baseReward = 1.0;
+        
+        let totalBonus = 0;
+        let boostsHTML = "";
+        
+        if (userState.active_referrals_count > 0) {
+            const refBoost = userState.active_referrals_count * 0.1;
+            totalBonus += refBoost;
+            boostsHTML += `<div class="boost-row"><span>🚀 Друзья (${userState.active_referrals_count}):</span><span class="boost-active">+${refBoost.toFixed(1)}</span></div>`;
+        }
+        
+        if (isVipActive()) {
+            totalBonus += 0.2;
+            boostsHTML += `<div class="boost-row"><span class="boost-vip">⚡ VIP:</span><span class="boost-vip">+0.2</span></div>`;
+        }
+      
+        if (isTwitchBoostActive()) {
+            const statusCoins = grindSettings.twitch_status_boost_coins;
+            totalBonus += statusCoins;
+            const statusLabel = userState.twitch_status === 'vip' ? '👑 VIP Twitch' : '⭐ Sub Twitch';
+            boostsHTML += `<div class="boost-row"><span class="boost-vip">${statusLabel}:</span><span class="boost-vip">+${statusCoins.toFixed(1)}</span></div>`;
+        }
+        
+        return { totalBonus, boostsHTML, baseReward };
+    }
+
+    function updateUI() {
+        if(!dom.coinsDisplay) return;
+        dom.coinsDisplay.textContent = userState.coins.toFixed(1);
+        dom.ticketsDisplay.textContent = userState.tickets;
+        dom.streakDayDisplay.textContent = userState.streakDays;
+        
+        // --- ЛОГИКА VIP И ДАТЫ (БРОНЕБОЙНАЯ ВЕРСИЯ) ---
+        // --- ОБНОВЛЕННАЯ ЛОГИКА СТАТУСОВ (Twitch или VIP) ---
+        const statusEl = document.getElementById('user-status');
+        // Находим родительскую карточку, чтобы скрыть её целиком, если статуса нет
+        const statusCard = statusEl ? statusEl.closest('.glass-card') : null;
+
+        if (statusEl && statusCard) {
+            let hasStatus = false;
+
+            // 1. ПРОВЕРКА TWITCH (Приоритет 1)
+            // Если юзер подписчик или VIP на твиче
+            if (userState.twitch_status === 'subscriber') {
+                statusEl.innerHTML = `<div style="line-height:1.1; color: #a970ff;">Подписчик Twitch</div>`;
+                hasStatus = true;
+            } 
+            else if (userState.twitch_status === 'vip') {
+                statusEl.innerHTML = `<div style="line-height:1.1; color: #a970ff;">VIP Twitch</div>`;
+                hasStatus = true;
+            }
+            
+            // 2. ПРОВЕРКА ОБЫЧНОГО VIP БОНУСА (Приоритет 2)
+            // Если нет твича, но есть активный бонус за приглашение
+            else if (isVipActive()) { 
+                let rawDate = userState.referral_activated_at;
+                let dateHtml = '';
+
+                if (rawDate) {
+                    try {
+                        let safeDate = rawDate.replace(' ', 'T');
+                        if (safeDate.match(/[+-]\d\d$/)) safeDate += ":00";
+                        
+                        let activatedDate = new Date(safeDate);
+                        if (!isNaN(activatedDate.getTime())) {
+                            // Добавляем 7 дней
+                            let expireDate = new Date(activatedDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+                            let now = new Date();
+
+                            if (now < expireDate) {
+                                // Формат: 19.12, 14:30
+                                let dateStr = expireDate.toLocaleString('ru-RU', {
+                                    day: 'numeric', month: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                });
+                                dateHtml = `<div style="font-size: 10px; opacity: 0.7; font-weight: 400; margin-top: 2px;">до ${dateStr}</div>`;
+                            }
+                        }
+                    } catch (e) { console.error(e); }
+                }
+
+                // Показываем статус "VIP Бонус" + дату
+                statusEl.innerHTML = `<div style="line-height:1.1; color: var(--accent-primary);">VIP Бонус</div>${dateHtml}`;
+                hasStatus = true;
+            }
+
+            // 3. СКРЫВАЕМ ИЛИ ПОКАЗЫВАЕМ КАРТОЧКУ
+            if (hasStatus) {
+                statusCard.style.display = 'flex';
+            } else {
+                statusCard.style.display = 'none';
+            }
+        }
+        // ----------------------------------------------------
+
+        const { totalBonus, boostsHTML, baseReward } = calculateBoosts();
+        const totalReward = (baseReward + totalBonus).toFixed(1); 
+        
+        if (totalBonus > 0) {
+            dom.todayRewardDisplay.textContent = `+${totalReward} (с бонусом)`;
+            dom.todayRewardDisplay.style.color = "#FFD700"; 
+        } else {
+            dom.todayRewardDisplay.textContent = `+${totalReward}`;
+            dom.todayRewardDisplay.style.color = "#fff";
+        }
+        
+        if (boostsHTML) {
+            dom.boostContainer.innerHTML = boostsHTML;
+            dom.boostContainer.style.display = 'flex';
+        } else {
+            dom.boostContainer.style.display = 'none';
+        }
+
+        // Таймер кнопки гринда
+        const now = new Date().getTime();
+        const last = userState.lastGrindTime ? new Date(userState.lastGrindTime).getTime() : 0;
+        const diff = now - last;
+
+        if (diff < GRIND_COOLDOWN) {
+            dom.grindBtn.disabled = true;
+            const remaining = GRIND_COOLDOWN - diff;
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            dom.grindBtnText.textContent = `ЧЕРЕЗ ${h}ч ${m}м`;
+        } else {
+            dom.grindBtn.disabled = false;
+            dom.grindBtnText.textContent = "ЗАБРАТЬ БОНУС";
+        }
+        
+        renderFreeTicketBtn();
+    }
+  
+    function renderStreakVisuals() {
+        if(!dom.streakSteps) return;
+        dom.streakSteps.innerHTML = '';
+        let percent = ((userState.streakDays - 1) / (MAX_STREAK - 1)) * 100;
+        if (percent > 100) percent = 100;
+        dom.streakBar.style.width = `${percent}%`;
+
+        for (let i = 1; i <= 5; i++) {
+            const step = document.createElement('div');
+            step.className = 'streak-step';
+            let dayValue = [1, 3, 5, 7, 10][i-1];
+            step.textContent = dayValue;
+            if (userState.streakDays >= dayValue) {
+                step.classList.add('completed');
+                step.innerHTML = '<i class="fa-solid fa-check"></i>';
+            }
+            dom.streakSteps.appendChild(step);
+        }
+    }
+
+    function renderFreeTicketBtn() {
+        const lastClaim = userState.lastFreeTicket ? new Date(userState.lastFreeTicket).getTime() : 0;
+        const now = new Date().getTime();
+        const diff = now - lastClaim;
+        
+        const isBoosted = isVipActive() || isTwitchBoostActive();
+        
+        // --- 👇 ИСПРАВЛЕННАЯ ЛОГИКА ПОДСЧЕТА 👇 ---
+        let ticketsReward = 1; // База (1 билет)
+        
+        // 1. Если активен бонус новичка (Referral < 7 days) -> SQL добавляет +1
+        if (isVipActive()) {
+            ticketsReward += 1;
+        }
+
+        // 2. Если активен Twitch статус (VIP/Sub) -> Python добавляет +X (из настроек)
+        if (isTwitchBoostActive()) {
+            // Берем значение из твоих настроек (у тебя там 1)
+            ticketsReward += grindSettings.twitch_status_free_tickets;
+        }
+        // -------------------------------------------
+
+        if (diff > GRIND_COOLDOWN) {
+            // Формируем текст кнопки: "ЗАБРАТЬ +2 (VIP)"
+            const btnText = isBoosted ? `ЗАБРАТЬ +${ticketsReward} (VIP)` : "ПОЛУЧИТЬ +1";
+            const btnColor = isBoosted ? "#FFD700" : "#fff";
+            const btnBg = isBoosted ? "rgba(255, 215, 0, 0.15)" : "transparent"; // Чуть подсветим фон для VIP
+            
+            // Вставляем кнопку
+            dom.freeTicketContainer.innerHTML = `
+                <button class="mini-btn" 
+                        style="border-color:${btnColor}; color:${btnColor}; background:${btnBg}; width:100%; font-weight:700;" 
+                        onclick="claimFreeTicket()">
+                    ${btnText}
+                </button>`;
+            
+            // Текст над кнопкой (подсказка)
+            if(isBoosted) {
+                 dom.ticketSubtitle.innerHTML = `VIP Бонус доступен! <span style="color:#FFD700">Всего: ${ticketsReward} шт.</span>`;
+                 dom.ticketSubtitle.style.color = "#fff";
+            } else {
+                 dom.ticketSubtitle.textContent = "Бесплатно раз в 24ч";
+                 dom.ticketSubtitle.style.color = "#AAAAAA";
+            }
+
+        } else {
+            // ТАЙМЕР (Если уже забрал)
+            const remaining = GRIND_COOLDOWN - diff;
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            dom.freeTicketContainer.innerHTML = `<span style="font-size:11px; color:#ffffff; font-weight: 600;">⏳ ${h}ч ${m}м</span>`;
+            
+            dom.ticketSubtitle.textContent = "Следующая награда через...";
+            dom.ticketSubtitle.style.color = "#AAAAAA";
+        }
+    }
+  
+    // --- МАГАЗИН И ФУНКЦИИ ОКНА УСПЕХА ---
+    function showSuccess(message, promoCode = null) {
+        closeShopModal();
+        
+        const modal = document.getElementById('success-modal');
+        const msgEl = document.getElementById('success-message');
+        const promoContainer = document.getElementById('success-promo-container');
+        const promoValue = document.getElementById('success-promo-code');
+        const instructionBlock = document.getElementById('promo-instruction-block');
+
+        msgEl.textContent = message;
+
+        if (promoCode) {
+            promoContainer.style.display = 'flex';
+            promoValue.textContent = promoCode;
+            if(instructionBlock) instructionBlock.style.display = 'block';
+        } else {
+            promoContainer.style.display = 'none';
+            if(instructionBlock) instructionBlock.style.display = 'none';
+        }
+
+        modal.classList.add('visible');
+        tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    // --- API ВЫЗОВЫ ГЛОБАЛЬНЫЕ ---
+    window.claimFreeTicket = async () => {
+        try {
+            const response = await fetch('/api/v1/user/claim-free-ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData: tg.initData })
+            });
+            
+            if (response.ok) {
+                const res = await response.json();
+                let incoming = res.new_ticket_balance;
+                let finalTickets = (typeof incoming === 'object' && incoming !== null) ? Number(incoming.new_ticket_balance) : Number(incoming);
+                
+                userState.tickets = finalTickets;
+                userState.lastFreeTicket = new Date().toISOString();
+                tg.HapticFeedback.notificationOccurred('success');
+                tg.showAlert(res.message); 
+                updateUI();
+            } else { throw new Error(); }
+        } catch (e) { 
+            console.error(e);
+            tg.showAlert('Ошибка получения билета'); 
+        }
+    };
+
+    window.exchangeCoins = async (cost, rewardTickets) => {
+        tg.showConfirm(`Купить ${rewardTickets} билет(ов) за ${cost} монет?`, async (ok) => {
+            if (ok) {
+                try {
+                    const response = await fetch('/api/v1/user/grind/exchange', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData, cost: cost, tickets_reward: rewardTickets })
+                    });
+                    
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || 'Ошибка обмена');
+                    }
+                    
+                    const res = await response.json();
+                    userState.coins = parseFloat(res.new_coins);
+                    userState.tickets = res.new_tickets;
+                    updateUI();
+                    showSuccess(`Вы получили ${rewardTickets} билет(ов)!`);
+                    
+                } catch (e) { tg.showAlert(e.message || 'Ошибка обмена'); }
+            }
+        });
+    };
+
+    window.buyItem = async (val) => {
+        // --- БРОНЯ ПРИ КЛИКЕ ---
+        if (!window.coinsPurchasesEnabled) {
+            return tg.showAlert("🛠 Обмен на основные монеты временно отключен разработчиком!");
+        }
+        // -----------------------
+        tg.showConfirm(`Обменять гринд-монеты на ${val} основных монет?`, async (ok) => {
+            if(ok) {
+                try {
+                    const response = await fetch('/api/v1/user/grind/buy_item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData, reward_value: val })
+                    });
+                    
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || 'Ошибка');
+                    }
+                    
+                    const res = await response.json();
+                    userState.coins = parseFloat(res.new_coins);
+                    updateUI();
+                    
+                    // 🔥 ИЗМЕНЕНО ТУТ: Убрали res.promo_code, чтобы плашка не появлялась
+                    showSuccess(`Успешно! +${val} монет зачислено на ваш баланс.`);
+                    
+                } catch(e) { tg.showAlert(e.message || 'Не удалось купить'); }
+            }
+        });
+    };
+
+    async function fetchShopItems() {
+        // Курс: 1 билет = 3 монеты
+        shopItems = [
+            { type: 'ticket', cost: 3, reward: 1, title: '1 Билет' },
+            { type: 'ticket', cost: 15, reward: 5, title: '5 Билетов' },        
+            { type: 'ticket', cost: 30, reward: 10, title: '10 Билетов' },
+            { type: 'ticket', cost: 75, reward: 25, title: '25 Билетов' },
+            { type: 'ticket', cost: 150, reward: 50, title: '50 Билетов' },
+            { type: 'ticket', cost: 300, reward: 100, title: '100 Билетов' }
+        ];
+        try {
+            const response = await fetch('/api/v1/user/grind/shop');
+            const promos = await response.json();
+            if (promos && promos.length > 0) {
+                promos.forEach(p => {
+                    shopItems.push({
+                        type: 'promo', cost: p.reward_value, reward: p.reward_value,
+                        // ИЗМЕНЕНА СТРОЧКА НИЖЕ:
+                        title: `+${p.reward_value} на баланс 🟡`, quantity: p.quantity
+                    });
+                });
+                shopItems.sort((a, b) => a.cost - b.cost);
+            }
+        } catch (e) {}
+    }
+
+    function renderShopList() {
+        dom.shopContainer.innerHTML = '';
+        const items = shopItems.filter(i => i.type === (currentTab === 'tickets' ? 'ticket' : 'promo'));
+        
+        if (items.length === 0) {
+            dom.shopContainer.innerHTML = '<div style="text-align:center; color:#777; padding:20px;">Пусто</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'exchange-item';
+            const isAffordable = userState.coins >= item.cost;
+            const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
+            let extra = item.quantity ? `<span style="opacity:0.5; font-size:9px;">(Ост: ${item.quantity})</span>` : '';
+
+            // --- НОВАЯ ЛОГИКА КНОПКИ (С ЗАМКОМ ДЛЯ МОНЕТ) ---
+            let buttonHtml = '';
+            if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
+                buttonHtml = `<button class="mini-btn" disabled style="border-color: var(--border-color); color: var(--text-secondary); opacity: 0.5;">
+                    <i class="fa-solid fa-lock" style="font-size: 8px;"></i> ОТКЛЮЧЕНО
+                </button>`;
+            } else {
+                buttonHtml = `<button class="mini-btn" onclick="${btnClick}" ${isAffordable?'':'disabled'} style="${isAffordable?'background:var(--accent-primary);color:#000':''}">
+                    ${isAffordable ? 'Купить' : 'Мало монет'}
+                </button>`;
+            }
+            // ------------------------------------------------
+
+            div.innerHTML = `
+                <div class="exchange-details">
+                    <div class="exchange-title">${item.title}</div>
+                    <div class="exchange-cost">Цена: ${item.cost} монет ${extra}</div>
+                </div>
+                ${buttonHtml}`;
+            dom.shopContainer.appendChild(div);
+        });
+    }
+
+    function startTimers() {
+        setInterval(() => { updateUI(); }, 60000);
+    }
+
+    function showFloatText(element, text, color) {
+        const rect = element.getBoundingClientRect();
+        const floatEl = document.createElement('div');
+        floatEl.textContent = text;
+        floatEl.className = 'float-anim';
+        floatEl.style.color = color;
+        floatEl.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+        floatEl.style.top = (rect.top) + 'px';
+        document.body.appendChild(floatEl);
+        setTimeout(() => floatEl.remove(), 1000);
+    }
+  // === PULL TO REFRESH ЛОГИКА ===
+    function initPullToRefresh() {
+        const content = document.getElementById('main-content');
+        const ptrContainer = document.getElementById('pull-to-refresh');
+        const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
+        
+        if (!content || !ptrContainer || !icon) return;
+
+        let startY = 0;
+        let pulledDistance = 0;
+        let isPulling = false;
+        const triggerThreshold = 80;
+
+        content.addEventListener('touchstart', (e) => {
+            if (content.scrollTop <= 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+                content.style.transition = 'none'; 
+                ptrContainer.style.transition = 'none'; 
+                icon.style.transition = 'none';
+            } else {
+                isPulling = false;
+            }
+        }, { passive: true });
+
+        content.addEventListener('touchmove', (e) => {
+            if (!isPulling) return;
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+
+            if (diff > 0 && content.scrollTop <= 0) {
+                if (e.cancelable) e.preventDefault();
+                pulledDistance = Math.pow(diff, 0.85); 
+                if (pulledDistance > 180) pulledDistance = 180;
+
+                content.style.transform = `translateY(${pulledDistance}px)`;
+                ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
+                icon.style.transform = `rotate(${pulledDistance * 2.5}deg)`;
+                
+                if (pulledDistance > triggerThreshold) {
+                    icon.style.color = "#34c759";
+                } else {
+                    icon.style.color = "#FFD700";
+                }
+            }
+        }, { passive: false });
+
+        content.addEventListener('touchend', () => {
+            if (!isPulling) return;
+            isPulling = false;
+            
+            content.style.transition = 'transform 0.3s ease-out';
+            ptrContainer.style.transition = 'transform 0.3s ease-out';
+
+            if (pulledDistance > triggerThreshold) {
+                content.style.transform = `translateY(80px)`;
+                ptrContainer.style.transform = `translateY(80px)`;
+                icon.classList.add('fa-spin');
+                if (window.Telegram && Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+                setTimeout(() => { window.location.reload(); }, 500);
+            } else {
+                content.style.transform = 'translateY(0px)';
+                ptrContainer.style.transform = 'translateY(0px)';
+                icon.style.transform = 'rotate(0deg)';
+            }
+            pulledDistance = 0;
+        });
+    }
+
+    // Запускаем функцию после загрузки DOM
+    document.addEventListener('DOMContentLoaded', initPullToRefresh);
+  // --- 📳 ВИБРАЦИЯ (HAPTIC FEEDBACK) 📳 ---
+    document.body.addEventListener('click', (e) => {
+        // Список селекторов для всех интерактивных элементов страницы
+        const selector = `
+            a, 
+            button, 
+            .open-shop-card, 
+            .footer-item, 
+            .tab-btn, 
+            .modal-close-btn, 
+            .mini-btn, 
+            .reward-how-to-use-btn, 
+            .popup-btn,
+            .header-back-button
+        `;
+        
+        // Проверяем, был ли клик по интерактивному элементу
+        if (e.target.closest(selector)) {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                try {
+                    // Используем medium для приятного отклика
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                } catch (err) {
+                    console.warn("Haptic error:", err);
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

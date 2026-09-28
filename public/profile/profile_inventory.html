@@ -1,0 +1,208 @@
+<!-- ФАЙЛ: profile_inventory.html -->
+<style>
+    /* --- LIQUID GLASS INVENTORY STYLES (NEW PREMIUM) --- */
+    .inventory-section {
+        animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        padding-bottom: 40px;
+    }
+
+    /* Инфо-панель сверху */
+    .glass-info-panel {
+        background: rgba(10, 132, 255, 0.15);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(10, 132, 255, 0.3);
+        border-top: 1px solid rgba(10, 132, 255, 0.5);
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .glass-icon-box {
+        background: linear-gradient(135deg, rgba(10, 132, 255, 0.4), rgba(10, 132, 255, 0.1));
+        width: 44px; height: 44px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        border: 1px solid rgba(10, 132, 255, 0.5);
+    }
+
+    .sort-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 4px; }
+    
+    .glass-select {
+        background: rgba(255,255,255,0.1); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+        color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+        padding: 6px 12px; font-size: 11px; font-weight: 700; outline: none; cursor: pointer;
+    }
+    .glass-select option { background: #1c1c1e; color: #fff; }
+
+    .sell-all-btn {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.15); 
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 10px; padding: 6px 14px; font-size: 10px; font-weight: 800; cursor: pointer;
+        transition: 0.2s; 
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    .sell-all-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.1); }
+
+    /* СЕТКА (2 колонки, квадратные карточки) */
+    .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        width: 100%;
+    }
+
+    /* КАРТОЧКА (Square Premium) */
+    .inv-card {
+        position: relative;
+        border-radius: 18px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        aspect-ratio: 4 / 5; /* Почти квадрат, чуть вытянут вниз для текста */
+        min-height: 170px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    /* Внутренняя тень-виньетка для объема */
+    .inv-card::after {
+        content: ''; position: absolute; inset: 0;
+        box-shadow: inset 0 0 30px rgba(0,0,0,0.5); pointer-events: none; z-index: 1;
+    }
+
+    /* Цена слева сверху */
+    .inv-price-pill {
+        position: absolute; top: 10px; left: 10px;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        border-radius: 8px; padding: 5px 8px;
+        font-size: 11px; font-weight: 800; color: #fff;
+        z-index: 10; display: flex; align-items: center; gap: 4px;
+        transition: opacity 0.3s;
+    }
+
+    /* Стэк бейджей действий (Сразу под ценой) */
+    .inv-status-stack {
+        position: absolute; top: 38px; left: 10px; right: 10px;
+        display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+        z-index: 15; pointer-events: auto; transition: opacity 0.3s;
+    }
+
+    /* Неоновые бейджи как на макетах */
+    .neon-badge {
+        color: #fff; padding: 5px 10px; border-radius: 8px;
+        font-size: 10px; font-weight: 800; text-transform: uppercase;
+        backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        width: fit-content; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .neon-badge.btn { cursor: pointer; transition: transform 0.1s; }
+    .neon-badge.btn:active { transform: scale(0.95); }
+    
+    .neon-badge.orange { background: rgba(255, 149, 0, 0.85); box-shadow: 0 2px 10px rgba(255, 149, 0, 0.4); }
+    .neon-badge.yellow { background: rgba(255, 204, 0, 0.85); color: #000; text-shadow: none; box-shadow: 0 2px 10px rgba(255, 204, 0, 0.4); }
+    .neon-badge.green { background: rgba(52, 199, 89, 0.85); box-shadow: 0 2px 10px rgba(52, 199, 89, 0.4); }
+    .neon-badge.red { background: rgba(255, 59, 48, 0.85); box-shadow: 0 2px 10px rgba(255, 59, 48, 0.4); }
+    .neon-badge.blue { background: rgba(10, 132, 255, 0.85); box-shadow: 0 2px 10px rgba(10, 132, 255, 0.4); }
+    .neon-badge.purple { background: rgba(175, 82, 222, 0.85); box-shadow: 0 2px 10px rgba(175, 82, 222, 0.4); }
+    .neon-badge.gray { background: rgba(142, 142, 147, 0.85); box-shadow: 0 2px 10px rgba(142, 142, 147, 0.4); }
+
+    /* Оружие по центру */
+    .inv-image-center {
+        position: absolute; top: 45%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 85%; height: 50%;
+        object-fit: contain;
+        filter: drop-shadow(0 15px 20px rgba(0,0,0,0.6));
+        z-index: 5; cursor: pointer; transition: all 0.4s ease;
+    }
+
+    /* Информация снизу */
+    .inv-bottom-info {
+        position: relative; z-index: 10;
+        display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+        height: 100%; padding-bottom: 2px;
+        pointer-events: none; transition: opacity 0.3s;
+    }
+    .inv-name-type { font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 700; text-transform: uppercase; margin-bottom: 1px; }
+    .inv-name-skin { font-size: 13px; font-weight: 900; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.8); line-height: 1.1; }
+    .inv-expiration { font-size: 9px; font-weight: 800; margin-top: 4px; text-transform: uppercase; }
+
+    /* Кнопка "!" снизу справа */
+    .inv-info-btn {
+        position: absolute; bottom: 10px; right: 10px;
+        width: 24px; height: 24px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.3);
+        color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 900;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        z-index: 20; cursor: pointer; pointer-events: auto; transition: 0.2s;
+    }
+    .inv-info-btn:active { transform: scale(0.9); }
+
+    /* Состояние скрытия интерфейса (focus mode) */
+    .inv-card.hide-info .inv-price-pill,
+    .inv-card.hide-info .inv-status-stack,
+    .inv-card.hide-info .inv-bottom-info { opacity: 0; pointer-events: none; }
+    .inv-card.hide-info .inv-image-center { transform: translate(-50%, -50%) scale(1.15); filter: drop-shadow(0 20px 30px rgba(0,0,0,0.8)); }
+    .inv-card.hide-info .inv-info-btn { background: rgba(255,255,255,0.2); color: #fff; border-color: #fff; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<div class="inventory-section">
+    <!-- Сортировка -->
+    <div class="sort-panel">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.6); text-transform: uppercase;">Сортировка:</div>
+            <select id="inventory-sort-select" onchange="applyInventorySort()" class="glass-select">
+                <option value="date_desc">Сначала новые</option>
+                <option value="date_asc">Сначала старые</option>
+                <option value="price_desc">Сначала дорогие</option>
+                <option value="price_asc">Сначала дешевые</option>
+                <option value="status">По статусу</option>
+            </select>
+        </div>
+        <button id="sell-all-btn" class="sell-all-btn" onclick="sellAllItems()" style="display: none;">
+            <i class="fa-solid fa-tags"></i> ПРОДАТЬ ВСЁ
+        </button>
+    </div>
+
+    <!-- Контейнер для скинов -->
+    <div id="inventory-list-container">
+        <div style="text-align: center; color: rgba(255,255,255,0.5); margin-top: 50px; font-size: 14px; font-weight: 600;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="margin-bottom: 10px; font-size: 32px; color: #0a84ff;"></i><br>
+            Загрузка инвентаря...
+        </div>
+    </div>
+</div>
+
+<!-- Модалка просмотра скина на весь экран -->
+<div id="fullscreen-weapon-modal" class="modal-overlay" style="z-index: 99999; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(0,0,0,0.85);" onclick="closeFullscreenWeapon()">
+    <div style="position:relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <button onclick="closeFullscreenWeapon()" style="position:absolute; top: 40px; right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 44px; height: 44px; color: #fff; font-size: 20px; backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-xmark"></i></button>
+        <img id="fullscreen-weapon-img" src="" style="max-width: 95%; max-height: 70%; object-fit: contain; filter: drop-shadow(0 30px 40px rgba(0,0,0,0.8)); transform: scale(1.1);">
+        <div id="fullscreen-weapon-name" style="color: #fff; font-size: 24px; font-weight: 900; margin-top: 40px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); text-transform: uppercase;"></div>
+    </div>
+</div>
+
+<!-- Модалка замены -->
+<div id="replacement-modal" class="modal-overlay" onclick="if(event.target===this) closeReplacementModal()">
+    <div class="bottom-sheet">
+        <div class="sheet-header" style="margin-bottom: 15px;">
+            <h3 class="sheet-title">Выберите замену</h3>
+            <button class="sheet-close" onclick="closeReplacementModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p style="font-size: 13px; color: rgba(255,255,255,0.6); margin: 0 0 15px 0; font-weight: 500;">
+            Оригинала нет в наличии. Выберите любой скин — мы отправим его моментально:
+        </p>
+        <div id="replacement-options-list" class="replacement-grid"></div>
+    </div>
+</div>

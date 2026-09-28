@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Admin Checkpoint</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --card-bg: rgba(30, 30, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #ffd700;
+            --accent: #28a745;
+            --danger: #ff4d4d;
+            --text: #ffffff;
+            --text-sec: #aaaaaa;
+            --blur: 10px;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 20px;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 120px;
+            
+            zoom: 0.85; /* УМЕНЬШИТ ВСЁ НА 15% */
+        }
+
+        /* --- Header & Tabs --- */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--text-sec); font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .back-btn:active { color: var(--text); transform: scale(0.95); }
+        .page-title { font-size: 20px; font-weight: 800; margin: 0; background: linear-gradient(45deg, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .tabs { display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 14px; margin-bottom: 20px; gap: 5px; overflow-x: auto; }
+        .tab { 
+            flex: 1; border: none; background: none; color: var(--text-sec); 
+            padding: 8px; /* БЫЛО: 10px */
+            font-size: 11px; /* БЫЛО: 13px */
+            border-radius: 8px; /* БЫЛО: 10px */
+            font-weight: 600; transition: 0.3s; cursor: pointer; white-space: nowrap; text-align: center; 
+        }
+        .tab.active { background: rgba(255,255,255,0.1); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+
+        /* --- Forms & Inputs --- */
+        .admin-form label { display: block; font-size: 12px; color: var(--text-sec); margin: 12px 0 5px; font-weight: 500; }
+        .admin-form input, .admin-form select, .admin-form textarea {
+            width: 100%; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--card-border);
+            color: var(--text); 
+            padding: 8px 12px; /* БЫЛО: 12px */
+            border-radius: 8px; /* БЫЛО: 12px */
+            font-size: 12px; /* БЫЛО: 14px */
+            outline: none; transition: 0.2s;
+        }
+        .admin-form input:focus, .admin-form textarea:focus { border-color: var(--primary); background: rgba(255,255,255,0.03); }
+        
+        .section-box { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative; box-sizing: border-box; }
+        .sec-title { font-size: 13px; color: var(--primary); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        
+        /* Toggles */
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 12px; border-radius: 12px; margin-top: 10px; border: 1px solid var(--card-border); }
+        .toggle-switch { position: relative; width: 40px; height: 22px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        /* --- Custom Buttons --- */
+        .icon-btn { 
+            width: 32px; /* БЫЛО: 40px */
+            height: 32px; /* БЫЛО: 40px */
+            border-radius: 8px; /* БЫЛО: 12px */
+            background: rgba(255,255,255,0.1); border: 1px solid var(--card-border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; text-decoration: none; box-sizing: border-box; 
+            font-size: 14px; /* Размер самой иконки */
+        }
+        .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+        
+        .action-add-btn, .admin-action-btn {
+            padding: 10px; /* БЫЛО: 12px */
+            font-size: 12px;
+            border-radius: 8px;
+        }
+        
+        .action-add-btn { 
+            background: rgba(255, 215, 0, 0.1); color: var(--primary); border: 1px dashed var(--primary); width: 100%; 
+            padding: 10px; /* БЫЛО: 15px */
+            border-radius: 8px; /* БЫЛО: 12px */
+            font-size: 11px; /* Сделали шрифт чуть меньше */
+            font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; 
+        }
+        .action-add-btn:active { transform: scale(0.98); background: rgba(255, 215, 0, 0.2); }
+
+        .btn-danger { background: rgba(255, 77, 77, 0.1); color: var(--danger); border: 1px solid rgba(255, 77, 77, 0.3); }
+        .btn-view { background: rgba(100, 181, 239, 0.15); color: #64b5ef; border: 1px solid rgba(100, 181, 239, 0.3); }
+        
+        /* Floating Save Button */
+        .floating-save-btn {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--accent); color: #fff; border: none; 
+            padding: 12px 20px; /* БЫЛО: 16px 30px */
+            border-radius: 14px; /* БЫЛО: 20px */
+            font-size: 14px; /* БЫЛО: 16px */
+            font-weight: 800; box-shadow: 0 10px 20px rgba(40, 167, 69, 0.4);
+            cursor: pointer; z-index: 100; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 10px; width: 85%; justify-content: center; box-sizing: border-box;
+        }
+        .floating-save-btn.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+        .floating-save-btn:active { transform: translateX(-50%) translateY(2px); box-shadow: 0 5px 10px rgba(40, 167, 69, 0.4); }
+
+        /* --- Specific CP Styles --- */
+        .tier-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .tier-grid > div { flex: 1 1 120px; min-width: 120px; }
+        
+        .reward-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 12px; border: 1px solid var(--card-border); box-sizing: border-box; }
+        .reward-box.premium { border-color: rgba(255, 71, 87, 0.4); background: rgba(255, 71, 87, 0.05); }
+        .reward-box h4 { margin: 0 0 10px 0; font-size: 12px; text-align: center; color: var(--text-sec); }
+        .reward-box.premium h4 { color: #ff4757; }
+        .remove-btn-abs { position: absolute; top: 15px; right: 15px; width: 30px; height: 30px; background: rgba(255,77,77,0.1); color: var(--danger); border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .quest-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 12px; border: 1px solid var(--card-border); margin-bottom: 10px; box-sizing: border-box; }
+
+        /* --- Modals & Alert --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-overlay.center { align-items: center; }
+        .modal-active { display: flex; }
+        
+        .bottom-sheet { background: #1c1c1e; width: 100%; border-radius: 24px 24px 0 0; padding: 20px; max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .alert-box { background: #252525; width: 85%; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--card-border); box-sizing: border-box; }
+        .alert-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .alert-msg { font-size: 14px; color: var(--text-sec); margin-bottom: 20px; line-height: 1.4; }
+        .alert-btn { background: var(--primary); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; width: 100%; cursor: pointer; box-sizing: border-box; }
+        .alert-btn.cancel { background: transparent; color: var(--text-sec); margin-top: 5px; }
+
+        .search-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 8px; }
+        .search-img { width: 40px; height: 30px; object-fit: contain; }
+        .search-info { flex: 1; min-width: 0; }
+        .search-btn { background: var(--accent); color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <button onclick="goBack()" class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <h1 class="page-title">Battle Pass</h1>
+        
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="/checkpoint.html" class="icon-btn btn-view" title="Просмотр пользовательской страницы">
+                <i class="fa-solid fa-eye"></i>
+            </a>
+            <button onclick="resetSeason()" class="icon-btn btn-danger" title="Опасная зона: Сброс">
+                <i class="fa-solid fa-skull"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('settings')">Настройки</button>
+        <button class="tab" onclick="switchTab('tiers')">Уровни</button>
+        <button class="tab" onclick="switchTab('quests')">Задания</button>
+    </div>
+
+    <div id="tab-settings" class="tab-content admin-form">
+        <div class="section-box">
+            <h3 class="sec-title"><i class="fa-solid fa-gear"></i> Основные настройки</h3>
+            
+            <div class="toggle-row" style="margin-top:0; margin-bottom:15px;">
+                <span style="font-size: 13px; font-weight: 600;">🟢 Включить сезон BP</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cp_is_active" onchange="showSaveBtn()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <label>Название сезона</label>
+            <input type="text" id="cp_title" placeholder="Operation Vanguard" oninput="showSaveBtn()">
+
+            <div class="tier-grid" style="margin-top: 10px; margin-bottom: 0;">
+                <div>
+                    <label>Начало (UTC)</label>
+                    <input type="datetime-local" id="cp_start_date" onchange="generateWeeks(); showSaveBtn()">
+                </div>
+                <div>
+                    <label>Конец (UTC)</label>
+                    <input type="datetime-local" id="cp_end_date" onchange="generateWeeks(); showSaveBtn()">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <div style="flex: 1;">
+                    <label>Цена Premium (Монеты)</label>
+                    <input type="number" id="cp_premium_price" placeholder="0" oninput="showSaveBtn()">
+                </div>
+                <div style="flex: 1;">
+                    <label style="color: var(--danger);">Цена Premium (Рубли)</label>
+                    <input type="number" id="cp_premium_price_rub" placeholder="0" oninput="showSaveBtn()">
+                </div>
+            </div>
+            <p style="font-size: 11px; color: var(--text-sec); margin: 4px 0 10px;">Если 0 — кнопка покупки за эту валюту будет скрыта.</p>
+
+            <label style="color: var(--primary);"><i class="fa-solid fa-filter"></i> ID первого поста сезона (для реакций)</label>
+            <input type="number" id="cp_min_reaction_msg_id" placeholder="Например: 5432" oninput="showSaveBtn()">
+            <p style="font-size: 11px; color: var(--text-sec); margin: 4px 0 15px;">Все реакции на постах с ID меньше этого будут проигнорированы. Чтобы узнать ID поста, скопируй на него ссылку (t.me/канал/5432) — последние цифры и есть ID.</p>
+
+            <label>Ссылка на баннер главной</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="cp_banner_url" placeholder="https://..." oninput="updateBannerPreview(); showSaveBtn();" style="flex: 1;">
+                <button type="button" class="icon-btn" onclick="document.getElementById('banner-upload-input').click()" style="background: var(--card-bg);" title="Загрузить картинку">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </button>
+                <input type="file" id="banner-upload-input" hidden accept="image/*" onchange="uploadBannerImage(this)">
+            </div>
+            
+            <div id="banner-preview-container" style="margin-top: 10px; text-align: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; display: none;">
+                <img id="banner-preview-img" src="" style="max-width: 100%; max-height: 120px; border-radius: 6px; object-fit: contain;">
+            </div>
+        </div>
+
+        <div class="section-box" style="border-color: rgba(100, 181, 239, 0.3); background: rgba(100, 181, 239, 0.05);">
+            <h3 class="sec-title" style="color: #64b5ef;"><i class="fa-solid fa-user-astronaut"></i> Управление игроками</h3>
+            
+            <label>Поиск пользователя (TG ник, имя или Twitch)</label>
+            <div style="position: relative;">
+                <input type="text" id="user-search-inp" placeholder="Начни вводить никнейм..." oninput="debounceUserSearch()" autocomplete="off">
+                
+                <div id="user-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #1c1c1e; border: 1px solid var(--surface-border); border-radius: 12px; margin-top: 5px; max-height: 200px; overflow-y: auto; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                </div>
+            </div>
+            
+            <input type="hidden" id="grant-level-user-id">
+            
+            <label style="margin-top: 15px;">Выдать Уровень</label>
+            <input type="number" id="grant-level-value" placeholder="Например: 10">
+            
+            <button type="button" class="admin-action-btn" onclick="grantLevelToUser()" style="width: 100%; background: #64b5ef; color: #000; padding: 12px; border-radius: 12px; margin-top: 15px; font-weight: 800;">
+                <i class="fa-solid fa-bolt"></i> ВЫДАТЬ УРОВЕНЬ
+            </button>
+        </div>
+        
+        <div class="section-box" style="border-color: rgba(255, 77, 77, 0.3); background: rgba(255, 77, 77, 0.05);">
+            <h3 class="sec-title" style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Опасная зона</h3>
+            <button type="button" onclick="resetSeason()" class="admin-action-btn reject" style="width: 100%; background: rgba(255,77,77,0.1); color: var(--danger); border: 1px solid rgba(255,77,77,0.3); padding: 12px; border-radius: 12px; cursor: pointer;">
+                Сбросить сезон<br><span style="font-size: 11px; opacity: 0.8;">(Обнулить EXP и прогресс у ВСЕХ)</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="tab-tiers" class="tab-content hidden admin-form">
+        <div id="cp-tiers-container" style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="text-align:center; padding: 40px; color: var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка...</div>
+        </div>
+        <button class="action-add-btn" onclick="addTier()"><i class="fa-solid fa-plus"></i> ДОБАВИТЬ УРОВЕНЬ</button>
+    </div>
+
+    <div id="tab-quests" class="tab-content hidden admin-form">
+        
+        <div class="section-box" style="border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05); margin-bottom: 30px;">
+            <h3 class="sec-title" style="color: var(--primary);"><i class="fa-solid fa-globe"></i> Общие задания (Global)</h3>
+            <p style="font-size: 11px; color: var(--text-sec); margin-top: -5px; margin-bottom: 15px;">Прогресс этих заданий заполняется автоматически сервером (например, реакции в канале). Награда выдается всем.</p>
+            
+            <div id="cp-global-quests-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;"></div>
+            
+            <button type="button" class="action-add-btn" style="border-color: var(--primary); color: var(--primary);" onclick="addGlobalQuest()">
+                <i class="fa-solid fa-plus"></i> ДОБАВИТЬ ОБЩЕЕ ЗАДАНИЕ
+            </button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 class="sec-title" style="margin: 0;"><i class="fa-solid fa-calendar-week"></i> Задания по неделям</h3>
+            <button type="button" class="icon-btn btn-view" onclick="generateWeeks()" title="Сгенерировать недели по датам" style="width: 36px; height: 36px;">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+        </div>
+        <p style="font-size: 11px; color: var(--text-sec); margin-top: -5px; margin-bottom: 20px; line-height: 1.4;">Количество недель рассчитывается автоматически на основе даты старта и конца в "Настройках".</p>
+
+        <div id="cp-quests-container" style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="text-align:center; padding: 40px; color: var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка...</div>
+        </div>
+    </div>
+
+    <button id="floating-save-btn" class="floating-save-btn" onclick="saveCheckpointData()">
+        <i class="fa-solid fa-floppy-disk"></i> СОХРАНИТЬ
+    </button>
+
+    <div id="modal-library" class="modal-overlay" onclick="if(event.target===this) closeModal('modal-library')">
+        <div class="bottom-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0">Склад</h3>
+                <button onclick="closeModal('modal-library')" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="admin-form" style="margin-top: 15px;">
+                <input type="text" id="lib-search-inp" placeholder="Название (AK-47)..." oninput="debounceSearch()">
+                
+                <div id="lib-filters">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; margin-bottom: 8px; font-size: 12px;">
+                        <span style="color: var(--text-sec);">Фильтр по цене:</span>
+                        <div style="background: rgba(255, 215, 0, 0.15); color: var(--primary); padding: 4px 10px; border-radius: 8px; font-weight: 700; cursor: pointer;" onclick="setMaxPriceToBalance()">
+                            <i class="fa-solid fa-wallet"></i> <span id="modal-balance-val">Загрузка...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tier-grid">
+                        <input type="number" id="lib-price-min" placeholder="Мин. цена ₽" oninput="debounceSearch()">
+                        <input type="number" id="lib-price-max" placeholder="Макс. цена ₽" oninput="debounceSearch()">
+                    </div>
+                </div>
+            </div>
+
+            <div id="lib-results" style="flex:1; overflow-y: auto; margin-top:10px;" onscroll="handleScroll(this)">
+                <div style="text-align:center; color:var(--text-sec); padding:20px;">Начните поиск...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-alert" class="modal-overlay center">
+        <div class="alert-box">
+            <div class="alert-title" id="alert-title">Title</div>
+            <div class="alert-msg" id="alert-msg">Message</div>
+            <button class="alert-btn" id="alert-ok">OK</button>
+            <button class="alert-btn cancel hidden" id="alert-cancel">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            if (document.getElementById('modal-library').classList.contains('modal-active')) { closeModal('modal-library'); return; }
+            if (document.getElementById('modal-alert').classList.contains('modal-active')) { closeModal('modal-alert'); return; }
+            window.location.href = '/admin';
+        });
+
+        let availableCpQuests = [];
+        let activeSkinTargetInput = null;
+        let currentMarketBalance = 0;
+        let searchTimeout = null;
+        let currentOffset = 0;
+        let isFetching = false;
+        let hasMoreItems = true;
+        let currentQuestsConfig = []; // Глобальная переменная для конфига заданий
+
+        function goBack() { window.location.href = '/admin'; }
+        
+        function switchTab(t) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden'));
+            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+            document.getElementById('tab-' + t).classList.remove('hidden');
+            
+            const tabs = document.querySelectorAll('.tab');
+            if(t === 'settings') tabs[0].classList.add('active');
+            if(t === 'tiers') tabs[1].classList.add('active');
+            if(t === 'quests') tabs[2].classList.add('active');
+        }
+
+        function showSaveBtn() { document.getElementById('floating-save-btn').classList.add('show'); }
+        function hideSaveBtn() { document.getElementById('floating-save-btn').classList.remove('show'); }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        
+        function showCustomAlert(title, msg) {
+            const m = document.getElementById('modal-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('alert-ok').onclick = () => m.classList.remove('modal-active');
+            document.getElementById('alert-cancel').classList.add('hidden');
+            m.classList.add('modal-active');
+        }
+
+        function showConfirm(title, msg, onYes) {
+            const m = document.getElementById('modal-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            const cBtn = document.getElementById('alert-cancel');
+            cBtn.classList.remove('hidden');
+            cBtn.onclick = () => m.classList.remove('modal-active');
+            document.getElementById('alert-ok').onclick = () => { onYes(); m.classList.remove('modal-active'); };
+            m.classList.add('modal-active');
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+        }
+
+        function formatDateToInput(dateString) {
+            if (!dateString) return '';
+            const d = new Date(dateString);
+            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        }
+
+        // --- ПОИСК ПОЛЬЗОВАТЕЛЕЙ ---
+        let userSearchTimeout = null;
+        
+        async function doUserSearch() {
+            const q = document.getElementById('user-search-inp').value.trim();
+            const resBox = document.getElementById('user-search-results');
+            
+            if (q.length < 2) {
+                resBox.style.display = 'none';
+                return;
+            }
+            
+            resBox.style.display = 'block';
+            resBox.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-sec); font-size: 12px;"><i class="fa-solid fa-spinner fa-spin"></i> Поиск...</div>';
+            
+            try {
+                const res = await fetchApi('/api/v1/admin/users/search', { query: q });
+                resBox.innerHTML = '';
+                
+                if (!res || res.length === 0) {
+                    resBox.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-sec); font-size: 12px;">Пользователь не найден</div>';
+                    return;
+                }
+                
+                res.forEach(u => {
+                    const tgName = escapeHTML(u.full_name || u.username || 'Без имени');
+                    const twName = u.twitch_login ? escapeHTML(u.twitch_login) : 'Нет Twitch';
+                    const avatar = u.photo_url || 'https://placehold.co/40';
+                    
+                    resBox.innerHTML += `
+                        <div style="padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s;" onclick="selectUserToGrant(${u.telegram_id}, '${tgName.replace(/'/g, "\\'")}')">
+                            <img src="${avatar}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 13px; font-weight: bold; color: #fff;">${tgName}</span>
+                                <span style="font-size: 10px; color: #9146FF; margin-top: 2px;"><i class="fa-brands fa-twitch"></i> ${twName}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                resBox.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--danger); font-size: 12px;">Ошибка поиска</div>';
+            }
+        }
+
+        function debounceUserSearch() {
+            clearTimeout(userSearchTimeout);
+            document.getElementById('grant-level-user-id').value = ''; 
+            userSearchTimeout = setTimeout(doUserSearch, 500);
+        }
+
+        function selectUserToGrant(id, name) {
+            document.getElementById('grant-level-user-id').value = id;
+            document.getElementById('user-search-inp').value = `${name} (${id})`;
+            document.getElementById('user-search-results').style.display = 'none';
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#user-search-results') && e.target.id !== 'user-search-inp') {
+                const resBox = document.getElementById('user-search-results');
+                if(resBox) resBox.style.display = 'none';
+            }
+        });
+
+
+        // ==========================================
+        // ИНТЕГРАЦИЯ КАРТИНКИ (БАННЕРА)
+        // ==========================================
+        async function uploadBannerImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const btn = input.previousElementSibling;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/v1/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('cp_banner_url').value = data.url;
+                    updateBannerPreview();
+                    showSaveBtn();
+                    if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                } else {
+                    showCustomAlert('Ошибка', 'Не удалось загрузить картинку на сервер');
+                }
+            } catch (e) {
+                console.error(e);
+                showCustomAlert('Ошибка сети', 'Сбой при загрузке картинки');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                input.value = ''; 
+            }
+        }
+
+        function updateBannerPreview() {
+            const url = document.getElementById('cp_banner_url').value;
+            const container = document.getElementById('banner-preview-container');
+            const img = document.getElementById('banner-preview-img');
+            
+            if (url && url.startsWith('http')) {
+                img.src = url;
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function grantLevelToUser() {
+            const userId = document.getElementById('grant-level-user-id').value;
+            const level = document.getElementById('grant-level-value').value;
+
+            if (!userId || !level) {
+                showCustomAlert('Внимание', 'Заполните оба поля: Telegram ID (через поиск) и Уровень.');
+                return;
+            }
+
+            showConfirm('Выдача уровня', `Точно выдать уровень ${level} пользователю ${userId}?`, async () => {
+                tg.MainButton.showProgress();
+                try {
+                    await fetchApi('/api/v1/admin/checkpoint/grant_level', {
+                        target_user_id: parseInt(userId),
+                        level: parseInt(level)
+                    });
+                    
+                    if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    showCustomAlert('Успех', `Уровень ${level} успешно выдан!`);
+                    
+                    document.getElementById('user-search-inp').value = '';
+                    document.getElementById('grant-level-user-id').value = '';
+                    document.getElementById('grant-level-value').value = '';
+                } catch (e) {
+                    showCustomAlert('Ошибка', e.message || 'Сбой при выдаче уровня');
+                } finally {
+                    tg.MainButton.hideProgress();
+                }
+            });
+        }
+
+        function openLibraryForTarget(btnElement) {
+            activeSkinTargetInput = btnElement.previousElementSibling;
+            const rewardType = btnElement.dataset.rewardType || 'cs2_skin';
+            document.getElementById('modal-library').classList.add('modal-active');
+            
+            if (rewardType === 'case') {
+                document.getElementById('lib-search-inp').style.display = 'none';
+                document.getElementById('lib-filters').style.display = 'none';
+                document.getElementById('lib-results').innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка кейсов...</div>';
+                loadCasesIntoLibrary();
+            } else {
+                document.getElementById('lib-search-inp').style.display = 'block';
+                document.getElementById('lib-filters').style.display = 'block';
+                document.getElementById('lib-search-inp').value = '';
+                document.getElementById('lib-price-min').value = '';
+                document.getElementById('lib-price-max').value = '';
+                document.getElementById('lib-results').innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:20px;">Начните поиск...</div>';
+                currentOffset = 0; hasMoreItems = true;
+                updateModalBalance();
+            }
+        }
+
+        async function updateModalBalance() {
+            const balEl = document.getElementById('modal-balance-val');
+            balEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const res = await fetch('/api/v1/admin/market/status', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.market_success) {
+                        currentMarketBalance = parseFloat(data.balance);
+                        balEl.innerText = currentMarketBalance.toFixed(2) + ' ₽';
+                    } else balEl.innerText = 'Ошибка API';
+                } else balEl.innerText = 'Сбой';
+            } catch (e) { balEl.innerText = '---'; }
+        }
+
+        function setMaxPriceToBalance() {
+            if (currentMarketBalance > 0) {
+                document.getElementById('lib-price-max').value = Math.floor(currentMarketBalance);
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+                debounceSearch(); 
+            }
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            currentOffset = 0; hasMoreItems = true;
+            searchTimeout = setTimeout(() => doSearch(true), 500);
+        }
+
+        function handleScroll(el) {
+            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
+                if (!isFetching && hasMoreItems) { currentOffset += 30; doSearch(false); }
+            }
+        }
+
+        async function doSearch(isNewSearch) {
+            if (isFetching || !hasMoreItems) return;
+            const q = document.getElementById('lib-search-inp').value.trim();
+            const minP = parseFloat(document.getElementById('lib-price-min').value) || 0;
+            const maxP = parseFloat(document.getElementById('lib-price-max').value) || 9999999;
+            const cont = document.getElementById('lib-results');
+            
+            if (q.length < 2 && minP === 0 && maxP === 9999999) {
+                if (isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Введите название или цену...</div>';
+                return;
+            }
+            
+            isFetching = true;
+            if (isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Ищем...</div>';
+            else cont.insertAdjacentHTML('beforeend', '<div id="scroll-loader" style="text-align:center; padding:10px; color:var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i></div>');
+
+            try {
+                const res = await fetch('/api/v1/admin/cases/search_cache', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ query: q, min_price: minP, max_price: maxP, offset: currentOffset })
+                });
+
+                let items = await res.json();
+                if (isNewSearch) cont.innerHTML = '';
+                else { const l = document.getElementById('scroll-loader'); if (l) l.remove(); }
+
+                if (!items || items.length === 0) {
+                    hasMoreItems = false;
+                    if (isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Ничего не найдено 😔</div>';
+                    return;
+                }
+
+                if (items.length < 30) hasMoreItems = false;
+
+                items.forEach(item => {
+                    const safeJson = encodeURIComponent(JSON.stringify(item).replace(/'/g, "&apos;"));
+                    const rColor = {'common': '#b0c3d9', 'industrial': '#5e98d9', 'blue': '#4b69ff', 'purple': '#8847ff', 'pink': '#d32ce6', 'red': '#eb4b4b', 'gold': '#ffd700'}[item.rarity?.toLowerCase()] || '#4b69ff';
+
+                    cont.innerHTML += `
+                    <div class="search-item" style="border-left: 3px solid ${rColor};">
+                        <img src="${item.image_url}" class="search-img" onerror="this.src='https://placehold.co/40'">
+                        <div class="search-info">
+                            <div style="font-weight:700; font-size:12px; color:#fff;">${item.market_hash_name}</div>
+                            <div style="font-size:11px; color:var(--primary); margin-top:2px;">💰 ${item.price_rub} руб.</div>
+                        </div>
+                        <button class="search-btn" onclick="selectFromCache('${safeJson}')">ВЫБРАТЬ</button>
+                    </div>`;
+                });
+            } catch(e) { 
+                if(isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--danger);">Ошибка поиска</div>';
+            } finally { isFetching = false; }
+        }
+
+        function selectFromCache(jsonStr) {
+            const item = JSON.parse(decodeURIComponent(jsonStr).replace(/&apos;/g, "'"));
+            closeModal('modal-library');
+            if (activeSkinTargetInput) {
+                activeSkinTargetInput.value = item.market_hash_name;
+                activeSkinTargetInput = null;
+                showSaveBtn();
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        async function loadCasesIntoLibrary() {
+            const cont = document.getElementById('lib-results');
+            hasMoreItems = false; 
+            
+            try {
+                const res = await fetch(`/api/v1/admin/twitch_campaigns/cases?initData=${encodeURIComponent(tg.initData)}`);
+                if (!res.ok) throw new Error();
+                const cases = await res.json();
+                
+                cont.innerHTML = '';
+                if(cases.length === 0) {
+                    cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Кейсы не найдены в кэше</div>';
+                    return;
+                }
+                
+                cases.forEach(c => {
+                    const safeName = escapeHTML(c.name);
+                    const encodedName = encodeURIComponent(c.name);
+                    cont.innerHTML += `
+                    <div class="search-item" style="border-left: 3px solid var(--primary);">
+                        <div class="search-info">
+                            <div style="font-weight:700; font-size:14px; color:#fff;">${safeName}</div>
+                        </div>
+                        <button class="search-btn" onclick="selectCaseFromCache('${encodedName}')">ВЫБРАТЬ</button>
+                    </div>`;
+                });
+            } catch (e) {
+                cont.innerHTML = '<div style="text-align:center;color:var(--danger);">Ошибка загрузки кэша</div>';
+            }
+        }
+
+        function selectCaseFromCache(encodedName) {
+            const caseName = decodeURIComponent(encodedName);
+            closeModal('modal-library');
+            if (activeSkinTargetInput) {
+                activeSkinTargetInput.value = caseName;
+                activeSkinTargetInput = null;
+                showSaveBtn();
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function getRewardTypeSelectHtml(selectedValue, namePrefix) {
+            const types = [
+                { val: 'none', text: 'Пусто (Нет награды)' },
+                { val: 'coins', text: 'Монеты' },
+                { val: 'tickets', text: 'Билеты' },
+                { val: 'cs2_skin', text: 'CS2 Скин (Маркет)' },
+                { val: 'case', text: 'Кейс' },
+                { val: 'case_coupon', text: 'Купон на кейс' },
+                { val: 'grind_vip', text: 'Grind VIP' },
+                { val: 'trust_increase', text: 'Повышение траста' },
+                { val: 'topskin_discount', text: 'Скидка TopSkin' },
+                { val: 'fake_messages', text: 'Фейк сообщения (Купон)' },
+                { val: 'twitch_vip', text: 'Twitch VIP (Заявка)' },
+                { val: 'twitch_sub', text: 'Twitch Sub (Заявка)' },
+                { val: 'red_pill', text: 'Красная таблетка' }
+            ];
+            let html = `<select class="reward-type-select" name="${namePrefix}_type" style="margin-bottom: 5px;">`;
+            types.forEach(t => { html += `<option value="${t.val}" ${t.val === selectedValue ? 'selected' : ''}>${t.text}</option>`; });
+            html += `</select>`;
+            return html;
+        }
+
+        function createCpTierRow(tier = null, index = 0) {
+            const data = tier || { level: index + 1, required_stars: 0, free_reward: { type: 'none', value: '', exchange: 0 }, premium_reward: { type: 'none', value: '', exchange: 0 } };
+            const wrapper = document.createElement('div');
+            wrapper.className = 'section-box cp-tier-row'; 
+            wrapper.style.paddingTop = '40px'; 
+
+            // Функция для парсинга склеенных значений (КОД|ССЫЛКА)
+            const parseVal = (type, val) => {
+                let parts = (val || '').split('|');
+                if (type === 'topskin_discount') return { code: parts[0] || '', link: parts[1] || '' };
+                if (type === 'fake_messages') return { msgType: parts[0] || 'stream', amount: parts[1] || '' };
+                return {};
+            };
+            const fP = parseVal(data.free_reward.type, data.free_reward.value);
+            const pP = parseVal(data.premium_reward.type, data.premium_reward.value);
+
+            // Шаблон для блоков с параметрами, чтобы не дублировать код
+            const getInputsHtml = (prefix, dataObj, parsed) => `
+                <div class="reward-val-container" style="display:flex; flex-direction:column; gap:5px; margin-top:5px;">
+                    <div class="standard-val-wrap" style="display:flex; gap:5px;">
+                        <input type="text" class="reward-value-input ${prefix}-val" placeholder="Значение" value="${escapeHTML(String(dataObj.value))}" style="flex:1;">
+                        <button type="button" class="icon-btn skin-search-btn" onclick="openLibraryForTarget(this)" style="display:none;"><i class="fa-solid fa-box-open"></i></button>
+                    </div>
+                    <div class="topskin-wrap" style="display:none; flex-direction:column; gap:5px;">
+                        <input type="text" class="${prefix}-ts-code" placeholder="Код (CODE123)" value="${escapeHTML(parsed.code || '')}">
+                        <input type="text" class="${prefix}-ts-link" placeholder="Ссылка (https://...)" value="${escapeHTML(parsed.link || '')}">
+                    </div>
+                    <div class="fake-msgs-wrap" style="display:none; gap:5px;">
+                        <select class="${prefix}-fm-type" style="padding:8px; border-radius:8px; background:var(--card-bg); color:#fff; border:1px solid var(--card-border); flex:1;">
+                            <option value="stream" ${parsed.msgType === 'stream' ? 'selected' : ''}>Стрим</option>
+                            <option value="week" ${parsed.msgType === 'week' ? 'selected' : ''}>Неделя</option>
+                            <option value="month" ${parsed.msgType === 'month' ? 'selected' : ''}>Месяц</option>
+                        </select>
+                        <input type="number" class="${prefix}-fm-amount" placeholder="Кол-во" value="${parsed.amount || ''}" style="flex:1;">
+                    </div>
+
+                    <input type="number" class="${prefix}-exchange" placeholder="Опыт за отказ (0 = выкл)" value="${dataObj.exchange || 0}" style="background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.3);">
+                </div>
+            `;
+
+            wrapper.innerHTML = `
+                <div style="position: absolute; top: -10px; left: 15px; background: var(--primary); color: #000; padding: 2px 10px; border-radius: 8px; font-weight: 800; font-size: 14px; z-index: 2;">УРОВЕНЬ ${data.level}</div>
+                <button type="button" class="remove-btn-abs remove-tier-btn"><i class="fa-solid fa-xmark"></i></button>
+                
+                <div class="tier-grid">
+                    <div>
+                        <label>Level (Tier)</label>
+                        <input type="number" class="tier-level" value="${data.level}" required style="font-weight: bold; font-size: 16px;">
+                    </div>
+                    <div>
+                        <label>Требуется Звезд</label>
+                        <input type="number" class="tier-stars" value="${data.required_stars}" required>
+                    </div>
+                </div>
+
+                <div class="tier-grid">
+                    <div class="reward-box">
+                        <h4>FREE Награда</h4>
+                        ${getRewardTypeSelectHtml(data.free_reward.type, 'free')}
+                        ${getInputsHtml('free', data.free_reward, fP)}
+                    </div>
+
+                    <div class="reward-box premium">
+                        <h4>PREMIUM Награда</h4>
+                        ${getRewardTypeSelectHtml(data.premium_reward.type, 'premium')}
+                        ${getInputsHtml('premium', data.premium_reward, pP)}
+                    </div>
+                </div>
+            `;
+
+            wrapper.querySelector('.remove-tier-btn').addEventListener('click', () => { wrapper.remove(); showSaveBtn(); });
+
+            wrapper.querySelectorAll('.reward-type-select').forEach(select => {
+                const toggleUI = (sel) => {
+                    const container = sel.nextElementSibling;
+                    const stdWrap = container.querySelector('.standard-val-wrap');
+                    const tsWrap = container.querySelector('.topskin-wrap');
+                    const fmWrap = container.querySelector('.fake-msgs-wrap');
+                    const searchBtn = container.querySelector('.skin-search-btn');
+                    
+                    stdWrap.style.display = 'none';
+                    tsWrap.style.display = 'none';
+                    fmWrap.style.display = 'none';
+
+                    if (['cs2_skin', 'case', 'case_coupon', 'coins', 'tickets', 'grind_vip', 'trust_increase'].includes(sel.value)) {
+                        stdWrap.style.display = 'flex';
+                    } else if (sel.value === 'topskin_discount') {
+                        tsWrap.style.display = 'flex';
+                    } else if (sel.value === 'fake_messages') {
+                        fmWrap.style.display = 'flex';
+                    }
+                    
+                    container.style.display = sel.value === 'none' ? 'none' : 'flex';
+                    searchBtn.style.display = (sel.value === 'cs2_skin' || sel.value === 'case') ? 'flex' : 'none';
+                    searchBtn.dataset.rewardType = sel.value;
+                };
+                select.addEventListener('change', (e) => { toggleUI(e.target); showSaveBtn(); });
+                toggleUI(select);
+            });
+
+            wrapper.addEventListener('input', showSaveBtn);
+            return wrapper;
+        }
+
+        // --- ЛОГИКА НЕДЕЛЬ ---
+
+        function extractQuestsData() {
+            const flatQuests = [];
+            document.querySelectorAll('.week-block').forEach(weekBlock => {
+                const weekNum = parseInt(weekBlock.dataset.week);
+                weekBlock.querySelectorAll('.cp-quest-row').forEach(row => {
+                    const qId = parseInt(row.querySelector('.cp-quest-id-select').value);
+                    const isAccumulative = row.querySelector('.is-accumulative-cb').checked;
+                    
+                    // Если чекбокс выключен, принудительно ставим цель 1
+                    const target = isAccumulative ? parseInt(row.querySelector('.cp-quest-target').value) : 1;
+                    const exp = parseFloat(row.querySelector('.cp-quest-exp').value);
+                    
+                    if (!isNaN(qId) && !isNaN(exp) && exp > 0 && !isNaN(target) && target > 0) {
+                        flatQuests.push({ quest_id: qId, target_amount: target, exp_reward: exp, week: weekNum });
+                    }
+                });
+            });
+            return flatQuests;
+        }
+        
+       function createCpQuestRow(mapping = null) {
+            const data = mapping || { quest_id: '', target_amount: 1, exp_reward: 10 };
+            const wrapper = document.createElement('div');
+            wrapper.className = 'quest-row cp-quest-row';
+
+            let optionsHtml = '<option value="">-- Выберите задание --</option>';
+            availableCpQuests.forEach(q => {
+                const selected = (String(q.id) === String(data.quest_id)) ? 'selected' : '';
+                optionsHtml += `<option value="${q.id}" ${selected}>[ID:${q.id}] ${escapeHTML(q.title)}</option>`;
+            });
+
+            // Определяем, было ли задание накопительным при загрузке
+            const isAccumulative = data.target_amount > 1;
+
+            wrapper.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%; align-items: center;">
+                    <select class="cp-quest-id-select" style="flex: 1 1 100%; padding: 10px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;" required>
+                        ${optionsHtml}
+                    </select>
+                    
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-sec); font-size: 11px; flex-shrink: 0; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);">
+                        <input type="checkbox" class="is-accumulative-cb" ${isAccumulative ? 'checked' : ''} style="margin: 0; accent-color: var(--primary);">
+                        Прогресс (N)
+                    </label>
+
+                    <div class="target-input-container" style="display: ${isAccumulative ? 'flex' : 'none'}; align-items: center; gap: 5px; flex: 1 1 60px;">
+                        <i class="fa-solid fa-crosshairs" style="color: #64b5ef; font-size: 12px;"></i>
+                        <input type="number" class="cp-quest-target" placeholder="N" value="${data.target_amount || 1}" min="1" required style="width: 100%; padding: 8px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;">
+                    </div>
+
+                    <div style="flex: 1 1 80px; display: flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-star" style="color: #ffd700; font-size: 12px;"></i>
+                        <input type="number" step="0.1" class="cp-quest-exp" placeholder="EXP" value="${data.exp_reward}" required style="width: 100%; padding: 8px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;">
+                    </div>
+
+                    <button type="button" class="remove-cp-quest-btn" style="width: 36px; height: 36px; background: rgba(255,77,77,0.1); color: var(--danger); border: none; border-radius: 8px; cursor: pointer; flex-shrink:0;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            // Логика переключения видимости
+            const cb = wrapper.querySelector('.is-accumulative-cb');
+            const targetContainer = wrapper.querySelector('.target-input-container');
+            const targetInput = wrapper.querySelector('.cp-quest-target');
+
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    targetContainer.style.display = 'flex';
+                    if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+                } else {
+                    targetContainer.style.display = 'none';
+                    targetInput.value = 1; // Сбрасываем в 1, если отключили
+                }
+                showSaveBtn();
+            });
+
+            wrapper.querySelector('.remove-cp-quest-btn').addEventListener('click', () => { wrapper.remove(); showSaveBtn(); });
+            wrapper.addEventListener('change', showSaveBtn);
+            wrapper.addEventListener('input', showSaveBtn);
+            return wrapper;
+        }
+
+        // --- НОВОЕ: ЛОГИКА ОБЩИХ ЗАДАНИЙ ---
+        // --- НОВОЕ: ЛОГИКА ОБЩИХ ЗАДАНИЙ ---
+        function createGlobalQuestRow(data = null) {
+            const q = data || { quest_id: '', target_amount: 1000, exp_reward: 50 };
+            const wrapper = document.createElement('div');
+            wrapper.className = 'quest-row global-quest-row';
+            wrapper.style.background = 'rgba(0,0,0,0.5)';
+
+            // Создаем выпадающий список (как у недельных квестов)
+            let optionsHtml = '<option value="">-- Выберите глобальное задание --</option>';
+            availableCpQuests.forEach(quest => {
+                const selected = (String(quest.id) === String(q.quest_id)) ? 'selected' : '';
+                optionsHtml += `<option value="${quest.id}" ${selected}>[ID:${quest.id}] ${escapeHTML(quest.title)}</option>`;
+            });
+
+            wrapper.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%; align-items: center;">
+                    <div style="flex: 1 1 100%;">
+                        <select class="gq-id-select" style="width: 100%; padding: 10px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;" required>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 5px; flex: 1 1 60px;">
+                        <i class="fa-solid fa-crosshairs" style="color: #64b5ef; font-size: 12px;"></i>
+                        <input type="number" class="gq-target" placeholder="Цель" value="${q.target_amount}" min="1" required style="width: 100%; padding: 8px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;">
+                    </div>
+
+                    <div style="flex: 1 1 80px; display: flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-star" style="color: #ffd700; font-size: 12px;"></i>
+                        <input type="number" step="0.1" class="gq-exp" placeholder="EXP" value="${q.exp_reward}" required style="width: 100%; padding: 8px; border-radius: 8px; background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-sizing: border-box;">
+                    </div>
+
+                    <button type="button" class="remove-gq-btn" style="width: 36px; height: 36px; background: rgba(255,77,77,0.1); color: var(--danger); border: none; border-radius: 8px; cursor: pointer; flex-shrink:0;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            wrapper.querySelector('.remove-gq-btn').addEventListener('click', () => { wrapper.remove(); showSaveBtn(); });
+            wrapper.addEventListener('change', showSaveBtn); // Реагируем на выбор в select
+            wrapper.addEventListener('input', showSaveBtn);
+            return wrapper;
+        }
+
+        function extractGlobalQuestsData() {
+            const arr = [];
+            document.querySelectorAll('.global-quest-row').forEach(row => {
+                const qid = parseInt(row.querySelector('.gq-id-select').value);
+                const target = parseInt(row.querySelector('.gq-target').value);
+                const exp = parseFloat(row.querySelector('.gq-exp').value);
+                
+                // Проверяем, что ID выбран
+                if (!isNaN(qid) && target > 0 && exp > 0) {
+                    arr.push({ quest_id: qid, target_amount: target, exp_reward: exp });
+                }
+            });
+            return arr;
+        }
+
+        function addGlobalQuest() {
+            document.getElementById('cp-global-quests-container').appendChild(createGlobalQuestRow());
+            showSaveBtn();
+        }
+
+        // --- КОНЕЦ ЛОГИКИ ОБЩИХ ЗАДАНИЙ ---
+        
+        function generateWeeks() {
+            const startVal = document.getElementById('cp_start_date').value;
+            const endVal = document.getElementById('cp_end_date').value;
+            const container = document.getElementById('cp-quests-container');
+            
+            if (!startVal || !endVal) {
+                container.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 20px;">Сначала укажите дату старта и конца сезона во вкладке "Настройки".</p>';
+                return;
+            }
+
+            const start = new Date(startVal);
+            const end = new Date(endVal);
+            
+            if (end <= start) {
+                container.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 20px;">Дата конца должна быть позже даты старта!</p>';
+                return;
+            }
+
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const totalWeeks = Math.ceil(diffDays / 7) || 1; 
+
+            let existingData = extractQuestsData(); 
+            if (existingData.length === 0) existingData = currentQuestsConfig;
+
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= totalWeeks; i++) {
+                let weekStart = new Date(start.getTime() + (i - 1) * 7 * 24 * 60 * 60 * 1000);
+                let weekEnd = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000 - 1000);
+                if (weekEnd > end) weekEnd = end;
+
+                const startDateStr = weekStart.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'});
+                const endDateStr = weekEnd.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'});
+
+                const weekBlock = document.createElement('div');
+                weekBlock.className = 'section-box week-block';
+                weekBlock.dataset.week = i;
+                weekBlock.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+                weekBlock.style.background = 'rgba(255, 215, 0, 0.02)';
+                
+                weekBlock.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: var(--primary); font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-calendar-day"></i> Неделя ${i}
+                        </h4>
+                        <span style="font-size: 10px; color: var(--text-sec); font-weight: bold; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 6px;">${startDateStr} - ${endDateStr}</span>
+                    </div>
+                    <div class="week-quests-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                    </div>
+                    <button type="button" class="action-add-btn" style="padding: 10px; font-size: 11px; margin-top: 0; width: 100%; border-style: dotted;" onclick="addQuestToWeek(this)">
+                        <i class="fa-solid fa-plus"></i> Добавить задание
+                    </button>
+                `;
+
+                const questsList = weekBlock.querySelector('.week-quests-list');
+                const weekQuests = existingData.filter(q => q.week === i);
+                
+                weekQuests.forEach(q => {
+                    questsList.appendChild(createCpQuestRow(q));
+                });
+
+                container.appendChild(weekBlock);
+            }
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+
+        function addQuestToWeek(btn) {
+            const list = btn.previousElementSibling;
+            list.appendChild(createCpQuestRow());
+            showSaveBtn();
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+
+        function addTier() {
+            const container = document.getElementById('cp-tiers-container');
+            if (container.querySelector('.fa-spinner') || container.querySelector('p')) container.innerHTML = '';
+            const currentIndex = container.querySelectorAll('.cp-tier-row').length;
+            container.appendChild(createCpTierRow(null, currentIndex));
+            showSaveBtn();
+            setTimeout(() => container.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+       // ==========================================
+        // API ВЗАИМОДЕЙСТВИЕ
+        // ==========================================
+        async function fetchApi(url, bodyData = {}) {
+            bodyData.initData = tg.initData;
+            bodyData.platform = "tg"; // <--- ВОТ ЭТА СТРОЧКА ИСПРАВИТ ВСЕ 422 ОШИБКИ!
+
+            const res = await fetch(url, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `API Error: ${res.status}`);
+            }
+            return await res.json();
+        }
+
+        async function initCheckpoint() {
+            tg.MainButton.showProgress();
+            try {
+                try {
+                    const questsList = await fetchApi('/api/v1/admin/quests/catalog');
+                    if (Array.isArray(questsList)) availableCpQuests = questsList;
+                } catch(e) { console.warn("Failed to load quests list"); }
+
+                let checkpointData = {};
+                try {
+                    checkpointData = await fetchApi('/api/v1/admin/checkpoint/status');
+                } catch(e) { console.warn("Failed to load checkpoint status"); }
+                
+                document.getElementById('cp_is_active').checked = checkpointData.is_active || false;
+                document.getElementById('cp_title').value = checkpointData.title || '';
+                document.getElementById('cp_start_date').value = formatDateToInput(checkpointData.start_date);
+                document.getElementById('cp_end_date').value = formatDateToInput(checkpointData.end_date);
+                document.getElementById('cp_premium_price').value = checkpointData.premium_price || 0;
+                document.getElementById('cp_premium_price_rub').value = checkpointData.premium_price_rub || 0;
+                const savedId = checkpointData.min_reaction_message_id;
+                document.getElementById('cp_min_reaction_msg_id').value = savedId !== undefined && savedId !== null ? savedId : '';
+                document.getElementById('cp_banner_url').value = checkpointData.banner_url || '';
+                updateBannerPreview();
+
+                const tiersContainer = document.getElementById('cp-tiers-container');
+                tiersContainer.innerHTML = '';
+                const tiers = checkpointData.tiers || [];
+                if (tiers.length === 0) tiersContainer.innerHTML = '<p style="text-align: center; color: var(--text-sec); padding: 20px;">Уровни не созданы.</p>';
+                else tiers.forEach((t, i) => tiersContainer.appendChild(createCpTierRow(t, i)));
+
+                // --- Загрузка и инициализация недель квестов ---
+                const questsContainer = document.getElementById('cp-quests-container');
+                questsContainer.innerHTML = '';
+                const questsConfig = checkpointData.quests_config || [];
+
+                // НОВОЕ: Загрузка общих квестов
+                const globalContainer = document.getElementById('cp-global-quests-container');
+                globalContainer.innerHTML = '';
+                const globalQuests = checkpointData.global_quests || [];
+                globalQuests.forEach(gq => {
+                    globalContainer.appendChild(createGlobalQuestRow(gq));
+                });
+                
+                let parsedConfig = questsConfig;
+                if (questsConfig.length > 0 && questsConfig[0].quest_id !== undefined && questsConfig[0].week === undefined) {
+                    parsedConfig = questsConfig.map(q => ({...q, week: 1}));
+                }
+
+                currentQuestsConfig = parsedConfig; // Сохраняем в глобальную для generateWeeks
+                
+                const maxWeek = Math.max(...parsedConfig.map(q => q.week || 1), 1);
+                for(let i=1; i<=maxWeek; i++) {
+                    const weekBlock = document.createElement('div');
+                    weekBlock.className = 'week-block hidden'; 
+                    weekBlock.dataset.week = i;
+                    parsedConfig.filter(q => (q.week || 1) === i).forEach(q => {
+                        weekBlock.appendChild(createCpQuestRow(q));
+                    });
+                    questsContainer.appendChild(weekBlock);
+                }
+
+                generateWeeks();
+
+            } catch (e) {
+                showCustomAlert("Ошибка", "Не удалось загрузить данные чекпоинта");
+            } finally {
+                tg.MainButton.hideProgress();
+                hideSaveBtn();
+            }
+        }
+
+       async function saveCheckpointData() {
+            const getRewardData = (row, prefix) => {
+                const type = row.querySelector(`select[name="${prefix}_type"]`).value;
+                let value = '';
+                if (type === 'topskin_discount') {
+                    value = row.querySelector(`.${prefix}-ts-code`).value + '|' + row.querySelector(`.${prefix}-ts-link`).value;
+                } else if (type === 'fake_messages') {
+                    value = row.querySelector(`.${prefix}-fm-type`).value + '|' + row.querySelector(`.${prefix}-fm-amount`).value;
+                } else if (['twitch_vip', 'twitch_sub', 'red_pill', 'none'].includes(type)) {
+                    value = ''; // Для этих типов значение не требуется
+                } else {
+                    value = row.querySelector(`.${prefix}-val`).value;
+                }
+                return {
+                    type: type,
+                    value: value,
+                    exchange: parseInt(row.querySelector(`.${prefix}-exchange`).value) || 0
+                };
+            };
+
+            const tiers = [];
+            document.querySelectorAll('.cp-tier-row').forEach(row => {
+                tiers.push({
+                    level: parseInt(row.querySelector('.tier-level').value) || 0,
+                    required_stars: parseInt(row.querySelector('.tier-stars').value) || 0,
+                    free_reward: getRewardData(row, 'free'),
+                    premium_reward: getRewardData(row, 'premium')
+                });
+            });
+           
+            tiers.sort((a, b) => a.level - b.level);
+
+            const startDateInput = document.getElementById('cp_start_date').value;
+            const endDateInput = document.getElementById('cp_end_date').value;
+
+           // Формируем конфиг без лишней обертки, прямо как ждет бэкенд в config
+            const configPayload = {
+                is_active: document.getElementById('cp_is_active').checked,
+                title: document.getElementById('cp_title').value,
+                start_date: startDateInput ? new Date(startDateInput).toISOString() : null,
+                end_date: endDateInput ? new Date(endDateInput).toISOString() : null,
+                premium_price: parseInt(document.getElementById('cp_premium_price').value) || 0,
+                premium_price_rub: parseFloat(document.getElementById('cp_premium_price_rub').value) || 0,
+                min_reaction_message_id: parseInt(document.getElementById('cp_min_reaction_msg_id').value) || 0,
+                banner_url: document.getElementById('cp_banner_url').value,
+                tiers: tiers,
+                quests_config: extractQuestsData(),
+                global_quests: extractGlobalQuestsData() // <--- ДОБАВЛЕНО
+            };
+            
+            tg.MainButton.showProgress();
+            try {
+                // Добавляем параметр platform, как того требует Pydantic модель!
+                await fetchApi('/api/v1/admin/checkpoint/update', { 
+                    config: configPayload,
+                    platform: "tg" // <--- ВОТ ОНО!
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                showCustomAlert('Успех', 'Настройки Чекпоинта успешно сохранены!');
+                hideSaveBtn();
+            } catch (error) {
+                showCustomAlert('Ошибка сохранения', error.message);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        function resetSeason() {
+            showConfirm('ОБНУЛИТЬ СЕЗОН?', 'Это обнулит звезды и сбросит массив полученных наград у ВСЕХ пользователей. Вы уверены?', async () => {
+                tg.MainButton.showProgress();
+                try {
+                    await fetchApi('/api/v1/admin/checkpoint/reset_season');
+                    if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    showCustomAlert('Успех', 'Сезон успешно сброшен!');
+                } catch (error) {
+                    showCustomAlert('Ошибка сброса', error.message);
+                } finally {
+                    tg.MainButton.hideProgress();
+                }
+            });
+        }
+
+        initCheckpoint();
+    </script>
+</body>
+</html>

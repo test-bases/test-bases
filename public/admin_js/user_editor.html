@@ -1,0 +1,2074 @@
+<!DOCTYPE html> 
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Редактор Профилей | HATElavka</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        const defaultAvatar = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%232c2c2e%22/%3E%3Cpath d=%22M50 55a22 22 0 1 0 0-44 22 22 0 0 0 0 44zm0 5c-15.3 0-45 7.6-45 23v9h90v-9c0-15.4-29.7-23-45-23z%22 fill=%22%238e8e93%22/%3E%3C/svg%3E";
+    </script>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --card-bg: rgba(30, 30, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #ffd700;
+            --accent: #28a745;
+            --danger: #ff4d4d;
+            --text: #ffffff;
+            --text-sec: #aaaaaa;
+            --blur: 10px;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; 
+            padding: 20px;
+            /* 👇 ДОБАВЛЯЕМ ВОТ ЭТУ СТРОКУ ДЛЯ АЙФОНОВ 👇 */
+            padding-top: max(20px, env(safe-area-inset-top)); 
+            padding-bottom: 140px; 
+            zoom: 0.85; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ЛОКАЛЬНЫЙ ФИКС НИЖНЕГО БАРА */
+        body .floating-bottom-bar { left: 0 !important; right: 0 !important; margin: 0 auto !important; transform: none !important; }
+        ::selection { background: var(--primary); color: #000; }
+        ::-moz-selection { background: var(--primary); color: #000; }
+
+        /* --- Header --- */
+        .page-header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--text-sec); font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .back-btn:active { color: var(--text); transform: scale(0.95); }
+        .page-title { font-size: 20px; font-weight: 800; margin: 0; background: linear-gradient(45deg, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* --- Блоки и Карточки --- */
+        .section-box { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative; box-sizing: border-box; }
+        .sec-title { font-size: 13px; color: var(--primary); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* --- Поиск --- */
+        .admin-form input, .admin-form select {
+            width: 100%; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--card-border);
+            color: var(--text); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        }
+        .admin-form select option { background-color: #1e1e1e; color: #ffffff; }
+        .admin-form input:focus, .admin-form select:focus { border-color: var(--primary); background: rgba(255,255,255,0.03); }
+        .admin-form label { display: block; font-size: 12px; color: var(--text-sec); margin: 12px 0 5px; font-weight: 500; }
+
+        .search-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; border-left: 3px solid transparent; }
+        .search-item:active { transform: scale(0.98); background: rgba(255,255,255,0.1); }
+        .search-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #000; }
+        .search-info { flex: 1; min-width: 0; }
+
+        /* --- Карточка профиля --- */
+        .profile-container { animation: fadeIn 0.3s ease; }
+        .profile-card { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-border); }
+        .profile-name { font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .badges-wrapper { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+        .badge { font-size: 10px; padding: 4px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge.red { background: rgba(255, 77, 77, 0.15); color: var(--danger); border: 1px solid rgba(255,77,77,0.3); }
+        .badge.green { background: rgba(40, 167, 69, 0.15); color: var(--accent); border: 1px solid rgba(40,167,69,0.3); }
+        .badge.premium { background: rgba(255, 215, 0, 0.15); color: var(--primary); border: 1px solid rgba(255,215,0,0.3); }
+
+        .inner-back-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text); padding: 8px 15px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .inner-back-btn:active { background: rgba(255,255,255,0.1); transform: scale(0.96); }
+
+/* --- Сетка кнопок действий --- */
+        .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 8px; margin-top: 15px; }
+        .action-btn { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 5px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text); cursor: pointer; transition: 0.2s; text-align: center; }
+        .action-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.05); }
+        .action-btn i { font-size: 18px; margin-bottom: 2px; }
+        .action-btn span { font-size: 9px; font-weight: 800; text-transform: uppercase; line-height: 1.2; word-wrap: break-word; }
+        .action-btn small { font-size: 11px; color: var(--text-sec); font-weight: 700; }
+
+        /* --- Модальные окна (Bottom Sheet) --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-active { display: flex; }
+        .bottom-sheet { background: #1c1c1e; width: 100%; border-radius: 24px 24px 0 0; padding: 20px; padding-bottom: 110px; max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box; border-top: 1px solid var(--card-border); overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        .admin-action-btn { background: #64b5ef; color: #000; padding: 12px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.2s; }
+        .admin-action-btn:active { transform: scale(0.98); }
+        .admin-action-btn.danger { background: rgba(255,77,77,0.1); color: var(--danger); border: 1px solid rgba(255,77,77,0.3); }
+        .admin-action-btn.success { background: var(--accent); color: #fff; }
+
+        .hidden { display: none !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Стили для инвентаря и склада --- */
+        .inv-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 8px; border-left: 3px solid transparent; }
+        .inv-img { width: 50px; height: 40px; object-fit: contain; }
+        .inv-info { flex: 1; min-width: 0; }
+        .inv-btn { background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+        .inv-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+        .inv-btn.swap { background: rgba(255, 215, 0, 0.15); color: var(--primary); }
+
+        .toggle-switch { position: relative; width: 40px; height: 22px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(18px); }
+        /* --- История поиска --- */
+        .history-wrapper { margin-top: 15px; display: none; animation: fadeIn 0.3s ease; }
+        .history-title { font-size: 11px; color: var(--text-sec); margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .history-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .history-list::-webkit-scrollbar { display: none; }
+        .history-chip { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px 10px 4px 4px; border-radius: 20px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; flex-shrink: 0; }
+        .history-chip:active { transform: scale(0.95); background: rgba(255,255,255,0.1); border-color: var(--primary); }
+        .history-chip img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #000; }
+        .history-chip span { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+        /* Отрываем окно деталей от самого низа */
+/* Полностью переопределяем расположение окна деталей */
+#itemDetailsModal {
+    align-items: center; /* Центрируем по вертикали... */
+    padding-bottom: 0;
+}
+
+#itemDetailsModal .bottom-sheet {
+    width: 92%;
+    max-width: 400px;
+    min-height: 70vh;
+    max-height: 105vh;
+    border-radius: 24px !important;
+    border: 1px solid var(--card-border);
+    margin: 0 auto 10vh auto;
+    padding-bottom: 0px !important;
+}
+
+        /* Стили для центрирования шапки и самой кнопки */
+            .page-header { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; gap: 10px; }
+            .test-profile-btn {
+                background: rgba(100, 181, 239, 0.15); 
+                color: #64b5ef; 
+                border: 1px solid rgba(100, 181, 239, 0.3); 
+                border-radius: 10px; 
+                padding: 8px 16px; 
+                font-size: 11px; 
+                font-weight: 800; 
+                cursor: pointer; 
+                display: flex; 
+                align-items: center; 
+                gap: 6px; 
+                transition: 0.2s; 
+                text-transform: uppercase;
+            }
+            .test-profile-btn:active { transform: scale(0.95); background: rgba(100, 181, 239, 0.25); }
+        
+    </style>
+</head>
+<body>
+
+        <div class="main-content-scrollable">
+        <div class="page-header">
+            <h1 class="page-title">Редактор профиля</h1>
+            <!-- НОВАЯ КНОПКА ПЕРЕХОДА -->
+            <button class="test-profile-btn" onclick="window.location.href='/public/profile/profile_menu.html'">
+                <i class="fa-solid fa-flask"></i> Открыть профиль
+            </button>
+        </div>
+
+        
+        <div id="searchView">
+            
+            <!-- ИСТОРИЯ ПОИСКА С УМНЫМ СКРОЛЛОМ -->
+            <div id="searchHistoryWrapper" class="history-wrapper" style="margin-top: 0; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div class="history-title" style="margin-bottom: 0;">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Недавние
+                    </div>
+                    <button onclick="clearSearchHistory()" style="background: none; border: none; color: var(--text-sec); font-size: 14px; cursor: pointer; padding: 4px; transition: 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-sec)'">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <!-- Контейнер для списка и стрелочек -->
+                <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                    
+                    <!-- Левая стрелка -->
+                    <button id="historyLeftBtn" onclick="scrollHistory(-1)" style="display: none; position: absolute; left: -10px; z-index: 10; background: rgba(30,30,30,0.9); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.2s;">
+                        <i class="fa-solid fa-chevron-left" style="font-size: 11px;"></i>
+                    </button>
+                    
+                    <!-- Сам список (добавили cursor: grab и плавный скролл) -->
+                    <div id="searchHistoryList" class="history-list" style="scroll-behavior: smooth; cursor: grab; user-select: none; width: 100%;"></div>
+                    
+                    <!-- Правая стрелка -->
+                    <button id="historyRightBtn" onclick="scrollHistory(1)" style="display: none; position: absolute; right: -10px; z-index: 10; background: rgba(30,30,30,0.9); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.2s;">
+                        <i class="fa-solid fa-chevron-right" style="font-size: 11px;"></i>
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- БЛОК ПОИСКА СЛЕДОМ -->
+            <div class="section-box admin-form" style="border-color: rgba(100, 181, 239, 0.3); background: rgba(100, 181, 239, 0.05);">
+                <h3 class="sec-title" style="color: #64b5ef;"><i class="fa-solid fa-magnifying-glass"></i> Поиск игрока</h3>
+                <input type="text" id="searchInput" placeholder="Telegram ID, @ник или Twitch..." autocomplete="off">
+                <div id="searchResults" style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto;"></div>
+            </div>
+
+                        <!-- НОВЫЙ БЛОК: Последние выводы -->
+            <div class="section-box" id="withdrawalsSection" style="border-color: rgba(50, 215, 75, 0.3); background: rgba(50, 215, 75, 0.05); margin-top: 20px;">
+                <h3 class="sec-title" style="color: var(--accent); justify-content: space-between; cursor: pointer; margin: 0;" onclick="toggleWithdrawals()">
+                    <span><i class="fa-solid fa-hand-holding-dollar"></i> Успешные выводы</span>
+                    <i id="withdrawalsChevron" class="fa-solid fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+                </h3>
+                
+                <!-- Контейнер со списком (скрыт по умолчанию) -->
+                <div id="withdrawalsList" style="display: none; max-height: 350px; overflow-y: auto; flex-direction: column; margin-top: 15px; padding-right: 5px;">
+                    <div style="font-size: 12px; color: var(--text-sec); text-align: center; padding: 10px;">Откройте, чтобы загрузить...</div>
+                </div>
+            </div>
+
+
+            <div class="section-box" id="bannedSection" style="border-color: rgba(255, 77, 77, 0.3); background: rgba(255, 77, 77, 0.05);">
+                <h3 class="sec-title" style="color: var(--danger); justify-content: space-between; cursor: pointer; margin: 0;" onclick="toggleBanned()">
+                    <span><i class="fa-solid fa-ban"></i> В бане (<span id="bannedCount">0</span>)</span>
+                    <i id="bannedChevron" class="fa-solid fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+                </h3>
+                <div id="bannedList" style="display: none; max-height: 250px; overflow-y: auto; flex-direction: column; margin-top: 15px;">
+                    <div style="font-size: 12px; color: var(--text-sec); text-align: center; padding: 10px;">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mainLoader" class="hidden" style="text-align: center; padding: 40px; color: var(--text-sec);">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+            <p style="margin-top: 10px; font-size: 13px;">Сбор данных...</p>
+        </div>
+
+        <div id="profileContainer" class="profile-container hidden">
+            <button class="inner-back-btn" onclick="closeProfile()">
+                <i class="fa-solid fa-arrow-left"></i> Назад к списку
+            </button>
+
+            <div class="section-box">
+                <div class="profile-card">
+                    <img id="userAvatar" src="" alt="Avatar" class="profile-avatar" onerror="this.onerror=null; this.src=defaultAvatar;">
+                   <div class="profile-info">
+                        <div id="userName" class="profile-name">Загрузка...</div>
+                        <div style="font-size: 12px; color: var(--text-sec); margin-top: 4px; font-weight: 600;">ID: <span id="userId" style="color: #fff;"></span></div>
+                        <div id="withdrawnBlock" style="font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 700; display: none;">
+                            <i class="fa-solid fa-hand-holding-dollar"></i> Выведено на: <span id="statWithdrawn">0</span> ₽
+                        </div>
+                        <!-- ДОБАВЛЯЕМ ВОТ ЭТУ СТРОКУ ДЛЯ ЛИМИТОВ: -->
+                        <div id="limitBlock" style="font-size: 11px; margin-top: 4px; font-weight: 700; display: none;"></div>
+                        
+                        <div id="userBadges" class="badges-wrapper"></div>
+                    </div>
+                </div>
+
+                <div class="actions-grid">
+                    <button class="action-btn" onclick="openInventory()" style="border-color: rgba(50, 215, 75, 0.3); background: rgba(50, 215, 75, 0.05);">
+                        <i class="fa-solid fa-box-open" style="color: #32d74b;"></i>
+                        <span>Инвентарь игрока</span>
+                    </button>
+
+                    <button class="action-btn" onclick="openModal('coinsModal')" style="border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05);">
+                        <i class="fa-solid fa-coins" style="color: var(--primary);"></i>
+                        <span>Bot-t Монеты</span>
+                        <small id="statCoins">...</small>
+                    </button>
+                    <button class="action-btn" onclick="openModal('ticketsModal')" style="border-color: rgba(100, 181, 239, 0.3); background: rgba(100, 181, 239, 0.05);">
+                        <i class="fa-solid fa-ticket" style="color: #64b5ef;"></i>
+                        <span>Билеты</span>
+                        <small id="statTickets">...</small>
+                    </button>
+                    <button class="action-btn" onclick="openCpModal()" style="border-color: rgba(255, 71, 87, 0.3); background: rgba(255, 71, 87, 0.05);">
+                        <i class="fa-solid fa-flag-checkered" style="color: #ff4757;"></i>
+                        <span>Battle Pass</span>
+                        <small id="statCpLevel">...</small>
+                    </button>
+                    <button class="action-btn" onclick="openModal('grindModal')" style="border-color: rgba(255, 149, 0, 0.3); background: rgba(255, 149, 0, 0.05);">
+                        <i class="fa-solid fa-fire" style="color: #ff9500;"></i>
+                        <span>Гринд</span>
+                        <small id="statGrind">...</small>
+                    </button>
+                    <button class="action-btn" onclick="openModal('trustModal')" style="border-color: rgba(175, 82, 222, 0.3); background: rgba(175, 82, 222, 0.05);">
+                        <i class="fa-solid fa-shield-heart" style="color: #af52de;"></i>
+                        <span>Траст Фактор</span>
+                        <small id="statTrust">...</small>
+                    </button>
+                    <button class="action-btn" onclick="openModal('connectionsModal')" style="border-color: rgba(142, 142, 147, 0.3); background: rgba(142, 142, 147, 0.05);">
+                        <i class="fa-solid fa-link-slash" style="color: #8e8e93;"></i>
+                        <span>Привязки</span>
+                        <small id="statConnections">...</small>
+                    </button> 
+                    <button class="action-btn" onclick="openModal('statusModal')" style="border-color: rgba(255, 77, 77, 0.3); background: rgba(255, 77, 77, 0.05);">
+                        <i class="fa-solid fa-gavel" style="color: var(--danger);"></i>
+                        <span>Статусы</span>
+                        <small id="statStatus">...</small>
+                    </button>
+                   <!-- Кнопка Матрицы (Скрыта, если таблетка не выбрана) -->
+                    <button class="action-btn" id="matrixActionBtn" onclick="openModal('matrixModal')" style="border-color: rgba(255, 71, 87, 0.3); background: rgba(255, 71, 87, 0.05); display: none;">
+                        <i id="matrixBtnIcon" class="fa-solid fa-capsules" style="color: #ff4757;"></i>
+                        <span>Матрица</span>
+                        <small id="statMatrix">...</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="matrixModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 id="matrixModalHeader" style="margin:0; font-size: 16px; font-weight: 800; color: #ff4757;"><i class="fa-solid fa-capsules"></i> Матрица</h3>
+                <button class="back-btn" onclick="closeModal('matrixModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            
+            <div id="matrixModalCard" style="background: rgba(255, 77, 77, 0.05); border: 1px solid rgba(255, 77, 77, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: center;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Выбранная таблетка:</div>
+                <div style="font-size: 18px; font-weight: 900; color: #fff;" id="matrixModalPill">...</div>
+            </div>
+
+            <button class="admin-action-btn danger" onclick="submitDeleteMatrix()">Отменить выбор (Удалить)</button>
+        </div>
+    </div>
+    <div id="coinsModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-coins"></i> Управление Bot-t Монетами</h3>
+                <button class="back-btn" onclick="closeModal('coinsModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <label>Действие</label>
+            <select id="coinsAction">
+                <option value="add">Начислить (+)</option>
+                <option value="subtract">Списать (-)</option>
+            </select>
+            <label>Количество</label>
+            <input type="number" step="0.01" id="coinsAmount" placeholder="Например: 100" min="0.01">
+            <button class="admin-action-btn" onclick="submitCoins()" style="background: var(--primary);">Применить</button>
+        </div>
+    </div>
+
+    <div id="ticketsModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #64b5ef;"><i class="fa-solid fa-ticket"></i> Управление Билетами</h3>
+                <button class="back-btn" onclick="closeModal('ticketsModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <label>Количество билетов для выдачи</label>
+            <input type="number" id="ticketsAmount" placeholder="Например: 50" min="1">
+            <button class="admin-action-btn" onclick="submitTickets()">Выдать билеты</button>
+        </div>
+    </div>
+
+    <div id="cpModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #ff4757;"><i class="fa-solid fa-flag-checkered"></i> Установка прогресса</h3>
+                <button class="back-btn" onclick="closeModal('cpModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            
+            <div style="background: rgba(255, 71, 87, 0.1); border: 1px dashed rgba(255, 71, 87, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-sec); margin-bottom: 4px;">Текущие показатели:</div>
+                <div style="font-size: 18px; font-weight: 900; color: #fff;" id="modalCurrentCpStats">LVL: 0 | 0 EXP</div>
+            </div>
+
+            <!-- Тумблер Premium -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; margin-bottom: 15px;">
+                <span style="font-size: 14px; font-weight: 700; color: var(--primary);"><i class="fa-solid fa-star"></i> PREMIUM награда</span>
+                <label class="toggle-switch" style="margin: 0; transform: scale(0.9);">
+                    <input type="checkbox" id="hasPremium" onchange="submitStatus(true)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <label>Что меняем? (Прогресс)</label>
+            <select id="cpTargetType">
+                <option value="levels">Установить точный Уровень</option>
+                <option value="exp">Установить точный Опыт (EXP)</option>
+            </select>
+            
+            <label>Новое значение</label>
+            <input type="number" step="0.1" id="cpAmount" placeholder="Впиши новую цифру" min="0">
+            <button class="admin-action-btn" onclick="submitCp()" style="background: #ff4757; color: #fff;">Сохранить новое значение</button>
+        </div>
+    </div>
+    
+    <div id="grindModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #ff9500;"><i class="fa-solid fa-fire"></i> Гринд & Twitch</h3>
+                <button class="back-btn" onclick="closeModal('grindModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-sec); margin-top: -5px; margin-bottom: 10px;">
+                Последний сбор: <strong id="lastGrindHours" style="color: #ff9500;">...</strong>
+            </p>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Гринд Монеты</label>
+                    <input type="number" step="0.1" id="grindCoins" placeholder="Например: 15.5" min="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>Страйк (Дней)</label>
+                    <input type="number" id="streakDays" placeholder="Например: 3" min="0">
+                </div>
+            </div>
+            <label>Twitch Статус</label>
+            <select id="twitchStatus">
+                <option value="none">Нет статуса</option>
+                <option value="follower">Follower</option>
+                <option value="subscriber">Subscriber</option>
+                <option value="vip">VIP</option>
+            </select>
+            <button class="admin-action-btn" onclick="submitGrind()" style="background: #ff9500; color: #fff;">Сохранить Гринд</button>
+        </div>
+    </div>
+
+    <div id="trustModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #af52de;"><i class="fa-solid fa-shield-heart"></i> Траст Фактор</h3>
+                <button class="back-btn" onclick="closeModal('trustModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <p style="font-size: 11px; color: var(--accent); margin-top: -5px; margin-bottom: 10px; line-height: 1.3;">
+                * При сохранении пользователю накрутится фейковая активность для защиты от штрафов.
+            </p>
+            <label>Уровень траста (Цвет)</label>
+            <select id="trustLevel">
+                <option value="green">Green (Зеленый)</option>
+                <option value="yellow">Yellow (Желтый)</option>
+                <option value="red">Red (Красный)</option>
+            </select>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Trust Score</label>
+                    <input type="number" step="0.1" id="trustScore">
+                </div>
+                <div style="flex: 1;">
+                    <label>Штрафы</label>
+                    <input type="number" step="0.1" id="penaltyPoints">
+                </div>
+            </div>
+            <button class="admin-action-btn" onclick="submitTrust()" style="background: #af52de; color: #fff;">Сохранить Траст</button>
+        </div>
+    </div>
+
+    <div id="connectionsModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #8e8e93;"><i class="fa-solid fa-link-slash"></i> Управление привязками</h3>
+                <button class="back-btn" onclick="closeModal('connectionsModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            
+            <div class="section-box" style="margin-bottom: 15px; border-color: rgba(100, 65, 165, 0.3); background: rgba(100, 65, 165, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 600;">Twitch Аккаунт</div>
+                        <div id="connTwitch" style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 4px;">...</div>
+                    </div>
+                    <button class="inner-back-btn" onclick="submitUnbind('twitch')" style="margin: 0; color: var(--danger); border-color: rgba(255,77,77,0.3);">
+                        Отвязать
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-box" style="margin-bottom: 15px; border-color: rgba(42, 71, 94, 0.3); background: rgba(42, 71, 94, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="overflow: hidden; padding-right: 10px; flex-grow: 1;">
+                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 600;">Trade Ссылка (Steam)</div>
+                        <div id="connTrade" style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;">...</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btnCheckTrade" class="inner-back-btn hidden" style="margin: 0; color: #64b5ef; border-color: rgba(100,181,239,0.3); padding: 8px 12px;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </button>
+                        <button class="inner-back-btn" onclick="submitUnbind('trade_link')" style="margin: 0; color: var(--danger); border-color: rgba(255,77,77,0.3); padding: 8px 12px;">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet admin-form">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color: var(--danger);"><i class="fa-solid fa-gavel"></i> Блокировка</h3>
+                <button class="back-btn" onclick="closeModal('statusModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 77, 77, 0.05); border: 1px solid rgba(255, 77, 77, 0.3); border-radius: 12px; margin-bottom: 20px;">
+                <span style="font-size: 14px; font-weight: 700; color: var(--danger);"><i class="fa-solid fa-ban"></i> Заблокировать аккаунт</span>
+                <label class="toggle-switch" style="margin: 0; transform: scale(0.9);">
+                    <input type="checkbox" id="isBanned" onchange="submitStatus(true)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button class="admin-action-btn danger" onclick="submitStatus(false)">Сохранить статус</button>
+        </div>
+    </div>
+
+    <div id="inventoryModal" class="modal-overlay" onclick="closeOnDim(event)">
+        <div class="bottom-sheet">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h3 style="margin:0; font-size: 16px; font-weight: 800; color: #32d74b;"><i class="fa-solid fa-box-open"></i> Инвентарь игрока</h3>
+                    <button class="inner-back-btn" style="margin: 0; padding: 4px 10px; font-size: 11px; color: #32d74b; border-color: rgba(50, 215, 75, 0.3);" onclick="openGrantItemModal()">
+                        <i class="fa-solid fa-plus"></i> Выдать
+                    </button>
+                </div>
+                <button class="back-btn" onclick="closeModal('inventoryModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <div id="inventoryLoader" style="text-align: center; padding: 20px; color: var(--text-sec);"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка...</div>
+           <div id="inventoryList" style="overflow-y: auto; max-height: 50vh; display: none; padding-bottom: 80px;"></div>
+        </div>
+    </div>
+
+    <div id="itemDetailsModal" class="modal-overlay" onclick="closeOnDim(event)">
+       <div class="bottom-sheet">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 16px; font-weight: 800;">Детали предмета</h3>
+                <button class="back-btn" onclick="closeModal('itemDetailsModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            
+            <!-- Серый блок ТОЛЬКО для текстовой информации (без внутреннего скролла) -->
+            <div id="itemDetailsContent" style="background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--card-border); font-size: 13px; margin-bottom: 15px;">
+            </div>
+
+            <!-- Блок для кнопок управления статусами -->
+            <div id="itemDetailsAdminWrapper" style="padding-bottom: 30px;">
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-library" class="modal-overlay" onclick="if(event.target===this) closeModal('modal-library')">
+        <div class="bottom-sheet" style="height: 85vh;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color: var(--primary);">Склад для замены (Swap)</h3>
+                <button onclick="closeModal('modal-library')" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="admin-form" style="margin-top: 15px; display: flex; flex-direction: column; height: 100%;">
+                <input type="text" id="lib-search-inp" class="form-input" placeholder="Название (AK-47)..." oninput="debounceSearch()">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <input type="number" id="lib-price-min" class="form-input" placeholder="Мин. цена ₽" oninput="debounceSearch()">
+                    <input type="number" id="lib-price-max" class="form-input" placeholder="Макс. цена ₽" oninput="debounceSearch()">
+                </div>
+
+                <div class="filter-accordion" style="margin-top: 15px;">
+                    <div class="accordion-header" onclick="toggleFilterAccordion()" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; cursor: pointer;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-sec);"><i class="fa-solid fa-filter"></i> Тонкая настройка</span>
+                        <i class="fa-solid fa-chevron-down" id="accordion-icon" style="color: var(--text-sec); transition: 0.3s;"></i>
+                    </div>
+                    
+                    <div id="accordion-content" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;">
+                        <div style="padding: 15px 5px 5px 5px; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 13px; color: var(--text);">Скрыть наклейки</span>
+                                <label class="toggle-switch" style="transform: scale(0.85); margin: 0;">
+                                    <input type="checkbox" id="hide-stickers" onchange="debounceSearch()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 13px; color: var(--text);">Скрыть граффити и патчи</span>
+                                <label class="toggle-switch" style="transform: scale(0.85); margin: 0;">
+                                    <input type="checkbox" id="hide-graffiti" onchange="debounceSearch()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 13px; color: var(--text);">Скрыть "Закаленное в боях"</span>
+                                <label class="toggle-switch" style="transform: scale(0.85); margin: 0;">
+                                    <input type="checkbox" id="hide-bs" onchange="debounceSearch()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lib-results" style="flex:1; overflow-y: auto; margin-top:10px; padding-bottom: 100px;" onscroll="handleScroll(this)">
+                    <div style="text-align:center; color:var(--text-sec); padding:20px;">Начните поиск...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кастомный Confirm (Да / Нет) -->
+<div id="customConfirmModal" class="modal-overlay" style="z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <h3 id="confirmTitle" style="margin-top: 0; font-size: 16px; color: var(--text);">Подтверждение</h3>
+        <p id="confirmMessage" style="font-size: 13px; color: var(--text-sec); margin-bottom: 20px;"></p>
+        <div style="display: flex; gap: 10px;">
+            <button id="confirmBtnNo" class="inner-back-btn" style="flex: 1; justify-content: center; margin: 0;">Отмена</button>
+            <button id="confirmBtnYes" class="admin-action-btn danger" style="flex: 1; margin: 0; padding: 10px;">Да</button>
+        </div>
+    </div>
+</div>
+
+<!-- Кастомный Prompt (Ввод текста) -->
+<div id="customPromptModal" class="modal-overlay" style="z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <h3 id="promptTitle" style="margin-top: 0; font-size: 16px; color: var(--text);">Ввод данных</h3>
+        <p id="promptMessage" style="font-size: 12px; color: var(--text-sec); margin-bottom: 15px; white-space: pre-wrap;"></p>
+        <input type="number" step="0.1" id="promptInput" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; outline: none;" placeholder="Например: 2">
+        <div style="display: flex; gap: 10px;">
+            <button id="promptBtnCancel" class="inner-back-btn" style="flex: 1; justify-content: center; margin: 0;">Отмена</button>
+            <button id="promptBtnOk" class="admin-action-btn" style="flex: 1; margin: 0; padding: 10px; background: #64b5ef; color: #000;">OK</button>
+        </div>
+    </div>
+</div>
+
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.show();
+        tg.BackButton.onClick(goBack);
+
+        let currentUser = null;
+        let searchTimeout = null;
+        let libraryMode = 'swap'; // Переменная для определения режима окна Склада (swap или grant)
+
+        // Словарь для красивых русских статусов
+        const statusTranslations = {
+            'available': 'В инвентаре (Доступен)',
+            'pending': 'Не выведен (В профиле)',
+            'received': 'Успешно выведен',
+            'exchanged_swap': 'Объединен в свапе',
+            'failed': 'Заморожен / Ошибка',
+            'waiting': 'Ожидает (Market)',
+            'processing': 'Обработка (Market)',
+            'market_pending': 'Создание заявки',
+            'offer_sent': 'Оффер отправлен',
+            'exchanged': 'Продан',
+            'expired': 'Истек срок (Сгорел)'
+        };
+        function getStatusRu(status) {
+            return statusTranslations[status] || status;
+        }
+
+        // Глобальная функция для совместимости с внешними скриптами (top_nav.js и др.)
+window.makeApiRequest = async function(endpoint, arg2 = 'GET', arg3 = null) {
+    let method = 'GET';
+    let data = null;
+
+    // Определяем, в каком порядке переданы аргументы
+    if (typeof arg2 === 'string') {
+        method = arg2.toUpperCase();
+        data = arg3;
+    } else if (typeof arg2 === 'object' && arg2 !== null) {
+        data = arg2;
+        // Если метод не передан 3-м аргументом, по умолчанию считаем POST (так как есть данные)
+        method = (typeof arg3 === 'string') ? arg3.toUpperCase() : 'POST'; 
+    }
+
+    let url = endpoint;
+    const options = { 
+        method: method, 
+        headers: { 'Content-Type': 'application/json' } 
+    };
+
+    if (method === 'GET' || method === 'HEAD') {
+        // Добавляем initData в query параметры
+        const params = new URLSearchParams(data || {});
+        if (typeof tg !== 'undefined' && tg.initData) {
+            params.append('initData', tg.initData);
+        }
+        
+        // Если параметры не пустые, добавляем их к URL
+        const queryString = params.toString();
+        if (queryString) {
+            url += (url.includes('?') ? '&' : '?') + queryString;
+        }
+    } else {
+        // Добавляем initData в тело для POST/PUT/PATCH/DELETE
+        const bodyData = data || {};
+        if (typeof tg !== 'undefined' && tg.initData) {
+            bodyData.initData = tg.initData;
+        }
+        options.body = JSON.stringify(bodyData);
+    }
+
+    const res = await fetch(url, options);
+    const resData = await res.json();
+    if (!res.ok) throw new Error(resData.detail || 'Ошибка API');
+    return resData;
+};
+
+        // --- Логика истории поиска ---
+        const HISTORY_KEY = 'hatelavka_search_history';
+        const MAX_HISTORY = 6;
+
+        function saveToSearchHistory(user) {
+            let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            // Удаляем, если уже есть, чтобы переместить в начало
+            history = history.filter(u => u.telegram_id !== user.telegram_id);
+            history.unshift({
+                telegram_id: user.telegram_id,
+                full_name: user.full_name || user.username || 'Без имени',
+                photo_url: user.photo_url || defaultAvatar
+            });
+            if (history.length > MAX_HISTORY) history.pop();
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            renderSearchHistory();
+        }
+
+        function clearSearchHistory() {
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            localStorage.removeItem(HISTORY_KEY);
+            renderSearchHistory();
+        }
+
+        function renderSearchHistory() {
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            const container = document.getElementById('searchHistoryList');
+            const wrapper = document.getElementById('searchHistoryWrapper');
+            
+            if (history.length === 0) {
+                wrapper.style.display = 'none';
+                return;
+            }
+            
+            wrapper.style.display = 'block';
+            container.innerHTML = history.map(u => `
+                <div class="history-chip" onclick="loadUser(${u.telegram_id})">
+                    <img src="${u.photo_url}" onerror="this.onerror=null; this.src=defaultAvatar;">
+                    <span>${escapeHTML(u.full_name.split(' ')[0])}</span>
+                </div>
+            `).join('');
+
+            // 👇 ДОБАВИТЬ ЭТУ СТРОКУ В САМЫЙ КОНЕЦ ФУНКЦИИ 👇
+            setTimeout(updateHistoryArrows, 50); 
+        }
+
+// ==========================================
+        // ЛОГИКА УМНОГО СКРОЛЛА ИСТОРИИ
+        // ==========================================
+
+        // Функция скролла по стрелочкам
+        window.scrollHistory = function(direction) {
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            const list = document.getElementById('searchHistoryList');
+            if (!list) return;
+            const scrollAmount = list.clientWidth * 0.6; // Скроллим на 60% от видимой ширины
+            list.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+        };
+
+        // Функция показа/скрытия стрелочек
+        window.updateHistoryArrows = function() {
+            const list = document.getElementById('searchHistoryList');
+            const leftBtn = document.getElementById('historyLeftBtn');
+            const rightBtn = document.getElementById('historyRightBtn');
+            if (!list || !leftBtn || !rightBtn) return;
+
+            // Определяем, телефон это или ПК (на мобилках свайп удобнее, стрелочки можно скрыть)
+            const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            if (isTouch) {
+                leftBtn.style.display = 'none';
+                rightBtn.style.display = 'none';
+                return;
+            }
+
+            // Показываем стрелочки только если контент реально не влезает
+            if (list.scrollWidth > list.clientWidth) {
+                // Если отскроллили чуть вправо от начала — показываем левую стрелку
+                leftBtn.style.display = list.scrollLeft > 5 ? 'flex' : 'none';
+                // Если не дошли до самого конца — показываем правую стрелку
+                rightBtn.style.display = (list.scrollLeft + list.clientWidth) < (list.scrollWidth - 5) ? 'flex' : 'none';
+            } else {
+                leftBtn.style.display = 'none';
+                rightBtn.style.display = 'none';
+            }
+        };
+
+        // Имитация сенсорного перетаскивания (свайпа) мышкой для ПК
+        function initHistoryDrag() {
+            const slider = document.getElementById('searchHistoryList');
+            if (!slider) return;
+
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                slider.style.cursor = 'grabbing';
+                slider.style.scrollBehavior = 'auto'; // Отключаем плавность, чтобы мышка не "вязла"
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+            });
+
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+                slider.style.scrollBehavior = 'smooth'; // Возвращаем плавность для кликов по стрелкам
+                updateHistoryArrows();
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 1.5; // Скорость перетаскивания
+                slider.scrollLeft = scrollLeft - walk;
+            });
+
+            // Обновляем стрелочки при скролле колесиком мыши или тачпадом
+            slider.addEventListener('scroll', () => {
+                if (!isDown) updateHistoryArrows();
+            });
+        }
+
+        // Активируем сенсор мыши
+        setTimeout(initHistoryDrag, 100);
+        
+        function goBack() { 
+            console.log('[LOG] Клик: Вызван goBack');
+            const openModal = document.querySelector('.modal-overlay.modal-active');
+            if (openModal) {
+                openModal.classList.remove('modal-active');
+            } else {
+                window.location.href = '/admin'; 
+            }
+        }
+
+        function closeProfile() {
+            console.log('[LOG] Клик: Вызван closeProfile');
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            document.getElementById('profileContainer').classList.add('hidden');
+            document.getElementById('searchView').classList.remove('hidden');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            currentUser = null;
+            renderSearchHistory(); 
+            loadBannedUsers(); 
+        }
+
+        // Открытие/закрытие аккордеона
+        function toggleWithdrawals() {
+            console.log('[LOG] Клик: Вызван toggleWithdrawals');
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            
+            const list = document.getElementById('withdrawalsList');
+            const chev = document.getElementById('withdrawalsChevron');
+            
+            if(list.style.display === 'none' || list.style.display === '') {
+                list.style.display = 'flex'; 
+                chev.style.transform = 'rotate(180deg)';
+                loadRecentWithdrawals(); // Загружаем данные только при открытии вкладки
+            } else {
+                list.style.display = 'none'; 
+                chev.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Загрузка и рендер данных
+        async function loadRecentWithdrawals() {
+            const listObj = document.getElementById('withdrawalsList');
+            listObj.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sec);"><i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка базы...</div>';
+            
+            try {
+                // Делаем запрос к новому эндпоинту бэкенда (см. ниже)
+                const items = await fetchApi('/api/v1/admin/stats/recent_withdrawals', null, 'GET');
+                
+                if (!items || items.length === 0) {
+                    listObj.innerHTML = '<div style="font-size: 12px; color: var(--text-sec); text-align: center; padding: 10px;">Успешных выводов пока нет.</div>';
+                    return;
+                }
+
+                // Рендерим ленту
+                listObj.innerHTML = items.map(w => {
+                    const avatar = w.user_avatar || defaultAvatar;
+                    const userName = escapeHTML(w.user_name || 'Без имени');
+
+                    // Учитываем логику свапа/замен из твоей БД
+                    const isSwapped = w.is_swapped === true;
+                    const isReplaced = !!w.replaced_name && !isSwapped;
+                    
+                    const skinName = (isReplaced || isSwapped) ? w.replaced_name : (w.item_name || 'Неизвестный предмет');
+                    const price = (isReplaced || isSwapped) ? w.replaced_price : (w.item_price_rub || 0);
+                    let img = (isReplaced || isSwapped) ? w.replaced_image_url : w.item_image;
+                    
+                    if (!img || img === 'null') {
+                        img = `https://api.steamapis.com/image/item/730/${encodeURIComponent(skinName)}`;
+                    }
+
+                    // Форматируем дату (Сегодня в 14:30 и т.д.)
+                    const dateObj = new Date(w.updated_at);
+                    const dateStr = dateObj.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+                    const sourceText = w.case_name || w.source || 'Неизвестно';
+
+                    // Верстка карточки (Аватар + Скин внутри)
+                    return `
+                        <div class="search-item" style="border-left-color: var(--accent); flex-direction: column; align-items: stretch; padding: 10px;" onclick="loadUser(${w.user_id})">
+                            
+                            <!-- Верхняя часть: Юзер и Дата -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <img src="${avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;" onerror="this.onerror=null; this.src=defaultAvatar;">
+                                    <span style="font-weight: 800; font-size: 12px; color: #fff;">${userName}</span>
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-sec); font-weight: 600;">${dateStr}</div>
+                            </div>
+
+                            <!-- Нижняя часть: Скин -->
+                            <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 8px; border-radius: 8px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                                <img src="${img}" style="width: 45px; height: 35px; object-fit: contain;">
+                                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
+                                    <div style="font-weight: 700; font-size: 11px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(skinName.split('|').pop().trim())}</div>
+                                    <div style="font-size: 9px; color: var(--text-sec); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                                        <i class="fa-solid fa-box-open"></i> ${escapeHTML(sourceText)}
+                                    </div>
+                                </div>
+                                <div style="font-weight: 900; font-size: 12px; color: var(--primary); white-space: nowrap;">
+                                    ${price} ₽
+                                </div>
+                            </div>
+                            
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                listObj.innerHTML = `<div style="font-size: 12px; color: var(--danger); text-align: center; padding: 10px;">Ошибка: ${err.message}</div>`;
+            }
+        }
+
+        function toggleBanned() {
+            console.log('[LOG] Клик: Вызван toggleBanned');
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            const list = document.getElementById('bannedList');
+            const chev = document.getElementById('bannedChevron');
+            if(list.style.display === 'none' || list.style.display === '') {
+                list.style.display = 'flex'; chev.style.transform = 'rotate(180deg)';
+            } else {
+                list.style.display = 'none'; chev.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        async function fetchApi(endpoint, payload = null, method = 'POST') {
+            const url = method === 'GET' ? `${endpoint}?initData=${encodeURIComponent(tg.initData)}` : endpoint;
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (payload && method === 'POST') { payload.initData = tg.initData; options.body = JSON.stringify(payload); }
+            const res = await fetch(url, options);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Ошибка сервера');
+            return data;
+        }
+
+        async function loadBannedUsers() {
+            const listObj = document.getElementById('bannedList');
+            const countObj = document.getElementById('bannedCount');
+            try {
+                const users = await fetchApi('/api/v1/admin/users/banned', null, 'GET');
+                countObj.textContent = users.length;
+                if (users.length === 0) {
+                    listObj.innerHTML = '<div style="font-size: 12px; color: var(--text-sec); text-align: center; padding: 10px;">Пусто. Нарушителей нет.</div>';
+                    return;
+                }
+                listObj.innerHTML = users.map(u => {
+                    const avatar = u.photo_url || defaultAvatar;
+                    const name = escapeHTML(u.full_name || u.username || 'Без имени');
+                    return `
+                        <div class="search-item" style="border-left-color: var(--danger);" onclick="loadUser(${u.telegram_id})">
+                            <img src="${avatar}" class="search-img" onerror="this.onerror=null; this.src=defaultAvatar;">
+                            <div class="search-info">
+                                <div style="font-weight:700; font-size:12px; color:#fff;">${name}</div>
+                                <div style="font-size:10px; color:var(--text-sec); margin-top:2px;">ID: ${u.telegram_id}</div>
+                            </div>
+                            <i class="fa-solid fa-chevron-right" style="color: var(--text-sec); font-size: 12px;"></i>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) { listObj.innerHTML = `<div style="font-size: 12px; color: var(--danger); text-align: center; padding: 10px;">Ошибка загрузки</div>`; }
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const term = e.target.value.trim();
+            if (term.length < 2) { searchResults.style.display = 'none'; return; }
+            searchResults.style.display = 'block';
+            searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-sec); font-size: 12px;"><i class="fa-solid fa-spinner fa-spin"></i> Поиск...</div>';
+            
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const users = await fetchApi('/api/v1/admin/users/search', { query: term });
+                    if (!users || users.length === 0) {
+                        searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-sec); font-size: 12px;">Ничего не найдено</div>';
+                        return;
+                    }
+                    searchResults.innerHTML = users.map(u => {
+                        const avatar = u.photo_url || defaultAvatar;
+                        const name = escapeHTML(u.full_name || u.username || 'Без имени');
+                        const twitch = u.twitch_login ? escapeHTML(u.twitch_login) : 'нет';
+                        return `
+                            <div class="search-item" style="border-left-color: #64b5ef;" onclick="loadUser(${u.telegram_id})">
+                                <img src="${avatar}" class="search-img" onerror="this.onerror=null; this.src=defaultAvatar;">
+                                <div class="search-info">
+                                    <div style="font-weight:700; font-size:12px; color:#fff;">${name}</div>
+                                    <div style="font-size:10px; color:var(--text-sec); margin-top:2px;">ID: ${u.telegram_id} | <i class="fa-brands fa-twitch"></i> ${twitch}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (err) { searchResults.innerHTML = `<div style="padding: 10px; color: var(--danger); font-size: 12px; text-align: center;">Ошибка поиска</div>`; }
+            }, 400);
+        });
+
+        function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+
+        async function loadUser(id) {
+            console.log('[LOG] Клик: Вызван loadUser для ID:', id);
+            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            document.getElementById('searchView').classList.add('hidden');
+            document.getElementById('profileContainer').classList.add('hidden');
+            document.getElementById('mainLoader').classList.remove('hidden');
+
+            try {
+                currentUser = await fetchApi(`/api/v1/admin/users/${id}/full_profile`, null, 'GET');
+                saveToSearchHistory(currentUser); 
+                
+                document.getElementById('userAvatar').src = currentUser.photo_url || defaultAvatar;
+                document.getElementById('userName').textContent = currentUser.full_name || 'Без имени';
+                document.getElementById('userId').textContent = currentUser.telegram_id;
+
+                let badgesHTML = '';
+                if (currentUser.is_banned) badgesHTML += '<span class="badge red">ЗАБАНЕН</span>';
+                if (currentUser.has_cp_premium) badgesHTML += '<span class="badge premium">PREMIUM</span>';
+                if (currentUser.trust_level === 'red') badgesHTML += '<span class="badge red">КРАСНЫЙ ТРАСТ</span>';
+                if (currentUser.trust_level === 'green') badgesHTML += '<span class="badge green">ЗЕЛЕНЫЙ ТРАСТ</span>';
+                
+                /// 👇 НОВЫЙ БЛОК ДЛЯ МАТРИЦЫ 👇
+                const matrixBtn = document.getElementById('matrixActionBtn');
+                const matrixBtnIcon = document.getElementById('matrixBtnIcon');
+                const matrixModalHeader = document.getElementById('matrixModalHeader');
+                const matrixModalCard = document.getElementById('matrixModalCard');
+
+                if (currentUser.matrix_pill) {
+                    matrixBtn.style.display = 'flex';
+                    const isBlue = currentUser.matrix_pill === 'blue';
+                    const pillText = isBlue ? 'Синяя' : 'Красная';
+                    const hexColor = isBlue ? '#64b5ef' : '#ff4757';
+                    const rgbColor = isBlue ? '100, 181, 239' : '255, 71, 87';
+                    
+                    // 1. Полностью перекрашиваем кнопку в профиле
+                    matrixBtn.style.borderColor = `rgba(${rgbColor}, 0.3)`;
+                    matrixBtn.style.background = `rgba(${rgbColor}, 0.05)`;
+                    matrixBtnIcon.style.color = hexColor;
+                    
+                    document.getElementById('statMatrix').textContent = pillText;
+                    document.getElementById('statMatrix').style.color = hexColor;
+                    
+                    // 2. Полностью перекрашиваем модальное окно
+                    matrixModalHeader.style.color = hexColor;
+                    matrixModalCard.style.borderColor = `rgba(${rgbColor}, 0.3)`;
+                    matrixModalCard.style.background = `rgba(${rgbColor}, 0.05)`;
+                    
+                    document.getElementById('matrixModalPill').innerHTML = `<span style="color:${hexColor};"><i class="fa-solid fa-capsule"></i> ${pillText} таблетка</span>`;
+                    
+                    badgesHTML += `<span class="badge" style="background: rgba(${rgbColor}, 0.15); color: ${hexColor}; border: 1px solid rgba(${rgbColor}, 0.3);">${pillText.toUpperCase()} ТАБЛЕТКА</span>`;
+                } else {
+                    matrixBtn.style.display = 'none';
+                }
+                // 👆 КОНЕЦ БЛОКА МАТРИЦЫ 👆
+
+                document.getElementById('userBadges').innerHTML = badgesHTML;
+
+                const coinsDisplay = ((currentUser.bot_t_coins || 0) / 100).toFixed(2);
+                document.getElementById('statCoins').innerHTML = `${coinsDisplay} <i class="fa-solid fa-coins" style="color:var(--text-sec); font-size:10px;"></i>`;
+                document.getElementById('statTickets').innerHTML = `${currentUser.tickets || 0} <i class="fa-solid fa-ticket" style="color:var(--text-sec); font-size:10px;"></i>`;
+                document.getElementById('statTrust').textContent = `Score: ${currentUser.trust_score || 0}`;
+                document.getElementById('statStatus').textContent = currentUser.is_banned ? 'ЗАБАНЕН' : 'АКТИВЕН';
+                document.getElementById('statCpLevel').innerHTML = `LVL: ${currentUser.checkpoint_level || 0}<br><span style="font-size: 10px; color: var(--text-sec); font-weight: 600;">${currentUser.checkpoint_stars || 0} EXP</span>`;
+                
+                let hoursAgoText = "Никогда";
+                if (currentUser.last_grind_at) {
+                    const diffMs = new Date() - new Date(currentUser.last_grind_at.replace(' ', 'T') + (currentUser.last_grind_at.includes('+') ? '' : 'Z'));
+                    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                    hoursAgoText = `${diffHrs} ч. назад`;
+                }
+                document.getElementById('statGrind').innerHTML = `Стрик: ${currentUser.streak_days || 0} | <span style="font-size:10px;">${hoursAgoText}</span>`;
+                
+                const hasTwitch = currentUser.twitch_login ? true : false;
+                const hasTrade = currentUser.trade_link ? true : false;
+                let connText = 'Связано';
+                if (!hasTwitch && !hasTrade) connText = 'Пусто';
+                else if (hasTwitch && !hasTrade) connText = 'Только Twitch';
+                else if (!hasTwitch && hasTrade) connText = 'Только Steam';
+
+                document.getElementById('statConnections').textContent = connText;
+                document.getElementById('connTwitch').innerHTML = hasTwitch ? `<i class="fa-brands fa-twitch" style="color: #6441a5;"></i> ${currentUser.twitch_login}` : 'Не привязан';
+
+                const btnCheckTrade = document.getElementById('btnCheckTrade');
+                const connTradeText = document.getElementById('connTrade');
+
+                if (hasTrade) {
+                    connTradeText.textContent = currentUser.trade_link;
+                    btnCheckTrade.classList.remove('hidden');
+                    btnCheckTrade.onclick = () => { 
+                        console.log('[LOG] Клик: btnCheckTrade');
+                        if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); 
+                        tg.openLink(currentUser.trade_link); 
+                    };
+                    connTradeText.onclick = () => {
+                        console.log('[LOG] Клик: connTradeText');
+                        navigator.clipboard.writeText(currentUser.trade_link).then(() => {
+                            if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                            tg.showPopup({message: 'Ссылка скопирована в буфер обмена'});
+                        });
+                    };
+                } else {
+                    connTradeText.textContent = 'Не указана';
+                    connTradeText.onclick = null;
+                    btnCheckTrade.classList.add('hidden');
+                }
+
+                document.getElementById('grindCoins').value = currentUser.coins || 0;
+                document.getElementById('streakDays').value = currentUser.streak_days || 0;
+                document.getElementById('twitchStatus').value = currentUser.twitch_status || 'none';
+                document.getElementById('lastGrindHours').textContent = hoursAgoText;
+                document.getElementById('trustLevel').value = currentUser.trust_level || 'green';
+                document.getElementById('trustScore').value = currentUser.trust_score || 0;
+                document.getElementById('penaltyPoints').value = currentUser.penalty_points || 0;
+                document.getElementById('isBanned').checked = currentUser.is_banned;
+                document.getElementById('hasPremium').checked = currentUser.has_cp_premium;
+
+               // --- ФОНОВЫЙ ПОДСЧЕТ СУММЫ ВЫВОДОВ И ЛИМИТОВ ---
+                document.getElementById('withdrawnBlock').style.display = 'none';
+                document.getElementById('statWithdrawn').textContent = '...';
+                document.getElementById('limitBlock').style.display = 'none';
+                
+                // --- ФОНОВЫЙ ПОДСЧЕТ СУММЫ ВЫВОДОВ И ЛИМИТОВ ---
+                document.getElementById('withdrawnBlock').style.display = 'none';
+                document.getElementById('statWithdrawn').textContent = '...';
+                document.getElementById('limitBlock').style.display = 'none';
+                
+                fetchApi(`/api/v1/admin/users/${id}/inventory`, null, 'GET')
+                    .then(items => {
+                        if (items && items.length > 0) {
+                            // 1. СЧИТАЕМ СУММУ ВЫВОДОВ (RAFFLE ТУТ ТОЖЕ СЧИТАЕТСЯ)
+                            const total = items.reduce((sum, item) => {
+                                if (item.status === 'received') {
+                                    const rawPrice = item.is_swapped ? item.replaced_price : (item.price_rub || item.price || 0);
+                                    const price = parseFloat(rawPrice);
+                                    return sum + (isNaN(price) ? 0 : price);
+                                }
+                                return sum;
+                            }, 0);
+                            
+                            if (total > 0) {
+                                document.getElementById('statWithdrawn').textContent = total.toFixed(2);
+                                document.getElementById('withdrawnBlock').style.display = 'block';
+                            }
+                        }
+
+                        // 2. БЕРЕМ ГОТОВЫЕ ЛИМИТЫ ОТ БЭКЕНДА
+                        const limitBlock = document.getElementById('limitBlock');
+                        if (currentUser.is_admin === true) {
+                            limitBlock.innerHTML = `<span style="color: var(--accent);"><i class="fa-solid fa-infinity"></i> Лимит маркета: Безлимит (Админ)</span>`;
+                            limitBlock.style.display = 'block';
+                        } else if (currentUser.admin_limits) {
+                            const limits = currentUser.admin_limits;
+                            const displayLimit = limits.weekly_limit;
+                            const currentDrops = limits.current_drops;
+                            
+                            // Генерируем финальный текст отчета для буфера обмена
+                            const reportFullName = currentUser.full_name || currentUser.username || 'Игрок';
+                            const reportStr = `📋 ОТЧЕТ ПО ЛИМИТАМ\n👤 Игрок: ${reportFullName} (ID: ${currentUser.telegram_id})\n📊 Использовано: ${currentDrops} из ${displayLimit}\n\nСкины, вошедшие в лимит:\n${limits.report_text}`;
+                            
+                            // HTML Кнопки
+                            const copyBtnHtml = `<button onclick="copyLimitReport('${encodeURIComponent(reportStr)}')" style="margin-left: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--card-border); color: #fff; padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: 800; transition: 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'"><i class="fa-regular fa-copy"></i> Отчет</button>`;
+                            
+                            if (currentDrops >= displayLimit && limits.unlock_time) {
+                                const unlockDate = new Date(limits.unlock_time).toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+                                limitBlock.innerHTML = `<div style="display:flex; align-items:center;"><span style="color: var(--danger);"><i class="fa-solid fa-lock"></i> Лимит маркета: ${currentDrops}/${displayLimit} (до ${unlockDate})</span> ${copyBtnHtml}</div>`;
+                            } else {
+                                limitBlock.innerHTML = `<div style="display:flex; align-items:center;"><span style="color: var(--accent);"><i class="fa-solid fa-unlock"></i> Лимит маркета: ${currentDrops}/${displayLimit}</span> ${copyBtnHtml}</div>`;
+                            }
+                            limitBlock.style.display = 'block';
+                        }
+                    }).catch(e => console.error("Ошибка подсчета выводов и лимитов:", e));
+
+                document.getElementById('mainLoader').classList.add('hidden');
+                document.getElementById('profileContainer').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (err) {
+                document.getElementById('mainLoader').classList.add('hidden');
+                document.getElementById('searchView').classList.remove('hidden');
+                tg.showAlert(`Ошибка: ${err.message}`);
+            }
+        }
+
+        function openModal(id) { 
+            console.log('[LOG] Клик: Вызван openModal для', id);
+            document.getElementById(id).classList.add('modal-active'); 
+        }
+        function closeModal(id) { 
+            console.log('[LOG] Клик: Вызван closeModal для', id);
+            document.getElementById(id).classList.remove('modal-active'); 
+        }
+        function closeOnDim(e) { 
+            console.log('[LOG] Клик: Вызван closeOnDim');
+            if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('modal-active'); 
+        }
+
+        // Функция для подтверждения (вместо confirm)
+function customConfirm(message, title = "Подтверждение") {
+    return new Promise((resolve) => {
+        if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        const modal = document.getElementById('customConfirmModal');
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        modal.classList.add('modal-active');
+
+        document.getElementById('confirmBtnYes').onclick = () => {
+            modal.classList.remove('modal-active');
+            resolve(true);
+        };
+        document.getElementById('confirmBtnNo').onclick = () => {
+            modal.classList.remove('modal-active');
+            resolve(false);
+        };
+    });
+}
+
+// Функция для ввода (вместо prompt)
+function customPrompt(message, defaultValue = "", title = "Ввод данных") {
+    return new Promise((resolve) => {
+        if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        const modal = document.getElementById('customPromptModal');
+        document.getElementById('promptTitle').textContent = title;
+        document.getElementById('promptMessage').textContent = message;
+        const input = document.getElementById('promptInput');
+        input.value = defaultValue;
+        modal.classList.add('modal-active');
+        
+        // Автофокус для удобства
+        setTimeout(() => input.focus(), 100);
+
+        document.getElementById('promptBtnOk').onclick = () => {
+            modal.classList.remove('modal-active');
+            resolve(input.value);
+        };
+        document.getElementById('promptBtnCancel').onclick = () => {
+            modal.classList.remove('modal-active');
+            resolve(null); // Возвращаем null, если нажали Отмена
+        };
+    });
+}
+
+async function submitCoins() {
+            const amount = parseFloat(document.getElementById('coinsAmount').value);
+            const action = document.getElementById('coinsAction').value;
+            if (!amount || amount <= 0) return tg.showAlert("Введите корректную сумму");
+            
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/manage-coins', { user_id: currentUser.telegram_id, amount: amount, action_type: action });
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Баланс обновлен!'});
+                closeModal('coinsModal');
+                
+                let currentBalanceCents = parseFloat(currentUser.bot_t_coins || 0);
+                const amountCents = amount * 100;
+                if (action === 'add') {
+                    currentBalanceCents += amountCents;
+                } else {
+                    currentBalanceCents -= amountCents;
+                }
+                currentUser.bot_t_coins = currentBalanceCents; 
+                document.getElementById('statCoins').innerHTML = `${(currentBalanceCents / 100).toFixed(2)} <i class="fa-solid fa-coins" style="color:var(--text-sec); font-size:10px;"></i>`;
+                
+                document.getElementById('coinsAmount').value = '';
+            } catch (err) { 
+                tg.showAlert(err.message); 
+            }
+            finally { tg.MainButton.hideProgress(); }
+        }
+
+        async function submitTickets() {
+            const amount = parseInt(document.getElementById('ticketsAmount').value);
+            if (!amount || amount <= 0) return tg.showAlert("Введите корректную сумму");
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/grant-stars', { user_id_to_grant: currentUser.telegram_id, amount: amount });
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Билеты выданы!'});
+                closeModal('ticketsModal');
+                document.getElementById('ticketsAmount').value = '';
+                loadUser(currentUser.telegram_id);
+            } catch (err) { tg.showAlert(err.message); }
+            finally { tg.MainButton.hideProgress(); }
+        }
+
+      // Специальная функция открытия, которая подтягивает цифры
+        function openCpModal() {
+            if (!currentUser) return;
+            
+            const lvl = currentUser.checkpoint_level || 0;
+            const exp = currentUser.checkpoint_stars || 0;
+            
+            // Вписываем цифры в модалку
+            document.getElementById('modalCurrentCpStats').innerHTML = `LVL: <span style="color:#ff4757;">${lvl}</span> | <span style="color:var(--primary);">${exp} EXP</span>`;
+            
+            // Очищаем поле ввода на всякий случай
+            document.getElementById('cpAmount').value = '';
+            
+            openModal('cpModal');
+        }
+
+        async function submitCp() {
+            const amount = parseFloat(document.getElementById('cpAmount').value);
+            const targetType = document.getElementById('cpTargetType').value;
+            
+            if (isNaN(amount) || amount < 0) return tg.showAlert("Введите корректное число");
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/manage-cp', { 
+                    user_id: currentUser.telegram_id, 
+                    action_type: 'set', 
+                    amount: amount,
+                    target: targetType 
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Прогресс успешно установлен!'});
+                closeModal('cpModal');
+                
+                // Перезагружаем профиль, чтобы сразу обновить цифры везде
+                loadUser(currentUser.telegram_id);
+            } catch (err) { 
+                tg.showAlert(err.message); 
+            } finally { 
+                tg.MainButton.hideProgress(); 
+            }
+        }
+        
+        async function submitGrind() {
+            const streak = parseInt(document.getElementById('streakDays').value);
+            const coins = parseFloat(document.getElementById('grindCoins').value);
+            let twitch = document.getElementById('twitchStatus').value;
+            if (twitch === 'none') twitch = null;
+            
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/manage-grind', { 
+                    user_id: currentUser.telegram_id, 
+                    streak_days: streak >= 0 ? streak : 0,
+                    coins: coins >= 0 ? coins : 0,
+                    twitch_status: twitch
+                });
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Гринд статус сохранен!'});
+                closeModal('grindModal');
+                loadUser(currentUser.telegram_id);
+            } catch (err) { tg.showAlert(err.message); }
+            finally { tg.MainButton.hideProgress(); }
+        }
+
+        async function submitTrust() {
+            const payload = {
+                user_id: currentUser.telegram_id,
+                trust_level: document.getElementById('trustLevel').value,
+                trust_score: parseFloat(document.getElementById('trustScore').value),
+                penalty_points: parseFloat(document.getElementById('penaltyPoints').value)
+            };
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/manage-trust', payload);
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Траст сохранен (защита от штрафов активирована)!'});
+                closeModal('trustModal');
+                loadUser(currentUser.telegram_id);
+            } catch (err) { tg.showAlert(err.message); }
+            finally { tg.MainButton.hideProgress(); }
+        }
+
+        
+
+       async function submitStatus(isQuiet = false) {
+            const payload = {
+                user_id: currentUser.telegram_id,
+                is_banned: document.getElementById('isBanned').checked,
+                has_cp_premium: document.getElementById('hasPremium').checked
+            };
+
+            if (!isQuiet) tg.MainButton.showProgress();
+            
+            try {
+                await fetchApi('/api/v1/admin/users/manage-status', payload);
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                
+                // Синхронизируем локальный объект
+                currentUser.is_banned = payload.is_banned;
+                currentUser.has_cp_premium = payload.has_cp_premium;
+                
+                if (!isQuiet) {
+                    tg.showPopup({message: 'Статусы обновлены!'});
+                    closeModal('statusModal');
+                    loadUser(currentUser.telegram_id);
+                } else {
+                    // Тихое обновление бейджей без перезагрузки профиля
+                    let badgesHTML = '';
+                    if (currentUser.is_banned) badgesHTML += '<span class="badge red">ЗАБАНЕН</span>';
+                    if (currentUser.has_cp_premium) badgesHTML += '<span class="badge premium">PREMIUM</span>';
+                    if (currentUser.trust_level === 'red') badgesHTML += '<span class="badge red">КРАСНЫЙ ТРАСТ</span>';
+                    if (currentUser.trust_level === 'green') badgesHTML += '<span class="badge green">ЗЕЛЕНЫЙ ТРАСТ</span>';
+                    document.getElementById('userBadges').innerHTML = badgesHTML;
+                    document.getElementById('statStatus').textContent = currentUser.is_banned ? 'ЗАБАНЕН' : 'АКТИВЕН';
+                }
+                
+                loadBannedUsers();
+            } catch (err) { 
+                tg.showAlert(err.message); 
+                // Откат визуального тумблера при ошибке
+                document.getElementById('isBanned').checked = currentUser.is_banned;
+                document.getElementById('hasPremium').checked = currentUser.has_cp_premium;
+            } finally { 
+                if (!isQuiet) tg.MainButton.hideProgress(); 
+            }
+        }
+
+        async function submitDeleteMatrix() {
+            const isConfirmed = await customConfirm("Точно удалить выбор таблетки? Квест Матрицы будет сброшен.", "Удаление таблетки");
+            if (!isConfirmed) return;
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/matrix/delete', { user_id: currentUser.telegram_id });
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Выбор таблетки успешно сброшен!'});
+                closeModal('matrixModal');
+                loadUser(currentUser.telegram_id); // Перезагружаем профиль юзера
+            } catch (err) {
+                tg.showAlert(`Ошибка: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+        
+        async function submitUnbind(type) {
+            const confirmMsg = type === 'twitch' ? 'Точно отвязать Twitch аккаунт?' : 'Точно удалить Trade-ссылку?';
+            if (!confirm(confirmMsg)) return;
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/unbind', { 
+                    user_id: currentUser.telegram_id, 
+                    unbind_type: type 
+                });
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: type === 'twitch' ? 'Twitch успешно отвязан' : 'Трейд-ссылка удалена'});
+                
+                loadUser(currentUser.telegram_id); 
+            } catch (err) { 
+                tg.showAlert(err.message); 
+            } finally { 
+                tg.MainButton.hideProgress(); 
+            }
+        }
+
+
+        // ==========================================
+        // ЛОГИКА ИНВЕНТАРЯ И СКЛАДА
+        // ==========================================
+
+        async function openInventory() {
+            console.log('[LOG] Клик: Вызван openInventory');
+            if (!currentUser) return;
+            openModal('inventoryModal');
+            const loader = document.getElementById('inventoryLoader');
+            const list = document.getElementById('inventoryList');
+            loader.style.display = 'block';
+            list.style.display = 'none';
+
+            try {
+                // Вызов нового эндпоинта (мы напишем его на Python)
+                const items = await fetchApi(`/api/v1/admin/users/${currentUser.telegram_id}/inventory`, null, 'GET');
+                
+                loader.style.display = 'none';
+                list.style.display = 'block';
+
+                if (!items || items.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:20px;">Инвентарь пуст</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(item => {
+                   // 🔥 СДЕЛАЙ ВОТ ТАК:
+// Внутри openInventory()
+const isSwapped = item.is_swapped === true;
+const isReplaced = !!item.replaced_name && !isSwapped;
+
+const name = (isReplaced || isSwapped) ? item.replaced_name : (item.item_name || item.name || 'Неизвестный предмет');
+
+// 🔥 УМНАЯ ЗАГРУЗКА КАРТИНКИ (С авто-поиском новых скинов в Steam)
+let img = (isReplaced || isSwapped) ? item.replaced_image_url : (item.item_image || item.image_url || item.image);
+if (!img || img === 'null' || img === '') {
+    img = `https://api.steamapis.com/image/item/730/${encodeURIComponent(name)}`;
+}
+
+const rarityColor = mapRarityToColor((isReplaced || isSwapped) ? item.replaced_rarity : (item.item_rarity || item.rarity));
+                    
+                    const ruStatus = getStatusRu(item.status);
+                    // На мобилках hover не работает, поэтому пишем оригинал сразу текстом:
+                    const displayStatus = `${ruStatus} <span style="font-size:9px; opacity:0.6;">(${item.status})</span>`;
+
+                    let statusHtml = '';
+                    if (item.status === 'pending' || item.status === 'available') statusHtml = `<span style="color: var(--primary);">${displayStatus}</span>`;
+                    else if (item.status === 'received') statusHtml = `<span style="color: var(--accent);">${displayStatus}</span>`;
+                    else if (item.status === 'failed') statusHtml = `<span style="color: var(--danger);">${displayStatus}</span>`;
+                    else statusHtml = `<span style="color: var(--text-sec);">${displayStatus}</span>`;
+
+                    const dateStr = new Date(item.created_at).toLocaleDateString('ru-RU');
+
+                    return `
+                        <div class="inv-item" style="border-left-color: ${rarityColor};">
+                            <img src="${img}" class="inv-img" onerror="this.src='https://placehold.co/50'">
+                            <div class="inv-info">
+                                <div style="font-weight:700; font-size:12px; color:#fff;">${escapeHTML(name)}</div>
+                                <div style="font-size:10px; color:var(--text-sec); margin-top:2px;">
+                                    ${statusHtml} • ${dateStr}
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <button class="inv-btn" onclick='showItemDetails(${JSON.stringify(item).replace(/'/g, "&apos;")})'>Инфо</button>
+                                ${['pending', 'available', 'failed'].includes(item.status) ? `<button class="inv-btn swap" onclick="openSwapLibrary(${item.id})">Заменить</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                loader.innerHTML = `<div style="color:var(--danger);">Ошибка загрузки: ${err.message}</div>`;
+            }
+        }
+
+        function mapRarityToColor(rarity) {
+            const r = (rarity || '').toLowerCase();
+            if (r.includes('common') || r.includes('gray')) return '#b0c3d9';
+            if (r.includes('industrial') || r.includes('light_blue')) return '#5e98d9';
+            if (r.includes('milspec') || r.includes('blue')) return '#4b69ff';
+            if (r.includes('restricted') || r.includes('purple')) return '#8847ff';
+            if (r.includes('classified') || r.includes('pink')) return '#d32ce6';
+            if (r.includes('covert') || r.includes('red')) return '#eb4b4b';
+            if (r.includes('gold') || r.includes('knife')) return '#ffd700';
+            return 'transparent';
+        }
+
+        // --- ЛОГИКА РАСЧЕТА СГОРАНИЯ ДЛЯ АДМИНКИ ---
+        function parseSafeDate(dateStr) {
+            if (!dateStr) return 0;
+            if (typeof dateStr === 'number') return dateStr;
+            let ms = new Date(dateStr).getTime();
+            if (!isNaN(ms)) return ms;
+            
+            try {
+                let cleanPart = String(dateStr).split('.')[0].split('+')[0];
+                let safe = cleanPart.replace(' ', 'T');
+                if (!safe.endsWith('Z')) safe += 'Z'; // Принудительно задаем UTC
+                ms = new Date(safe).getTime();
+                return isNaN(ms) ? 0 : ms;
+            } catch(e) { 
+                return 0; 
+            }
+        } // <--- ВОТ ЭТУ СКОБКУ МЫ ВОЗВРАЩАЕМ НА МЕСТО
+
+        function calculateExpiration(item) {
+            const updateTimeMs = parseSafeDate(item.updated_at || item.created_at);
+            const source = item.source || 'shop';
+            const amnestyTimestamp = new Date('2026-07-14T21:00:00Z').getTime(); // 15 июля 00:00 МСК
+            
+            let expireTimeMs = 0;
+            if (updateTimeMs < amnestyTimestamp) {
+                expireTimeMs = amnestyTimestamp + (14 * 24 * 60 * 60 * 1000);
+            } else {
+                let daysToKeep = 14;
+                if (['raffle', 'auction', 'twitch'].includes(source)) {
+                    daysToKeep = 3;
+                }
+                expireTimeMs = updateTimeMs + (daysToKeep * 24 * 60 * 60 * 1000);
+            }
+            
+            const now = Date.now();
+            return {
+                expireMs: expireTimeMs,
+                isExpired: now > expireTimeMs,
+                diffMs: expireTimeMs - now,
+                dateStr: new Date(expireTimeMs).toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+            };
+        }
+
+        function formatTimeDiff(ms) {
+            if (ms <= 0) return "Время вышло";
+            const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const h = Math.floor((ms / (1000 * 60 * 60)) % 24);
+            const m = Math.floor((ms / 1000 / 60) % 60);
+            if (d > 0) return `${d} дн. ${h} ч.`;
+            if (h > 0) return `${h} ч. ${m} мин.`;
+            return `${m} мин.`;
+        }
+
+        function showItemDetails(itemStr) {
+            console.log('[LOG] Клик: Вызван showItemDetails');
+            const item = typeof itemStr === 'string' ? JSON.parse(itemStr.replace(/&apos;/g, "'")) : itemStr;
+            const content = document.getElementById('itemDetailsContent');
+            const adminWrapper = document.getElementById('itemDetailsAdminWrapper');
+            
+            const originName = item.item_name || item.name || 'Неизвестно';
+const price = item.is_swapped ? item.replaced_price : (item.item_price || item.price_rub || item.price || 0);
+            const ruStatus = getStatusRu(item.status);
+            
+            // Расчет сгорания
+            const expInfo = calculateExpiration(item);
+            let expireHtml = '';
+            let extendButtonHtml = '';
+
+            // Показываем таймер только для предметов, которые могут сгореть
+            if (['available', 'pending', 'failed'].includes(item.status)) {
+                if (expInfo.isExpired) {
+                    expireHtml = `<div style="margin-bottom: 10px;"><strong>Сгорание:</strong> <span style="color: var(--danger); font-weight: bold;"><i class="fa-solid fa-fire"></i> СГОРЕЛ (${expInfo.dateStr})</span></div>`;
+                } else {
+                    expireHtml = `<div style="margin-bottom: 10px;"><strong>Сгорание:</strong> <span style="color: var(--primary); font-weight: bold;"><i class="fa-solid fa-hourglass-half"></i> Через ${formatTimeDiff(expInfo.diffMs)}</span> <span style="color:var(--text-sec); font-size:11px;">(${expInfo.dateStr})</span></div>`;
+                }
+                
+                // Генерируем кнопку продления
+                extendButtonHtml = `
+                    <button onclick="extendItemTime(${item.id}, '${item.source || 'shop'}')" class="inner-back-btn" style="width: 100%; justify-content: center; margin-bottom: 10px; color: #64b5ef; border-color: rgba(100,181,239,0.3);">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Изменить время сгорания
+                    </button>
+                `;
+            } else {
+                expireHtml = `<div style="margin-bottom: 10px;"><strong>Сгорание:</strong> <span style="color: var(--text-sec);">Неактуально (уже ${ruStatus})</span></div>`;
+            }
+
+            // 1. Формируем текстовую инфу
+            let infoHtml = `
+                <div style="margin-bottom: 10px;"><strong>ID Записи (History):</strong> ${item.id}</div>
+                ${expireHtml}
+                <div style="margin-bottom: 10px;"><strong>Источник:</strong> ${escapeHTML(item.source || 'Не указан')}</div>
+                <div style="margin-bottom: 10px;"><strong>Кейс / Розыгрыш:</strong> ${escapeHTML(item.case_name || '---')}</div>
+                <div style="margin-bottom: 10px;"><strong>Изначальный предмет:</strong> ${escapeHTML(originName)}</div>
+                <div style="margin-bottom: 10px;"><strong>Цена на момент выдачи:</strong> ${price ? price + ' ₽' : '---'}</div>
+                
+                <div style="margin-bottom: 10px;" onclick="tg.showAlert('Оригинальный системный статус в базе данных:\\n\\n👉 ${escapeHTML(item.status)}')">
+                    <strong>Текущий статус:</strong> 
+                    <span style="color:var(--primary); font-weight:bold; cursor: pointer; border-bottom: 1px dashed var(--text-sec); padding-bottom: 2px;">
+                        ${escapeHTML(ruStatus)} <span style="color: var(--text-sec); font-size: 11px; font-weight: normal;">(${escapeHTML(item.status)})</span>
+                    </span> 
+                </div>
+                
+                <div style="margin-bottom: 0;"><strong>Детали лога:</strong> <br><span style="color:var(--text-sec);">${escapeHTML(item.details || 'Пусто')}</span></div>
+            `;
+
+            if (item.replaced_name) {
+    infoHtml += `
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+        <div style="color: var(--primary); font-weight: bold; margin-bottom: 10px;"><i class="fa-solid fa-rotate"></i> Был заменен</div>
+        <div style="margin-bottom: 10px;"><strong>Новое название:</strong> ${escapeHTML(item.replaced_name)}</div>
+        <div style="margin-bottom: 0;"><strong>Новая цена:</strong> ${item.replaced_price || 0} ₽</div>
+    `;
+}
+            
+            content.innerHTML = infoHtml;
+
+            // 2. Формируем админские кнопки с возможностью смены источника
+            let adminHtml = `
+                <div style="font-weight: 800; margin-bottom: 10px; color: var(--danger);"><i class="fa-solid fa-wand-magic-sparkles"></i> Админ-управление</div>
+                
+                ${extendButtonHtml}
+
+                ${['pending', 'available', 'failed'].includes(item.status) ? `
+                <button onclick="openSwapLibrary(${item.id}); closeModal('itemDetailsModal');" class="admin-action-btn" style="background: rgba(255, 215, 0, 0.15); color: var(--primary); border: 1px solid rgba(255,215,0,0.3); margin-top: 5px; margin-bottom: 10px; padding: 12px;">
+                    <i class="fa-solid fa-rotate"></i> Заменить предмет (Swap)
+                </button>
+                ` : ''}
+                
+                <div style="font-size: 11px; color: var(--text-sec); margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; font-weight: 700;">Статус предмета</div>
+                <div class="admin-form" style="display: flex; gap: 8px; margin-bottom: 5px;">
+                    <select id="newStatusSelect_${item.id}" style="flex: 1; padding: 10px; font-size: 13px;">
+                        <option value="available" ${item.status === 'available' ? 'selected' : ''}>В инвентаре (available)</option>
+                        <option value="failed" ${item.status === 'failed' ? 'selected' : ''}>Заморозить/Ошибка (failed)</option>
+                        <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>Не выведен (В профиле) (pending)</option>
+                        <option value="received" ${item.status === 'received' ? 'selected' : ''}>Успешно выдан (received)</option>
+                        <option value="exchanged_swap" ${item.status === 'exchanged_swap' ? 'selected' : ''}>Объединен в свапе (swap)</option>
+                        <option value="exchanged" ${item.status === 'exchanged' ? 'selected' : ''}>Продан за баланс (exchanged)</option>
+                    </select>
+                </div>
+                <button onclick="changeItemStatus(${item.id})" class="admin-action-btn" style="background: var(--danger); margin-top: 0px; margin-bottom: 15px; padding: 12px;">Изменить статус</button>
+
+                <div style="font-size: 11px; color: var(--text-sec); margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; font-weight: 700;">Источник (Снимает лимиты)</div>
+                <div class="admin-form" style="display: flex; gap: 8px; margin-bottom: 5px;">
+                    <select id="newSourceSelect_${item.id}" style="flex: 1; padding: 10px; font-size: 13px;">
+                        <option value="shop" ${item.source === 'shop' ? 'selected' : ''}>Магазин (shop)</option>
+                        <option value="raffle" ${item.source === 'raffle' ? 'selected' : ''}>Розыгрыш (raffle)</option>
+                        <option value="auction" ${item.source === 'auction' ? 'selected' : ''}>Аукцион (auction)</option>
+                        <option value="twitch" ${item.source === 'twitch' ? 'selected' : ''}>Twitch Drops (twitch)</option>
+                        <option value="battlepass" ${item.source === 'battlepass' ? 'selected' : ''}>Battle Pass (battlepass)</option>
+                        <option value="upgrade" ${item.source === 'upgrade' ? 'selected' : ''}>Апгрейд (upgrade)</option>
+                        <option value="case" ${item.source === 'case' ? 'selected' : ''}>Кейс (case)</option>
+                    </select>
+                </div>
+                <button onclick="changeItemSource(${item.id})" class="admin-action-btn" style="background: #ff9500; color: #fff; margin-top: 0px; margin-bottom: 10px; padding: 12px;">Изменить источник</button>
+            `;
+
+            adminWrapper.innerHTML = adminHtml;
+            openModal('itemDetailsModal');
+        }
+
+        async function extendItemTime(historyId, source) {
+            const input = await customPrompt(
+                "Сколько часов дать пользователю на вывод этого предмета?\n\n(Оставь поле пустым, чтобы выдать полный стандартный срок)", 
+                "2", 
+                "Изменение таймера"
+            );
+            
+            if (input === null) return;
+            
+            let hours = parseFloat(input);
+            if (isNaN(hours) && input.trim() !== "") {
+                return tg.showAlert("Пожалуйста, введи число (например: 2 или 1.5).");
+            }
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/inventory/extend-time', { 
+                    history_id: historyId,
+                    source: source || 'shop',
+                    hours_to_add: isNaN(hours) ? null : hours 
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Таймер успешно изменен!'});
+                
+                // ПОЛУЧАЕМ СВЕЖИЕ ДАННЫЕ И ПЕРЕРИСОВЫВАЕМ ОКНО (без закрытия)
+                const items = await fetchApi(`/api/v1/admin/users/${currentUser.telegram_id}/inventory`, null, 'GET');
+                const updatedItem = items.find(i => i.id === historyId);
+                
+                if (updatedItem) {
+                    showItemDetails(updatedItem); // Обновляем инфу прям в текущем окне
+                }
+                
+                openInventory(); // Фоном обновляем список предметов сзади
+            } catch (err) {
+                tg.showAlert(`Ошибка: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        // ОТПРАВКА СТАТУСА НА БЕКЕНД
+        async function changeItemStatus(historyId) {
+            const select = document.getElementById(`newStatusSelect_${historyId}`);
+            const newStatus = select.value;
+            
+            const isConfirmed = await customConfirm(`Точно изменить статус на "${newStatus}"?`, "Внимание");
+            if (!isConfirmed) return;
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/inventory/status', {
+                    history_id: historyId,
+                    new_status: newStatus
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Статус предмета успешно изменен!'});
+                
+                // ПОЛУЧАЕМ СВЕЖИЕ ДАННЫЕ И ПЕРЕРИСОВЫВАЕМ ОКНО
+                const items = await fetchApi(`/api/v1/admin/users/${currentUser.telegram_id}/inventory`, null, 'GET');
+                const updatedItem = items.find(i => i.id === historyId);
+                
+                if (updatedItem) {
+                    showItemDetails(updatedItem);
+                }
+                
+                openInventory(); 
+            } catch (err) {
+                tg.showAlert(`Ошибка: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        // НОВАЯ ФУНКЦИЯ ОТПРАВКИ ИСТОЧНИКА НА БЕКЕНД
+        async function changeItemSource(historyId) {
+            const select = document.getElementById(`newSourceSelect_${historyId}`);
+            const newSource = select.value;
+            
+            const isConfirmed = await customConfirm(`Точно изменить источник на "${newSource}"?`, "Внимание");
+            if (!isConfirmed) return;
+
+            tg.MainButton.showProgress();
+            try {
+                await fetchApi('/api/v1/admin/users/inventory/source', {
+                    history_id: historyId,
+                    new_source: newSource
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Источник предмета успешно изменен!'});
+                
+                // ПОЛУЧАЕМ СВЕЖИЕ ДАННЫЕ И ПЕРЕРИСОВЫВАЕМ ОКНО
+                const items = await fetchApi(`/api/v1/admin/users/${currentUser.telegram_id}/inventory`, null, 'GET');
+                const updatedItem = items.find(i => i.id === historyId);
+                
+                if (updatedItem) {
+                    showItemDetails(updatedItem);
+                }
+                
+                openInventory(); 
+            } catch (err) {
+                tg.showAlert(`Ошибка: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        // --- ЛОГИКА СКЛАДА (КОПИЯ ИЗ РОЗЫГРЫШЕЙ) ---
+        let currentSwapTargetId = null;
+        let currentOffset = 0;
+        let isFetching = false;
+        let hasMoreItems = true;
+
+        // НОВАЯ ФУНКЦИЯ ДЛЯ ВЫДАЧИ ПРЕДМЕТА
+        function openGrantItemModal() {
+            console.log('[LOG] Клик: Вызван openGrantItemModal');
+            if (!currentUser) return;
+            
+            libraryMode = 'grant'; 
+            document.getElementById('modal-library').classList.add('modal-active');
+            document.getElementById('lib-search-inp').value = '';
+            document.getElementById('lib-price-min').value = '';
+            document.getElementById('lib-price-max').value = '';
+            document.getElementById('lib-results').innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:20px;">Начните поиск для выдачи...</div>';
+            
+            currentOffset = 0;
+            hasMoreItems = true;
+        }
+
+        function openSwapLibrary(historyId) {
+            console.log('[LOG] Клик: Вызван openSwapLibrary для', historyId);
+            libraryMode = 'swap'; // Устанавливаем режим на замену
+            currentSwapTargetId = historyId;
+            document.getElementById('modal-library').classList.add('modal-active');
+            document.getElementById('lib-search-inp').value = '';
+            document.getElementById('lib-price-min').value = '';
+            document.getElementById('lib-price-max').value = '';
+            document.getElementById('lib-results').innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:20px;">Начните поиск...</div>';
+            currentOffset = 0;
+            hasMoreItems = true;
+        }
+
+        function toggleFilterAccordion() {
+            console.log('[LOG] Клик: Вызван toggleFilterAccordion');
+            const content = document.getElementById('accordion-content');
+            const icon = document.getElementById('accordion-icon');
+            if (content.style.maxHeight === '0px' || content.style.maxHeight === '') {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.maxHeight = '0px';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            currentOffset = 0; 
+            hasMoreItems = true;
+            searchTimeout = setTimeout(() => doSearch(true), 500);
+        }
+
+        function handleScroll(el) {
+            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
+                if (!isFetching && hasMoreItems) {
+                    currentOffset += 30;
+                    doSearch(false);
+                }
+            }
+        }
+
+        async function doSearch(isNewSearch) {
+            if (isFetching || !hasMoreItems) return;
+
+            const q = document.getElementById('lib-search-inp').value.trim();
+            const minP = parseFloat(document.getElementById('lib-price-min').value) || 0;
+            const maxP = parseFloat(document.getElementById('lib-price-max').value) || 9999999;
+            const cont = document.getElementById('lib-results');
+            
+            const hideStickers = document.getElementById('hide-stickers').checked;
+            const hideGraffiti = document.getElementById('hide-graffiti').checked;
+            const hideBs = document.getElementById('hide-bs').checked;
+            
+            if (q.length < 2 && minP === 0 && maxP === 9999999 && !hideStickers && !hideGraffiti && !hideBs) {
+                if (isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Введите название или цену...</div>';
+                return;
+            }
+            
+            isFetching = true;
+            
+            if (isNewSearch) {
+                cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Ищем в базе... <i class="fa-solid fa-spinner fa-spin"></i></div>';
+            } else {
+                const loader = document.createElement('div');
+                loader.id = 'scroll-loader';
+                loader.style = 'text-align:center; padding:10px; color:var(--primary);';
+                loader.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                cont.appendChild(loader);
+            }
+
+            try {
+                // Используем твой рабочий эндпоинт поиска
+                const res = await fetch('/api/v1/admin/cases/search_cache', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        initData: tg.initData,
+                        query: q, min_price: minP, max_price: maxP, offset: currentOffset,
+                        hide_stickers: hideStickers, hide_graffiti: hideGraffiti, hide_bs: hideBs
+                    })
+                });
+
+                let items = await res.json();
+                
+                if (isNewSearch) cont.innerHTML = '';
+                else { const l = document.getElementById('scroll-loader'); if (l) l.remove(); }
+
+                if (!items || items.length === 0) {
+                    hasMoreItems = false;
+                    if (isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--text-sec);">Ничего не найдено 😔</div>';
+                    return;
+                }
+
+                if (items.length < 30) hasMoreItems = false;
+
+                // Внутри doSearch()
+items.forEach(item => {
+    // 🔥 Если в нашей базе нет картинки, берем её из Steam и сохраняем на будущее
+    let img = item.image_url;
+    if (!img || img === 'null' || img === '') {
+        img = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.market_hash_name)}`;
+        item.image_url = img; // Перезаписываем, чтобы при выдаче скина картинка улетела в БД!
+    }
+
+    const safeJson = encodeURIComponent(JSON.stringify(item).replace(/'/g, "&apos;"));
+    const rColor = mapRarityToColor(item.rarity);
+    const btnText = libraryMode === 'grant' ? 'ВЫДАТЬ' : 'ЗАМЕНИТЬ';
+    const btnAction = libraryMode === 'grant' ? `submitGrant('${safeJson}')` : `submitSwap('${safeJson}')`;
+
+    cont.innerHTML += `
+    <div class="search-item" style="border-left: 3px solid ${rColor};">
+        <img src="${img}" class="search-img" onerror="this.src='https://placehold.co/40'">
+        <div class="search-info">
+            <div style="font-weight:700; font-size:12px; color:#fff;">${item.market_hash_name}</div>
+            <div style="font-size:11px; color:var(--primary); margin-top:2px;">💰 ${item.price_rub} руб.</div>
+        </div>
+        <button class="search-btn" style="background:var(--primary); color:#000;" onclick="${btnAction}">${btnText}</button>
+    </div>`;
+});
+            } catch(e) { 
+                if(isNewSearch) cont.innerHTML = '<div style="text-align:center;color:var(--danger);">Ошибка поиска</div>';
+            } finally { isFetching = false; }
+        }
+
+        async function submitSwap(jsonStr) {
+            console.log('[LOG] Клик: Вызван submitSwap');
+            const targetItem = JSON.parse(decodeURIComponent(jsonStr).replace(/&apos;/g, "'"));
+            
+            // Используем новый customConfirm
+            const isConfirmed = await customConfirm(`Заменить предмет на "${targetItem.market_hash_name}"?`, "Внимание");
+            if(!isConfirmed) return;
+
+            closeModal('modal-library');
+            tg.MainButton.showProgress();
+
+            try {
+                // Вызов эндпоинта для свапа
+                await fetchApi('/api/v1/admin/users/inventory/swap', {
+                    history_id: currentSwapTargetId,
+                    new_market_hash_name: targetItem.market_hash_name,
+                    new_price: targetItem.price_rub,
+                    new_image_url: targetItem.image_url,
+                    new_rarity: targetItem.rarity
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Предмет успешно заменен!'});
+                
+                // Перезагружаем инвентарь, чтобы увидеть изменения
+                openInventory(); 
+
+            } catch (err) {
+                tg.showAlert(`Ошибка замены: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+                currentSwapTargetId = null;
+            }
+        }
+
+        async function submitGrant(jsonStr) {
+            console.log('[LOG] Клик: Вызван submitGrant');
+            const targetItem = JSON.parse(decodeURIComponent(jsonStr).replace(/&apos;/g, "'"));
+            
+            const isConfirmed = await customConfirm(`Выдать предмет "${targetItem.market_hash_name}" пользователю?`, "Внимание");
+            if(!isConfirmed) return;
+
+            closeModal('modal-library');
+            tg.MainButton.showProgress();
+
+            try {
+                await fetchApi('/api/v1/admin/users/inventory/grant', {
+                    user_id: currentUser.telegram_id,
+                    market_hash_name: targetItem.market_hash_name,
+                    price_rub: targetItem.price_rub,
+                    image_url: targetItem.image_url,
+                    rarity: targetItem.rarity,
+                    source: 'admin'
+                });
+                
+                if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({message: 'Предмет успешно выдан!'});
+                
+                // Перезагружаем инвентарь
+                openInventory(); 
+
+            } catch (err) {
+                tg.showAlert(`Ошибка выдачи: ${err.message}`);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        window.copyLimitReport = function(encodedStr) {
+    const str = decodeURIComponent(encodedStr);
+    navigator.clipboard.writeText(str).then(() => {
+        if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        tg.showPopup({message: 'Отчет успешно скопирован!'});
+    }).catch(err => {
+        tg.showAlert('Не удалось скопировать отчет');
+    });
+};
+
+        loadBannedUsers();
+        renderSearchHistory();
+    </script>
+    <script src="/top_nav.js" defer></script>
+    <script src="/bottom-nav.js" defer></script>
+</body>
+</html>
