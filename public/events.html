@@ -29,22 +29,22 @@
   <style>
     /* === ПРЕМИАЛЬНЫЕ ПЕРЕМЕННЫЕ === */
     :root {
-      --bg-color: #050505;
+      --bg-color: #030303; /* Глубокий черный */
       --text-color: #ffffff;
       --text-color-muted: #8e8e93;
       
-      --accent-primary: #FFD700; /* Золото */
-      --accent-secondary: #34c759; /* Зеленый */
+      --accent-neon: #FFD700; /* Неоновое золото только для иконок/текста */
+      --accent-green: #34c759;
       --accent-blue: #0a84ff;
       --danger-color: #ff453a;
       
-      /* Liquid Glass Variables */
-      --glass-bg: rgba(18, 18, 20, 0.75);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+      /* Настоящий Liquid Glass */
+      --glass-bg: rgba(20, 20, 22, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.05);
+      --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
       --glass-blur: blur(25px);
       
-      --safe-top-gap: calc(env(safe-area-inset-top, 15px) + 10px);
+      --safe-top-gap: calc(env(safe-area-inset-top, 15px) + 5px);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -55,10 +55,15 @@
       color: var(--text-color);
       margin: 0;
       overflow-x: hidden;
-      /* Добавляем легкий градиентный засвет на черном фоне */
-      background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.05) 0%, #050505 50%, #050505 100%);
+      /* Добавляем легкие цветовые пятна на фоне, чтобы блюр было видно */
+      background: radial-gradient(circle at 20% -10%, rgba(255, 215, 0, 0.08) 0%, transparent 40%),
+                  radial-gradient(circle at 80% 110%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+                  var(--bg-color);
       background-attachment: fixed;
     }
+
+    /* Скрываем скроллбар для эстетики */
+    ::-webkit-scrollbar { display: none; }
 
     /* === ГЛОБАЛЬНЫЕ КЛАССЫ LIQUID GLASS === */
     .glass-card {
@@ -66,33 +71,54 @@
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 16px;
+      border-radius: 16px;
+      padding: 12px;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .glass-btn {
-      background: rgba(255,255,255,0.05);
+    /* === ЕДИНАЯ КНОПКА (ЗАДАНИЯ, ТАЙМЕРЫ, МАГАЗИН) === */
+    .premium-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--glass-border);
-      color: #fff;
-      border-radius: 12px;
-      font-size: 12px;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 11px;
       font-weight: 800;
-      padding: 12px 16px;
+      color: #fff;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       text-transform: uppercase;
-      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: all 0.2s ease;
       backdrop-filter: blur(10px);
     }
-    .glass-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
-    .glass-btn.primary { background: var(--accent-primary); color: #000; border: none; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); }
-    .glass-btn.primary:disabled { background: rgba(255,255,255,0.05); color: var(--text-color-muted); box-shadow: none; border: 1px solid var(--glass-border); }
+    .premium-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(255, 255, 255, 0.1); }
+    
+    /* Активное состояние (Доступно для клейма) */
+    .premium-btn.active-state {
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      color: var(--accent-neon);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    }
+    
+    /* Заблокированное состояние (Таймер) */
+    .premium-btn:disabled, .premium-btn.locked-state {
+      background: rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.03) !important;
+      color: var(--text-color-muted) !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+      transform: none !important;
+    }
 
     /* === HEADER (БАЛАНСЫ) === */
     .top-header {
@@ -103,248 +129,188 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: linear-gradient(180deg, rgba(5,5,5,0.9) 0%, rgba(5,5,5,0) 100%);
     }
-
+    .balance-wrapper { display: flex; gap: 8px; }
     .balance-pill {
-      background: rgba(255,255,255,0.05);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
-      backdrop-filter: blur(10px);
-      border-radius: 30px;
-      padding: 6px 12px;
+      border-radius: 20px;
+      padding: 6px 10px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       font-weight: 800;
-      font-size: 14px;
+      font-size: 12px;
       color: #fff;
     }
-    .balance-pill i { font-size: 14px; }
-    
     .status-pill {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 800;
-      padding: 6px 12px;
-      border-radius: 30px;
+      padding: 6px 10px;
+      border-radius: 20px;
       border: 1px solid var(--glass-border);
-      background: rgba(255,255,255,0.03);
-      backdrop-filter: blur(10px);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
       text-transform: uppercase;
     }
 
     /* === СЕГМЕНТИРОВАННЫЙ КОНТРОЛ (ВКЛАДКИ) === */
     .segment-control {
       display: flex;
-      background: rgba(255,255,255,0.05);
-      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
       padding: 4px;
-      margin: 0 15px 20px 15px;
+      margin: 0 15px 15px 15px;
       border: 1px solid var(--glass-border);
-      position: relative;
     }
     .segment-btn {
-      flex: 1;
-      text-align: center;
-      padding: 10px 0;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--text-color-muted);
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 10px;
-      transition: all 0.3s ease;
-      position: relative;
-      z-index: 2;
+      flex: 1; text-align: center; padding: 8px 0; font-size: 10px;
+      font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;
+      cursor: pointer; border-radius: 8px; transition: all 0.3s ease;
     }
-    .segment-btn.active {
-      color: #fff;
-      background: rgba(255,255,255,0.1);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
+    .segment-btn.active { color: #fff; background: rgba(255,255,255,0.1); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 
     /* === КОНТЕНТ ВКЛАДОК === */
     .tab-content { display: none; padding: 0 15px 120px 15px; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: block; }
+    .task-list-container { display: flex; flex-direction: column; gap: 10px; }
 
-    /* === ЗАДАНИЯ (УНИФИЦИРОВАННЫЙ СПИСОК) === */
-    .task-list { display: flex; flex-direction: column; gap: 10px; }
-    
-    .task-row {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      transition: transform 0.2s;
-    }
-    .task-row.completed { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
-    
-    .task-header { display: flex; justify-content: space-between; align-items: center; }
-    .task-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    /* === УНИВЕРСАЛЬНАЯ СТРОКА ЗАДАНИЯ === */
+    .task-header { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 2px;}
     .task-icon {
-      width: 40px; height: 40px; border-radius: 12px;
-      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      width: 32px; height: 32px; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; color: var(--accent-primary); flex-shrink: 0;
+      font-size: 14px; color: var(--accent-neon); flex-shrink: 0;
     }
-    .task-text { display: flex; flex-direction: column; gap: 2px; }
-    .task-title { font-size: 13px; font-weight: 800; color: #fff; }
-    .task-desc { font-size: 10px; color: var(--text-color-muted); line-height: 1.3; }
+    .task-text { display: flex; flex-direction: column; gap: 2px; flex-grow: 1;}
+    .task-title { font-size: 11px; font-weight: 800; color: #fff; line-height: 1.1; }
+    .task-desc { font-size: 9px; color: var(--text-color-muted); line-height: 1.2; }
+    .task-link { font-size: 8px; color: var(--accent-blue); text-transform: uppercase; text-align: right; margin-bottom: 4px; cursor: pointer; font-weight: 800; }
     
-    /* Специфично для Стрика */
-    .streak-steps-mini { display: flex; gap: 4px; margin-top: 5px; }
-    .streak-dot { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); }
-    .streak-dot.filled { background: var(--accent-primary); box-shadow: 0 0 8px rgba(255,215,0,0.5); }
+    /* Стрик точки */
+    .streak-steps-mini { display: flex; gap: 3px; margin-top: 4px; }
+    .streak-dot { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); }
+    .streak-dot.filled { background: var(--accent-neon); box-shadow: 0 0 5px rgba(255,215,0,0.5); }
     
-    /* === МАГАЗИН (СЕТКА) === */
-    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
-    .shop-item {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 8px;
-    }
-    .shop-item-title { font-size: 12px; font-weight: 800; color: #fff; }
-    .shop-item-cost { font-size: 10px; color: var(--accent-primary); font-weight: 700; }
+    /* === МАГАЗИН === */
+    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+    .shop-item { align-items: center; text-align: center; gap: 6px; padding: 12px 10px;}
+    .shop-item-title { font-size: 11px; font-weight: 800; color: #fff; }
+    .shop-item-cost { font-size: 9px; color: var(--text-color-muted); font-weight: 700; margin-bottom: 4px; }
 
-    /* === ХАЛЯВА (FREE TICKET) === */
-    .free-ticket-card {
-      background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.02) 100%);
-      border: 1px solid rgba(255,215,0,0.3);
-      border-radius: 24px;
-      padding: 24px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      box-shadow: 0 10px 40px rgba(255,215,0,0.1);
-    }
-    .free-ticket-icon { font-size: 50px; color: var(--accent-primary); filter: drop-shadow(0 0 20px rgba(255,215,0,0.4)); }
-
-    /* === МОДАЛКИ (Взято из профиля) === */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; box-sizing: border-box; }
+    /* === МОДАЛКИ === */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; }
     .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-    .bottom-sheet { background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); width: 100%; max-width: 360px; border-radius: 24px; padding: 24px; transform: scale(0.95); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); text-align: center; }
+    .bottom-sheet { background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); width: 100%; max-width: 320px; border-radius: 20px; padding: 20px; transform: scale(0.95); transition: all 0.3s ease; text-align: center; }
     .modal-overlay.visible .bottom-sheet { transform: scale(1); }
 
     /* PULL TO REFRESH */
-    #pull-to-refresh { position: fixed; top: -60px; left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 2000; color: var(--text-color-muted); font-size: 20px; pointer-events: none; transition: transform 0.2s; }
+    #pull-to-refresh { position: fixed; top: -60px; left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 2000; color: var(--text-color-muted); font-size: 16px; pointer-events: none; transition: transform 0.2s; }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin-slow { 100% { transform: rotate(360deg); } }
-    
-    /* Скрываем скроллбар для эстетики */
-    ::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
 
-  <!-- PULL TO REFRESH -->
   <div id="pull-to-refresh"><i class="fa-solid fa-arrow-down" id="ptr-icon"></i></div>
 
   <!-- ШАПКА БАЛАНСОВ -->
   <header class="top-header">
-    <div style="display: flex; gap: 10px;">
+    <div class="balance-wrapper">
         <div class="balance-pill">
-            <span id="user-coins">0.0</span> <i class="fa-solid fa-coins" style="color: var(--accent-primary);"></i>
+            <span id="user-coins">0.0</span> <i class="fa-solid fa-coins" style="color: var(--accent-neon);"></i>
         </div>
         <div class="balance-pill">
             <span id="user-tickets">0</span> <i class="fa-solid fa-ticket" style="color: #00f2ea;"></i>
         </div>
     </div>
-    <div class="status-pill" id="user-status">Обычный</div>
+    <div class="status-pill" id="user-status">Стандарт</div>
   </header>
 
   <!-- СЕГМЕНТИРОВАННАЯ НАВИГАЦИЯ -->
   <div class="segment-control">
       <div class="segment-btn active" onclick="switchMainTab('tasks', this)">Задания</div>
-      <div class="segment-btn" onclick="switchMainTab('free', this)">Халява</div>
+      <div class="segment-btn" onclick="switchMainTab('free', this)">Бесплатно</div>
       <div class="segment-btn" onclick="switchMainTab('shop', this)">Магазин</div>
   </div>
 
-  <main id="main-scroll-area" style="height: calc(100vh - 140px); overflow-y: auto;">
+  <main id="main-scroll-area" style="height: calc(100vh - 120px); overflow-y: auto;">
       
-      <!-- ВКЛАДКА 1: ЗАДАНИЯ (Гринд + Telegram) -->
+      <!-- ВКЛАДКА 1: ЗАДАНИЯ (ВСЁ ЕДИНЫМ СПИСКОМ) -->
       <div id="tab-tasks" class="tab-content active">
-          <div class="task-list" id="unified-tasks-container">
+          <div class="task-list-container" id="unified-tasks-container">
+              
               <!-- 1. ЕЖЕДНЕВНЫЙ ГРИНД (СТРИК) -->
-              <div class="task-row" id="grind-streak-card">
+              <div class="glass-card">
                   <div class="task-header">
-                      <div class="task-info">
-                          <div class="task-icon" style="color: #ff3b30; box-shadow: 0 0 15px rgba(255,59,48,0.2);"><i class="fa-solid fa-fire"></i></div>
-                          <div class="task-text">
-                              <span class="task-title">Ежедневная серия</span>
-                              <span class="task-desc">День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-primary); font-weight:bold;">+0.1</span></span>
-                              <div class="streak-steps-mini" id="streak-steps-mini"></div>
-                          </div>
+                      <div class="task-icon" style="color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.5);"><i class="fa-solid fa-fire"></i></div>
+                      <div class="task-text">
+                          <span class="task-title">Ежедневная серия</span>
+                          <span class="task-desc">День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-neon); font-weight:800;">+0.1</span></span>
+                          <div class="streak-steps-mini" id="streak-steps-mini"></div>
                       </div>
                   </div>
-                  <button id="grind-btn" class="glass-btn primary" disabled>Загрузка...</button>
+                  <button id="grind-btn" class="premium-btn" disabled>
+                      <i class="fa-solid fa-spinner fa-spin"></i> ЗАГРУЗКА
+                  </button>
               </div>
 
-              <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (Генерируются через JS) -->
-              <div id="tg-tasks-list">
-                  <div style="text-align:center; padding:20px; color:var(--text-color-muted); font-size:12px;">Загрузка заданий...</div>
+              <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (Сюда вставляются JS) -->
+              <div id="tg-tasks-list" style="display:flex; flex-direction:column; gap:10px;">
+                  <div style="text-align:center; padding:20px; color:var(--text-color-muted); font-size:11px;">Синхронизация заданий...</div>
               </div>
+
           </div>
       </div>
 
-      <!-- ВКЛАДКА 2: ХАЛЯВА (Бесплатный билет) -->
+      <!-- ВКЛАДКА 2: ХАЛЯВА (БЕСПЛАТНЫЙ БИЛЕТ) -->
       <div id="tab-free" class="tab-content">
-          <div class="free-ticket-card">
-              <div class="free-ticket-icon"><i class="fa-solid fa-ticket"></i></div>
-              <div>
-                  <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 900; text-transform: uppercase;">Бесплатный Билет</h3>
-                  <p id="ticket-subtitle" style="margin: 0; font-size: 12px; color: var(--text-color-muted);">Обновляется раз в 24 часа</p>
+          <div class="glass-card" style="align-items: center; text-align: center; padding: 30px 15px;">
+              <i class="fa-solid fa-ticket" style="font-size: 40px; color: var(--accent-neon); filter: drop-shadow(0 0 15px rgba(255,215,0,0.3)); margin-bottom: 10px;"></i>
+              <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Ежедневный Билет</h3>
+              <p id="ticket-subtitle" style="margin: 0 0 15px 0; font-size: 10px; color: var(--text-color-muted);">Обновляется раз в 24 часа</p>
+              
+              <div id="free-ticket-container" style="width: 100%;">
+                 <button class="premium-btn" disabled><i class="fa-solid fa-spinner fa-spin"></i></button>
               </div>
-              <div id="free-ticket-container" style="width: 100%;"></div>
           </div>
       </div>
 
-      <!-- ВКЛАДКА 3: МАГАЗИН -->
+      <!-- ВКЛАДКА 3: МАГАЗИН НАГРАД -->
       <div id="tab-shop" class="tab-content">
-          <!-- Под-вкладки магазина (Билеты/Монеты) -->
-          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-              <button class="glass-btn" id="subtab-tickets" style="flex:1; background: rgba(255,255,255,0.1);" onclick="switchShopSubTab('tickets')">Билеты</button>
-              <button class="glass-btn" id="subtab-promos" style="flex:1;" onclick="switchShopSubTab('promos')">Монеты</button>
+          <div class="segment-control" style="margin: 0 0 10px 0;">
+              <div class="segment-btn active" id="subtab-tickets" onclick="switchShopSubTab('tickets')">Билеты</div>
+              <div class="segment-btn" id="subtab-promos" onclick="switchShopSubTab('promos')">Монеты</div>
           </div>
           <div class="shop-grid" id="shop-container">
-              <div style="grid-column: 1/-1; text-align:center; padding:20px; color:#aaa; font-size:12px;">Загрузка...</div>
+              <div style="grid-column: 1/-1; text-align:center; padding:20px; color:var(--text-color-muted); font-size:11px;">Подключение к магазину...</div>
           </div>
       </div>
 
   </main>
 
   <!-- === МОДАЛКИ === -->
-  
-  <!-- Успех -->
   <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
       <div class="bottom-sheet">
-          <div style="width: 60px; height: 60px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #34c759; font-size: 28px;"><i class="fa-solid fa-check"></i></div>
-          <h3 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
-          <p id="success-message" style="margin: 0 0 20px 0; font-size: 13px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
+          <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
+          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
+          <p id="success-message" style="margin: 0 0 15px 0; font-size: 11px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
           
-          <div id="success-promo-container" style="display: none; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.3); border: 1px dashed var(--glass-border); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
-              <span style="font-size: 10px; text-transform: uppercase; color: var(--text-color-muted);">Ваш код:</span>
-              <span id="success-promo-code" style="font-size: 18px; font-weight: 800; color: var(--accent-primary); letter-spacing: 1px; cursor: pointer;" onclick="copyPromo(this)">CODE123</span>
+          <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 10px; border-radius: 12px; margin-bottom: 15px;">
+              <span style="font-size: 9px; text-transform: uppercase; color: var(--text-color-muted);">Ваш код (нажмите):</span>
+              <span id="success-promo-code" style="font-size: 16px; font-weight: 800; color: var(--accent-neon); letter-spacing: 1px; cursor: pointer;" onclick="copyPromo(this)">CODE123</span>
           </div>
 
-          <button class="glass-btn primary" style="width: 100%;" onclick="closeSuccessModal()">Отлично</button>
+          <button class="premium-btn active-state" style="width: 100%; color: #fff;" onclick="closeSuccessModal()">ОТЛИЧНО</button>
       </div>
   </div>
 
-  <!-- Попап профиля (Ошибки Bio/Nick) -->
   <div id="profile-popup-root"></div>
 
-  <!-- НИЖНИЙ И ВЕРХНИЙ БАР (Оставлены как просил) -->
+  <!-- НИЖНИЙ И ВЕРХНИЙ БАР (Как просил) -->
   <script src="/top_nav.js" defer></script>
   <script src="/bottom-nav.js"></script>
 
@@ -379,8 +345,9 @@
             grindBtn.addEventListener('click', async () => {
                 if (grindBtn.disabled) return;
                 if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                grindBtn.disabled = true;
+                
                 const origHtml = grindBtn.innerHTML;
+                grindBtn.disabled = true;
                 grindBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
                 try {
@@ -389,7 +356,7 @@
                     userState.streakDays = res.streak_days;
                     userState.lastGrindTime = res.last_grind_at;
                     updateUI();
-                    
+                    showFloatText(grindBtn, `+${parseFloat(res.reward_claimed).toFixed(2)}`, 'var(--accent-neon)');
                     if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 } catch (e) {
                     window.customAlert(e.message || "Ошибка получения бонуса");
@@ -400,14 +367,22 @@
         }
     });
 
+    async function checkMaintenance() {
+        try {
+            const res = await fetch('/api/v1/bootstrap', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: tg.initData || '' }) });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.maintenance) { document.body.innerHTML = ""; window.location.href = '/'; }
+            }
+        } catch (e) {}
+    }
+    checkMaintenance();
+
     async function init() {
         try {
-            // Читаем настройки админа (если есть)
             try {
                 const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-                if (cachedBootstrap?.menu?.coins_purchases_enabled !== undefined) {
-                    window.coinsPurchasesEnabled = cachedBootstrap.menu.coins_purchases_enabled;
-                } else { window.coinsPurchasesEnabled = true; }
+                window.coinsPurchasesEnabled = cachedBootstrap?.menu?.coins_purchases_enabled !== false;
             } catch(e) { window.coinsPurchasesEnabled = true; }
 
             const data = await window.makeApiRequest('/api/v1/user/me', {}, 'POST');
@@ -424,7 +399,7 @@
             
             updateUI();
             loadTelegramTasks(); 
-            fetchShopItems(); // Загружаем магаз в фоне
+            fetchShopItems(); 
             setInterval(updateUI, 60000); 
         } catch (e) {
             console.error("Init error:", e);
@@ -432,12 +407,19 @@
     }
 
     // ==========================================
-    // 🎨 UI ОБНОВЛЕНИЯ (ЕДИНЫЙ ТАЙМЕР И СТРИК)
+    // 🎨 UI ОБНОВЛЕНИЯ (ЕДИНЫЙ ТАЙМЕР)
     // ==========================================
     function isTwitchBoostActive() { return userState.twitch_status === 'vip' || userState.twitch_status === 'subscriber'; }
     function isVipActive() {
         if (!userState.referral_activated_at) return false;
         return (Date.now() - new Date(userState.referral_activated_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+    }
+
+    function formatCooldown(diffMs) {
+        const rem = GRIND_COOLDOWN - diffMs;
+        const h = Math.floor(rem / 3600000).toString().padStart(2, '0');
+        const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2, '0');
+        return `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}`;
     }
 
     function updateUI() {
@@ -450,7 +432,7 @@
         if (userState.twitch_status === 'subscriber' || userState.twitch_status === 'vip') {
             statusEl.innerHTML = `<span style="color:#a970ff;">Twitch ${userState.twitch_status === 'vip' ? 'VIP' : 'SUB'}</span>`;
         } else if (isVipActive()) {
-            statusEl.innerHTML = `<span style="color:var(--accent-primary);">VIP Бонус</span>`;
+            statusEl.innerHTML = `<span style="color:var(--accent-neon);">VIP Бонус</span>`;
         } else {
             statusEl.innerHTML = `<span style="color:var(--text-color-muted);">Стандарт</span>`;
         }
@@ -479,14 +461,11 @@
         
         if (diff < GRIND_COOLDOWN) {
             grindBtn.disabled = true;
-            grindBtn.className = "glass-btn"; // Убираем primary стиль
-            const rem = GRIND_COOLDOWN - diff;
-            const h = Math.floor(rem / 3600000).toString().padStart(2, '0');
-            const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2, '0');
-            grindBtn.innerHTML = `<i class="fa-solid fa-lock" style="font-size:10px;"></i> ЧЕРЕЗ ${h}:${m}`;
+            grindBtn.className = "premium-btn locked-state";
+            grindBtn.innerHTML = formatCooldown(diff);
         } else {
             grindBtn.disabled = false;
-            grindBtn.className = "glass-btn primary";
+            grindBtn.className = "premium-btn active-state";
             grindBtn.innerHTML = "ЗАБРАТЬ БОНУС";
         }
         
@@ -496,22 +475,18 @@
     function renderFreeTicketBtn() {
         const lastClaim = userState.lastFreeTicket ? new Date(userState.lastFreeTicket).getTime() : 0;
         const diff = Date.now() - lastClaim;
-        const isBoosted = isVipActive() || isTwitchBoostActive();
         let tReward = 1 + (isVipActive() ? 1 : 0) + (isTwitchBoostActive() ? grindSettings.twitch_status_free_tickets : 0);
 
         const container = document.getElementById('free-ticket-container');
         if (diff > GRIND_COOLDOWN) {
-            container.innerHTML = `<button class="glass-btn primary" style="width:100%; font-size:14px; padding:16px;" onclick="claimFreeTicket()">ЗАБРАТЬ +${tReward}</button>`;
+            container.innerHTML = `<button class="premium-btn active-state" onclick="claimFreeTicket()">ЗАБРАТЬ +${tReward}</button>`;
         } else {
-            const rem = GRIND_COOLDOWN - diff;
-            const h = Math.floor(rem / 3600000).toString().padStart(2, '0');
-            const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2, '0');
-            container.innerHTML = `<button class="glass-btn" disabled style="width:100%; font-size:14px; padding:16px;"><i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}</button>`;
+            container.innerHTML = `<button class="premium-btn locked-state" disabled>${formatCooldown(diff)}</button>`;
         }
     }
 
     // ==========================================
-    // 📋 TELEGRAM ЗАДАНИЯ (УНИФИЦИРОВАННЫЕ)
+    // 📋 TELEGRAM ЗАДАНИЯ (ВКЛАДКА 1)
     // ==========================================
     function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
         const btn = document.getElementById(btnId);
@@ -525,7 +500,7 @@
             if (diff <= 0) {
                 clearInterval(cooldownIntervalsMap[btnId]);
                 btn.disabled = false;
-                btn.className = btn.getAttribute('data-active-class') || 'glass-btn primary';
+                btn.className = btn.getAttribute('data-active-class') || 'premium-btn active-state';
                 btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
                 return;
             }
@@ -533,8 +508,8 @@
             const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
             
             btn.disabled = true;
-            btn.className = 'glass-btn'; // Делаем прозрачной с бордером
-            btn.innerHTML = `<i class="fa-solid fa-lock" style="font-size:10px;"></i> ЧЕРЕЗ ${h}:${m}`;
+            btn.className = 'premium-btn locked-state';
+            btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}`;
         };
         updateTimer(); 
         cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
@@ -559,10 +534,10 @@
 
             activeTasks.forEach(task => {
                 const el = document.createElement('div');
-                el.className = `task-row`;
+                el.className = `glass-card`;
                 
                 let iconClass = 'fa-solid fa-star';
-                let iconColor = 'var(--accent-primary)';
+                let iconColor = 'var(--accent-neon)';
                 if (task.task_key === 'tg_surname') { iconClass = 'fa-solid fa-signature'; iconColor = '#0a84ff'; }
                 if (task.task_key === 'tg_bio') { iconClass = 'fa-solid fa-link'; iconColor = '#34c759'; }
                 if (task.task_key === 'tg_sub') { iconClass = 'fa-brands fa-telegram'; iconColor = '#2AABEE'; }
@@ -570,14 +545,13 @@
 
                 const isFinalDay = task.is_daily && task.current_day === task.total_days;
                 
-                // Формируем контент кнопки
-                let btnContent = isFinalDay ? `<i class="fa-solid fa-gift"></i> ПРИЗ` : `ЗАБРАТЬ +${task.reward_amount}`;
-                let activeClass = isFinalDay ? 'glass-btn primary' : 'glass-btn primary';
+                let btnContent = isFinalDay ? `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ` : `ЗАБРАТЬ +${task.reward_amount}`;
+                let activeClass = 'premium-btn active-state';
                 
                 let linkHtml = '';
                 if ((task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
                     const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-                    linkHtml = `<div style="font-size:9px; color:var(--text-color-muted); text-transform:uppercase; margin-bottom:6px; cursor:pointer;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
+                    linkHtml = `<div class="task-link" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
                 }
 
                 let streakHtml = '';
@@ -591,19 +565,15 @@
 
                 el.innerHTML = `
                     <div class="task-header">
-                        <div class="task-info">
-                            <div class="task-icon" style="color: ${iconColor};"><i class="${iconClass}"></i></div>
-                            <div class="task-text">
-                                <span class="task-title">${task.title || 'Задание'}</span>
-                                <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:#0a84ff; font-weight:700;">$1</span>')}</span>
-                                ${streakHtml}
-                            </div>
+                        <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
+                        <div class="task-text">
+                            <span class="task-title">${task.title || 'Задание'}</span>
+                            <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                            ${streakHtml}
                         </div>
                     </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                        ${linkHtml}
-                        <button class="${activeClass}" id="btn-${task.task_key}" style="width:100%;" data-active-class="${activeClass}" data-original-html='${btnContent}' onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
-                    </div>
+                    ${linkHtml}
+                    <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
                 `;
 
                 if ((task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !task.is_completed && !isFinalDay) {
@@ -614,7 +584,7 @@
                 container.appendChild(el);
             });
             timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
-        } catch (e) { container.innerHTML = '<div style="text-align:center; padding:10px; color:var(--danger-color);">Ошибка загрузки</div>'; }
+        } catch (e) { container.innerHTML = '<div style="text-align:center; padding:10px; color:var(--danger-color); font-size:11px;">Ошибка загрузки</div>'; }
     }
 
     window.handleDailyClaim = async function(taskKey, actionUrl) {
@@ -622,7 +592,10 @@
         if(!btn || btn.disabled) return;
         
         const originalHtml = btn.innerHTML;
+        const originalClass = btn.className;
+        
         btn.disabled = true;
+        btn.className = "premium-btn";
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
         try {
@@ -636,10 +609,12 @@
             } else {
                 handleTaskError(data, taskKey, actionUrl);
                 btn.disabled = false;
+                btn.className = originalClass;
                 btn.innerHTML = originalHtml;
             }
         } catch (e) {
             btn.disabled = false;
+            btn.className = originalClass;
             btn.innerHTML = originalHtml;
         }
     };
@@ -687,26 +662,26 @@
         container.innerHTML = '';
         
         const items = shopItems.filter(i => i.type === currentShopTab);
-        if (items.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#777; padding:20px;">Пусто</div>'; return; }
+        if (items.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); padding:20px; font-size:11px;">Пусто</div>'; return; }
 
         items.forEach(item => {
             const div = document.createElement('div');
-            div.className = 'shop-item';
+            div.className = 'glass-card shop-item';
             const isAffordable = userState.coins >= item.cost;
             const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
 
             let btnHtml = '';
             if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
-                btnHtml = `<button class="glass-btn" disabled style="width:100%;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
+                btnHtml = `<button class="premium-btn locked-state" disabled><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
             } else {
-                btnHtml = `<button class="glass-btn ${isAffordable ? 'primary' : ''}" onclick="${btnClick}" ${isAffordable?'':'disabled'} style="width:100%;">${isAffordable ? 'Купить' : 'Мало монет'}</button>`;
+                btnHtml = `<button class="premium-btn ${isAffordable ? 'active-state' : 'locked-state'}" onclick="${btnClick}" ${isAffordable?'':'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО МОНЕТ'}</button>`;
             }
 
             div.innerHTML = `
-                <i class="fa-solid ${item.icon}" style="font-size:30px; color:${item.color}; margin-bottom:5px; filter:drop-shadow(0 0 10px ${item.color}80);"></i>
+                <i class="fa-solid ${item.icon}" style="font-size:24px; color:${item.color}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${item.color}80);"></i>
                 <div class="shop-item-title">${item.title}</div>
                 <div class="shop-item-cost">${item.cost} Монет</div>
-                <div style="margin-top:auto; width:100%; padding-top:10px;">${btnHtml}</div>
+                <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
             `;
             container.appendChild(div);
         });
@@ -765,34 +740,32 @@
         document.getElementById(`tab-${tabId}`).classList.add('active');
         if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         
-        if (tabId === 'shop') renderShopList(); // Рендерим магаз при открытии вкладки
+        if (tabId === 'shop') renderShopList(); 
     };
 
-    // Универсальный Alert
     window.customAlert = function(text) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="max-width:300px;">
-                <h3 style="margin: 0 0 15px; font-size: 16px; color: #fff;">Внимание</h3>
-                <p style="margin: 0 0 20px; font-size: 13px; color: var(--text-color-muted);">${text}</p>
-                <button class="glass-btn primary" style="width:100%;" onclick="this.closest('.modal-overlay').remove()">OK</button>
+            <div class="bottom-sheet">
+                <h3 style="margin: 0 0 10px; font-size: 14px; color: #fff;">Внимание</h3>
+                <p style="margin: 0 0 15px; font-size: 11px; color: var(--text-color-muted);">${text}</p>
+                <button class="premium-btn active-state" style="width:100%; color:#fff;" onclick="this.closest('.modal-overlay').remove()">OK</button>
             </div>
         `;
         document.body.appendChild(overlay);
     };
 
-    // Универсальный Confirm
     window.customConfirm = function(text, onConfirm) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="max-width:300px;">
-                <h3 style="margin: 0 0 15px; font-size: 16px; color: #fff;">Подтверждение</h3>
-                <p style="margin: 0 0 20px; font-size: 13px; color: var(--text-color-muted);">${text}</p>
-                <div style="display:flex; gap:10px;">
-                    <button class="glass-btn" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
-                    <button class="glass-btn primary" style="flex:1;" id="confirm-btn-action">ДА</button>
+            <div class="bottom-sheet">
+                <h3 style="margin: 0 0 10px; font-size: 14px; color: #fff;">Подтверждение</h3>
+                <p style="margin: 0 0 15px; font-size: 11px; color: var(--text-color-muted);">${text}</p>
+                <div style="display:flex; gap:8px;">
+                    <button class="premium-btn" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
+                    <button class="premium-btn active-state" style="flex:1; color:#fff;" id="confirm-btn-action">ДА</button>
                 </div>
             </div>
         `;
@@ -800,7 +773,6 @@
         overlay.querySelector('#confirm-btn-action').onclick = () => { overlay.remove(); onConfirm(); };
     };
 
-    // Окно Успеха
     window.showSuccessModal = function(message, promoCode = null) {
         document.getElementById('success-message').textContent = message;
         const promoContainer = document.getElementById('success-promo-container');
@@ -815,7 +787,6 @@
     };
     window.closeSuccessModal = function() { document.getElementById('success-modal').classList.remove('visible'); };
 
-    // Копирование промокода
     window.copyPromo = function(el) {
         const text = el.innerText.trim();
         navigator.clipboard.writeText(text).then(() => {
@@ -824,7 +795,6 @@
         });
     };
 
-    // Попапы профиля (Bio/Nick/Boost)
     function injectProfilePopup(type) {
         activeProfileCheck = type; 
         const root = document.getElementById('profile-popup-root');
@@ -839,15 +809,15 @@
         root.innerHTML = `
             <div id="profilePopup" class="modal-overlay visible">
                 <div class="bottom-sheet">
-                    <h3 style="color:var(--danger-color); margin:0 0 16px; font-size:18px;">❌ ${title}</h3>
-                    <p style="font-size:12px; color:var(--text-color-muted); margin-bottom:12px;">Скопируйте текст и вставьте в поле <b>"${fieldName}"</b>:</p>
+                    <h3 style="color:var(--danger-color); margin:0 0 10px; font-size:14px;">❌ ${title}</h3>
+                    <p style="font-size:10px; color:var(--text-color-muted); margin-bottom:12px;">Скопируйте текст и вставьте в поле <b>"${fieldName}"</b>:</p>
                     
-                    <div style="display:flex; gap:8px; background:rgba(0,0,0,0.3); padding:10px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:20px;">
-                        <input type="text" readonly value="${isSurname ? botNick : refLink}" style="flex-grow:1; background:transparent; border:none; color:var(--accent-blue); font-weight:800; font-size:12px; outline:none; width:100%;">
-                        <button id="copyProfileBtn" style="background:var(--accent-blue); border:none; border-radius:8px; color:#fff; width:36px; height:36px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
+                    <div style="display:flex; gap:8px; background:rgba(0,0,0,0.3); padding:8px; border-radius:10px; border:1px solid var(--glass-border); margin-bottom:15px;">
+                        <input type="text" readonly value="${isSurname ? botNick : refLink}" style="flex-grow:1; background:transparent; border:none; color:var(--accent-blue); font-weight:800; font-size:10px; outline:none; width:100%;">
+                        <button id="copyProfileBtn" style="background:var(--accent-blue); border:none; border-radius:6px; color:#fff; width:30px; height:30px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
                     </div>
                     
-                    <button class="glass-btn" style="width:100%;" onclick="document.getElementById('profilePopup').remove(); activeProfileCheck = null;">Закрыть</button>
+                    <button class="premium-btn" style="width:100%;" onclick="document.getElementById('profilePopup').remove(); activeProfileCheck = null;">ЗАКРЫТЬ</button>
                 </div>
             </div>`;
 
@@ -867,10 +837,10 @@
         root.innerHTML = `
             <div id="actionPopup" class="modal-overlay visible">
                 <div class="bottom-sheet">
-                    <h3 style="color:var(--danger-color); margin:0 0 10px;">⚠️ Внимание!</h3>
-                    <p style="font-size:13px; color:var(--text-color-muted); margin-bottom:20px;">Голосование за канал необходимо для получения бонусов.</p>
-                    <button class="glass-btn primary" style="width:100%; margin-bottom:10px; background:var(--accent-blue); color:#fff;" onclick="document.getElementById('actionPopup').remove(); window.Telegram.WebApp.openTelegramLink('${url || 'https://t.me/boost/hatelove_ttv'}');"><i class="fa-solid fa-rocket"></i> ПРОГОЛОСОВАТЬ</button>
-                    <button class="glass-btn" style="width:100%;" onclick="document.getElementById('actionPopup').remove();">Закрыть</button>
+                    <h3 style="color:var(--danger-color); margin:0 0 10px; font-size:14px;">⚠️ Внимание!</h3>
+                    <p style="font-size:11px; color:var(--text-color-muted); margin-bottom:15px;">Голосование за канал необходимо для получения бонусов.</p>
+                    <button class="premium-btn active-state" style="width:100%; margin-bottom:8px; color:#fff;" onclick="document.getElementById('actionPopup').remove(); window.Telegram.WebApp.openTelegramLink('${url || 'https://t.me/boost/hatelove_ttv'}');"><i class="fa-solid fa-rocket"></i> ПРОГОЛОСОВАТЬ</button>
+                    <button class="premium-btn" style="width:100%;" onclick="document.getElementById('actionPopup').remove();">ЗАКРЫТЬ</button>
                 </div>
             </div>`;
     }
@@ -901,7 +871,7 @@
         const rect = element.getBoundingClientRect();
         const floatEl = document.createElement('div');
         floatEl.textContent = text;
-        floatEl.style.cssText = `position:absolute; color:${color}; font-weight:900; font-size:16px; z-index:9999; animation:fadeIn 1s forwards; left:${rect.left + rect.width/2 - 20}px; top:${rect.top}px; pointer-events:none;`;
+        floatEl.style.cssText = `position:absolute; color:${color}; font-weight:900; font-size:14px; z-index:9999; animation:fadeIn 1s forwards; left:${rect.left + rect.width/2 - 10}px; top:${rect.top - 10}px; pointer-events:none;`;
         document.body.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1000);
     }
@@ -923,11 +893,11 @@
             const diff = e.touches[0].clientY - startY;
             if (diff > 0 && content.scrollTop <= 0) {
                 if (e.cancelable) e.preventDefault();
-                pulledDistance = Math.min(Math.pow(diff, 0.85), 120);
+                pulledDistance = Math.min(Math.pow(diff, 0.85), 100);
                 content.style.transform = `translateY(${pulledDistance}px)`;
                 ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
                 icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
-                icon.style.color = pulledDistance > 60 ? "var(--accent-secondary)" : "var(--text-color-muted)";
+                icon.style.color = pulledDistance > 60 ? "var(--accent-neon)" : "var(--text-color-muted)";
             }
         }, { passive: false });
         
