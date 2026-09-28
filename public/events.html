@@ -643,10 +643,65 @@
             </div>
     </div>
 
-    <button id="grind-btn" class="main-action-btn" disabled>
+   <button id="grind-btn" class="main-action-btn" disabled>
         <span id="grind-btn-text">Загрузка...</span>
         <div class="shine"></div>
     </button>
+  </div>
+
+  <!-- НОВЫЙ БЛОК: TELEGRAM ЗАДАНИЯ -->
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-brands fa-telegram" style="color: #2AABEE;"></i> Разовые задания</div>
+    
+    <div class="shop-grid" style="gap: 8px;">
+        <!-- Подписка -->
+        <div class="exchange-item" onclick="openTaskModal('subscribe')" style="cursor: pointer;">
+            <div class="shop-info-left">
+                <i class="fa-solid fa-bullhorn shop-icon-large" style="font-size: 20px; color: #2AABEE;"></i>
+                <div class="shop-text">
+                    <h4>Подписка на канал</h4>
+                    <p style="color: var(--accent-primary);">+1 Билет</p>
+                </div>
+            </div>
+            <div id="task-status-subscribe" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+
+        <!-- Буст -->
+        <div class="exchange-item" onclick="openTaskModal('boost')" style="cursor: pointer;">
+            <div class="shop-info-left">
+                <i class="fa-solid fa-arrow-up-right-dots shop-icon-large" style="font-size: 20px; color: #ff9500;"></i>
+                <div class="shop-text">
+                    <h4>Голосование за канал</h4>
+                    <p style="color: var(--accent-primary);">+2 Билета</p>
+                </div>
+            </div>
+            <div id="task-status-boost" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+
+        <!-- Фамилия -->
+        <div class="exchange-item" onclick="openTaskModal('lastname')" style="cursor: pointer;">
+            <div class="shop-info-left">
+                <i class="fa-solid fa-user-tag shop-icon-large" style="font-size: 20px; color: #34c759;"></i>
+                <div class="shop-text">
+                    <h4>Ник HATE в фамилии</h4>
+                    <p style="color: var(--accent-primary);">+5 Билетов</p>
+                </div>
+            </div>
+            <div id="task-status-lastname" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+
+        <!-- БИО -->
+        <div class="exchange-item" onclick="openTaskModal('bio')" style="cursor: pointer;">
+            <div class="shop-info-left">
+                <i class="fa-solid fa-link shop-icon-large" style="font-size: 20px; color: #9146ff;"></i>
+                <div class="shop-text">
+                    <h4>Ссылка в БИО</h4>
+                    <p style="color: var(--accent-primary);">+5 Билетов</p>
+                </div>
+            </div>
+            <div id="task-status-bio" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+    </div>
   </div>
 
   <div class="glass-card open-shop-card" onclick="openShopModal()">
@@ -671,6 +726,29 @@
 </main> <!-- ЗАКРЫВАЕМ MAIN ЗДЕСЬ -->
 
 <!-- 🔥 ВЫНЕСЛИ МОДАЛКИ СЮДА, НАПРЯМУЮ В BODY 🔥 -->
+<!-- МОДАЛКА ЗАДАНИЯ -->
+<div id="task-modal" class="modal-overlay">
+    <div class="custom-popup">
+        <h3 id="task-modal-title">Задание</h3>
+        <p id="task-modal-desc">Описание</p>
+        
+        <div class="promo-copy-box" id="task-copy-block" style="display: none; margin-bottom: 15px;">
+            <span class="promo-label">Текст для копирования:</span>
+            <span class="promo-value" id="task-copy-text" onclick="copyTaskText(this)">ТЕКСТ</span>
+        </div>
+
+        <div class="popup-actions">
+            <a href="#" id="task-action-link" class="popup-btn primary" target="_blank" style="display: none;">
+                <i class="fa-brands fa-telegram"></i> Выполнить
+            </a>
+            <button id="task-check-btn" class="popup-btn primary" style="background-color: var(--accent-primary); color: #000;">
+                <i class="fa-solid fa-rotate-right"></i> Проверить
+            </button>
+            <button onclick="closeTaskModal()" class="popup-btn secondary">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <div id="shop-modal" class="modal-overlay">
   <div class="modal-content">
       <div class="modal-header">
@@ -898,7 +976,7 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         renderShopList();
     };
 
-    // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
+   // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
     let userState = {
         coins: 0.0,
         tickets: 0,
@@ -907,7 +985,37 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         lastFreeTicket: null,
         active_referrals_count: 0,
         referral_activated_at: null,
-        twitch_status: null
+        twitch_status: null,
+        completed_tasks: [] // Массив для отслеживания выполненных заданий
+    };
+
+    const TG_TASKS_CONFIG = {
+        subscribe: {
+            title: 'Подписка на канал',
+            desc: 'Подпишись на наш официальный канал, чтобы забрать билеты и быть в курсе новостей.',
+            link: 'https://t.me/hatelove_ttv', // Укажи свою ссылку
+            btnText: 'Перейти в канал',
+            apiPath: 'subscribe' // Endpoint type
+        },
+        boost: {
+            title: 'Голосование за канал',
+            desc: 'Отдай свой голос (буст) за наш канал. Требуется Telegram Premium.',
+            link: 'https://t.me/boost/hatelove_ttv', // Укажи свою ссылку
+            btnText: 'Проголосовать',
+            apiPath: 'boost'
+        },
+        lastname: {
+            title: 'Ник HATE в фамилии',
+            desc: 'Добавь слово <b>HATE</b> (или HATElavka) в свою фамилию в профиле Telegram. Не удаляй, иначе билеты сгорят!',
+            copyText: 'HATE',
+            apiPath: 'lastname'
+        },
+        bio: {
+            title: 'Ссылка в БИО',
+            desc: 'Укажи ссылку на нашего бота в описании своего профиля (О себе).',
+            copyText: 't.me/HATElavka_bot', // Укажи своего бота
+            apiPath: 'bio'
+        }
     };
 
     let grindSettings = { 
@@ -1003,10 +1111,14 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
                 if (data.grind_settings) {
                     grindSettings = data.grind_settings;
                 }
+                if (data.completed_tasks) {
+                    userState.completed_tasks = data.completed_tasks;
+                }
                 
                 updateUI();
                 renderStreakVisuals();
-                startTimers();
+                renderTasksStatus(); // Отрисовка галочек для выполненных
+                startTimers();  
             }
         } catch (e) {
             console.error("Ошибка инициализации:", e);
@@ -1426,6 +1538,111 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         document.body.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1000);
     }
+  // ==========================================
+    // ЛОГИКА TELEGRAM ЗАДАНИЙ
+    // ==========================================
+    window.renderTasksStatus = function() {
+        if (!userState.completed_tasks) return;
+        
+        Object.keys(TG_TASKS_CONFIG).forEach(taskType => {
+            const statusIcon = document.getElementById(`task-status-${taskType}`);
+            if (!statusIcon) return;
+            
+            if (userState.completed_tasks.includes(taskType)) {
+                statusIcon.innerHTML = '<i class="fa-solid fa-check-circle" style="color: #34c759; font-size: 16px;"></i>';
+                // Делаем карточку полупрозрачной и отключаем клик
+                const card = statusIcon.closest('.exchange-item');
+                if(card) {
+                    card.style.opacity = '0.5';
+                    card.style.pointerEvents = 'none';
+                }
+            }
+        });
+    };
+
+    let currentActiveTask = null;
+
+    window.openTaskModal = function(taskType) {
+        if (userState.completed_tasks && userState.completed_tasks.includes(taskType)) return;
+        
+        currentActiveTask = taskType;
+        const config = TG_TASKS_CONFIG[taskType];
+        
+        document.getElementById('task-modal-title').innerHTML = config.title;
+        document.getElementById('task-modal-desc').innerHTML = config.desc;
+        
+        const linkBtn = document.getElementById('task-action-link');
+        if (config.link) {
+            linkBtn.href = config.link;
+            linkBtn.innerHTML = `<i class="fa-brands fa-telegram"></i> ${config.btnText}`;
+            linkBtn.style.display = 'flex';
+        } else {
+            linkBtn.style.display = 'none';
+        }
+        
+        const copyBlock = document.getElementById('task-copy-block');
+        if (config.copyText) {
+            copyBlock.style.display = 'flex';
+            document.getElementById('task-copy-text').innerText = config.copyText;
+        } else {
+            copyBlock.style.display = 'none';
+        }
+        
+        const checkBtn = document.getElementById('task-check-btn');
+        checkBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Проверить';
+        checkBtn.disabled = false;
+        checkBtn.onclick = () => checkTelegramTask(taskType);
+
+        document.getElementById('task-modal').classList.add('visible');
+    };
+
+    window.closeTaskModal = function() {
+        document.getElementById('task-modal').classList.remove('visible');
+        currentActiveTask = null;
+    };
+
+    window.copyTaskText = function(el) {
+        const text = el.innerText.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                tg.showPopup({ message: 'Текст скопирован!' });
+                el.style.opacity = '0.5';
+                setTimeout(() => el.style.opacity = '1', 200);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text);
+        }
+    };
+
+    window.checkTelegramTask = async function(taskType) {
+        const btn = document.getElementById('task-check-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверяем...';
+        
+        try {
+            // Используем уже настроенный window.makeApiRequest
+            const res = await window.makeApiRequest('/api/v1/user/tasks/check', { 
+                task_type: TG_TASKS_CONFIG[taskType].apiPath 
+            });
+            
+            // Если запрос успешен - обновляем стейт
+            if (!userState.completed_tasks) userState.completed_tasks = [];
+            userState.completed_tasks.push(taskType);
+            
+            if (res.new_tickets !== undefined) userState.tickets = res.new_tickets;
+            
+            updateUI();
+            renderTasksStatus();
+            closeTaskModal();
+            showSuccess(`Задание выполнено! Награда начислена.`);
+            
+        } catch (e) {
+            tg.showAlert(e.message || "Условие не выполнено. Проверьте еще раз через пару минут.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Проверить';
+        }
+    };
+
   // === PULL TO REFRESH ЛОГИКА ===
     function initPullToRefresh() {
         const content = document.getElementById('main-content');
