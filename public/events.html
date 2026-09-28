@@ -372,6 +372,42 @@
       opacity: 1;
     }
 
+    /* === СТИЛЬ ПЕРЕКЛЮЧАТЕЛЯ ВНУТРИ МАГАЗИНА (БИЛЕТЫ / МОНЕТЫ) === */
+    #tab-shop .segment-control {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 3px;
+      margin: 0 0 10px 0;
+      gap: 4px;
+    }
+
+    #tab-shop .segment-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-color-muted);
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: transparent;
+      border: none;
+    }
+
+    #tab-shop .segment-btn:active {
+      transform: scale(0.97);
+    }
+
+    #tab-shop .segment-btn.active {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
     /* === КОНТЕНТ ВКЛАДОК === */
     .tab-content { display: none; padding: 0 15px 95px 15px; animation: fadeIn 0.25s ease; }
     .tab-content.active { display: block; }
