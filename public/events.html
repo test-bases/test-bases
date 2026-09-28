@@ -3,20 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Ежедневный Гринд</title>
+  <title>Ежедневный Гринд | Premium</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
   
-  <!-- 🔥 ФИКС ОШИБКИ TOP_NAV: Вынесли makeApiRequest на самый верх 🔥 -->
+  <!-- Утилита API -->
   <script>
     window.makeApiRequest = async function(url, data = {}, method = 'POST', silent = false) {
-        const options = {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-        };
+        const options = { method: method, headers: { 'Content-Type': 'application/json' } };
         if (method !== 'GET') {
             options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data });
         }
@@ -30,497 +27,374 @@
   </script>
 
   <style>
-    /* === СТИЛИ ТЕЛЕГРАМ ЗАДАНИЙ === */
-    .tg-task-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; }
-    .tg-task-item.completed { opacity: 0.6; filter: grayscale(1); pointer-events: none; }
-    .tg-task-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    .tg-left-col { display: flex; align-items: center; gap: 12px; flex: 1; }
-    .tg-icon-box { width: 36px; height: 36px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--accent-primary); }
-    .tg-text-col { display: flex; flex-direction: column; }
-    .tg-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-    .tg-subtitle { font-size: 10px; color: var(--text-secondary); line-height: 1.2; margin-top: 2px; }
-    .tg-code-phrase { color: #2AABEE; font-weight: 700; }
-    .tg-right-col { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
-    .tg-premium-btn { background: var(--accent-primary); color: #000; border: none; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; text-transform: uppercase; transition: transform 0.1s; }
-    .tg-premium-btn:active { transform: scale(0.95); }
-    .tg-premium-btn:disabled { background: var(--surface-secondary) !important; color: var(--text-secondary) !important; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn-reward-badge { display: flex; align-items: center; gap: 2px; }
-    .tg-progress-track { display: flex; gap: 4px; margin-top: 10px; }
-    .tg-progress-segment { flex: 1; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
-    .tg-progress-segment.filled { background: var(--accent-primary); }
-    .tg-counter-text { font-size: 10px; color: var(--text-secondary); text-align: right; margin-top: 4px; }
-    .tg-completed-icon { width: 24px; height: 24px; border-radius: 50%; background: #34c759; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-    
-    /* === ОБЩИЕ ПЕРЕМЕННЫЕ И СТИЛИ === */
+    /* === ПРЕМИАЛЬНЫЕ ПЕРЕМЕННЫЕ === */
     :root {
-      --background-main: #111111;
-      --surface-primary: #1C1C1C;
-      --surface-secondary: #2C2C2C;
-      --border-color: #333333;
-      --text-primary: #f0f0f5;
-      --text-secondary: #AAAAAA;
-      --accent-primary: #FFD700;
-      --accent-secondary: #FF9500;
-      --card-bg-glass: rgba(28, 28, 28, 0.75);
+      --bg-color: #050505;
+      --text-color: #ffffff;
+      --text-color-muted: #8e8e93;
+      
+      --accent-primary: #FFD700; /* Золото */
+      --accent-secondary: #34c759; /* Зеленый */
+      --accent-blue: #0a84ff;
+      --danger-color: #ff453a;
+      
+      /* Liquid Glass Variables */
+      --glass-bg: rgba(18, 18, 20, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+      --glass-blur: blur(25px);
+      
+      --safe-top-gap: calc(env(safe-area-inset-top, 15px) + 10px);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--background-main);
-      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       margin: 0;
       overflow-x: hidden;
-      background-image: url('https://i.postimg.cc/Dyks29xc/fon-variant1.png');
-      background-size: cover;
-      background-position: center;
+      /* Добавляем легкий градиентный засвет на черном фоне */
+      background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.05) 0%, #050505 50%, #050505 100%);
       background-attachment: fixed;
     }
 
-    /* ХЕДЕР */
-    .new-header-container { display: flex; justify-content: space-between; align-items: center; position: relative; margin-bottom: 20px; padding: 5px 0; }
-    .page-header { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; z-index: 1; }
-    .page-title { font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; }
+    /* === ГЛОБАЛЬНЫЕ КЛАССЫ LIQUID GLASS === */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
 
-    /* КАРТОЧКИ */
-    .glass-card { background-color: var(--card-bg-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; position: relative; overflow: hidden; }
+    .glass-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 12px 16px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-transform: uppercase;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      backdrop-filter: blur(10px);
+    }
+    .glass-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+    .glass-btn.primary { background: var(--accent-primary); color: #000; border: none; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); }
+    .glass-btn.primary:disabled { background: rgba(255,255,255,0.05); color: var(--text-color-muted); box-shadow: none; border: 1px solid var(--glass-border); }
 
-    /* БАЛАНСЫ */
-    .balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    .balance-item { background-color: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .balance-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
-    .balance-value { font-size: 16px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; min-height: 20px; }
-    .coin-icon { color: var(--accent-primary); text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
-    .ticket-icon { color: #00f2ea; text-shadow: 0 0 10px rgba(0, 242, 234, 0.4); }
+    /* === HEADER (БАЛАНСЫ) === */
+    .top-header {
+      padding: var(--safe-top-gap) 15px 15px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(180deg, rgba(5,5,5,0.9) 0%, rgba(5,5,5,0) 100%);
+    }
 
-    /* ГРИНД */
-    .section-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
-    .section-title i { color: var(--accent-secondary); }
-
-    .streak-wrapper { display: flex; justify-content: space-between; align-items: center; position: relative; margin: 20px 5px 25px; }
-    .streak-line-bg { position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: var(--border-color); transform: translateY(-50%); z-index: 0; }
-    .streak-line-fill { position: absolute; top: 50%; left: 0; height: 2px; background: var(--accent-primary); transform: translateY(-50%); z-index: 1; width: 0%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--accent-primary); }
-    .streak-step { width: 24px; height: 24px; background: var(--surface-primary); border: 1px solid var(--border-color); border-radius: 50%; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 9px; color: var(--text-secondary); font-weight: 700; transition: all 0.3s ease; }
-    .streak-step.active { border-color: var(--accent-primary); background: var(--background-main); color: var(--text-primary); transform: scale(1.2); box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-    .streak-step.completed { background: var(--accent-primary); border-color: var(--accent-primary); color: #000; }
-
-    .grind-info { text-align: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; }
-    .grind-info span { color: var(--accent-primary); font-weight: 700; }
-    .boost-details { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 10px; color: #34c759; display: flex; flex-direction: column; gap: 2px; }
-    .boost-row { display: flex; justify-content: space-between; padding: 0 10px; }
-
-    .main-action-btn { width: 100%; padding: 12px; background-color: var(--accent-primary); color: #000; font-size: 13px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.1s; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); position: relative; overflow: hidden; }
-    .main-action-btn:active { transform: scale(0.98); }
-    .main-action-btn:disabled { background-color: var(--surface-secondary); color: var(--text-secondary); cursor: not-allowed; box-shadow: none; }
-
-    /* МАГАЗИН */
-    .open-shop-card { display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.2s; border-color: var(--accent-secondary); }
-    .open-shop-card:active { transform: scale(0.98); }
-    .shop-info-left { display: flex; align-items: center; gap: 12px; }
-    .shop-icon-large { font-size: 24px; color: var(--accent-secondary); }
-    .shop-text h4 { margin: 0; font-size: 13px; color: var(--text-primary); }
-    .shop-text p { margin: 2px 0 0; font-size: 10px; color: var(--text-secondary); }
-
-    /* МОДАЛКИ И ПОПАПЫ */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: var(--tg-viewport-height, 100vh); background: rgba(0, 0, 0, 0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; box-sizing: border-box; backdrop-filter: blur(8px); }
-    .modal-overlay.visible { opacity: 1; pointer-events: all; }
-    .modal-content { background-color: var(--surface-primary); border: 1px solid var(--accent-primary); border-radius: 16px; width: 90%; max-width: 360px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; position: relative; max-height: 85vh; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .modal-overlay.visible .modal-content { transform: scale(1); }
-
-    .modal-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--surface-primary); border-radius: 16px 16px 0 0; }
-    .shop-tabs { display: flex; gap: 10px; }
-    .tab-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 13px; font-weight: 600; padding: 5px 10px; cursor: pointer; border-radius: 6px; transition: all 0.2s; text-transform: uppercase; }
-    .tab-btn.active { background: rgba(255, 215, 0, 0.1); color: var(--accent-primary); }
-    .modal-close-btn { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
-    .modal-body { padding: 15px; overflow-y: auto; }
-    .shop-grid { display: flex; flex-direction: column; gap: 10px; min-height: 150px; }
-
-    .exchange-item { background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .exchange-details { display: flex; flex-direction: column; gap: 2px; }
-    .exchange-title { font-size: 12px; color: var(--text-primary); font-weight: 600; }
-    .exchange-cost { font-size: 10px; color: var(--accent-primary); }
-    .mini-btn { background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); padding: 6px 12px; font-size: 10px; font-weight: 600; border-radius: 4px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
-    .mini-btn:hover:not(:disabled) { background: var(--accent-primary); color: #000; }
-    .mini-btn:disabled { border-color: var(--border-color); color: var(--text-secondary); pointer-events: none; opacity: 0.5; }
-
-    /* БЕСПЛАТНЫЙ БИЛЕТ */
-    .free-ticket-section { border: 1px dashed var(--text-secondary); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; background: rgba(255,255,255,0.02); }
-    .free-ticket-text { font-size: 11px; color: var(--text-secondary); }
-    .free-ticket-title { font-size: 12px; font-weight: 700; color: #fff; display: block; margin-bottom: 2px; }
-
-    /* FOOTER */
-    .app-footer { display: flex; justify-content: space-around; align-items: center; background-color: rgba(28, 28, 30, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.1); position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9000; padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); box-sizing: border-box; }
-    .footer-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #8E8E93; text-decoration: none; flex: 1; cursor: pointer; background: transparent; border: none; padding: 0; margin: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; line-height: 1; font-weight: 500; }
-    .footer-item .icon-wrapper { display: flex; justify-content: center; align-items: center; width: 24px; height: 24px; font-size: 22px; position: relative; transition: transform 0.2s ease, color 0.2s ease; }
-    .footer-item.active { color: #FFFFFF; }
-    .footer-item.active .icon-wrapper { color: #34c759; transform: translateY(-2px); text-shadow: 0 0 12px rgba(52, 199, 89, 0.6); }
-    .footer-item.active .icon-wrapper::before { content: ''; position: absolute; top: -8px; width: 20px; height: 2px; background-color: #34c759; border-radius: 2px; box-shadow: 0 0 5px rgba(52, 199, 89, 0.8); }
-
-    .shine { position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shine 3s infinite; }
-    @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+    .balance-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+    .balance-pill i { font-size: 14px; }
     
-    .float-anim { animation: floatUp 1s ease-out forwards; position: absolute; font-weight: 800; font-size: 16px; pointer-events: none; z-index: 10000; }
-    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
+    .status-pill {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 30px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(10px);
+      text-transform: uppercase;
+    }
 
-    /* SUCCESS МОДАЛКА */
-    .success-modal-content { background: linear-gradient(160deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid var(--accent-primary); box-shadow: 0 0 30px rgba(255, 215, 0, 0.15); text-align: center; padding: 30px 20px; width: 85%; max-width: 320px; border-radius: 16px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .modal-overlay.visible .success-modal-content { transform: scale(1); }
-    .success-icon-box { width: 70px; height: 70px; margin: 0 auto 20px; background: rgba(255, 215, 0, 0.1); border: 1px solid var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); position: relative; }
-    .success-icon-box i { font-size: 32px; color: var(--accent-primary); animation: popIn 0.5s ease; }
-    @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
-    .success-title-text { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-    .success-desc-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+    /* === СЕГМЕНТИРОВАННЫЙ КОНТРОЛ (ВКЛАДКИ) === */
+    .segment-control {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 4px;
+      margin: 0 15px 20px 15px;
+      border: 1px solid var(--glass-border);
+      position: relative;
+    }
+    .segment-btn {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-color-muted);
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 2;
+    }
+    .segment-btn.active {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
 
-    /* ПРОМО БЛОК */
-    .promo-copy-box { background: rgba(0, 0, 0, 0.3); border: 1px dashed var(--accent-secondary); padding: 12px; border-radius: 8px; margin-bottom: 25px; display: flex; flex-direction: column; gap: 5px; }
-    .promo-label { font-size: 10px; text-transform: uppercase; color: var(--text-secondary); }
-    .promo-value { font-size: 18px; font-weight: 700; color: var(--accent-primary); font-family: monospace; user-select: text; cursor: pointer; }
-    .btn-close-success { background: var(--accent-primary); color: #000; border: none; font-weight: 700; padding: 12px 0; width: 100%; border-radius: 8px; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25); transition: transform 0.1s; }
-    .btn-close-success:active { transform: scale(0.96); }
+    /* === КОНТЕНТ ВКЛАДОК === */
+    .tab-content { display: none; padding: 0 15px 120px 15px; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
 
-    /* "КАК ИСПОЛЬЗОВАТЬ" КНОПКА И ПОПАП */
-    .reward-how-to-use-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background-color: rgba(255, 255, 255, 0.08); color: #007aff; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; padding: 8px 10px; cursor: pointer; transition: background-color 0.2s ease, transform 0.15s ease; text-decoration: none; margin-top: 5px; margin-bottom: 15px; width: 100%; }
-    .reward-how-to-use-btn:hover { background-color: rgba(255, 255, 255, 0.15); }
-    .reward-how-to-use-btn:active { transform: scale(0.96); }
-    .saved-in-profile-text { font-size: 11px; color: #888; margin-bottom: 5px; display: block; }
+    /* === ЗАДАНИЯ (УНИФИЦИРОВАННЫЙ СПИСОК) === */
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
     
-    .custom-popup { background-color: #1c1c1e; border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.2s; display: flex; flex-direction: column; max-height: 85vh; overflow-y: auto; }
-    .modal-overlay.visible .custom-popup { transform: scale(1); }
-    .custom-popup h3 { margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #fff; flex-shrink: 0; }
-    .custom-popup p { margin: 0 0 10px 0; font-size: 14px; color: #b0b0b0; line-height: 1.4; flex-shrink: 0; }
-    .custom-popup img { max-width: 100%; height: auto; max-height: 40vh; object-fit: contain; border-radius: 10px; margin: 10px 0; }
-    .popup-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; flex-shrink: 0; }
-    .popup-btn { width: 100%; border: none; padding: 12px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
-    .popup-btn.primary { background-color: #34c759; color: white; }
-    .popup-btn.secondary { background-color: #3a3a3c; color: white; }
+    .task-row {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s;
+    }
+    .task-row.completed { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
+    
+    .task-header { display: flex; justify-content: space-between; align-items: center; }
+    .task-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .task-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: var(--accent-primary); flex-shrink: 0;
+    }
+    .task-text { display: flex; flex-direction: column; gap: 2px; }
+    .task-title { font-size: 13px; font-weight: 800; color: #fff; }
+    .task-desc { font-size: 10px; color: var(--text-color-muted); line-height: 1.3; }
+    
+    /* Специфично для Стрика */
+    .streak-steps-mini { display: flex; gap: 4px; margin-top: 5px; }
+    .streak-dot { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); }
+    .streak-dot.filled { background: var(--accent-primary); box-shadow: 0 0 8px rgba(255,215,0,0.5); }
+    
+    /* === МАГАЗИН (СЕТКА) === */
+    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+    .shop-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .shop-item-title { font-size: 12px; font-weight: 800; color: #fff; }
+    .shop-item-cost { font-size: 10px; color: var(--accent-primary); font-weight: 700; }
 
-    /* ГЛОБАЛЬНЫЙ СКРОЛЛ И PULL TO REFRESH */
-    html, body { margin: 0; padding: 0; width: 100%; height: var(--tg-viewport-height, 100%); position: fixed; overflow: hidden; overscroll-behavior-y: none; background-color: #111; }
-    #main-content { height: 100%; overflow-y: auto !important; -webkit-overflow-scrolling: touch; box-sizing: border-box; padding: 5px 15px 120px 15px; }
+    /* === ХАЛЯВА (FREE TICKET) === */
+    .free-ticket-card {
+      background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.02) 100%);
+      border: 1px solid rgba(255,215,0,0.3);
+      border-radius: 24px;
+      padding: 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 10px 40px rgba(255,215,0,0.1);
+    }
+    .free-ticket-icon { font-size: 50px; color: var(--accent-primary); filter: drop-shadow(0 0 20px rgba(255,215,0,0.4)); }
 
-    #pull-to-refresh { position: fixed; top: -80px; left: 0; width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; z-index: 2000; background: transparent; pointer-events: none; will-change: transform; }
-    #pull-to-refresh i { font-size: 24px; color: #FFD700; transform: scale(1); transition: opacity 0.2s, transform 0.2s; text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+    /* === МОДАЛКИ (Взято из профиля) === */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; box-sizing: border-box; }
+    .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+    .bottom-sheet { background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); width: 100%; max-width: 360px; border-radius: 24px; padding: 24px; transform: scale(0.95); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); text-align: center; }
+    .modal-overlay.visible .bottom-sheet { transform: scale(1); }
 
-    /* Анимации квестов */
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(5deg); } 100% { transform: translateY(0px) rotate(0deg); } }
+    /* PULL TO REFRESH */
+    #pull-to-refresh { position: fixed; top: -60px; left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 2000; color: var(--text-color-muted); font-size: 20px; pointer-events: none; transition: transform 0.2s; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+    
+    /* Скрываем скроллбар для эстетики */
+    ::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
-<main id="main-content">
-  <div id="pull-to-refresh">
-      <i class="fa-solid fa-rotate-right"></i> 
-  </div>
 
-  <div class="new-header-container">
-    <div class="page-header">
-        <h1 class="page-title">Гринд</h1>
-    </div>
-  </div>
+  <!-- PULL TO REFRESH -->
+  <div id="pull-to-refresh"><i class="fa-solid fa-arrow-down" id="ptr-icon"></i></div>
 
-  <div class="balance-grid">
-    <div class="balance-item">
-        <span class="balance-label">Гринд-монеты</span>
-        <div class="balance-value">
-            <span id="user-coins">...</span> <i class="fa-solid fa-coins coin-icon"></i>
+  <!-- ШАПКА БАЛАНСОВ -->
+  <header class="top-header">
+    <div style="display: flex; gap: 10px;">
+        <div class="balance-pill">
+            <span id="user-coins">0.0</span> <i class="fa-solid fa-coins" style="color: var(--accent-primary);"></i>
+        </div>
+        <div class="balance-pill">
+            <span id="user-tickets">0</span> <i class="fa-solid fa-ticket" style="color: #00f2ea;"></i>
         </div>
     </div>
-    <div class="balance-item">
-        <span class="balance-label">Билеты</span>
-        <div class="balance-value">
-            <span id="user-tickets">...</span> <i class="fa-solid fa-ticket ticket-icon"></i>
-        </div>
-    </div>
+    <div class="status-pill" id="user-status">Обычный</div>
+  </header>
+
+  <!-- СЕГМЕНТИРОВАННАЯ НАВИГАЦИЯ -->
+  <div class="segment-control">
+      <div class="segment-btn active" onclick="switchMainTab('tasks', this)">Задания</div>
+      <div class="segment-btn" onclick="switchMainTab('free', this)">Халява</div>
+      <div class="segment-btn" onclick="switchMainTab('shop', this)">Магазин</div>
   </div>
 
-  <div class="glass-card" style="padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; min-height: 50px;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-crown" style="color: var(--accent-primary);"></i>
-          Статус аккаунта
-      </div>
-      <div id="user-status" style="text-align: right; font-size: 13px; font-weight: 800; color: var(--accent-primary); line-height: 1.2;">
-          <span style="opacity: 0.5; font-size: 11px;">Загрузка...</span>
-      </div>
-  </div>
-
-  <div class="glass-card">
-    <div class="section-title"><i class="fa-solid fa-fire"></i> Ежедневная Серия</div>
-    
-    <div class="streak-wrapper">
-        <div class="streak-line-bg"></div>
-        <div class="streak-line-fill" id="streak-bar"></div>
-        <div id="streak-steps" style="display: flex; justify-content: space-between; width: 100%; position: relative;"></div>
-    </div>
-
-    <div class="grind-info">
-        День серии: <span id="current-streak-day">1</span> / 10 <br>
-        Награда сегодня: <span id="today-reward">+0.1</span>
-        <div id="boost-container" class="boost-details" style="display: none;"></div>
-    </div>
-
-    <button id="grind-btn" class="main-action-btn" disabled>
-        <span id="grind-btn-text">Загрузка...</span>
-        <div class="shine"></div>
-    </button>
-  </div>
-
-  <!-- 🔥 КОМПАКТНЫЕ TELEGRAM ЗАДАНИЯ 🔥 -->
-  <div class="glass-card" style="padding-bottom: 4px;">
-    <div class="section-title"><i class="fa-brands fa-telegram" style="color: #2AABEE;"></i> Telegram Задания</div>
-    <div id="tg-tasks-list">
-        <div style="text-align:center; padding:10px; color:#666;">Загрузка...</div>
-    </div>
-  </div>
-
-  <div class="glass-card open-shop-card" onclick="openShopModal()">
-    <div class="shop-info-left">
-        <i class="fa-solid fa-shop shop-icon-large"></i>
-        <div class="shop-text">
-            <h4>Обменник гринд монет (магазин наград)</h4>
-            <p>Обмен гринд монет на билеты и промокоды</p>
-        </div>
-    </div>
-    <div class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-  </div>
-
-  <div class="free-ticket-section">
-    <div>
-        <span class="free-ticket-title">Ежедневный билет</span>
-        <span class="free-ticket-text" id="ticket-subtitle">Бесплатно раз в 24ч</span>
-    </div>
-    <div id="free-ticket-container"></div>
-  </div>
-
-</main> <!-- ЗАКРЫВАЕМ MAIN -->
-
-<!-- 🔥 МОДАЛКИ (ВЫНЕСЕНЫ В КОРЕНЬ BODY) 🔥 -->
-<div id="shop-modal" class="modal-overlay">
-  <div class="modal-content">
-      <div class="modal-header">
-          <div class="shop-tabs">
-              <button class="tab-btn active" id="tab-tickets" onclick="switchTab('tickets')">Билеты</button>
-              <button class="tab-btn" id="tab-promos" onclick="switchTab('promos')">Монеты</button>
-          </div>
-          <button class="modal-close-btn" onclick="closeShopModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-          <div class="shop-grid" id="shop-container"></div>
-      </div>
-  </div>
-</div>
-
-<div id="success-modal" class="modal-overlay">
-  <div class="success-modal-content">
-      <div class="success-icon-box">
-          <i class="fa-solid fa-check"></i>
-      </div>
-      <div class="success-title-text">Успешно!</div>
-      <div class="success-desc-text" id="success-message">
-          Покупка совершена. (зачисление может занять до минуты)
-      </div>
+  <main id="main-scroll-area" style="height: calc(100vh - 140px); overflow-y: auto;">
       
-      <div id="success-promo-container" class="promo-copy-box" style="display: none;">
-          <span class="promo-label">Ваш код (нажмите чтобы скопировать):</span>
-          <span class="promo-value" id="success-promo-code" onclick="copyPromo(this)">CODE123</span>
+      <!-- ВКЛАДКА 1: ЗАДАНИЯ (Гринд + Telegram) -->
+      <div id="tab-tasks" class="tab-content active">
+          <div class="task-list" id="unified-tasks-container">
+              <!-- 1. ЕЖЕДНЕВНЫЙ ГРИНД (СТРИК) -->
+              <div class="task-row" id="grind-streak-card">
+                  <div class="task-header">
+                      <div class="task-info">
+                          <div class="task-icon" style="color: #ff3b30; box-shadow: 0 0 15px rgba(255,59,48,0.2);"><i class="fa-solid fa-fire"></i></div>
+                          <div class="task-text">
+                              <span class="task-title">Ежедневная серия</span>
+                              <span class="task-desc">День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-primary); font-weight:bold;">+0.1</span></span>
+                              <div class="streak-steps-mini" id="streak-steps-mini"></div>
+                          </div>
+                      </div>
+                  </div>
+                  <button id="grind-btn" class="glass-btn primary" disabled>Загрузка...</button>
+              </div>
+
+              <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (Генерируются через JS) -->
+              <div id="tg-tasks-list">
+                  <div style="text-align:center; padding:20px; color:var(--text-color-muted); font-size:12px;">Загрузка заданий...</div>
+              </div>
+          </div>
       </div>
 
-      <div id="promo-instruction-block" style="display: none;">
-          <span class="saved-in-profile-text">
-              <i class="fa-solid fa-floppy-disk"></i> Код также сохранен в вашем профиле
-          </span>
-          <button class="reward-how-to-use-btn" onclick="openHowToUsePopup()">
-              <i class="fa-solid fa-circle-question"></i> Как использовать?
-          </button>
+      <!-- ВКЛАДКА 2: ХАЛЯВА (Бесплатный билет) -->
+      <div id="tab-free" class="tab-content">
+          <div class="free-ticket-card">
+              <div class="free-ticket-icon"><i class="fa-solid fa-ticket"></i></div>
+              <div>
+                  <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 900; text-transform: uppercase;">Бесплатный Билет</h3>
+                  <p id="ticket-subtitle" style="margin: 0; font-size: 12px; color: var(--text-color-muted);">Обновляется раз в 24 часа</p>
+              </div>
+              <div id="free-ticket-container" style="width: 100%;"></div>
+          </div>
       </div>
-      <button class="btn-close-success" onclick="closeSuccessModal()">Закрыть</button>
+
+      <!-- ВКЛАДКА 3: МАГАЗИН -->
+      <div id="tab-shop" class="tab-content">
+          <!-- Под-вкладки магазина (Билеты/Монеты) -->
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+              <button class="glass-btn" id="subtab-tickets" style="flex:1; background: rgba(255,255,255,0.1);" onclick="switchShopSubTab('tickets')">Билеты</button>
+              <button class="glass-btn" id="subtab-promos" style="flex:1;" onclick="switchShopSubTab('promos')">Монеты</button>
+          </div>
+          <div class="shop-grid" id="shop-container">
+              <div style="grid-column: 1/-1; text-align:center; padding:20px; color:#aaa; font-size:12px;">Загрузка...</div>
+          </div>
+      </div>
+
+  </main>
+
+  <!-- === МОДАЛКИ === -->
+  
+  <!-- Успех -->
+  <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
+      <div class="bottom-sheet">
+          <div style="width: 60px; height: 60px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #34c759; font-size: 28px;"><i class="fa-solid fa-check"></i></div>
+          <h3 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
+          <p id="success-message" style="margin: 0 0 20px 0; font-size: 13px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
+          
+          <div id="success-promo-container" style="display: none; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.3); border: 1px dashed var(--glass-border); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
+              <span style="font-size: 10px; text-transform: uppercase; color: var(--text-color-muted);">Ваш код:</span>
+              <span id="success-promo-code" style="font-size: 18px; font-weight: 800; color: var(--accent-primary); letter-spacing: 1px; cursor: pointer;" onclick="copyPromo(this)">CODE123</span>
+          </div>
+
+          <button class="glass-btn primary" style="width: 100%;" onclick="closeSuccessModal()">Отлично</button>
+      </div>
   </div>
-</div>
 
-<div id="how-to-use-popup" class="modal-overlay">
-    <div class="custom-popup">
-        <h3>Как использовать код?</h3>
-        <p>Скопируйте код и активируйте его в боте.</p>
-        <img src="https://i.postimg.cc/k4WyP04y/IMG-9212.gif" alt="Инструкция">
-        <div class="popup-actions">
-            <a href="https://t.me/HATElavka_bot" class="popup-btn primary">
-                <i class="fa-brands fa-telegram"></i> Открыть HATElavka
-            </a>
-            <button onclick="closeHowToUsePopup()" class="popup-btn secondary">
-                Закрыть
-            </button>
-        </div>
-    </div>
-</div>
+  <!-- Попап профиля (Ошибки Bio/Nick) -->
+  <div id="profile-popup-root"></div>
 
-<!-- НИЖНИЙ И ВЕРХНИЙ БАР -->
-<script src="/top_nav.js" defer></script>
-<script src="/bottom-nav.js"></script>
+  <!-- НИЖНИЙ И ВЕРХНИЙ БАР (Оставлены как просил) -->
+  <script src="/top_nav.js" defer></script>
+  <script src="/bottom-nav.js"></script>
 
-<script>
+  <script>
     // ==========================================
-    // 🛡️ ТЕХНИЧЕСКИЕ РАБОТЫ
-    // ==========================================
-    async function checkMaintenance() {
-        try {
-            const res = await fetch('/api/v1/bootstrap', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                if (data.maintenance) {
-                    console.warn("⛔ Тех. режим включен. Редирект на главную.");
-                    document.body.innerHTML = ""; 
-                    window.location.href = '/'; 
-                }
-            }
-        } catch (e) {
-            console.error("Ошибка проверки статуса:", e);
-        }
-    }
-    checkMaintenance();
-
-    // ==========================================
-    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ФУНКЦИИ ---
+    // 🛡️ БАЗА И ИНИЦИАЛИЗАЦИЯ
     // ==========================================
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    window.coinsPurchasesEnabled = true;
-    try {
-        const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-        if (cachedBootstrap?.menu?.coins_purchases_enabled !== undefined) {
-            window.coinsPurchasesEnabled = cachedBootstrap.menu.coins_purchases_enabled;
-        }
-    } catch(e) {}
-
-    // Кнопка НАЗАД
-    function goBack() {
-        if (window.history.length > 1 && document.referrer) {
-            window.history.back();
-        } else {
-            window.location.href = '/menu';
-        }
-    }
-    tg.BackButton.show();
-    tg.BackButton.onClick(goBack);
-
-    // Копирование промо
-    window.copyPromo = function(element) {
-        const codeElement = document.getElementById('success-promo-code');
-        if (!codeElement) return;
-        const codeToCopy = codeElement.innerText.trim(); 
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(codeToCopy)
-                .then(() => {
-                    tg.showPopup({ message: 'Код скопирован!' });
-                    codeElement.style.opacity = '0.5';
-                    setTimeout(() => codeElement.style.opacity = '1', 200);
-                }).catch(err => { fallbackCopyTextToClipboard(codeToCopy); });
-        } else {
-            fallbackCopyTextToClipboard(codeToCopy);
-        }
-    };
-
-    function fallbackCopyTextToClipboard(text) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed"; 
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            tg.showPopup({ message: 'Код скопирован!' });
-        } catch (err) {
-            tg.showAlert('Не удалось скопировать код автоматически.');
-        }
-        document.body.removeChild(textArea);
-    }
-
-    window.closeSuccessModal = function() { document.getElementById('success-modal').classList.remove('visible'); };
-    window.openHowToUsePopup = function() { document.getElementById('how-to-use-popup').classList.add('visible'); };
-    window.closeHowToUsePopup = function() { document.getElementById('how-to-use-popup').classList.remove('visible'); };
-
-    window.openShopModal = async function() {
-        document.getElementById('shop-modal').classList.add('visible');
-        document.getElementById('shop-container').innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Загрузка...</div>';
-        await fetchShopItems(); 
-        renderShopList();
-    };
-    window.closeShopModal = function() { document.getElementById('shop-modal').classList.remove('visible'); };
-
-    window.switchTab = function(tab) {
-        currentTab = tab;
-        document.getElementById('tab-tickets').classList.toggle('active', tab === 'tickets');
-        document.getElementById('tab-promos').classList.toggle('active', tab === 'promos');
-        renderShopList();
-    };
-
-    // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
-    let userState = {
-        coins: 0.0, tickets: 0, streakDays: 1, lastGrindTime: null, lastFreeTicket: null,
-        active_referrals_count: 0, referral_activated_at: null, twitch_status: null
-    };
-
+    let userState = { coins: 0.0, tickets: 0, streakDays: 1, lastGrindTime: null, lastFreeTicket: null, active_referrals_count: 0, referral_activated_at: null, twitch_status: null };
     let grindSettings = { twitch_status_boost_coins: 0.5, twitch_status_free_tickets: 5, ref_boost_coins_per_user: 0.1 };
+    
     let shopItems = [];
-    let currentTab = 'tickets';
+    let currentShopTab = 'tickets';
     const MAX_STREAK = 10;
     const GRIND_COOLDOWN = 24 * 60 * 60 * 1000;
-
-    const dom = {
-        coinsDisplay: document.getElementById('user-coins'),
-        ticketsDisplay: document.getElementById('user-tickets'),
-        streakBar: document.getElementById('streak-bar'),
-        streakSteps: document.getElementById('streak-steps'),
-        streakDayDisplay: document.getElementById('current-streak-day'),
-        todayRewardDisplay: document.getElementById('today-reward'),
-        boostContainer: document.getElementById('boost-container'),
-        grindBtn: document.getElementById('grind-btn'),
-        grindBtnText: document.getElementById('grind-btn-text'),
-        freeTicketContainer: document.getElementById('free-ticket-container'),
-        ticketSubtitle: document.getElementById('ticket-subtitle'),
-        shopContainer: document.getElementById('shop-container'),
-        userStatus: document.getElementById('user-status')
-    };
-
+    
     let cooldownIntervalsMap = {};
     let activeProfileCheck = null;
     let isProfileChecking = false;
     let telegramTasksCache = null;
 
-    // ==========================================
-    // --- ОСНОВНАЯ ЛОГИКА ГРИНДА И СТРАНИЦЫ ---
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
         init();
         initPullToRefresh();
-
-        if(dom.grindBtn) {
-            dom.grindBtn.addEventListener('click', async () => {
-                if (dom.grindBtn.disabled) return;
+        
+        // Кнопка ежедневного гринда
+        const grindBtn = document.getElementById('grind-btn');
+        if(grindBtn) {
+            grindBtn.addEventListener('click', async () => {
+                if (grindBtn.disabled) return;
                 if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                dom.grindBtn.disabled = true;
+                grindBtn.disabled = true;
+                const origHtml = grindBtn.innerHTML;
+                grindBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
                 try {
                     const res = await window.makeApiRequest('/api/v1/user/grind/claim', {}, 'POST');
-                    const claimed = parseFloat(res.reward_claimed).toFixed(2);
-                    showFloatText(dom.grindBtn, `+${claimed}`, 'var(--accent-primary)');
-                    
                     userState.coins = parseFloat(res.new_coins);
                     userState.streakDays = res.streak_days;
                     userState.lastGrindTime = res.last_grind_at;
-
                     updateUI();
-                    renderStreakVisuals();
+                    
+                    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 } catch (e) {
-                    tg.showAlert(e.message || "Ошибка получения бонуса");
-                    dom.grindBtn.disabled = false;
+                    window.customAlert(e.message || "Ошибка получения бонуса");
+                    grindBtn.disabled = false;
+                    grindBtn.innerHTML = origHtml;
                 }
             });
         }
@@ -528,6 +402,14 @@
 
     async function init() {
         try {
+            // Читаем настройки админа (если есть)
+            try {
+                const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                if (cachedBootstrap?.menu?.coins_purchases_enabled !== undefined) {
+                    window.coinsPurchasesEnabled = cachedBootstrap.menu.coins_purchases_enabled;
+                } else { window.coinsPurchasesEnabled = true; }
+            } catch(e) { window.coinsPurchasesEnabled = true; }
+
             const data = await window.makeApiRequest('/api/v1/user/me', {}, 'POST');
             userState.tickets = data.tickets || 0;
             userState.coins = parseFloat(data.coins || 0);
@@ -541,208 +423,118 @@
             if (data.grind_settings) grindSettings = data.grind_settings;
             
             updateUI();
-            renderStreakVisuals();
             loadTelegramTasks(); 
-            startTimers(); 
+            fetchShopItems(); // Загружаем магаз в фоне
+            setInterval(updateUI, 60000); 
         } catch (e) {
-            console.error("Ошибка инициализации:", e);
-            if(dom.coinsDisplay) dom.coinsDisplay.textContent = "0.0";
-        }
-    }
-
-    function isTwitchBoostActive() { return userState.twitch_status === 'vip' || userState.twitch_status === 'subscriber'; }
-    function isVipActive() {
-        if (!userState.referral_activated_at) return false;
-        const activatedTime = new Date(userState.referral_activated_at).getTime();
-        const now = new Date().getTime();
-        return (now - activatedTime) < (7 * 24 * 60 * 60 * 1000);
-    }
-
-    function calculateBoosts() {
-        let baseReward = (userState.streakDays * 0.1);
-        if (baseReward > 1.0) baseReward = 1.0;
-        
-        let totalBonus = 0;
-        let boostsHTML = "";
-        
-        if (userState.active_referrals_count > 0) {
-            const refBoost = userState.active_referrals_count * 0.1;
-            totalBonus += refBoost;
-            boostsHTML += `<div class="boost-row"><span>🚀 Друзья (${userState.active_referrals_count}):</span><span class="boost-active" style="color:#FFD700;">+${refBoost.toFixed(1)}</span></div>`;
-        }
-        
-        if (isVipActive()) {
-            totalBonus += 0.2;
-            boostsHTML += `<div class="boost-row"><span class="boost-vip" style="color:#FFD700;">⚡ VIP Бонус:</span><span class="boost-vip" style="color:#FFD700;">+0.2</span></div>`;
-        }
-       
-        if (isTwitchBoostActive()) {
-            const statusCoins = grindSettings.twitch_status_boost_coins;
-            totalBonus += statusCoins;
-            const statusLabel = userState.twitch_status === 'vip' ? '👑 VIP Twitch' : '⭐ Sub Twitch';
-            boostsHTML += `<div class="boost-row"><span class="boost-vip" style="color:#a970ff;">${statusLabel}:</span><span class="boost-vip" style="color:#a970ff;">+${statusCoins.toFixed(1)}</span></div>`;
-        }
-        
-        return { totalBonus, boostsHTML, baseReward };
-    }
-
-    function updateUI() {
-        if(!dom.coinsDisplay) return;
-        dom.coinsDisplay.textContent = userState.coins.toFixed(1);
-        dom.ticketsDisplay.textContent = userState.tickets;
-        dom.streakDayDisplay.textContent = userState.streakDays;
-        
-        const statusCard = dom.userStatus ? dom.userStatus.closest('.glass-card') : null;
-        if (dom.userStatus && statusCard) {
-            let hasStatus = false;
-            if (userState.twitch_status === 'subscriber') {
-                dom.userStatus.innerHTML = `<div style="line-height:1.1; color: #a970ff;">Подписчик Twitch</div>`;
-                hasStatus = true;
-            } else if (userState.twitch_status === 'vip') {
-                dom.userStatus.innerHTML = `<div style="line-height:1.1; color: #a970ff;">VIP Twitch</div>`;
-                hasStatus = true;
-            } else if (isVipActive()) { 
-                let dateHtml = '';
-                if (userState.referral_activated_at) {
-                    try {
-                        let safeDate = userState.referral_activated_at.replace(' ', 'T');
-                        if (safeDate.match(/[+-]\d\d$/)) safeDate += ":00";
-                        let activatedDate = new Date(safeDate);
-                        if (!isNaN(activatedDate.getTime())) {
-                            let expireDate = new Date(activatedDate.getTime() + (7 * 24 * 60 * 60 * 1000));
-                            if (new Date() < expireDate) {
-                                let dateStr = expireDate.toLocaleString('ru-RU', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
-                                dateHtml = `<div style="font-size: 10px; opacity: 0.7; font-weight: 400; margin-top: 2px;">до ${dateStr}</div>`;
-                            }
-                        }
-                    } catch (e) {}
-                }
-                dom.userStatus.innerHTML = `<div style="line-height:1.1; color: var(--accent-primary);">VIP Бонус</div>${dateHtml}`;
-                hasStatus = true;
-            }
-            statusCard.style.display = hasStatus ? 'flex' : 'none';
-        }
-
-        const { totalBonus, boostsHTML, baseReward } = calculateBoosts();
-        const totalReward = (baseReward + totalBonus).toFixed(1); 
-        
-        if (totalBonus > 0) {
-            dom.todayRewardDisplay.textContent = `+${totalReward} (с бонусом)`;
-            dom.todayRewardDisplay.style.color = "#FFD700"; 
-        } else {
-            dom.todayRewardDisplay.textContent = `+${totalReward}`;
-            dom.todayRewardDisplay.style.color = "#fff";
-        }
-        
-        if (boostsHTML) {
-            dom.boostContainer.innerHTML = boostsHTML;
-            dom.boostContainer.style.display = 'flex';
-        } else {
-            dom.boostContainer.style.display = 'none';
-        }
-
-        const now = new Date().getTime();
-        const last = userState.lastGrindTime ? new Date(userState.lastGrindTime).getTime() : 0;
-        const diff = now - last;
-
-        if (diff < GRIND_COOLDOWN) {
-            dom.grindBtn.disabled = true;
-            const remaining = GRIND_COOLDOWN - diff;
-            const h = Math.floor(remaining / 3600000);
-            const m = Math.floor((remaining % 3600000) / 60000);
-            dom.grindBtnText.textContent = `ЧЕРЕЗ ${h}ч ${m}м`;
-        } else {
-            dom.grindBtn.disabled = false;
-            dom.grindBtnText.textContent = "ЗАБРАТЬ БОНУС";
-        }
-        
-        renderFreeTicketBtn();
-    }
-  
-    function renderStreakVisuals() {
-        if(!dom.streakSteps) return;
-        dom.streakSteps.innerHTML = '';
-        let percent = ((userState.streakDays - 1) / (MAX_STREAK - 1)) * 100;
-        dom.streakBar.style.width = `${Math.min(percent, 100)}%`;
-
-        for (let i = 1; i <= 5; i++) {
-            const step = document.createElement('div');
-            step.className = 'streak-step';
-            let dayValue = [1, 3, 5, 7, 10][i-1];
-            step.textContent = dayValue;
-            if (userState.streakDays >= dayValue) {
-                step.classList.add('completed');
-                step.innerHTML = '<i class="fa-solid fa-check"></i>';
-            }
-            dom.streakSteps.appendChild(step);
-        }
-    }
-
-    function renderFreeTicketBtn() {
-        const lastClaim = userState.lastFreeTicket ? new Date(userState.lastFreeTicket).getTime() : 0;
-        const diff = new Date().getTime() - lastClaim;
-        const isBoosted = isVipActive() || isTwitchBoostActive();
-        let ticketsReward = 1; 
-        
-        if (isVipActive()) ticketsReward += 1;
-        if (isTwitchBoostActive()) ticketsReward += grindSettings.twitch_status_free_tickets;
-
-        if (diff > GRIND_COOLDOWN) {
-            const btnText = isBoosted ? `ЗАБРАТЬ +${ticketsReward} (VIP)` : "ПОЛУЧИТЬ +1";
-            const btnColor = isBoosted ? "#FFD700" : "#fff";
-            const btnBg = isBoosted ? "rgba(255, 215, 0, 0.15)" : "transparent"; 
-            
-            dom.freeTicketContainer.innerHTML = `
-                <button class="mini-btn" style="border-color:${btnColor}; color:${btnColor}; background:${btnBg}; width:100%; font-weight:700;" onclick="claimFreeTicket()">
-                    ${btnText}
-                </button>`;
-            
-            if(isBoosted) {
-                 dom.ticketSubtitle.innerHTML = `VIP Бонус доступен! <span style="color:#FFD700">Всего: ${ticketsReward} шт.</span>`;
-                 dom.ticketSubtitle.style.color = "#fff";
-            } else {
-                 dom.ticketSubtitle.textContent = "Бесплатно раз в 24ч";
-                 dom.ticketSubtitle.style.color = "#AAAAAA";
-            }
-        } else {
-            const remaining = GRIND_COOLDOWN - diff;
-            const h = Math.floor(remaining / 3600000);
-            const m = Math.floor((remaining % 3600000) / 60000);
-            dom.freeTicketContainer.innerHTML = `<span style="font-size:11px; color:#ffffff; font-weight: 600;">⏳ ${h}ч ${m}м</span>`;
-            dom.ticketSubtitle.textContent = "Следующая награда через...";
-            dom.ticketSubtitle.style.color = "#AAAAAA";
+            console.error("Init error:", e);
         }
     }
 
     // ==========================================
-    // 🔥 4. ЛОГИКА TELEGRAM ЗАДАНИЙ 🔥
+    // 🎨 UI ОБНОВЛЕНИЯ (ЕДИНЫЙ ТАЙМЕР И СТРИК)
+    // ==========================================
+    function isTwitchBoostActive() { return userState.twitch_status === 'vip' || userState.twitch_status === 'subscriber'; }
+    function isVipActive() {
+        if (!userState.referral_activated_at) return false;
+        return (Date.now() - new Date(userState.referral_activated_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+    }
+
+    function updateUI() {
+        document.getElementById('user-coins').textContent = userState.coins.toFixed(1);
+        document.getElementById('user-tickets').textContent = userState.tickets;
+        document.getElementById('current-streak-day').textContent = userState.streakDays;
+        
+        // Статус юзера в шапке
+        const statusEl = document.getElementById('user-status');
+        if (userState.twitch_status === 'subscriber' || userState.twitch_status === 'vip') {
+            statusEl.innerHTML = `<span style="color:#a970ff;">Twitch ${userState.twitch_status === 'vip' ? 'VIP' : 'SUB'}</span>`;
+        } else if (isVipActive()) {
+            statusEl.innerHTML = `<span style="color:var(--accent-primary);">VIP Бонус</span>`;
+        } else {
+            statusEl.innerHTML = `<span style="color:var(--text-color-muted);">Стандарт</span>`;
+        }
+
+        // Подсчет бонусов для Стрика
+        let baseReward = Math.min(userState.streakDays * 0.1, 1.0);
+        let totalBonus = 0;
+        if (userState.active_referrals_count > 0) totalBonus += userState.active_referrals_count * 0.1;
+        if (isVipActive()) totalBonus += 0.2;
+        if (isTwitchBoostActive()) totalBonus += grindSettings.twitch_status_boost_coins;
+        
+        document.getElementById('today-reward').textContent = `+${(baseReward + totalBonus).toFixed(1)}`;
+
+        // Отрисовка полоски Стрика
+        const streakSteps = document.getElementById('streak-steps-mini');
+        if (streakSteps) {
+            streakSteps.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                streakSteps.innerHTML += `<div class="streak-dot ${i <= userState.streakDays ? 'filled' : ''}"></div>`;
+            }
+        }
+
+        // Таймер кнопки Стрика
+        const grindBtn = document.getElementById('grind-btn');
+        const diff = Date.now() - (userState.lastGrindTime ? new Date(userState.lastGrindTime).getTime() : 0);
+        
+        if (diff < GRIND_COOLDOWN) {
+            grindBtn.disabled = true;
+            grindBtn.className = "glass-btn"; // Убираем primary стиль
+            const rem = GRIND_COOLDOWN - diff;
+            const h = Math.floor(rem / 3600000).toString().padStart(2, '0');
+            const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2, '0');
+            grindBtn.innerHTML = `<i class="fa-solid fa-lock" style="font-size:10px;"></i> ЧЕРЕЗ ${h}:${m}`;
+        } else {
+            grindBtn.disabled = false;
+            grindBtn.className = "glass-btn primary";
+            grindBtn.innerHTML = "ЗАБРАТЬ БОНУС";
+        }
+        
+        renderFreeTicketBtn();
+    }
+
+    function renderFreeTicketBtn() {
+        const lastClaim = userState.lastFreeTicket ? new Date(userState.lastFreeTicket).getTime() : 0;
+        const diff = Date.now() - lastClaim;
+        const isBoosted = isVipActive() || isTwitchBoostActive();
+        let tReward = 1 + (isVipActive() ? 1 : 0) + (isTwitchBoostActive() ? grindSettings.twitch_status_free_tickets : 0);
+
+        const container = document.getElementById('free-ticket-container');
+        if (diff > GRIND_COOLDOWN) {
+            container.innerHTML = `<button class="glass-btn primary" style="width:100%; font-size:14px; padding:16px;" onclick="claimFreeTicket()">ЗАБРАТЬ +${tReward}</button>`;
+        } else {
+            const rem = GRIND_COOLDOWN - diff;
+            const h = Math.floor(rem / 3600000).toString().padStart(2, '0');
+            const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2, '0');
+            container.innerHTML = `<button class="glass-btn" disabled style="width:100%; font-size:14px; padding:16px;"><i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}</button>`;
+        }
+    }
+
+    // ==========================================
+    // 📋 TELEGRAM ЗАДАНИЯ (УНИФИЦИРОВАННЫЕ)
     // ==========================================
     function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
         const btn = document.getElementById(btnId);
         if (!btn) return;
         if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
 
-        const lastClaimTime = new Date(lastClaimedIso).getTime();
-        const targetTime = lastClaimTime + (cooldownHours * 60 * 60 * 1000);
+        const targetTime = new Date(lastClaimedIso).getTime() + (cooldownHours * 60 * 60 * 1000);
 
         const updateTimer = () => {
-            const now = new Date().getTime();
-            const diff = targetTime - now;
-
+            const diff = targetTime - Date.now();
             if (diff <= 0) {
                 clearInterval(cooldownIntervalsMap[btnId]);
                 btn.disabled = false;
-                btn.style.background = '';
+                btn.className = btn.getAttribute('data-active-class') || 'glass-btn primary';
                 btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
                 return;
             }
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+            const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
             
             btn.disabled = true;
-            btn.style.background = 'var(--surface-secondary)';
-            btn.style.color = 'var(--text-secondary)';      
-            btn.innerHTML = `<i class="fa-regular fa-clock"></i> ЧЕРЕЗ ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            btn.className = 'glass-btn'; // Делаем прозрачной с бордером
+            btn.innerHTML = `<i class="fa-solid fa-lock" style="font-size:10px;"></i> ЧЕРЕЗ ${h}:${m}`;
         };
         updateTimer(); 
         cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
@@ -751,10 +543,9 @@
     async function loadTelegramTasks() {
         const container = document.getElementById('tg-tasks-list');
         if (!container) return;
-        container.innerHTML = '<div style="text-align:center; padding:10px; color:#666;">Загрузка...</div>';
         
         const userId = tg.initDataUnsafe?.user?.id;
-        if (!userId) { container.innerHTML = '<div style="text-align:center; padding:10px; color:#ff4757;">Ошибка ID</div>'; return; }
+        if (!userId) return;
 
         try {
             let tasks = await window.makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
@@ -763,70 +554,67 @@
             telegramTasksCache = tasks; 
             container.innerHTML = ''; 
 
-            if (tasks.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:10px; color:#aaa;">Заданий пока нет</div>';
-                return;
-            }
-
             const activeTasks = tasks.filter(t => !t.is_completed);
             const timersToStart = [];
 
             activeTasks.forEach(task => {
                 const el = document.createElement('div');
-                el.className = `tg-task-item`;
+                el.className = `task-row`;
                 
                 let iconClass = 'fa-solid fa-star';
-                if (task.task_key === 'tg_surname') iconClass = 'fa-solid fa-signature';
-                if (task.task_key === 'tg_bio') iconClass = 'fa-solid fa-link';
-                if (task.task_key === 'tg_sub') iconClass = 'fa-brands fa-telegram';
-                if (task.task_key === 'tg_vote') iconClass = 'fa-solid fa-rocket';
+                let iconColor = 'var(--accent-primary)';
+                if (task.task_key === 'tg_surname') { iconClass = 'fa-solid fa-signature'; iconColor = '#0a84ff'; }
+                if (task.task_key === 'tg_bio') { iconClass = 'fa-solid fa-link'; iconColor = '#34c759'; }
+                if (task.task_key === 'tg_sub') { iconClass = 'fa-brands fa-telegram'; iconColor = '#2AABEE'; }
+                if (task.task_key === 'tg_vote') { iconClass = 'fa-solid fa-rocket'; iconColor = '#ff3b30'; }
 
                 const isFinalDay = task.is_daily && task.current_day === task.total_days;
-                let btnStyle = isFinalDay ? 'background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; font-weight: 800;' : '';
-                let btnContent = isFinalDay 
-                    ? `<i class="fa-solid fa-gift" style="margin-right:4px;"></i> ПРИЗ` 
-                    : `ЗАБРАТЬ <div class="btn-reward-badge"><span>+${task.reward_amount}</span><i class="fa-solid fa-ticket btn-ticket-icon"></i></div>`;
+                
+                // Формируем контент кнопки
+                let btnContent = isFinalDay ? `<i class="fa-solid fa-gift"></i> ПРИЗ` : `ЗАБРАТЬ +${task.reward_amount}`;
+                let activeClass = isFinalDay ? 'glass-btn primary' : 'glass-btn primary';
                 
                 let linkHtml = '';
                 if ((task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
                     const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-                    linkHtml = `<div style="font-size:9px; color:#0088cc; margin-bottom:4px; text-align:right; cursor:pointer;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
+                    linkHtml = `<div style="font-size:9px; color:var(--text-color-muted); text-transform:uppercase; margin-bottom:6px; cursor:pointer;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
                 }
 
-                let bottomHtml = '';
+                let streakHtml = '';
                 if (task.is_daily) {
-                    let segmentsHtml = '';
+                    let dots = '';
                     for (let i = 1; i <= task.total_days; i++) {
-                        segmentsHtml += `<div class="tg-progress-segment ${i <= task.current_day ? 'filled' : ''}"></div>`;
+                        dots += `<div class="streak-dot ${i <= task.current_day ? 'filled' : ''}"></div>`;
                     }
-                    bottomHtml = `<div class="tg-progress-track" style="margin-top:8px;">${segmentsHtml}</div><div class="tg-counter-text">День ${task.current_day}/${task.total_days}</div>`;
+                    streakHtml = `<div class="streak-steps-mini">${dots}</div>`;
                 }
 
                 el.innerHTML = `
-                    <div class="tg-task-header">
-                        <div class="tg-left-col">
-                            <div class="tg-icon-box"><i class="${iconClass}"></i></div>
-                            <div class="tg-text-col">
-                                <span class="tg-title">${task.title || 'Задание'}</span>
-                                <span class="tg-subtitle">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span class="tg-code-phrase">$1</span>')}</span>
+                    <div class="task-header">
+                        <div class="task-info">
+                            <div class="task-icon" style="color: ${iconColor};"><i class="${iconClass}"></i></div>
+                            <div class="task-text">
+                                <span class="task-title">${task.title || 'Задание'}</span>
+                                <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:#0a84ff; font-weight:700;">$1</span>')}</span>
+                                ${streakHtml}
                             </div>
                         </div>
-                        <div class="tg-right-col">
-                            ${linkHtml}
-                            <button class="tg-premium-btn" id="btn-${task.task_key}" style="${btnStyle}" data-original-html='${btnContent}' onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
-                        </div>
                     </div>
-                    ${bottomHtml}
+                    <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                        ${linkHtml}
+                        <button class="${activeClass}" id="btn-${task.task_key}" style="width:100%;" data-active-class="${activeClass}" data-original-html='${btnContent}' onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
+                    </div>
                 `;
 
                 if ((task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !task.is_completed && !isFinalDay) {
-                    const last = new Date(task.last_claimed_at).getTime();
-                    if ((new Date().getTime() - last) < 20 * 60 * 60 * 1000) timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
+                    if ((Date.now() - new Date(task.last_claimed_at).getTime()) < 20 * 60 * 60 * 1000) {
+                        timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
+                    }
                 }
                 container.appendChild(el);
             });
             timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
-        } catch (e) { container.innerHTML = '<div style="text-align:center; padding:10px; color:#ff4757;">Ошибка загрузки</div>'; }
+        } catch (e) { container.innerHTML = '<div style="text-align:center; padding:10px; color:var(--danger-color);">Ошибка загрузки</div>'; }
     }
 
     window.handleDailyClaim = async function(taskKey, actionUrl) {
@@ -842,11 +630,8 @@
             
             if (data && data.success) {
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                if (data.reward) {
-                    userState.tickets += data.reward;
-                    updateUI(); 
-                }
-                showRewardPopup(data.reward || 0, "Задание выполнено!");
+                if (data.reward) { userState.tickets += data.reward; updateUI(); }
+                window.showSuccessModal(`Получено +${data.reward || 0} билетов!`);
                 loadTelegramTasks(); 
             } else {
                 handleTaskError(data, taskKey, actionUrl);
@@ -865,55 +650,206 @@
         else if (data && data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
             injectProfilePopup(taskKey === 'tg_surname' ? 'surname' : 'bio');
         } else if (data && data.error && data.error.includes("не подписаны")) {
-            tg.showAlert("Вы не подписаны на канал!");
+            window.customAlert("Вы не подписаны на канал!");
             if (actionUrl) tg.openTelegramLink(actionUrl);
         } else {
-            tg.showAlert(data?.error || "Произошла ошибка");
+            window.customAlert(data?.error || "Произошла ошибка");
         }
     }
 
-    function injectBoostPopup(url) {
-        const existing = document.getElementById('actionPopup');
-        if (existing) existing.remove();
-        document.body.insertAdjacentHTML('beforeend', `
-            <div id="actionPopup" class="modal-overlay visible">
-                <div class="modal-content" style="padding: 25px; text-align: center;">
-                    <h3 style="color:#ff4757; margin-top:0;">⚠️ Внимание!</h3>
-                    <p style="color:#ddd; font-size:14px; margin-bottom:20px;">Голосование за канал необходимо для получения бонусов.</p>
-                    <button class="main-action-btn" onclick="document.getElementById('actionPopup').remove(); window.Telegram.WebApp.openTelegramLink('${url || 'https://t.me/boost/hatelove_ttv'}');"><i class="fa-solid fa-rocket"></i> Проголосовать</button>
-                    <button style="width:100%; background:transparent; border:none; color:#8e8e93; padding:10px; margin-top:10px;" onclick="document.getElementById('actionPopup').remove();">Закрыть</button>
-                </div>
-            </div>`);
+    // ==========================================
+    // 🛍️ МАГАЗИН (ВКЛАДКА 3)
+    // ==========================================
+    async function fetchShopItems() {
+        shopItems = [
+            { type: 'ticket', cost: 3, reward: 1, title: '1 Билет', icon: 'fa-ticket', color: '#00f2ea' },
+            { type: 'ticket', cost: 15, reward: 5, title: '5 Билетов', icon: 'fa-ticket', color: '#00f2ea' },        
+            { type: 'ticket', cost: 30, reward: 10, title: '10 Билетов', icon: 'fa-ticket', color: '#00f2ea' },
+            { type: 'ticket', cost: 75, reward: 25, title: '25 Билетов', icon: 'fa-ticket', color: '#00f2ea' },
+            { type: 'ticket', cost: 150, reward: 50, title: '50 Билетов', icon: 'fa-ticket', color: '#00f2ea' },
+            { type: 'ticket', cost: 300, reward: 100, title: '100 Билетов', icon: 'fa-ticket', color: '#00f2ea' }
+        ];
+        try {
+            const promos = await window.makeApiRequest('/api/v1/user/grind/shop', {}, 'GET', true);
+            if (promos && promos.length > 0) {
+                promos.forEach(p => {
+                    shopItems.push({ type: 'promo', cost: p.reward_value, reward: p.reward_value, title: `+${p.reward_value} Монет`, icon: 'fa-coins', color: '#FFD700', quantity: p.quantity });
+                });
+                shopItems.sort((a, b) => a.cost - b.cost);
+            }
+        } catch (e) {}
+        renderShopList();
     }
 
+    function renderShopList() {
+        const container = document.getElementById('shop-container');
+        if(!container) return;
+        container.innerHTML = '';
+        
+        const items = shopItems.filter(i => i.type === currentShopTab);
+        if (items.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#777; padding:20px;">Пусто</div>'; return; }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            const isAffordable = userState.coins >= item.cost;
+            const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
+
+            let btnHtml = '';
+            if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
+                btnHtml = `<button class="glass-btn" disabled style="width:100%;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
+            } else {
+                btnHtml = `<button class="glass-btn ${isAffordable ? 'primary' : ''}" onclick="${btnClick}" ${isAffordable?'':'disabled'} style="width:100%;">${isAffordable ? 'Купить' : 'Мало монет'}</button>`;
+            }
+
+            div.innerHTML = `
+                <i class="fa-solid ${item.icon}" style="font-size:30px; color:${item.color}; margin-bottom:5px; filter:drop-shadow(0 0 10px ${item.color}80);"></i>
+                <div class="shop-item-title">${item.title}</div>
+                <div class="shop-item-cost">${item.cost} Монет</div>
+                <div style="margin-top:auto; width:100%; padding-top:10px;">${btnHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.switchShopSubTab = function(tab) {
+        currentShopTab = tab;
+        document.getElementById('subtab-tickets').style.background = tab === 'tickets' ? 'rgba(255,255,255,0.1)' : 'transparent';
+        document.getElementById('subtab-promos').style.background = tab === 'promos' ? 'rgba(255,255,255,0.1)' : 'transparent';
+        renderShopList();
+        if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    };
+
+    window.exchangeCoins = async (cost, rewardTickets) => {
+        window.customConfirm(`Купить ${rewardTickets} билет(ов) за ${cost} монет?`, async () => {
+            try {
+                const res = await window.makeApiRequest('/api/v1/user/grind/exchange', { cost: cost, tickets_reward: rewardTickets }, 'POST');
+                userState.coins = parseFloat(res.new_coins);
+                userState.tickets = res.new_tickets;
+                updateUI();
+                window.showSuccessModal(`Вы получили ${rewardTickets} билет(ов)!`);
+            } catch (e) { window.customAlert(e.message || 'Ошибка обмена'); }
+        });
+    };
+
+    window.buyItem = async (val) => {
+        if (!window.coinsPurchasesEnabled) return window.customAlert("Обмен на основные монеты временно отключен разработчиком!");
+        window.customConfirm(`Обменять гринд-монеты на ${val} основных монет?`, async () => {
+            try {
+                const res = await window.makeApiRequest('/api/v1/user/grind/buy_item', { reward_value: val }, 'POST');
+                userState.coins = parseFloat(res.new_coins);
+                updateUI();
+                window.showSuccessModal(`Успешно! +${val} монет зачислено.`);
+            } catch(e) { window.customAlert(e.message || 'Не удалось купить'); }
+        });
+    };
+
+    window.claimFreeTicket = async () => {
+        try {
+            const res = await window.makeApiRequest('/api/v1/user/claim-free-ticket', {}, 'POST');
+            userState.tickets = typeof res.new_ticket_balance === 'object' ? Number(res.new_ticket_balance.new_ticket_balance) : Number(res.new_ticket_balance);
+            userState.lastFreeTicket = new Date().toISOString();
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            window.showSuccessModal(res.message); 
+            updateUI();
+        } catch (e) { window.customAlert('Ошибка получения билета'); }
+    };
+
+    // ==========================================
+    // ⚙️ УТИЛИТЫ И НАВИГАЦИЯ
+    // ==========================================
+    window.switchMainTab = function(tabId, btnElement) {
+        document.querySelectorAll('.segment-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+        if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        
+        if (tabId === 'shop') renderShopList(); // Рендерим магаз при открытии вкладки
+    };
+
+    // Универсальный Alert
+    window.customAlert = function(text) {
+        const overlay = document.createElement('div'); 
+        overlay.className = 'modal-overlay visible'; 
+        overlay.innerHTML = `
+            <div class="bottom-sheet" style="max-width:300px;">
+                <h3 style="margin: 0 0 15px; font-size: 16px; color: #fff;">Внимание</h3>
+                <p style="margin: 0 0 20px; font-size: 13px; color: var(--text-color-muted);">${text}</p>
+                <button class="glass-btn primary" style="width:100%;" onclick="this.closest('.modal-overlay').remove()">OK</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    };
+
+    // Универсальный Confirm
+    window.customConfirm = function(text, onConfirm) {
+        const overlay = document.createElement('div'); 
+        overlay.className = 'modal-overlay visible'; 
+        overlay.innerHTML = `
+            <div class="bottom-sheet" style="max-width:300px;">
+                <h3 style="margin: 0 0 15px; font-size: 16px; color: #fff;">Подтверждение</h3>
+                <p style="margin: 0 0 20px; font-size: 13px; color: var(--text-color-muted);">${text}</p>
+                <div style="display:flex; gap:10px;">
+                    <button class="glass-btn" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
+                    <button class="glass-btn primary" style="flex:1;" id="confirm-btn-action">ДА</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#confirm-btn-action').onclick = () => { overlay.remove(); onConfirm(); };
+    };
+
+    // Окно Успеха
+    window.showSuccessModal = function(message, promoCode = null) {
+        document.getElementById('success-message').textContent = message;
+        const promoContainer = document.getElementById('success-promo-container');
+        if (promoCode) {
+            promoContainer.style.display = 'flex';
+            document.getElementById('success-promo-code').textContent = promoCode;
+        } else {
+            promoContainer.style.display = 'none';
+        }
+        document.getElementById('success-modal').classList.add('visible');
+        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    };
+    window.closeSuccessModal = function() { document.getElementById('success-modal').classList.remove('visible'); };
+
+    // Копирование промокода
+    window.copyPromo = function(el) {
+        const text = el.innerText.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            el.style.opacity = '0.5'; setTimeout(() => el.style.opacity = '1', 200);
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        });
+    };
+
+    // Попапы профиля (Bio/Nick/Boost)
     function injectProfilePopup(type) {
         activeProfileCheck = type; 
-        const existing = document.getElementById('profilePopup');
-        if (existing) existing.remove();
-
+        const root = document.getElementById('profile-popup-root');
+        
         const isSurname = type === 'surname';
-        const title = isSurname ? '❌ Ник бота не найден' : '❌ Ссылка не найдена';
+        const title = isSurname ? 'Ник бота не найден' : 'Ссылка не найдена';
         const botNick = '@HATElavka_bot';
         const refLink = `t.me/HATElavka_bot/app?startapp=r_${tg.initDataUnsafe?.user?.id || '0'}`;
         const copyText = isSurname ? botNick : `https://${refLink}`;
-        const displayVal = isSurname ? botNick : refLink;
         const fieldName = isSurname ? 'Фамилия' : 'О себе (Bio)';
 
-        document.body.insertAdjacentHTML('beforeend', `
+        root.innerHTML = `
             <div id="profilePopup" class="modal-overlay visible">
-                <div class="modal-content" style="padding: 24px; text-align: center;">
-                    <h3 style="color:#ff4757; margin:0 0 16px;">${title}</h3>
-                    <div style="font-size:11px; color:#ccc; margin-bottom:12px;">Скопируйте текст и вставьте в поле <b>"${fieldName}"</b>:</div>
-                    <div style="display:flex; gap:8px; background:rgba(0,0,0,0.4); padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); margin-bottom:20px;">
-                        <input type="text" readonly value="${displayVal}" style="flex-grow:1; background:transparent; border:none; color:#0088cc; font-weight:600; font-size:11px; outline:none; width:100%;">
-                        <button id="copyProfileBtn" style="background:#0088cc; border:none; border-radius:8px; color:#fff; width:36px; height:36px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
+                <div class="bottom-sheet">
+                    <h3 style="color:var(--danger-color); margin:0 0 16px; font-size:18px;">❌ ${title}</h3>
+                    <p style="font-size:12px; color:var(--text-color-muted); margin-bottom:12px;">Скопируйте текст и вставьте в поле <b>"${fieldName}"</b>:</p>
+                    
+                    <div style="display:flex; gap:8px; background:rgba(0,0,0,0.3); padding:10px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:20px;">
+                        <input type="text" readonly value="${isSurname ? botNick : refLink}" style="flex-grow:1; background:transparent; border:none; color:var(--accent-blue); font-weight:800; font-size:12px; outline:none; width:100%;">
+                        <button id="copyProfileBtn" style="background:var(--accent-blue); border:none; border-radius:8px; color:#fff; width:36px; height:36px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
                     </div>
-                    <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; font-size:12px; color:#aaa; text-align:left; border:1px dashed #444; margin-bottom:15px;">
-                        <i class="fa-solid fa-circle-info" style="color:#0088cc;"></i> Перейдите в настройки Telegram и измените профиль.
-                    </div>
-                    <button style="width:100%; background:transparent; border:none; color:#8e8e93; padding:10px;" onclick="document.getElementById('profilePopup').remove(); activeProfileCheck = null;">Закрыть</button>
+                    
+                    <button class="glass-btn" style="width:100%;" onclick="document.getElementById('profilePopup').remove(); activeProfileCheck = null;">Закрыть</button>
                 </div>
-            </div>`);
+            </div>`;
 
         setTimeout(() => {
             document.getElementById('copyProfileBtn').addEventListener('click', function() {
@@ -926,23 +862,17 @@
         }, 100);
     }
 
-    function showRewardPopup(amount, text) {
-        const existing = document.getElementById('questRewardPopup');
-        if (existing) existing.remove();
-        
-        const rewardBlock = amount > 0 
-            ? `<div style="background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.2); border-radius:16px; padding:12px; margin: 15px auto 25px; display:inline-block; min-width:120px;"><span style="font-size:36px; font-weight:900; color:#FFD700;">+${amount}</span></div>`
-            : `<div style="margin-bottom:24px;"></div>`;
-
-        document.body.insertAdjacentHTML('beforeend', `
-            <div id="questRewardPopup" class="modal-overlay visible" style="z-index:999999; animation:fadeIn 0.3s;">
-                <div class="modal-content" style="background:#1c1c1e; padding:32px 24px; text-align:center; transform:scale(1); animation:popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                    <div style="font-size:54px; margin-bottom:16px; color:#FFD700; filter:drop-shadow(0 0 25px rgba(255,215,0,0.3)); animation:float 3s infinite;"><i class="fa-solid fa-ticket"></i></div>
-                    <h3 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#fff;">${text}</h3>
-                    ${rewardBlock}
-                    <button class="main-action-btn" onclick="document.getElementById('questRewardPopup').remove();">ЗАКРЫТЬ</button>
+    function injectBoostPopup(url) {
+        const root = document.getElementById('profile-popup-root');
+        root.innerHTML = `
+            <div id="actionPopup" class="modal-overlay visible">
+                <div class="bottom-sheet">
+                    <h3 style="color:var(--danger-color); margin:0 0 10px;">⚠️ Внимание!</h3>
+                    <p style="font-size:13px; color:var(--text-color-muted); margin-bottom:20px;">Голосование за канал необходимо для получения бонусов.</p>
+                    <button class="glass-btn primary" style="width:100%; margin-bottom:10px; background:var(--accent-blue); color:#fff;" onclick="document.getElementById('actionPopup').remove(); window.Telegram.WebApp.openTelegramLink('${url || 'https://t.me/boost/hatelove_ttv'}');"><i class="fa-solid fa-rocket"></i> ПРОГОЛОСОВАТЬ</button>
+                    <button class="glass-btn" style="width:100%;" onclick="document.getElementById('actionPopup').remove();">Закрыть</button>
                 </div>
-            </div>`);
+            </div>`;
     }
 
     document.addEventListener('visibilitychange', async () => {
@@ -959,206 +889,73 @@
                     const popup = document.getElementById('profilePopup');
                     if (popup) popup.remove();
                     activeProfileCheck = null;
-                    
                     if (data.reward) { userState.tickets += data.reward; updateUI(); }
-                    showRewardPopup(data.reward || 0, "Профиль подтвержден!");
+                    window.showSuccessModal("Профиль подтвержден!");
                     loadTelegramTasks();
                 }
             } catch (e) {} finally { isProfileChecking = false; }
         }
     });
 
-    // ==========================================
-    // 🔥 5. МАГАЗИН И ОБЩИЕ ФУНКЦИИ 🔥
-    // ==========================================
-    async function fetchShopItems() {
-        shopItems = [
-            { type: 'ticket', cost: 3, reward: 1, title: '1 Билет' },
-            { type: 'ticket', cost: 15, reward: 5, title: '5 Билетов' },        
-            { type: 'ticket', cost: 30, reward: 10, title: '10 Билетов' },
-            { type: 'ticket', cost: 75, reward: 25, title: '25 Билетов' },
-            { type: 'ticket', cost: 150, reward: 50, title: '50 Билетов' },
-            { type: 'ticket', cost: 300, reward: 100, title: '100 Билетов' }
-        ];
-        try {
-            const promos = await window.makeApiRequest('/api/v1/user/grind/shop', {}, 'GET', true);
-            if (promos && promos.length > 0) {
-                promos.forEach(p => {
-                    shopItems.push({ type: 'promo', cost: p.reward_value, reward: p.reward_value, title: `+${p.reward_value} на баланс 🟡`, quantity: p.quantity });
-                });
-                shopItems.sort((a, b) => a.cost - b.cost);
-            }
-        } catch (e) {}
-    }
-
-    function renderShopList() {
-        dom.shopContainer.innerHTML = '';
-        const items = shopItems.filter(i => i.type === (currentTab === 'tickets' ? 'ticket' : 'promo'));
-        if (items.length === 0) { dom.shopContainer.innerHTML = '<div style="text-align:center; color:#777; padding:20px;">Пусто</div>'; return; }
-
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'exchange-item';
-            const isAffordable = userState.coins >= item.cost;
-            const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
-            let extra = item.quantity ? `<span style="opacity:0.5; font-size:9px;">(Ост: ${item.quantity})</span>` : '';
-
-            let buttonHtml = '';
-            if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
-                buttonHtml = `<button class="mini-btn" disabled style="border-color: var(--border-color); color: var(--text-secondary); opacity: 0.5;">
-                    <i class="fa-solid fa-lock" style="font-size: 8px;"></i> ОТКЛЮЧЕНО
-                </button>`;
-            } else {
-                buttonHtml = `<button class="mini-btn" onclick="${btnClick}" ${isAffordable?'':'disabled'} style="${isAffordable?'background:var(--accent-primary);color:#000':''}">
-                    ${isAffordable ? 'Купить' : 'Мало монет'}
-                </button>`;
-            }
-
-            div.innerHTML = `
-                <div class="exchange-details">
-                    <div class="exchange-title">${item.title}</div>
-                    <div class="exchange-cost">Цена: ${item.cost} монет ${extra}</div>
-                </div>
-                ${buttonHtml}`;
-            dom.shopContainer.appendChild(div);
-        });
-    }
-
-    window.exchangeCoins = async (cost, rewardTickets) => {
-        tg.showConfirm(`Купить ${rewardTickets} билет(ов) за ${cost} монет?`, async (ok) => {
-            if (!ok) return;
-            try {
-                const res = await window.makeApiRequest('/api/v1/user/grind/exchange', { cost: cost, tickets_reward: rewardTickets }, 'POST');
-                userState.coins = parseFloat(res.new_coins);
-                userState.tickets = res.new_tickets;
-                updateUI();
-                showSuccess(`Вы получили ${rewardTickets} билет(ов)!`);
-            } catch (e) { tg.showAlert(e.message || 'Ошибка обмена'); }
-        });
-    };
-
-    window.buyItem = async (val) => {
-        if (!window.coinsPurchasesEnabled) return tg.showAlert("🛠 Обмен на основные монеты временно отключен разработчиком!");
-        tg.showConfirm(`Обменять гринд-монеты на ${val} основных монет?`, async (ok) => {
-            if(!ok) return;
-            try {
-                const res = await window.makeApiRequest('/api/v1/user/grind/buy_item', { reward_value: val }, 'POST');
-                userState.coins = parseFloat(res.new_coins);
-                updateUI();
-                showSuccess(`Успешно! +${val} монет зачислено на ваш баланс.`);
-            } catch(e) { tg.showAlert(e.message || 'Не удалось купить'); }
-        });
-    };
-
-    window.claimFreeTicket = async () => {
-        try {
-            const res = await window.makeApiRequest('/api/v1/user/claim-free-ticket', {}, 'POST');
-            let incoming = res.new_ticket_balance;
-            userState.tickets = (typeof incoming === 'object' && incoming !== null) ? Number(incoming.new_ticket_balance) : Number(incoming);
-            userState.lastFreeTicket = new Date().toISOString();
-            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert(res.message); 
-            updateUI();
-        } catch (e) { tg.showAlert('Ошибка получения билета'); }
-    };
-
-    function showSuccess(message, promoCode = null) {
-        closeShopModal();
-        document.getElementById('success-message').textContent = message;
-        
-        const promoContainer = document.getElementById('success-promo-container');
-        const promoValue = document.getElementById('success-promo-code');
-        const instructionBlock = document.getElementById('promo-instruction-block');
-
-        if (promoCode) {
-            promoContainer.style.display = 'flex';
-            promoValue.textContent = promoCode;
-            if(instructionBlock) instructionBlock.style.display = 'block';
-        } else {
-            promoContainer.style.display = 'none';
-            if(instructionBlock) instructionBlock.style.display = 'none';
-        }
-
-        document.getElementById('success-modal').classList.add('visible');
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    }
-
     function showFloatText(element, text, color) {
         const rect = element.getBoundingClientRect();
         const floatEl = document.createElement('div');
         floatEl.textContent = text;
-        floatEl.className = 'float-anim';
-        floatEl.style.color = color;
-        floatEl.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-        floatEl.style.top = (rect.top) + 'px';
+        floatEl.style.cssText = `position:absolute; color:${color}; font-weight:900; font-size:16px; z-index:9999; animation:fadeIn 1s forwards; left:${rect.left + rect.width/2 - 20}px; top:${rect.top}px; pointer-events:none;`;
         document.body.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1000);
     }
 
-    function startTimers() { setInterval(() => { updateUI(); }, 60000); }
-
-    // === PULL TO REFRESH ===
+    // PULL TO REFRESH
     function initPullToRefresh() {
-        const content = document.getElementById('main-content');
+        const content = document.getElementById('main-scroll-area');
         const ptrContainer = document.getElementById('pull-to-refresh');
         const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
-        if (!content || !ptrContainer || !icon) return;
+        if (!content || !icon) return;
 
         let startY = 0, pulledDistance = 0, isPulling = false;
-        const triggerThreshold = 80;
-
         content.addEventListener('touchstart', (e) => {
-            if (content.scrollTop <= 0) {
-                startY = e.touches[0].clientY;
-                isPulling = true;
-                content.style.transition = 'none'; 
-                ptrContainer.style.transition = 'none'; 
-                icon.style.transition = 'none';
-            } else { isPulling = false; }
+            if (content.scrollTop <= 0) { startY = e.touches[0].clientY; isPulling = true; content.style.transition = 'none'; ptrContainer.style.transition = 'none'; }
         }, { passive: true });
-
+        
         content.addEventListener('touchmove', (e) => {
             if (!isPulling) return;
             const diff = e.touches[0].clientY - startY;
             if (diff > 0 && content.scrollTop <= 0) {
                 if (e.cancelable) e.preventDefault();
-                pulledDistance = Math.min(Math.pow(diff, 0.85), 180); 
+                pulledDistance = Math.min(Math.pow(diff, 0.85), 120);
                 content.style.transform = `translateY(${pulledDistance}px)`;
                 ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
-                icon.style.transform = `rotate(${pulledDistance * 2.5}deg)`;
-                icon.style.color = pulledDistance > triggerThreshold ? "#34c759" : "#FFD700";
+                icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
+                icon.style.color = pulledDistance > 60 ? "var(--accent-secondary)" : "var(--text-color-muted)";
             }
         }, { passive: false });
-
+        
         content.addEventListener('touchend', () => {
             if (!isPulling) return;
             isPulling = false;
-            content.style.transition = 'transform 0.3s ease-out';
-            ptrContainer.style.transition = 'transform 0.3s ease-out';
-            if (pulledDistance > triggerThreshold) {
-                content.style.transform = `translateY(80px)`;
-                ptrContainer.style.transform = `translateY(80px)`;
-                icon.classList.add('fa-spin');
+            content.style.transition = 'transform 0.3s ease-out'; ptrContainer.style.transition = 'transform 0.3s ease-out';
+            if (pulledDistance > 60) {
+                content.style.transform = `translateY(60px)`; ptrContainer.style.transform = `translateY(60px)`;
+                icon.className = 'fa-solid fa-circle-notch'; icon.style.animation = 'spin-slow 1s linear infinite';
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => { window.location.reload(); }, 500);
+                setTimeout(() => window.location.reload(), 500);
             } else {
-                content.style.transform = 'translateY(0px)';
-                ptrContainer.style.transform = 'translateY(0px)';
+                content.style.transform = 'translateY(0px)'; ptrContainer.style.transform = 'translateY(0px)';
                 icon.style.transform = 'rotate(0deg)';
             }
             pulledDistance = 0;
         });
     }
 
-    // --- 📳 ВИБРАЦИЯ (HAPTIC FEEDBACK) 📳 ---
+    // HAPTIC FEEDBACK
     document.body.addEventListener('click', (e) => {
-        const selector = `a, button, .open-shop-card, .footer-item, .tab-btn, .modal-close-btn, .mini-btn, .reward-how-to-use-btn, .popup-btn, .header-back-button`;
-        if (e.target.closest(selector)) {
+        if (e.target.closest('button, .segment-btn, .footer-item')) {
             if (window.Telegram?.WebApp?.HapticFeedback) {
-                try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (err) {}
+                try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (err) {}
             }
         }
     });
-</script>
+  </script>
 </body>
 </html>
