@@ -643,66 +643,61 @@
             </div>
     </div>
 
-   <button id="grind-btn" class="main-action-btn" disabled>
+<button id="grind-btn" class="main-action-btn" disabled>
         <span id="grind-btn-text">Загрузка...</span>
         <div class="shine"></div>
     </button>
   </div>
 
-  <!-- НОВЫЙ БЛОК: TELEGRAM ЗАДАНИЯ -->
+  <!-- 🔥 ВСТАВКА: TELEGRAM ЗАДАНИЯ КАК ГРИНД 🔥 -->
   <div class="glass-card">
-    <div class="section-title"><i class="fa-brands fa-telegram" style="color: #2AABEE;"></i> Разовые задания</div>
-    
-    <div class="shop-grid" style="gap: 8px;">
-        <!-- Подписка -->
-        <div class="exchange-item" onclick="openTaskModal('subscribe')" style="cursor: pointer;">
-            <div class="shop-info-left">
-                <i class="fa-solid fa-bullhorn shop-icon-large" style="font-size: 20px; color: #2AABEE;"></i>
-                <div class="shop-text">
-                    <h4>Подписка на канал</h4>
-                    <p style="color: var(--accent-primary);">+1 Билет</p>
-                </div>
-            </div>
-            <div id="task-status-subscribe" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-        </div>
-
-        <!-- Буст -->
-        <div class="exchange-item" onclick="openTaskModal('boost')" style="cursor: pointer;">
-            <div class="shop-info-left">
-                <i class="fa-solid fa-arrow-up-right-dots shop-icon-large" style="font-size: 20px; color: #ff9500;"></i>
-                <div class="shop-text">
-                    <h4>Голосование за канал</h4>
-                    <p style="color: var(--accent-primary);">+2 Билета</p>
-                </div>
-            </div>
-            <div id="task-status-boost" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-        </div>
-
-        <!-- Фамилия -->
-        <div class="exchange-item" onclick="openTaskModal('lastname')" style="cursor: pointer;">
-            <div class="shop-info-left">
-                <i class="fa-solid fa-user-tag shop-icon-large" style="font-size: 20px; color: #34c759;"></i>
-                <div class="shop-text">
-                    <h4>Ник HATE в фамилии</h4>
-                    <p style="color: var(--accent-primary);">+5 Билетов</p>
-                </div>
-            </div>
-            <div id="task-status-lastname" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-        </div>
-
-        <!-- БИО -->
-        <div class="exchange-item" onclick="openTaskModal('bio')" style="cursor: pointer;">
-            <div class="shop-info-left">
-                <i class="fa-solid fa-link shop-icon-large" style="font-size: 20px; color: #9146ff;"></i>
-                <div class="shop-text">
-                    <h4>Ссылка в БИО</h4>
-                    <p style="color: var(--accent-primary);">+5 Билетов</p>
-                </div>
-            </div>
-            <div id="task-status-bio" class="shop-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-        </div>
+    <div class="section-title"><i class="fa-solid fa-bullhorn" style="color: #2AABEE;"></i> Подписка на канал</div>
+    <div class="grind-info">
+        Награда: <span id="reward-tg_sub" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
+        Статус: <span id="status-tg_sub" style="color: var(--text-secondary);">Загрузка...</span>
     </div>
+    <button id="btn-tg_sub" class="main-action-btn" disabled>
+        <span>ЗАГРУЗКА...</span>
+        <div class="shine"></div>
+    </button>
   </div>
+
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-rocket" style="color: #ff9500;"></i> Голосование (Буст)</div>
+    <div class="grind-info">
+        Награда: <span id="reward-tg_vote" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
+        Статус: <span id="status-tg_vote" style="color: var(--text-secondary);">Загрузка...</span>
+    </div>
+    <button id="btn-tg_vote" class="main-action-btn" disabled>
+        <span>ЗАГРУЗКА...</span>
+        <div class="shine"></div>
+    </button>
+  </div>
+
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-signature" style="color: #34c759;"></i> Ник HATE в фамилии</div>
+    <div class="grind-info">
+        Награда: <span id="reward-tg_surname" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
+        Статус: <span id="status-tg_surname" style="color: var(--text-secondary);">Загрузка...</span>
+    </div>
+    <button id="btn-tg_surname" class="main-action-btn" disabled>
+        <span>ЗАГРУЗКА...</span>
+        <div class="shine"></div>
+    </button>
+  </div>
+
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-link" style="color: #9146ff;"></i> Ссылка в БИО</div>
+    <div class="grind-info">
+        Награда: <span id="reward-tg_bio" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
+        Статус: <span id="status-tg_bio" style="color: var(--text-secondary);">Загрузка...</span>
+    </div>
+    <button id="btn-tg_bio" class="main-action-btn" disabled>
+        <span>ЗАГРУЗКА...</span>
+        <div class="shine"></div>
+    </button>
+  </div>
+  <!-- 🔥 КОНЕЦ ВСТАВКИ 🔥 -->
 
   <div class="glass-card open-shop-card" onclick="openShopModal()">
     <div class="shop-info-left">
@@ -1079,9 +1074,11 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
                     userState.lastGrindTime = res.last_grind_at;
 
                     updateUI();
-                    renderStreakVisuals();
-
-                } catch (e) {
+                renderStreakVisuals();
+                loadTelegramTasks(); // <--- ДОБАВЛЯЕМ ВЫЗОВ
+                startTimers();
+            }
+        } catch (e) {
                     tg.showAlert(e.message);
                     dom.grindBtn.disabled = false;
                 }
@@ -1538,110 +1535,282 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         document.body.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1000);
     }
+// ==========================================
+  // 🔥 ЛОГИКА TELEGRAM ЗАДАНИЙ (ИЗ ОРИГИНАЛА) 🔥
   // ==========================================
-    // ЛОГИКА TELEGRAM ЗАДАНИЙ
-    // ==========================================
-    window.renderTasksStatus = function() {
-        if (!userState.completed_tasks) return;
-        
-        Object.keys(TG_TASKS_CONFIG).forEach(taskType => {
-            const statusIcon = document.getElementById(`task-status-${taskType}`);
-            if (!statusIcon) return;
-            
-            if (userState.completed_tasks.includes(taskType)) {
-                statusIcon.innerHTML = '<i class="fa-solid fa-check-circle" style="color: #34c759; font-size: 16px;"></i>';
-                // Делаем карточку полупрозрачной и отключаем клик
-                const card = statusIcon.closest('.exchange-item');
-                if(card) {
-                    card.style.opacity = '0.5';
-                    card.style.pointerEvents = 'none';
-                }
-            }
-        });
-    };
+  let tgTaskIntervals = {};
+  let activeProfileCheck = null;
+  let isProfileChecking = false;
 
-    let currentActiveTask = null;
+  // 1. ЗАГРУЗКА И ОТРИСОВКА
+  async function loadTelegramTasks() {
+      const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (!userId) return;
 
-    window.openTaskModal = function(taskType) {
-        if (userState.completed_tasks && userState.completed_tasks.includes(taskType)) return;
-        
-        currentActiveTask = taskType;
-        const config = TG_TASKS_CONFIG[taskType];
-        
-        document.getElementById('task-modal-title').innerHTML = config.title;
-        document.getElementById('task-modal-desc').innerHTML = config.desc;
-        
-        const linkBtn = document.getElementById('task-action-link');
-        if (config.link) {
-            linkBtn.href = config.link;
-            linkBtn.innerHTML = `<i class="fa-brands fa-telegram"></i> ${config.btnText}`;
-            linkBtn.style.display = 'flex';
-        } else {
-            linkBtn.style.display = 'none';
-        }
-        
-        const copyBlock = document.getElementById('task-copy-block');
-        if (config.copyText) {
-            copyBlock.style.display = 'flex';
-            document.getElementById('task-copy-text').innerText = config.copyText;
-        } else {
-            copyBlock.style.display = 'none';
-        }
-        
-        const checkBtn = document.getElementById('task-check-btn');
-        checkBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Проверить';
-        checkBtn.disabled = false;
-        checkBtn.onclick = () => checkTelegramTask(taskType);
+      try {
+          // Вызываем твой оригинальный эндпоинт
+          const tasks = await window.makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
+          if (!Array.isArray(tasks)) return;
 
-        document.getElementById('task-modal').classList.add('visible');
-    };
+          tasks.forEach(task => {
+              const btn = document.getElementById(`btn-${task.task_key}`);
+              const rewardSpan = document.getElementById(`reward-${task.task_key}`);
+              const statusSpan = document.getElementById(`status-${task.task_key}`);
+              
+              if (!btn || !statusSpan) return;
 
-    window.closeTaskModal = function() {
-        document.getElementById('task-modal').classList.remove('visible');
-        currentActiveTask = null;
-    };
+              if (rewardSpan) rewardSpan.textContent = `+${task.reward_amount}`;
+              const btnText = btn.querySelector('span');
 
-    window.copyTaskText = function(el) {
-        const text = el.innerText.trim();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                tg.showPopup({ message: 'Текст скопирован!' });
-                el.style.opacity = '0.5';
-                setTimeout(() => el.style.opacity = '1', 200);
-            });
-        } else {
-            fallbackCopyTextToClipboard(text);
-        }
-    };
+              // Очищаем старые интервалы
+              if (tgTaskIntervals[task.task_key]) clearInterval(tgTaskIntervals[task.task_key]);
 
-    window.checkTelegramTask = async function(taskType) {
-        const btn = document.getElementById('task-check-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверяем...';
-        
-        try {
-            // Используем уже настроенный window.makeApiRequest
-            const res = await window.makeApiRequest('/api/v1/user/tasks/check', { 
-                task_type: TG_TASKS_CONFIG[taskType].apiPath 
-            });
-            
-            // Если запрос успешен - обновляем стейт
-            if (!userState.completed_tasks) userState.completed_tasks = [];
-            userState.completed_tasks.push(taskType);
-            
-            if (res.new_tickets !== undefined) userState.tickets = res.new_tickets;
-            
-            updateUI();
-            renderTasksStatus();
-            closeTaskModal();
-            showSuccess(`Задание выполнено! Награда начислена.`);
-            
-        } catch (e) {
-            tg.showAlert(e.message || "Условие не выполнено. Проверьте еще раз через пару минут.");
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Проверить';
-        }
-    };
+              // Назначаем клик
+              btn.onclick = () => handleDailyClaim(task.task_key, task.action_url);
+
+              // Проверка кулдауна 1в1 как в оригинале (20 часов)
+              if (task.last_claimed_at && !task.is_completed) {
+                  const last = new Date(task.last_claimed_at).getTime();
+                  const now = new Date().getTime();
+                  const diff = now - last;
+                  const cooldownMs = 20 * 60 * 60 * 1000;
+                  
+                  if (diff < cooldownMs) {
+                      const target = last + cooldownMs;
+                      const updateTimer = () => {
+                          const currNow = new Date().getTime();
+                          const currDiff = target - currNow;
+                          
+                          if (currDiff <= 0) {
+                              clearInterval(tgTaskIntervals[task.task_key]);
+                              btn.disabled = false;
+                              btnText.textContent = 'ЗАБРАТЬ БОНУС';
+                              btn.style.backgroundColor = 'var(--accent-primary)';
+                              btn.style.color = '#000';
+                              statusSpan.innerHTML = '<span style="color: #34c759;">Доступно</span>';
+                              return;
+                          }
+                          const h = Math.floor(currDiff / 3600000);
+                          const m = Math.floor((currDiff % 3600000) / 60000);
+                          btn.disabled = true;
+                          btnText.textContent = `ЧЕРЕЗ ${h}ч ${m}м`;
+                          btn.style.backgroundColor = 'var(--surface-secondary)';
+                          btn.style.color = 'var(--text-secondary)';
+                          statusSpan.innerHTML = '<span style="color: #ff9500;">Ожидание</span>';
+                      };
+                      updateTimer();
+                      tgTaskIntervals[task.task_key] = setInterval(updateTimer, 60000);
+                  } else {
+                      btn.disabled = false;
+                      btnText.textContent = 'ЗАБРАТЬ БОНУС';
+                      btn.style.backgroundColor = 'var(--accent-primary)';
+                      btn.style.color = '#000';
+                      statusSpan.innerHTML = '<span style="color: #34c759;">Доступно</span>';
+                  }
+              } else {
+                  // Не выполнено
+                  btn.disabled = false;
+                  btnText.textContent = 'ВЫПОЛНИТЬ';
+                  btn.style.backgroundColor = 'var(--accent-primary)';
+                  btn.style.color = '#000';
+                  statusSpan.innerHTML = '<span style="color: var(--text-secondary);">Не выполнено</span>';
+              }
+          });
+      } catch (e) {
+          console.error("Ошибка загрузки заданий:", e);
+      }
+  }
+
+  // 2. ОТПРАВКА КЛЕЙМА (ОРИГИНАЛ)
+  async function handleDailyClaim(taskKey, actionUrl) {
+      const btn = document.getElementById(`btn-${taskKey}`);
+      const btnText = btn.querySelector('span');
+      const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      
+      btn.disabled = true;
+      const originalText = btnText.innerHTML;
+      btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      try {
+          const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', { 
+              user_id: userId, 
+              task_key: taskKey 
+          }, 'POST');
+          
+          if (data && data.success) {
+              if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+              
+              const earned = data.reward || 0;
+              userState.tickets = (userState.tickets || 0) + earned;
+              updateUI(); // Обновляет счетчик билетов в шапке
+              
+              showSuccess(`Задание выполнено! Начислено +${earned} билетов.`);
+              loadTelegramTasks(); // Перезапрашиваем таймеры
+          } else if (data) {
+              if(window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+              
+              if (taskKey === 'tg_vote') {
+                  injectBoostPopup(actionUrl);
+              } else if (data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
+                  if (taskKey === 'tg_surname') injectProfilePopup('surname');
+                  else if (taskKey === 'tg_bio') injectProfilePopup('bio');
+                  else window.Telegram.WebApp.showAlert(data.error);
+              } else if (data.error && data.error.includes("не подписаны")) {
+                  window.Telegram.WebApp.showAlert("Вы не подписаны на канал!");
+                  if (actionUrl) window.Telegram.WebApp.openTelegramLink(actionUrl);
+              } else {
+                  window.Telegram.WebApp.showAlert(data.error || "Произошла ошибка");
+              }
+              
+              btn.disabled = false;
+              btnText.innerHTML = originalText;
+          }
+      } catch (e) {
+          btn.disabled = false;
+          btnText.innerHTML = originalText;
+      }
+  }
+
+  // 3. ПОПАП БУСТА
+  function injectBoostPopup(customUrl) {
+      const urlToUse = customUrl || 'https://t.me/boost/hatelove_ttv';
+      const existing = document.getElementById('boostPopup');
+      if (existing) existing.remove();
+
+      const popupHtml = `
+      <div id="boostPopup" class="modal-overlay visible" style="display: flex; align-items: center; justify-content: center;">
+        <div class="modal-content" style="padding: 25px; text-align: center;">
+          <h3 style="margin-top: 0; color: #ff4757; font-size: 20px; margin-bottom: 10px;">⚠️ Внимание!</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 20px;">Голосование за канал необходимо для получения бонусов.</p>
+          <button id="goToBoostBtn" class="main-action-btn" style="background: #0088cc; color: white; margin-bottom: 10px;">
+              <i class="fa-solid fa-rocket"></i> Проголосовать
+          </button>
+          <button id="closePopupBtn" style="width: 100%; background: transparent; border: none; color: #8e8e93; padding: 10px; cursor: pointer; font-size: 15px;">Закрыть</button>
+        </div>
+      </div>`;
+
+      document.body.insertAdjacentHTML('beforeend', popupHtml);
+      document.getElementById('goToBoostBtn').addEventListener('click', () => {
+          document.getElementById('boostPopup').remove();
+          if (window.Telegram?.WebApp) Telegram.WebApp.openTelegramLink(urlToUse);
+      });
+      document.getElementById('closePopupBtn').addEventListener('click', () => {
+          document.getElementById('boostPopup').remove();
+      });
+  }
+
+  // 4. ПОПАП ПРОФИЛЯ
+  function injectProfilePopup(type) {
+      activeProfileCheck = type; 
+      const existing = document.getElementById('profilePopup');
+      if (existing) existing.remove();
+
+      let titleText = '';
+      let bodyHTML = ''; 
+      const tgColor = '#0088cc'; 
+
+      if (type === 'surname') {
+          titleText = '❌ Ник бота не найден';
+          const botNick = '@HATElavka_bot';
+          bodyHTML = `
+              <div style="margin-bottom: 12px; font-size: 11px; color: #ccc;">Скопируйте ник и вставьте в поле <b>"Фамилия"</b>:</div>
+              <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); align-items: center;">
+                  <input type="text" readonly value="${botNick}" style="flex-grow: 1; background: transparent; border: none; color: ${tgColor}; font-weight: 600; font-size: 11px; outline: none; width: 100%;">
+                  <button id="popupCopyBtn" style="background: ${tgColor}; border: none; border-radius: 8px; color: #fff; width: 36px; height: 36px; cursor: pointer;">
+                      <i class="fa-regular fa-copy"></i>
+                  </button>
+              </div>
+          `;
+          setTimeout(() => {
+              document.getElementById('popupCopyBtn').addEventListener('click', function() {
+                  navigator.clipboard.writeText(botNick).then(() => {
+                       if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                       this.innerHTML = '<i class="fa-solid fa-check"></i>';
+                       setTimeout(() => this.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
+                  });
+              });
+          }, 100);
+      } else {
+          titleText = '❌ Ссылка не найдена';
+          const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '0';
+          const fullRefLink = `https://t.me/HATElavka_bot/app?startapp=r_${userId}`;
+          const displayRefLink = fullRefLink.replace('https://', '');
+
+          bodyHTML = `
+              <div style="margin-bottom: 12px; font-size: 11px; color: #ccc;">Скопируйте ссылку и вставьте в раздел <b>"О себе" (Bio)</b>:</div>
+              <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); align-items: center;">
+                  <input type="text" readonly value="${displayRefLink}" style="flex-grow: 1; background: transparent; border: none; color: ${tgColor}; font-weight: 600; font-size: 11px; outline: none; width: 100%;">
+                  <button id="popupCopyBtn" style="background: ${tgColor}; border: none; border-radius: 8px; color: #fff; width: 36px; height: 36px; cursor: pointer;">
+                      <i class="fa-regular fa-copy"></i>
+                  </button>
+              </div>
+          `;
+          setTimeout(() => {
+              document.getElementById('popupCopyBtn').addEventListener('click', function() {
+                  navigator.clipboard.writeText(fullRefLink).then(() => {
+                       if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                       this.innerHTML = '<i class="fa-solid fa-check"></i>';
+                       setTimeout(() => this.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
+                  });
+              });
+          }, 100);
+      }
+
+      const popupHtml = `
+      <div id="profilePopup" class="modal-overlay visible" style="display: flex; align-items: center; justify-content: center;">
+        <div class="modal-content" style="padding: 24px; text-align: center;">
+          <h3 style="margin-top: 0; color: #ff4757; font-size: 20px; margin-bottom: 16px;">${titleText}</h3>
+          <div style="font-size: 15px; line-height: 1.5; color: #ddd; margin-bottom: 24px;">${bodyHTML}</div>
+          <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; font-size: 13px; color: #aaa; margin-bottom: 15px; text-align: left; border: 1px dashed #444;">
+              <i class="fa-solid fa-circle-info" style="color: ${tgColor}; margin-right: 5px;"></i>
+              Перейдите в <b>Настройки</b> → <b>Изменить профиль</b> и вставьте скопированный текст в нужное поле.
+          </div>
+          <button id="closeProfilePopupBtn" style="width: 100%; background: transparent; border: none; color: #8e8e93; padding: 10px; cursor: pointer; font-size: 15px;">Закрыть</button>
+        </div>
+      </div>`;
+
+      document.body.insertAdjacentHTML('beforeend', popupHtml);
+      document.getElementById('closeProfilePopupBtn').addEventListener('click', () => {
+          document.getElementById('profilePopup').remove();
+          activeProfileCheck = null; 
+      });
+  }
+
+  // 5. АВТО-ПРОВЕРКА ПРИ ВОЗВРАТЕ В TELEGRAM
+  document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && activeProfileCheck && !isProfileChecking) {
+          const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+          if (!userId) return;
+
+          isProfileChecking = true; 
+          const taskKey = activeProfileCheck === 'surname' ? 'tg_surname' : 'tg_bio';
+          await new Promise(r => setTimeout(r, 1500));
+
+          try {
+              const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', { 
+                  user_id: userId, 
+                  task_key: taskKey 
+              }, 'POST', true);
+              
+              if (data && data.success) {
+                  const popup = document.getElementById('profilePopup');
+                  if (popup) popup.remove();
+                  activeProfileCheck = null;
+
+                  showSuccess("Профиль подтвержден! Награда зачислена.");
+                  
+                  const earned = data.reward || 0;
+                  userState.tickets = (userState.tickets || 0) + earned;
+                  updateUI();
+                  loadTelegramTasks();
+              }
+          } catch (e) {
+              console.error("Ошибка авто-проверки:", e);
+          } finally {
+              isProfileChecking = false;
+          }
+      }
+  });
 
   // === PULL TO REFRESH ЛОГИКА ===
     function initPullToRefresh() {
