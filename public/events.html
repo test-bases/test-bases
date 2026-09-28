@@ -997,9 +997,9 @@
                 }
                 
                 updateUI();
-                renderStreakVisuals();
-                renderTasksStatus(); // Отрисовка галочек для выполненных
-                startTimers();  
+        renderStreakVisuals();
+        loadTelegramTasks(); // 🔥 Вот тут запускаем отрисовку
+        startTimers(); 
             }
         } catch (e) {
             console.error("Ошибка инициализации:", e);
@@ -1420,88 +1420,173 @@
         setTimeout(() => floatEl.remove(), 1000);
     }
 // ==========================================
-  // 🔥 ЛОГИКА TELEGRAM ЗАДАНИЙ (ИЗ ОРИГИНАЛА) 🔥
+  // 🔥 ЛОГИКА TELEGRAM ЗАДАНИЙ (ОБНОВЛЕННАЯ) 🔥
   // ==========================================
-  let tgTaskIntervals = {};
+  let cooldownIntervalsMap = {};
   let activeProfileCheck = null;
   let isProfileChecking = false;
+  let telegramTasksCache = null;
 
-  // 1. ЗАГРУЗКА И ОТРИСОВКА
+  // Функция запуска таймера на кнопке
+  function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+
+      if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
+
+      const lastClaimTime = new Date(lastClaimedIso).getTime();
+      const cooldownMs = cooldownHours * 60 * 60 * 1000;
+      const targetTime = lastClaimTime + cooldownMs;
+
+      const updateTimer = () => {
+          const now = new Date().getTime();
+          const diff = targetTime - now;
+
+          if (diff <= 0) {
+              clearInterval(cooldownIntervalsMap[btnId]);
+              btn.disabled = false;
+              btn.style.background = '';
+              btn.style.opacity = '1';
+              btn.innerHTML = 'ЗАБРАТЬ БОНУС'; 
+              return;
+          }
+
+          const h = Math.floor(diff / (1000 * 60 * 60));
+          const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+          
+          btn.disabled = true;
+          btn.style.background = 'var(--surface-secondary)';
+          btn.style.color = 'var(--text-secondary)';      
+          btn.innerHTML = `<i class="fa-regular fa-clock"></i> ЧЕРЕЗ ${timeStr}`;
+      };
+
+      updateTimer(); 
+      cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
+  }
+
+  // Основная загрузка
   async function loadTelegramTasks() {
+      const container = document.getElementById('tg-tasks-list');
+      if (!container) return;
+
+      container.innerHTML = '<div style="text-align:center; padding:10px; color:#666;">Загрузка...</div>';
+      
       const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      if (!userId) return;
+      if (!userId) {
+          container.innerHTML = '<div style="text-align:center; padding:10px; color:red;">Ошибка: User ID не найден</div>';
+          return;
+      }
 
       try {
-          // Вызываем твой оригинальный эндпоинт
-          const tasks = await window.makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
-          if (!Array.isArray(tasks)) return;
+          let tasks = await window.makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
+          
+          if (!Array.isArray(tasks)) tasks = [];
+          
+          telegramTasksCache = tasks; 
+          container.innerHTML = ''; 
 
-          tasks.forEach(task => {
-              const btn = document.getElementById(`btn-${task.task_key}`);
-              const rewardSpan = document.getElementById(`reward-${task.task_key}`);
-              const statusSpan = document.getElementById(`status-${task.task_key}`);
+          if (tasks.length === 0) {
+              container.innerHTML = '<div style="text-align:center; padding:10px;">Заданий пока нет</div>';
+              return;
+          }
+
+          const activeTasks = tasks.filter(t => !t.is_completed);
+          const timersToStart = [];
+
+          const createTaskElement = (task) => {
+              const el = document.createElement('div');
+              el.className = `tg-task-item ${task.is_completed ? 'completed' : ''}`;
               
-              if (!btn || !statusSpan) return;
+              let iconClass = 'fa-solid fa-star';
+              if (task.task_key === 'tg_surname') iconClass = 'fa-solid fa-signature';
+              if (task.task_key === 'tg_bio') iconClass = 'fa-solid fa-link';
+              if (task.task_key === 'tg_sub') iconClass = 'fa-brands fa-telegram';
+              if (task.task_key === 'tg_vote') iconClass = 'fa-solid fa-rocket';
 
-              if (rewardSpan) rewardSpan.textContent = `+${task.reward_amount}`;
-              const btnText = btn.querySelector('span');
+              let rightColHtml = '';
+              let bottomHtml = '';
 
-              // Очищаем старые интервалы
-              if (tgTaskIntervals[task.task_key]) clearInterval(tgTaskIntervals[task.task_key]);
+              const rewardHtml = `
+                  <div class="btn-reward-badge" style="display:inline-flex; align-items:center; gap:2px;">
+                      <span>+${task.reward_amount}</span>
+                      <i class="fa-solid fa-ticket btn-ticket-icon"></i>
+                  </div>
+              `;
 
-              // Назначаем клик
-              btn.onclick = () => handleDailyClaim(task.task_key, task.action_url);
+              const isFinalDay = task.is_daily && task.current_day === task.total_days;
+              let btnStyle = '';
+              let btnContent = `ЗАБРАТЬ ${rewardHtml}`;
+              
+              if (isFinalDay) {
+                  btnStyle = 'background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; font-weight: 800;';
+                  btnContent = `<i class="fa-solid fa-gift" style="margin-right:5px;"></i> ЗАБРАТЬ ПРИЗ`; 
+              }
 
-              // Проверка кулдауна 1в1 как в оригинале (20 часов)
-              if (task.last_claimed_at && !task.is_completed) {
+              let actionLinkHtml = '';
+              if ((task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
+                  const linkText = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
+                  actionLinkHtml = `<div style="font-size:9px; color:#0088cc; margin-bottom:4px; text-align:right; cursor:pointer;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${linkText} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
+              }
+
+              rightColHtml = `
+                  ${actionLinkHtml}
+                  <button class="tg-premium-btn" id="btn-${task.task_key}" style="${btnStyle}" onclick="handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">
+                      ${btnContent}
+                  </button>
+              `;
+              
+              if (task.is_daily) {
+                  let segmentsHtml = '';
+                  for (let i = 1; i <= task.total_days; i++) {
+                      const isFilled = i <= task.current_day ? 'filled' : '';
+                      segmentsHtml += `<div class="tg-progress-segment ${isFilled}"></div>`;
+                  }
+                  bottomHtml = `
+                      <div class="tg-progress-track" style="margin-top:8px;">
+                          ${segmentsHtml}
+                      </div>
+                      <div class="tg-counter-text">
+                          День ${task.current_day}/${task.total_days}
+                      </div>
+                  `;
+              }
+
+              el.innerHTML = `
+                  <div class="tg-task-header">
+                      <div class="tg-left-col">
+                          <div class="tg-icon-box"><i class="${iconClass}"></i></div>
+                          <div class="tg-text-col">
+                              <span class="tg-title">${task.title || 'Telegram Задание'}</span>
+                              <span class="tg-subtitle">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span class="tg-code-phrase">$1</span>')}</span>
+                          </div>
+                      </div>
+                      <div class="tg-right-col">
+                          ${rightColHtml}
+                      </div>
+                  </div>
+                  ${bottomHtml}
+              `;
+
+              // Проверка таймера
+              if ((task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !task.is_completed && !isFinalDay) {
                   const last = new Date(task.last_claimed_at).getTime();
                   const now = new Date().getTime();
-                  const diff = now - last;
-                  const cooldownMs = 20 * 60 * 60 * 1000;
-                  
-                  if (diff < cooldownMs) {
-                      const target = last + cooldownMs;
-                      const updateTimer = () => {
-                          const currNow = new Date().getTime();
-                          const currDiff = target - currNow;
-                          
-                          if (currDiff <= 0) {
-                              clearInterval(tgTaskIntervals[task.task_key]);
-                              btn.disabled = false;
-                              btnText.textContent = 'ЗАБРАТЬ БОНУС';
-                              btn.style.backgroundColor = 'var(--accent-primary)';
-                              btn.style.color = '#000';
-                              statusSpan.innerHTML = '<span style="color: #34c759;">Доступно</span>';
-                              return;
-                          }
-                          const h = Math.floor(currDiff / 3600000);
-                          const m = Math.floor((currDiff % 3600000) / 60000);
-                          btn.disabled = true;
-                          btnText.textContent = `ЧЕРЕЗ ${h}ч ${m}м`;
-                          btn.style.backgroundColor = 'var(--surface-secondary)';
-                          btn.style.color = 'var(--text-secondary)';
-                          statusSpan.innerHTML = '<span style="color: #ff9500;">Ожидание</span>';
-                      };
-                      updateTimer();
-                      tgTaskIntervals[task.task_key] = setInterval(updateTimer, 60000);
-                  } else {
-                      btn.disabled = false;
-                      btnText.textContent = 'ЗАБРАТЬ БОНУС';
-                      btn.style.backgroundColor = 'var(--accent-primary)';
-                      btn.style.color = '#000';
-                      statusSpan.innerHTML = '<span style="color: #34c759;">Доступно</span>';
+                  if ((now - last) < 20 * 60 * 60 * 1000) {
+                      timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
                   }
-              } else {
-                  // Не выполнено
-                  btn.disabled = false;
-                  btnText.textContent = 'ВЫПОЛНИТЬ';
-                  btn.style.backgroundColor = 'var(--accent-primary)';
-                  btn.style.color = '#000';
-                  statusSpan.innerHTML = '<span style="color: var(--text-secondary);">Не выполнено</span>';
               }
-          });
-      } catch (e) {
-          console.error("Ошибка загрузки заданий:", e);
+              return el;
+          };
+
+          activeTasks.forEach(task => container.appendChild(createTaskElement(task)));
+
+          // Запускаем таймеры после того, как кнопки добавлены на страницу
+          timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
+
+      } catch (e) { 
+          console.error("Ошибка загрузки заданий:", e); 
+          container.innerHTML = '<div style="text-align:center; padding:10px; color:#ff4757;">Ошибка загрузки</div>';
       }
   }
 
