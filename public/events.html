@@ -146,58 +146,53 @@
       background: rgba(255, 215, 0, 0.15);
     }
 
-    /* === ТЁМНЫЙ БЛЮР И СИСТЕМА ОБУЧЕНИЯ === */
-    .tour-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.84);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 99990;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease, clip-path 0.3s ease;
-    }
-    .tour-backdrop.active {
-      opacity: 1;
-      pointer-events: auto;
+    /* === РАЗДЕЛЕНИЕ ЭКРАНА В РЕЖИМЕ ОБУЧЕНИЯ === */
+    /* Верхняя зона контента ужимается ровно до границы окна объяснения */
+    body.tour-mode #main-scroll-area {
+      height: calc(100vh - 275px) !important;
+      padding-bottom: 20px !important;
+      transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* Независимый прожектор: не обрезается overflow контейнеров */
-    .tour-spotlight {
-      position: fixed;
-      border-radius: 16px;
-      border: 2px solid var(--accent-neon);
-      box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), inset 0 0 15px rgba(255, 215, 0, 0.2);
-      pointer-events: none;
-      z-index: 99994;
-      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Все лишние карточки мягко затемняются */
+    body.tour-mode .glass-card {
+      opacity: 0.2;
+      filter: blur(0.5px);
+      transition: opacity 0.3s ease, filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
-    /* Карточка с объяснением */
+    /* Активная карточка наверху ярко светится и привлекает внимание */
+    body.tour-mode .glass-card.tour-target-active {
+      opacity: 1 !important;
+      filter: none !important;
+      border-color: var(--accent-neon) !important;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.35) !important;
+    }
+
+    /* Нижняя зона: зафиксированное диалоговое окно */
     .tour-card {
       position: fixed;
-      bottom: 20px;
-      left: 14px;
-      right: 14px;
-      max-width: 380px;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      max-width: 420px;
       margin: 0 auto;
-      background: rgba(18, 18, 20, 0.95);
+      background: rgba(18, 18, 20, 0.98);
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 215, 0, 0.15);
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.15);
       border-radius: 20px;
-      padding: 16px 18px;
+      padding: 14px 16px;
       z-index: 99999;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       animation: tourSlideUp 0.3s ease;
     }
 
     @keyframes tourSlideUp {
-      from { transform: translateY(25px); opacity: 0; }
+      from { transform: translateY(30px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
 
@@ -205,7 +200,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2px;
     }
     .tour-step-badge {
       font-size: 9px;
@@ -224,43 +218,37 @@
       font-size: 16px;
       cursor: pointer;
       padding: 0 4px;
-      transition: color 0.2s;
     }
     .tour-close-btn:active { color: #fff; }
 
-    /* Парящая левитирующая картинка */
+    /* Парящий персонаж: аккуратная тень БЕЗ желтого свечения */
     .tour-levitate-stage {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: -36px;
-      margin-bottom: 4px;
-      height: 90px;
+      margin-top: -38px;
+      margin-bottom: 2px;
+      height: 75px;
       pointer-events: none;
     }
 
     .tour-img {
-      max-height: 95px;
-      max-width: 130px;
+      max-height: 85px;
+      max-width: 120px;
       object-fit: contain;
-      /* Чистая объемная тень без желтого свечения */
-      filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.7));
+      filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.75));
       animation: tourFloat 3.2s ease-in-out infinite;
     }
 
     @keyframes tourFloat {
-      0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-      }
-      50% {
-        transform: translateY(-8px) rotate(1.5deg);
-      }
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
     }
 
     .tour-card-body {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
 
     .tour-title {
@@ -274,7 +262,7 @@
     .tour-text {
       font-size: 11px;
       color: #b0b0b8;
-      line-height: 1.45;
+      line-height: 1.4;
       margin: 0;
     }
     .tour-text b { color: #fff; }
@@ -536,17 +524,13 @@
 
   <div id="profile-popup-root"></div>
 
-  <!-- === ТЕМНЫЙ БЛЮР, ПРОЖЕКТОР И ОКНО ОБУЧЕНИЯ === -->
-  <div id="tour-backdrop" class="tour-backdrop" onclick="closeGrindTour()"></div>
-  <div id="tour-spotlight" class="tour-spotlight" style="display: none;"></div>
-
+  <!-- ДИАЛОГОВОЕ ОКНО ОБУЧЕНИЯ В НИЖНЕЙ ЗОНЕ -->
   <div id="tour-card" class="tour-card" style="display: none;">
       <div class="tour-card-header">
           <span class="tour-step-badge" id="tour-step-badge">Шаг 1 из 4</span>
           <button class="tour-close-btn" onclick="closeGrindTour()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <!-- Левитирующий блок -->
       <div class="tour-levitate-stage" id="tour-img-stage">
           <img id="tour-img" class="tour-img" src="" alt="Обучение" onerror="document.getElementById('tour-img-stage').style.display='none'">
       </div>
@@ -1444,25 +1428,18 @@
     
     window.startGrindTour = function() {
         currentTourStep = 0;
-        document.getElementById('tour-backdrop').classList.add('active');
+        document.body.classList.add('tour-mode');
         document.getElementById('tour-card').style.display = 'flex';
         renderCurrentTourStep();
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     };
 
     window.closeGrindTour = function() {
-        const backdrop = document.getElementById('tour-backdrop');
-        const card = document.getElementById('tour-card');
-        const spotlight = document.getElementById('tour-spotlight');
+        document.body.classList.remove('tour-mode');
+        document.getElementById('tour-card').style.display = 'none';
+        document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
 
-        if (backdrop) {
-            backdrop.classList.remove('active');
-            backdrop.style.clipPath = 'none';
-        }
-        if (card) card.style.display = 'none';
-        if (spotlight) spotlight.style.display = 'none';
-
-        // 🔥 Возвращаем пользователя на главную (Задания) и скроллим вверх
+        // Возвращаем на вкладку "Задания" и скроллим на самый верх
         const mainTabBtn = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn')[0];
         if (mainTabBtn) {
             window.switchMainTab('tasks', mainTabBtn);
@@ -1494,72 +1471,10 @@
         }
     };
 
-    function updateSpotlight(selector) {
-        const spotlight = document.getElementById('tour-spotlight');
-        const backdrop = document.getElementById('tour-backdrop');
-        const card = document.getElementById('tour-card');
-        const target = document.querySelector(selector);
-        const scrollArea = document.getElementById('main-scroll-area');
-
-        if (!target || !spotlight || !backdrop || !card) {
-            if (spotlight) spotlight.style.display = 'none';
-            if (backdrop) backdrop.style.clipPath = 'none';
-            return;
-        }
-
-        const vh = window.innerHeight;
-        const cardHeight = card.offsetHeight || 230;
-
-        // Определяем, в какой половине контента находится элемент
-        const targetOffsetTop = target.offsetTop;
-        const isUpper = targetOffsetTop < (scrollArea.scrollHeight / 2);
-
-        if (isUpper) {
-            // Элемент сверху -> карточку ставим вниз
-            card.style.top = 'auto';
-            card.style.bottom = '16px';
-            
-            // Скроллим так, чтобы элемент гарантированно встал в верхнюю зону (под шапку)
-            const targetY = Math.max(0, targetOffsetTop - 50);
-            scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
-        } else {
-            // Элемент снизу -> карточку ставим наверх
-            card.style.bottom = 'auto';
-            card.style.top = '16px';
-            
-            // Скроллим элемент в нижнюю видимую зону под карточкой
-            const targetY = Math.max(0, targetOffsetTop - cardHeight - 25);
-            scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
-        }
-
-        // Ждем завершения скролла и четко вырезаем подсветку
-        setTimeout(() => {
-            const rect = target.getBoundingClientRect();
-            const pad = 6;
-            const top = Math.max(0, rect.top - pad);
-            const left = Math.max(0, rect.left - pad);
-            const right = Math.min(window.innerWidth, rect.right + pad);
-            const bottom = Math.min(window.innerHeight, rect.bottom + pad);
-            const width = right - left;
-            const height = bottom - top;
-
-            spotlight.style.top = `${top}px`;
-            spotlight.style.left = `${left}px`;
-            spotlight.style.width = `${width}px`;
-            spotlight.style.height = `${height}px`;
-            spotlight.style.display = 'block';
-
-            backdrop.style.clipPath = `polygon(
-                0% 0%, 0% 100%,
-                ${left}px 100%, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px 100%,
-                100% 100%, 100% 0%
-            )`;
-        }, 220);
-    }
     function renderCurrentTourStep() {
         const step = grindTourSteps[currentTourStep];
 
-        // 1. Переключаем вкладку
+        // 1. Программно переключаем нужную вкладку
         if (step.tab) {
             const tabBtnIndex = step.tab === 'tasks' ? 0 : (step.tab === 'free' ? 1 : 2);
             const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
@@ -1568,7 +1483,10 @@
             }
         }
 
-        // 2. Заполняем данные карточки
+        // 2. Снимаем старое выделение
+        document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
+
+        // 3. Заполняем диалоговое окно
         document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${grindTourSteps.length}`;
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').innerHTML = step.text;
@@ -1583,26 +1501,25 @@
             stageEl.style.display = 'none';
         }
 
-        // 3. Настройка кнопок
+        // 4. Кнопки «Назад» / «Далее»
         const prevBtn = document.getElementById('tour-prev-btn');
         const nextBtn = document.getElementById('tour-next-btn');
 
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 4. Наводим прожектор
-        updateSpotlight(step.highlightSelector);
-    }
-
-    // Авто-запуск для новых пользователей (если еще не видели)
-    document.addEventListener('DOMContentLoaded', () => {
+        // 5. Подтягиваем карточку ровно в верхнюю зону показа
         setTimeout(() => {
-            const viewed = localStorage.getItem('grind_tour_viewed');
-            if (!viewed) {
-                window.startGrindTour();
+            const target = document.querySelector(step.highlightSelector);
+            const scrollArea = document.getElementById('main-scroll-area');
+            if (target && scrollArea) {
+                target.classList.add('tour-target-active');
+                // Скроллим так, чтобы карточка аккуратно встала в самый верх зоны
+                const targetY = Math.max(0, target.offsetTop - 8);
+                scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
             }
-        }, 1200);
-    });
+        }, 120);
+    }
   </script>
 </body>
 </html>
