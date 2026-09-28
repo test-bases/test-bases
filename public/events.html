@@ -164,19 +164,25 @@
       padding-top: 35px !important;
     }
 
-    /* Все лишние карточки мягко затемняются */
+    /* На шагах 1, 3, 4: глубокий заметный блюр и затемнение всего фона */
     body.tour-mode .glass-card {
-      opacity: 0.2;
-      filter: blur(0.5px);
-      transition: opacity 0.3s ease, filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      opacity: 0.15;
+      filter: blur(5px); /* 🔥 Сделали блюр сочным и глубоким */
+      transition: opacity 0.4s ease, filter 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
-    /* Активная карточка наверху ярко светится и привлекает внимание */
+    /* Активная карточка всегда четкая и подсвеченная */
     body.tour-mode .glass-card.tour-target-active {
       opacity: 1 !important;
       filter: none !important;
       border-color: var(--accent-neon) !important;
       box-shadow: 0 0 25px rgba(255, 215, 0, 0.35) !important;
+    }
+
+    /* 🔥 НА 2 ЭТАПЕ: полностью отключаем блюр страницы, все задания четкие */
+    body.tour-no-blur .glass-card {
+      opacity: 1 !important;
+      filter: none !important;
     }
 
     /* Нижняя зона: зафиксированное диалоговое окно */
@@ -1546,6 +1552,7 @@
 
     window.closeGrindTour = function() {
         document.body.classList.remove('tour-mode');
+        document.body.classList.remove('tour-no-blur'); // 🔥 Снимаем класс без блюра
         document.getElementById('tour-card').style.display = 'none';
         document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
 
@@ -1596,6 +1603,13 @@
         // 2. Снимаем старое выделение
         document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
 
+        // 🔥 НА 2 ЭТАПЕ (индекс 1): убираем блюр со всей страницы
+        if (currentTourStep === 1) {
+            document.body.classList.add('tour-no-blur');
+        } else {
+            document.body.classList.remove('tour-no-blur');
+        }
+
         // 3. Заполняем диалоговое окно
         document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${grindTourSteps.length}`;
         document.getElementById('tour-title').textContent = step.title;
@@ -1618,21 +1632,30 @@
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 5. Центрируем карточку строго без заездов под кнопки
+        // 5. Плавная анимация спуска вниз и позиционирование
         setTimeout(() => {
             const target = document.querySelector(step.highlightSelector);
             const scrollArea = document.getElementById('main-scroll-area');
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
 
-                // 🔥 ДЛЯ 1-ГО ШАГА: жестко держим скролл на 0! 
-                // Карточка будет стоять ровно там, где задан отступ в CSS, и никуда не улетит
+                // 1-й шаг: держимся в самом верху с отступом
                 if (currentTourStep === 0) {
                     scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
                     return;
                 }
 
-                // Для остальных шагов считаем точный отступ без бага с offsetTop
+                // 🔥 2-й шаг: красивый плавный спуск вниз к заданиям
+                if (currentTourStep === 1) {
+                    const targetRect = target.getBoundingClientRect();
+                    const scrollRect = scrollArea.getBoundingClientRect();
+                    const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
+                    // Плавно спускаем ровно к шапке списка заданий
+                    scrollArea.scrollTo({ top: Math.max(0, currentPos - 12), behavior: 'smooth' });
+                    return;
+                }
+
+                // 3 и 4 шаги: центрирование
                 const targetRect = target.getBoundingClientRect();
                 const scrollRect = scrollArea.getBoundingClientRect();
                 const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
@@ -1641,7 +1664,7 @@
 
                 scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
             }
-        }, 150);
+        }, 120);
     }
   </script>
 </body>
