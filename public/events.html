@@ -185,6 +185,51 @@
     .streak-dot { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); }
     .streak-dot.filled { background: var(--accent-neon); box-shadow: 0 0 5px rgba(255,215,0,0.5); }
 
+    /* === СПОЙЛЕР ДЛЯ ВЫПОЛНЕННЫХ ЗАДАНИЙ === */
+    .completed-spoiler {
+      margin-top: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .completed-spoiler-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+    .completed-spoiler-header:active {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+    .completed-spoiler-content {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0 10px 10px 10px;
+    }
+    .completed-spoiler.open .completed-spoiler-content {
+      display: flex;
+    }
+    .spoiler-chevron {
+      transition: transform 0.25s ease;
+      font-size: 10px;
+    }
+    .completed-spoiler.open .spoiler-chevron {
+      transform: rotate(180deg);
+    }
+
     /* === МАГАЗИН === */
     .shop-balance-card {
       display: flex;
@@ -216,7 +261,7 @@
 
   <div id="pull-to-refresh"><i class="fa-solid fa-arrow-down" id="ptr-icon"></i></div>
 
- <!-- ШАПКА СО СТАТУСОМ (Используем sub-header вместо top-header) -->
+  <!-- ШАПКА СО СТАТУСОМ -->
   <header class="sub-header">
     <span class="header-title-label">Гринд-фарм</span>
     <div class="status-pill" id="user-status">Стандарт</div>
@@ -256,7 +301,7 @@
                   </button>
               </div>
 
-              <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (Мгновенно из кэша) -->
+              <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (АКТИВНЫЕ + СПОЙЛЕР) -->
               <div id="tg-tasks-list" style="display:flex; flex-direction:column; gap:10px;">
                   <div style="text-align:center; padding:20px; color:var(--text-color-muted); font-size:11px;">Синхронизация заданий...</div>
               </div>
@@ -362,14 +407,12 @@
     let telegramTasksCache = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        // ⚡ Мгновенно запускаем задачи и магазин без ожидания
         loadTelegramTasks();
         fetchShopItems();
 
         init();
         initPullToRefresh();
 
-        // Кнопка ежедневного стрика
         const grindBtn = document.getElementById('grind-btn');
         if(grindBtn) {
             grindBtn.addEventListener('click', async () => {
@@ -525,7 +568,7 @@
     }
 
     // ==========================================
-    // 📋 TELEGRAM ЗАДАНИЯ (С КЭШЕМ И ВЫПОЛНЕННЫМИ)
+    // 📋 TELEGRAM ЗАДАНИЯ (СПОЙЛЕР + ГРИНД-МОНЕТЫ)
     // ==========================================
     function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
         const btn = document.getElementById(btnId);
@@ -584,74 +627,109 @@
         }
     }
 
+    function createTaskCard(task, isFinalDay, timersToStart) {
+        const el = document.createElement('div');
+        el.className = `glass-card`;
+        if (task.is_completed) el.style.opacity = '0.55';
+
+        let iconClass = 'fa-solid fa-star';
+        let iconColor = 'var(--accent-neon)';
+        if (task.task_key === 'tg_surname') { iconClass = 'fa-solid fa-signature'; iconColor = '#0a84ff'; }
+        if (task.task_key === 'tg_bio') { iconClass = 'fa-solid fa-link'; iconColor = '#34c759'; }
+        if (task.task_key === 'tg_sub') { iconClass = 'fa-brands fa-telegram'; iconColor = '#2AABEE'; }
+        if (task.task_key === 'tg_vote') { iconClass = 'fa-solid fa-rocket'; iconColor = '#ff3b30'; }
+
+        let btnContent = '';
+        let activeClass = 'premium-btn active-state';
+        let btnDisabled = '';
+
+        if (task.is_completed) {
+            btnContent = `<i class="fa-solid fa-circle-check" style="color: #34c759;"></i> ВЫПОЛНЕНО`;
+            activeClass = 'premium-btn locked-state';
+            btnDisabled = 'disabled';
+        } else if (isFinalDay) {
+            btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
+        } else {
+            btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-coins" style="font-size:10px; margin-left:2px;"></i>`;
+        }
+
+        let linkHtml = '';
+        if (!task.is_completed && (task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
+            const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
+            linkHtml = `<div class="task-link" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
+        }
+
+        let streakHtml = '';
+        if (task.is_daily) {
+            let dots = '';
+            for (let i = 1; i <= task.total_days; i++) {
+                dots += `<div class="streak-dot ${i <= task.current_day ? 'filled' : ''}"></div>`;
+            }
+            streakHtml = `<div class="streak-steps-mini">${dots}</div>`;
+        }
+
+        el.innerHTML = `
+            <div class="task-header">
+                <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
+                <div class="task-text">
+                    <span class="task-title">${task.title || 'Задание'}</span>
+                    <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                    ${streakHtml}
+                </div>
+            </div>
+            ${linkHtml}
+            <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
+        `;
+
+        if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !isFinalDay) {
+            if ((Date.now() - new Date(task.last_claimed_at).getTime()) < 20 * 60 * 60 * 1000) {
+                timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
+            }
+        }
+        return el;
+    }
+
     function renderTasksDOM(tasks, container) {
         container.innerHTML = '';
-        // Сортировка: активные сверху, выполненные внизу
-        tasks.sort((a, b) => (a.is_completed === b.is_completed ? 0 : a.is_completed ? 1 : -1));
         const timersToStart = [];
 
-        tasks.forEach(task => {
-            const el = document.createElement('div');
-            el.className = `glass-card`;
-            if (task.is_completed) el.style.opacity = '0.55';
+        // Разделяем: активные вверху, выполненные — в спойлер
+        const activeTasks = tasks.filter(t => !t.is_completed);
+        const completedTasks = tasks.filter(t => t.is_completed);
 
-            let iconClass = 'fa-solid fa-star';
-            let iconColor = 'var(--accent-neon)';
-            if (task.task_key === 'tg_surname') { iconClass = 'fa-solid fa-signature'; iconColor = '#0a84ff'; }
-            if (task.task_key === 'tg_bio') { iconClass = 'fa-solid fa-link'; iconColor = '#34c759'; }
-            if (task.task_key === 'tg_sub') { iconClass = 'fa-brands fa-telegram'; iconColor = '#2AABEE'; }
-            if (task.task_key === 'tg_vote') { iconClass = 'fa-solid fa-rocket'; iconColor = '#ff3b30'; }
-
+        // 1. Рендерим активные задачи
+        activeTasks.forEach(task => {
             const isFinalDay = task.is_daily && task.current_day === task.total_days;
-            let btnContent = '';
-            let activeClass = 'premium-btn active-state';
-            let btnDisabled = '';
-
-            if (task.is_completed) {
-                btnContent = `<i class="fa-solid fa-circle-check" style="color: #34c759;"></i> ВЫПОЛНЕНО`;
-                activeClass = 'premium-btn locked-state';
-                btnDisabled = 'disabled';
-            } else if (isFinalDay) {
-                btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
-            } else {
-                btnContent = `ЗАБРАТЬ +${task.reward_amount}`;
-            }
-
-            let linkHtml = '';
-            if (!task.is_completed && (task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
-                const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-                linkHtml = `<div class="task-link" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
-            }
-
-            let streakHtml = '';
-            if (task.is_daily) {
-                let dots = '';
-                for (let i = 1; i <= task.total_days; i++) {
-                    dots += `<div class="streak-dot ${i <= task.current_day ? 'filled' : ''}"></div>`;
-                }
-                streakHtml = `<div class="streak-steps-mini">${dots}</div>`;
-            }
-
-            el.innerHTML = `
-                <div class="task-header">
-                    <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
-                    <div class="task-text">
-                        <span class="task-title">${task.title || 'Задание'}</span>
-                        <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
-                        ${streakHtml}
-                    </div>
-                </div>
-                ${linkHtml}
-                <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
-            `;
-
-            if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !isFinalDay) {
-                if ((Date.now() - new Date(task.last_claimed_at).getTime()) < 20 * 60 * 60 * 1000) {
-                    timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
-                }
-            }
-            container.appendChild(el);
+            container.appendChild(createTaskCard(task, isFinalDay, timersToStart));
         });
+
+        // 2. Выполненные задачи прячем под аккуратный спойлер
+        if (completedTasks.length > 0) {
+            const spoiler = document.createElement('div');
+            spoiler.className = 'completed-spoiler';
+
+            const header = document.createElement('div');
+            header.className = 'completed-spoiler-header';
+            header.innerHTML = `
+                <span><i class="fa-solid fa-circle-check" style="color:#34c759; margin-right:5px;"></i> Выполненные задания (${completedTasks.length})</span>
+                <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
+            `;
+            header.onclick = () => {
+                spoiler.classList.toggle('open');
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            };
+
+            const content = document.createElement('div');
+            content.className = 'completed-spoiler-content';
+
+            completedTasks.forEach(task => {
+                content.appendChild(createTaskCard(task, false, timersToStart));
+            });
+
+            spoiler.appendChild(header);
+            spoiler.appendChild(content);
+            container.appendChild(spoiler);
+        }
 
         timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
     }
@@ -672,8 +750,17 @@
 
             if (data && data.success) {
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                if (data.reward) { userState.tickets += data.reward; updateUI(); }
-                window.showSuccessModal(`Получено +${data.reward || 0} билетов!`);
+                
+                // Начисляем гринд-монеты в стейт
+                const rewardVal = parseFloat(data.reward || 0);
+                if (data.new_coins !== undefined) {
+                    userState.coins = parseFloat(data.new_coins);
+                } else if (rewardVal) {
+                    userState.coins += rewardVal;
+                }
+
+                updateUI();
+                window.showSuccessModal(data.message || `Получено +${rewardVal} монет!`);
                 loadTelegramTasks(); 
             } else {
                 handleTaskError(data, taskKey, actionUrl);
@@ -1049,7 +1136,14 @@
                     const popup = document.getElementById('profilePopup');
                     if (popup) popup.remove();
                     activeProfileCheck = null;
-                    if (data.reward) { userState.tickets += data.reward; updateUI(); }
+
+                    const rewardVal = parseFloat(data.reward || 0);
+                    if (data.new_coins !== undefined) {
+                        userState.coins = parseFloat(data.new_coins);
+                    } else if (rewardVal) {
+                        userState.coins += rewardVal;
+                    }
+                    updateUI();
                     window.showSuccessModal("Профиль подтвержден!");
                     loadTelegramTasks();
                 }
