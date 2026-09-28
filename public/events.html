@@ -1575,19 +1575,26 @@
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 5. Центрируем карточку строго по центру верхней зоны видимости
+        // 5. Центрируем карточку строго без заездов под кнопки
         setTimeout(() => {
             const target = document.querySelector(step.highlightSelector);
             const scrollArea = document.getElementById('main-scroll-area');
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
 
-                const visibleHeight = scrollArea.clientHeight;
-                const targetHeight = target.offsetHeight;
+                // 🔥 ДЛЯ 1-ГО ШАГА: жестко держим скролл на 0! 
+                // Карточка будет стоять ровно там, где задан отступ в CSS, и никуда не улетит
+                if (currentTourStep === 0) {
+                    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
 
-                // Вычисляем отступ, чтобы карточка встала ровно по центру верхней зоны
-                const centerPadding = Math.max(15, (visibleHeight - targetHeight) / 2);
-                const targetY = Math.max(0, target.offsetTop - centerPadding);
+                // Для остальных шагов считаем точный отступ без бага с offsetTop
+                const targetRect = target.getBoundingClientRect();
+                const scrollRect = scrollArea.getBoundingClientRect();
+                const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
+                const centerOffset = (scrollArea.clientHeight - target.offsetHeight) / 2;
+                const targetY = Math.max(0, currentPos - Math.max(15, centerOffset));
 
                 scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
             }
