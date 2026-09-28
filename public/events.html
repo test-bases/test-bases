@@ -959,8 +959,15 @@
                 <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
             `;
             header.onclick = () => {
-                spoiler.classList.toggle('open');
+                const isOpen = spoiler.classList.toggle('open');
                 if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+
+                // 🔥 Если спойлер открылся — даем 100мс на отрисовку и плавно прокручиваем экран к нему
+                if (isOpen) {
+                    setTimeout(() => {
+                        spoiler.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 120);
+                }
             };
 
             const content = document.createElement('div');
