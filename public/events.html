@@ -847,7 +847,6 @@
             const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
 
             let btnHtml = '';
-            let btnHtml = '';
             if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
                 btnHtml = `<button class="premium-btn locked-state" disabled style="font-size: 9px;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
             } else {
