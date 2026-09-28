@@ -117,7 +117,7 @@
       margin-bottom: 4px !important;
     }
 
-    /* === SUB-HEADER (ПЕРЕИМЕНОВАН, ЧТОБЫ НЕ БРАТЬ ОТСТУПЫ top_nav) === */
+    /* === SUB-HEADER === */
     .sub-header {
       padding: 2px 15px 4px 15px;
       display: flex;
@@ -125,6 +125,135 @@
       align-items: center;
       position: relative;
       z-index: 100;
+    }
+
+    .tour-help-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--accent-neon);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tour-help-btn:active {
+      transform: scale(0.9);
+      background: rgba(255, 215, 0, 0.15);
+    }
+
+    /* === ТЁМНЫЙ БЛЮР И СИСТЕМА ОБУЧЕНИЯ === */
+    .tour-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 99990;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .tour-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Подсветка конкретного элемента поверх блюра */
+    .tour-highlighted {
+      position: relative !important;
+      z-index: 99995 !important;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 0 2px var(--accent-neon) !important;
+      border-radius: 12px;
+      pointer-events: none !important;
+      transition: all 0.3s ease;
+    }
+
+    /* Карточка с объяснением */
+    .tour-card {
+      position: fixed;
+      bottom: 25px;
+      left: 15px;
+      right: 15px;
+      max-width: 380px;
+      margin: 0 auto;
+      background: #141416;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.15);
+      border-radius: 18px;
+      padding: 16px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: tourSlideUp 0.3s ease;
+    }
+
+    @keyframes tourSlideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tour-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tour-step-badge {
+      font-size: 9px;
+      font-weight: 800;
+      color: #000;
+      background: var(--accent-neon);
+      padding: 3px 7px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .tour-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-color-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+    .tour-close-btn:active { color: #fff; }
+
+    .tour-img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tour-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tour-text {
+      font-size: 11px;
+      color: #b0b0b5;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .tour-text b { color: #fff; }
+    .tour-text span.fire { color: #ff3b30; font-weight: 700; }
+    .tour-text span.gold { color: #ffd700; font-weight: 700; }
+
+    .tour-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
     }
 
     .header-title-label {
@@ -264,7 +393,12 @@
   <!-- ШАПКА СО СТАТУСОМ -->
   <header class="sub-header">
     <span class="header-title-label">Гринд-фарм</span>
-    <div class="status-pill" id="user-status">Стандарт</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="tour-help-btn" onclick="startGrindTour()" title="Что такое гринд?">
+            <i class="fa-solid fa-question"></i>
+        </button>
+        <div class="status-pill" id="user-status">Стандарт</div>
+    </div>
   </header>
 
   <!-- СКРЫТЫЕ ЭЛЕМЕНТЫ (ЯКОРЯ ДЛЯ СИНХРОНИЗАЦИИ С top_nav.js) -->
@@ -370,6 +504,25 @@
 
   <div id="profile-popup-root"></div>
 
+  <!-- === ТЕМНЫЙ БЛЮР И ОКНО ОБУЧЕНИЯ === -->
+  <div id="tour-backdrop" class="tour-backdrop" onclick="closeGrindTour()"></div>
+  <div id="tour-card" class="tour-card" style="display: none;">
+      <div class="tour-card-header">
+          <span class="tour-step-badge" id="tour-step-badge">Шаг 1 из 4</span>
+          <button class="tour-close-btn" onclick="closeGrindTour()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <img id="tour-img" class="tour-img" src="" alt="Обучение" onerror="this.style.display='none'">
+
+      <h4 class="tour-title" id="tour-title">Что такое Гринд?</h4>
+      <p class="tour-text" id="tour-text">Текст обучения...</p>
+
+      <div class="tour-actions">
+          <button class="premium-btn" id="tour-prev-btn" style="flex: 1;" onclick="prevTourStep()">Назад</button>
+          <button class="premium-btn active-state" id="tour-next-btn" style="flex: 1.5;" onclick="nextTourStep()">Далее</button>
+      </div>
+  </div>
+  
   <!-- НИЖНИЙ И ВЕРХНИЙ БАР -->
   <script src="/top_nav.js" defer></script>
   <script src="/bottom-nav.js"></script>
@@ -1210,6 +1363,135 @@
                 try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (err) {}
             }
         }
+    });
+
+    // ==========================================
+    // 🎓 ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ (ГРИНД-ГИД)
+    // ==========================================
+    let currentTourStep = 0;
+
+    const grindTourSteps = [
+        {
+            title: "Что такое Гринд?",
+            text: "<b>Гринд</b> — это твоя ежедневная активность. Заходи каждый день, забирай награду и получай <span class='fire'>гринд-монеты 🔥</span>. Чем больше дней подряд ты заходишь, тем больше монет получаешь за серию!",
+            img: "/public/static/grind_intro.png",
+            tab: "tasks",
+            highlightSelector: "#tab-tasks .glass-card:first-child" // подсвечиваем карточку Стрика
+        },
+        {
+            title: "Задания активности",
+            text: "Здесь находятся <b>Телеграм-задания</b>. Укажи ник бота в фамилии, поставь ссылку в Bio, подпишись на канал или отдай голос. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span> на баланс!",
+            img: "/public/static/grind_tasks.png",
+            tab: "tasks",
+            highlightSelector: "#tg-tasks-list" // подсвечиваем блок заданий
+        },
+        {
+            title: "Ежедневный Билет",
+            text: "Во вкладке <b>«Бесплатно»</b> тебя ждёт бесплатный билет каждые 24 часа. <span class='gold'>VIP-статус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> дают сразу +5 билетов вместо одного!",
+            img: "/public/static/grind_tickets.png",
+            tab: "free",
+            highlightSelector: "#tab-free .glass-card" // подсвечиваем карточку билета
+        },
+        {
+            title: "Обменник и Магазин",
+            text: "Твои <span class='fire'>гринд-монеты 🔥</span> — это валюта для покупок! Меняй их на <span style='color:#00f2ea;'>Билеты</span> для аукционов и розыгрышей скинов или покупай <span class='gold'>основные монеты 🟡</span> для кейсов.",
+            img: "/public/static/grind_shop.png",
+            tab: "shop",
+            highlightSelector: ".shop-balance-card" // подсвечиваем баланс магазина
+        }
+    ];
+
+    window.startGrindTour = function() {
+        currentTourStep = 0;
+        document.getElementById('tour-backdrop').classList.add('active');
+        document.getElementById('tour-card').style.display = 'flex';
+        renderCurrentTourStep();
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    };
+
+    window.closeGrindTour = function() {
+        document.getElementById('tour-backdrop').classList.remove('active');
+        document.getElementById('tour-card').style.display = 'none';
+        removeTourHighlight();
+        localStorage.setItem('grind_tour_viewed', 'true');
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    };
+
+    window.nextTourStep = function() {
+        if (currentTourStep < grindTourSteps.length - 1) {
+            currentTourStep++;
+            renderCurrentTourStep();
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        } else {
+            closeGrindTour();
+        }
+    };
+
+    window.prevTourStep = function() {
+        if (currentTourStep > 0) {
+            currentTourStep--;
+            renderCurrentTourStep();
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+    };
+
+    function removeTourHighlight() {
+        document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+    }
+
+    function renderCurrentTourStep() {
+        const step = grindTourSteps[currentTourStep];
+        removeTourHighlight();
+
+        // 1. Программно переключаем вкладку страницы
+        if (step.tab) {
+            const tabBtnIndex = step.tab === 'tasks' ? 0 : (step.tab === 'free' ? 1 : 2);
+            const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
+            if (tabButtons[tabBtnIndex]) {
+                window.switchMainTab(step.tab, tabButtons[tabBtnIndex]);
+            }
+        }
+
+        // 2. Заполняем данные карточки
+        document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${grindTourSteps.length}`;
+        document.getElementById('tour-title').textContent = step.title;
+        document.getElementById('tour-text').innerHTML = step.text;
+
+        const imgEl = document.getElementById('tour-img');
+        if (step.img) {
+            imgEl.style.display = 'block';
+            imgEl.src = step.img;
+        } else {
+            imgEl.style.display = 'none';
+        }
+
+        // 3. Настройка кнопок
+        const prevBtn = document.getElementById('tour-prev-btn');
+        const nextBtn = document.getElementById('tour-next-btn');
+
+        prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
+        nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
+
+        // 4. Подсвечиваем элемент поверх блюра и скроллим к нему
+        setTimeout(() => {
+            if (step.highlightSelector) {
+                const target = document.querySelector(step.highlightSelector);
+                if (target) {
+                    target.classList.add('tour-highlighted');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }, 150);
+    }
+
+    // Авто-запуск для новых пользователей (если еще не видели)
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const viewed = localStorage.getItem('grind_tour_viewed');
+            if (!viewed) {
+                window.startGrindTour();
+            }
+        }, 1200);
     });
   </script>
 </body>
