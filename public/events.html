@@ -8,9 +8,45 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+<link rel="stylesheet" href="/fontawesome/css/all.min.css" />
   
+  <!-- 🔥 ФИКС ОШИБКИ TOP_NAV: Вынесли makeApiRequest на самый верх 🔥 -->
+  <script>
+    window.makeApiRequest = async function(url, data = {}, method = 'POST', silent = false) {
+        const options = {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (method === 'POST') {
+            options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data });
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error('API Error');
+        return await response.json();
+    };
+  </script>
+
   <style>
+    /* === СТИЛИ ТЕЛЕГРАМ ЗАДАНИЙ (ИЗ QUEST.JS) === */
+    .tg-task-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; }
+    .tg-task-item.completed { opacity: 0.6; filter: grayscale(1); }
+    .tg-task-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .tg-left-col { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .tg-icon-box { width: 36px; height: 36px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--accent-primary); }
+    .tg-text-col { display: flex; flex-direction: column; }
+    .tg-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .tg-subtitle { font-size: 10px; color: var(--text-secondary); line-height: 1.2; margin-top: 2px; }
+    .tg-code-phrase { color: #2AABEE; font-weight: 700; }
+    .tg-right-col { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+    .tg-premium-btn { background: var(--accent-primary); color: #000; border: none; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; text-transform: uppercase; }
+    .tg-premium-btn:disabled { background: var(--surface-secondary) !important; color: var(--text-secondary) !important; cursor: not-allowed; }
+    .btn-reward-badge { display: flex; align-items: center; gap: 2px; }
+    .tg-progress-track { display: flex; gap: 4px; margin-top: 10px; }
+    .tg-progress-segment { flex: 1; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+    .tg-progress-segment.filled { background: var(--accent-primary); }
+    .tg-counter-text { font-size: 10px; color: var(--text-secondary); text-align: right; margin-top: 4px; }
+    .tg-completed-icon { width: 24px; height: 24px; border-radius: 50%; background: #34c759; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    /* ========================================== */
     :root {
       --background-main: #111111;
       --surface-primary: #1C1C1C;
@@ -649,53 +685,14 @@
     </button>
   </div>
 
-  <!-- 🔥 ВСТАВКА: TELEGRAM ЗАДАНИЯ КАК ГРИНД 🔥 -->
-  <div class="glass-card">
-    <div class="section-title"><i class="fa-solid fa-bullhorn" style="color: #2AABEE;"></i> Подписка на канал</div>
-    <div class="grind-info">
-        Награда: <span id="reward-tg_sub" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
-        Статус: <span id="status-tg_sub" style="color: var(--text-secondary);">Загрузка...</span>
+<!-- 🔥 КОМПАКТНЫЕ TELEGRAM ЗАДАНИЯ (ИЗ QUEST.JS) 🔥 -->
+  <div class="glass-card" style="padding-bottom: 4px;">
+    <div class="section-title"><i class="fa-brands fa-telegram" style="color: #2AABEE;"></i> Telegram Задания</div>
+    
+    <!-- Сюда скрипт сам встроит компактные карточки -->
+    <div id="tg-tasks-list">
+        <div style="text-align:center; padding:10px; color:#666;">Загрузка...</div>
     </div>
-    <button id="btn-tg_sub" class="main-action-btn" disabled>
-        <span>ЗАГРУЗКА...</span>
-        <div class="shine"></div>
-    </button>
-  </div>
-
-  <div class="glass-card">
-    <div class="section-title"><i class="fa-solid fa-rocket" style="color: #ff9500;"></i> Голосование (Буст)</div>
-    <div class="grind-info">
-        Награда: <span id="reward-tg_vote" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
-        Статус: <span id="status-tg_vote" style="color: var(--text-secondary);">Загрузка...</span>
-    </div>
-    <button id="btn-tg_vote" class="main-action-btn" disabled>
-        <span>ЗАГРУЗКА...</span>
-        <div class="shine"></div>
-    </button>
-  </div>
-
-  <div class="glass-card">
-    <div class="section-title"><i class="fa-solid fa-signature" style="color: #34c759;"></i> Ник HATE в фамилии</div>
-    <div class="grind-info">
-        Награда: <span id="reward-tg_surname" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
-        Статус: <span id="status-tg_surname" style="color: var(--text-secondary);">Загрузка...</span>
-    </div>
-    <button id="btn-tg_surname" class="main-action-btn" disabled>
-        <span>ЗАГРУЗКА...</span>
-        <div class="shine"></div>
-    </button>
-  </div>
-
-  <div class="glass-card">
-    <div class="section-title"><i class="fa-solid fa-link" style="color: #9146ff;"></i> Ссылка в БИО</div>
-    <div class="grind-info">
-        Награда: <span id="reward-tg_bio" style="color: var(--accent-primary); font-weight: 700;">+?</span> <i class="fa-solid fa-ticket ticket-icon"></i> <br>
-        Статус: <span id="status-tg_bio" style="color: var(--text-secondary);">Загрузка...</span>
-    </div>
-    <button id="btn-tg_bio" class="main-action-btn" disabled>
-        <span>ЗАГРУЗКА...</span>
-        <div class="shine"></div>
-    </button>
   </div>
   <!-- 🔥 КОНЕЦ ВСТАВКИ 🔥 -->
 
@@ -721,29 +718,6 @@
 </main> <!-- ЗАКРЫВАЕМ MAIN ЗДЕСЬ -->
 
 <!-- 🔥 ВЫНЕСЛИ МОДАЛКИ СЮДА, НАПРЯМУЮ В BODY 🔥 -->
-<!-- МОДАЛКА ЗАДАНИЯ -->
-<div id="task-modal" class="modal-overlay">
-    <div class="custom-popup">
-        <h3 id="task-modal-title">Задание</h3>
-        <p id="task-modal-desc">Описание</p>
-        
-        <div class="promo-copy-box" id="task-copy-block" style="display: none; margin-bottom: 15px;">
-            <span class="promo-label">Текст для копирования:</span>
-            <span class="promo-value" id="task-copy-text" onclick="copyTaskText(this)">ТЕКСТ</span>
-        </div>
-
-        <div class="popup-actions">
-            <a href="#" id="task-action-link" class="popup-btn primary" target="_blank" style="display: none;">
-                <i class="fa-brands fa-telegram"></i> Выполнить
-            </a>
-            <button id="task-check-btn" class="popup-btn primary" style="background-color: var(--accent-primary); color: #000;">
-                <i class="fa-solid fa-rotate-right"></i> Проверить
-            </button>
-            <button onclick="closeTaskModal()" class="popup-btn secondary">Закрыть</button>
-        </div>
-    </div>
-</div>
-
 <div id="shop-modal" class="modal-overlay">
   <div class="modal-content">
       <div class="modal-header">
@@ -810,28 +784,22 @@
 </footer>
 
 <script>
-  // ==========================================
-    // 🛡️ ВСТАВЛЯЕМ СЮДА (САМЫЙ ВЕРХ)
+    // ==========================================
+    // 🛡️ ТЕХНИЧЕСКИЕ РАБОТЫ
     // ==========================================
     async function checkMaintenance() {
         try {
-            // Проверяем статус сервера
             const res = await fetch('/api/v1/bootstrap', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // Используем безопасное получение initData
                 body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
             });
 
             if (res.ok) {
                 const data = await res.json();
-                
-                // Если включен режим сна (maintenance: true)
                 if (data.maintenance) {
                     console.warn("⛔ Тех. режим включен. Редирект на главную.");
-                    // Скрываем интерфейс, чтобы не моргнул
                     document.body.innerHTML = ""; 
-                    // Выкидываем на заглушку
                     window.location.href = '/'; 
                 }
             }
@@ -839,31 +807,15 @@
             console.error("Ошибка проверки статуса:", e);
         }
     }
-
-    // Запускаем проверку мгновенно
     checkMaintenance();
 
-  // Добавь это, чтобы top_nav.js мог делать запросы
-window.makeApiRequest = async function(url, data = {}, method = 'POST', silent = false) {
-    const options = {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-    };
-    // Автоматически подкидываем initData для авторизации
-    if (method === 'POST') {
-        options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data });
-    }
-    const response = await fetch(url, options);
-    if (!response.ok) throw new Error('API Error');
-    return await response.json();
-};
     // ==========================================
-    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ФУНКЦИИ (Доступны всегда) ---
+    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ФУНКЦИИ ---
+    // ==========================================
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    // --- ЛОВИМ ФЛАГ ПОКУПОК ИЗ КЭША БУТСТРАПА ---
     window.coinsPurchasesEnabled = true;
     try {
         const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
@@ -871,57 +823,35 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
             window.coinsPurchasesEnabled = cachedBootstrap.menu.coins_purchases_enabled;
         }
     } catch(e) {}
-    // --------------------------------------------
 
-  // ==========================================
-    // 🔙 ЛОГИКА КНОПКИ НАЗАД (1в1 ИЗ ПРОФИЛЯ)
-
-  // ==========================================
-    // 🔙 ЛОГИКА КНОПКИ НАЗАД (1в1 ИЗ ПРОФИЛЯ)
-    // ==========================================
+    // Кнопка НАЗАД
     function goBack() {
-        // Проверяем историю браузера
         if (window.history.length > 1 && document.referrer) {
             window.history.back();
         } else {
-            // Если истории нет, идем принудительно в меню
             window.location.href = '/menu';
         }
     }
-
-    // 2. Настраиваем нативную кнопку Telegram (в шапке самого мессенджера)
     tg.BackButton.show();
-    tg.BackButton.onClick(() => {
-        goBack();
-    });
+    tg.BackButton.onClick(goBack);
 
-    // 1. Исправленная функция копирования
+    // Копирование
     window.copyPromo = function(element) {
-        // Берем текст конкретно по ID, чтобы избежать ошибок с передачей 'this'
         const codeElement = document.getElementById('success-promo-code');
         if (!codeElement) return;
-
-        const codeToCopy = codeElement.innerText.trim(); // Убираем пробелы
-
+        const codeToCopy = codeElement.innerText.trim(); 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(codeToCopy)
                 .then(() => {
                     tg.showPopup({ message: 'Код скопирован!' });
-                    // Визуальный эффект
                     codeElement.style.opacity = '0.5';
                     setTimeout(() => codeElement.style.opacity = '1', 200);
-                })
-                .catch(err => {
-                    // Если не сработал новый метод, пробуем старый (фоллбэк)
-                    fallbackCopyTextToClipboard(codeToCopy);
-                });
+                }).catch(err => { fallbackCopyTextToClipboard(codeToCopy); });
         } else {
             fallbackCopyTextToClipboard(codeToCopy);
         }
     };
-  
 
-    // Старый надежный метод копирования (если первый не сработал)
     function fallbackCopyTextToClipboard(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -938,20 +868,9 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         document.body.removeChild(textArea);
     }
 
-    // 2. Функции закрытия окон (Явно привязаны к window)
-    window.closeSuccessModal = function() {
-        document.getElementById('success-modal').classList.remove('visible');
-    };
-
-    window.openHowToUsePopup = function() {
-        // Можно закрыть окно успеха, если нужно
-        // document.getElementById('success-modal').classList.remove('visible');
-        document.getElementById('how-to-use-popup').classList.add('visible');
-    };
-
-    window.closeHowToUsePopup = function() {
-        document.getElementById('how-to-use-popup').classList.remove('visible');
-    };
+    window.closeSuccessModal = function() { document.getElementById('success-modal').classList.remove('visible'); };
+    window.openHowToUsePopup = function() { document.getElementById('how-to-use-popup').classList.add('visible'); };
+    window.closeHowToUsePopup = function() { document.getElementById('how-to-use-popup').classList.remove('visible'); };
 
     window.openShopModal = async function() {
         document.getElementById('shop-modal').classList.add('visible');
@@ -959,10 +878,7 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         await fetchShopItems(); 
         renderShopList();
     };
-
-    window.closeShopModal = function() {
-        document.getElementById('shop-modal').classList.remove('visible');
-    };
+    window.closeShopModal = function() { document.getElementById('shop-modal').classList.remove('visible'); };
 
     window.switchTab = function(tab) {
         currentTab = tab;
@@ -971,7 +887,7 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         renderShopList();
     };
 
-   // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
+    // --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ ---
     let userState = {
         coins: 0.0,
         tickets: 0,
@@ -980,37 +896,7 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         lastFreeTicket: null,
         active_referrals_count: 0,
         referral_activated_at: null,
-        twitch_status: null,
-        completed_tasks: [] // Массив для отслеживания выполненных заданий
-    };
-
-    const TG_TASKS_CONFIG = {
-        subscribe: {
-            title: 'Подписка на канал',
-            desc: 'Подпишись на наш официальный канал, чтобы забрать билеты и быть в курсе новостей.',
-            link: 'https://t.me/hatelove_ttv', // Укажи свою ссылку
-            btnText: 'Перейти в канал',
-            apiPath: 'subscribe' // Endpoint type
-        },
-        boost: {
-            title: 'Голосование за канал',
-            desc: 'Отдай свой голос (буст) за наш канал. Требуется Telegram Premium.',
-            link: 'https://t.me/boost/hatelove_ttv', // Укажи свою ссылку
-            btnText: 'Проголосовать',
-            apiPath: 'boost'
-        },
-        lastname: {
-            title: 'Ник HATE в фамилии',
-            desc: 'Добавь слово <b>HATE</b> (или HATElavka) в свою фамилию в профиле Telegram. Не удаляй, иначе билеты сгорят!',
-            copyText: 'HATE',
-            apiPath: 'lastname'
-        },
-        bio: {
-            title: 'Ссылка в БИО',
-            desc: 'Укажи ссылку на нашего бота в описании своего профиля (О себе).',
-            copyText: 't.me/HATElavka_bot', // Укажи своего бота
-            apiPath: 'bio'
-        }
+        twitch_status: null
     };
 
     let grindSettings = { 
@@ -1024,7 +910,6 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
     const MAX_STREAK = 10;
     const GRIND_COOLDOWN = 24 * 60 * 60 * 1000;
 
-    // Ссылки на DOM элементы
     const dom = {
         coinsDisplay: document.getElementById('user-coins'),
         ticketsDisplay: document.getElementById('user-tickets'),
@@ -1038,14 +923,15 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
         freeTicketContainer: document.getElementById('free-ticket-container'),
         ticketSubtitle: document.getElementById('ticket-subtitle'),
         shopContainer: document.getElementById('shop-container'),
-      userStatus: document.querySelector('.user-status') || document.querySelector('.status-badge'),
+        userStatus: document.querySelector('.user-status') || document.querySelector('.status-badge'),
     };
 
-    // --- ОСНОВНАЯ ЛОГИКА ---
+    // ==========================================
+    // --- ОСНОВНАЯ ЛОГИКА ГРИНДА ---
+    // ==========================================
     document.addEventListener('DOMContentLoaded', function() {
         init();
 
-        // Обработчик кнопки ГРИНД
         if(dom.grindBtn) {
             dom.grindBtn.addEventListener('click', async () => {
                 if (dom.grindBtn.disabled) return;
@@ -1074,11 +960,9 @@ window.makeApiRequest = async function(url, data = {}, method = 'POST', silent =
                     userState.lastGrindTime = res.last_grind_at;
 
                     updateUI();
-                renderStreakVisuals();
-                loadTelegramTasks(); // <--- ДОБАВЛЯЕМ ВЫЗОВ
-                startTimers();
-            }
-        } catch (e) {
+                    renderStreakVisuals();
+                // 🔥 ВОТ ОНА СИНТАКСИЧЕСКАЯ ОШИБКА, ТЕПЕРЬ ОНА ИСПРАВЛЕНА 🔥
+                } catch (e) {
                     tg.showAlert(e.message);
                     dom.grindBtn.disabled = false;
                 }
