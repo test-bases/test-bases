@@ -243,7 +243,8 @@
       max-height: 95px;
       max-width: 130px;
       object-fit: contain;
-      filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+      /* Чистая объемная тень без желтого свечения */
+      filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.7));
       animation: tourFloat 3.2s ease-in-out infinite;
     }
 
@@ -1421,7 +1422,8 @@
             text: "Выполняй <b>Телеграм-задания</b>: ставь ник бота в фамилию, ссылку в Bio, подписывайся или голосуй за канал. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
             img: "/public/static/grind_tasks.png",
             tab: "tasks",
-            highlightSelector: "#tg-tasks-list"
+            // Выделяем именно первую карточку задания, а не весь длинный список
+            highlightSelector: "#tg-tasks-list .glass-card:first-child, #tg-tasks-list"
         },
         {
             title: "Ежедневный Билет",
@@ -1438,7 +1440,8 @@
             highlightSelector: ".shop-balance-card"
         }
     ];
-
+    
+    
     window.startGrindTour = function() {
         currentTourStep = 0;
         document.getElementById('tour-backdrop').classList.add('active');
@@ -1494,16 +1497,42 @@
     function updateSpotlight(selector) {
         const spotlight = document.getElementById('tour-spotlight');
         const backdrop = document.getElementById('tour-backdrop');
+        const card = document.getElementById('tour-card');
         const target = document.querySelector(selector);
+        const scrollArea = document.getElementById('main-scroll-area');
 
-        if (!target || !spotlight || !backdrop) {
+        if (!target || !spotlight || !backdrop || !card) {
             if (spotlight) spotlight.style.display = 'none';
             if (backdrop) backdrop.style.clipPath = 'none';
             return;
         }
 
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const vh = window.innerHeight;
+        const cardHeight = card.offsetHeight || 230;
 
+        // Определяем, в какой половине контента находится элемент
+        const targetOffsetTop = target.offsetTop;
+        const isUpper = targetOffsetTop < (scrollArea.scrollHeight / 2);
+
+        if (isUpper) {
+            // Элемент сверху -> карточку ставим вниз
+            card.style.top = 'auto';
+            card.style.bottom = '16px';
+            
+            // Скроллим так, чтобы элемент гарантированно встал в верхнюю зону (под шапку)
+            const targetY = Math.max(0, targetOffsetTop - 50);
+            scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
+        } else {
+            // Элемент снизу -> карточку ставим наверх
+            card.style.bottom = 'auto';
+            card.style.top = '16px';
+            
+            // Скроллим элемент в нижнюю видимую зону под карточкой
+            const targetY = Math.max(0, targetOffsetTop - cardHeight - 25);
+            scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
+        }
+
+        // Ждем завершения скролла и четко вырезаем подсветку
         setTimeout(() => {
             const rect = target.getBoundingClientRect();
             const pad = 6;
@@ -1514,22 +1543,19 @@
             const width = right - left;
             const height = bottom - top;
 
-            // 1. Позиционируем независимую рамку
             spotlight.style.top = `${top}px`;
             spotlight.style.left = `${left}px`;
             spotlight.style.width = `${width}px`;
             spotlight.style.height = `${height}px`;
             spotlight.style.display = 'block';
 
-            // 2. Делаем прозрачный вырез в блюре ровно под размер элемента
             backdrop.style.clipPath = `polygon(
                 0% 0%, 0% 100%,
                 ${left}px 100%, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px 100%,
                 100% 100%, 100% 0%
             )`;
-        }, 180);
+        }, 220);
     }
-
     function renderCurrentTourStep() {
         const step = grindTourSteps[currentTourStep];
 
