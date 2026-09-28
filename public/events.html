@@ -112,14 +112,18 @@
       transform: none !important;
     }
 
-    /* === HEADER === */
-    .top-header {
-      padding: var(--safe-top-gap) 15px 4px 15px;
+    /* Принудительно убираем отступ снизу у глобальной шапки top_nav */
+    #universal-top-header {
+      margin-bottom: 4px !important;
+    }
+
+    /* === SUB-HEADER (ПЕРЕИМЕНОВАН, ЧТОБЫ НЕ БРАТЬ ОТСТУПЫ top_nav) === */
+    .sub-header {
+      padding: 2px 15px 4px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 100;
     }
 
@@ -212,9 +216,9 @@
 
   <div id="pull-to-refresh"><i class="fa-solid fa-arrow-down" id="ptr-icon"></i></div>
 
-  <!-- ШАПКА СО СТАТУСОМ -->
-  <header class="top-header">
-    <span class="header-title-label">НАГРАДЫ</span>
+ <!-- ШАПКА СО СТАТУСОМ (Используем sub-header вместо top-header) -->
+  <header class="sub-header">
+    <span class="header-title-label">Гринд-фарм</span>
     <div class="status-pill" id="user-status">Стандарт</div>
   </header>
 
