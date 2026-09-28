@@ -29,7 +29,7 @@
   <style>
     /* === ПРЕМИАЛЬНЫЕ ПЕРЕМЕННЫЕ === */
     :root {
-      --bg-color: #030303;
+      --bg-color: #000000;
       --text-color: #ffffff;
       --text-color-muted: #8e8e93;
 
@@ -44,22 +44,17 @@
       --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
       --glass-blur: blur(25px);
 
-      /* Уменьшенный отступ сверху (-30%) */
-      --safe-top-gap: calc(env(safe-area-inset-top, 0px) + 2px);
+      /* Поджато в самый верх */
+      --safe-top-gap: env(safe-area-inset-top, 0px);
     }
-
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
     body {
       font-family: 'Inter', -apple-system, sans-serif;
-      background-color: var(--bg-color);
+      background-color: #000000;
       color: var(--text-color);
       margin: 0;
       overflow-x: hidden;
-      background: radial-gradient(circle at 20% -10%, rgba(255, 215, 0, 0.08) 0%, transparent 40%),
-                  radial-gradient(circle at 80% 110%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
-                  var(--bg-color);
-      background-attachment: fixed;
+      background: #000000; /* Глубокий черный без желтого свечения */
     }
 
     ::-webkit-scrollbar { display: none; }
@@ -117,9 +112,9 @@
       transform: none !important;
     }
 
-    /* === HEADER (ТОЛЬКО СТАТУС, БЕЗ ДУБЛИРОВАНИЯ БАЛАНСОВ) === */
+    /* === HEADER (ПРИПОДНЯТ МАКСИМАЛЬНО) === */
     .top-header {
-      padding: var(--safe-top-gap) 15px 6px 15px;
+      padding: var(--safe-top-gap) 15px 2px 15px; /* Минимальный паддинг снизу */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -129,17 +124,17 @@
     }
 
     .header-title-label {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      color: var(--text-color-muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #fff; /* Ярче и премиальнее */
       text-transform: uppercase;
     }
 
     .status-pill {
-      font-size: 9px;
+      font-size: 8px; /* Чуть компактнее */
       font-weight: 800;
-      padding: 5px 10px;
+      padding: 4px 8px;
       border-radius: 20px;
       border: 1px solid var(--glass-border);
       background: var(--glass-bg);
@@ -153,7 +148,7 @@
       background: rgba(255,255,255,0.03);
       border-radius: 12px;
       padding: 3px;
-      margin: 0 15px 10px 15px;
+      margin: 2px 15px 8px 15px; /* Уменьшены отступы сверху и снизу */
       border: 1px solid var(--glass-border);
     }
     .segment-btn {
