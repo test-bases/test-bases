@@ -154,6 +154,11 @@
       transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
+    /* Воздух сверху, чтобы 1-й шаг не упирался в верхние кнопки */
+    body.tour-mode .tab-content {
+      padding-top: 35px !important;
+    }
+
     /* Все лишние карточки мягко затемняются */
     body.tour-mode .glass-card {
       opacity: 0.2;
@@ -1508,17 +1513,23 @@
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 5. Подтягиваем карточку ровно в верхнюю зону показа
+        // 5. Центрируем карточку строго по центру верхней зоны видимости
         setTimeout(() => {
             const target = document.querySelector(step.highlightSelector);
             const scrollArea = document.getElementById('main-scroll-area');
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
-                // Скроллим так, чтобы карточка аккуратно встала в самый верх зоны
-                const targetY = Math.max(0, target.offsetTop - 8);
+
+                const visibleHeight = scrollArea.clientHeight;
+                const targetHeight = target.offsetHeight;
+
+                // Вычисляем отступ, чтобы карточка встала ровно по центру верхней зоны
+                const centerPadding = Math.max(15, (visibleHeight - targetHeight) / 2);
+                const targetY = Math.max(0, target.offsetTop - centerPadding);
+
                 scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
             }
-        }, 120);
+        }, 150);
     }
   </script>
 </body>
