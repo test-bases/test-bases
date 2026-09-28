@@ -150,51 +150,54 @@
     .tour-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.82);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.84);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 99990;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, clip-path 0.3s ease;
     }
     .tour-backdrop.active {
       opacity: 1;
       pointer-events: auto;
     }
 
-    /* Подсветка конкретного элемента поверх блюра */
-    .tour-highlighted {
-      position: relative !important;
-      z-index: 99995 !important;
-      box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 0 2px var(--accent-neon) !important;
-      border-radius: 12px;
-      pointer-events: none !important;
-      transition: all 0.3s ease;
+    /* Независимый прожектор: не обрезается overflow контейнеров */
+    .tour-spotlight {
+      position: fixed;
+      border-radius: 16px;
+      border: 2px solid var(--accent-neon);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), inset 0 0 15px rgba(255, 215, 0, 0.2);
+      pointer-events: none;
+      z-index: 99994;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     /* Карточка с объяснением */
     .tour-card {
       position: fixed;
-      bottom: 25px;
-      left: 15px;
-      right: 15px;
+      bottom: 20px;
+      left: 14px;
+      right: 14px;
       max-width: 380px;
       margin: 0 auto;
-      background: #141416;
+      background: rgba(18, 18, 20, 0.95);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
       border: 1px solid rgba(255, 215, 0, 0.3);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.15);
-      border-radius: 18px;
-      padding: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 215, 0, 0.15);
+      border-radius: 20px;
+      padding: 16px 18px;
       z-index: 99999;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       animation: tourSlideUp 0.3s ease;
     }
 
     @keyframes tourSlideUp {
-      from { transform: translateY(20px); opacity: 0; }
+      from { transform: translateY(25px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
 
@@ -202,15 +205,17 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 2px;
     }
     .tour-step-badge {
       font-size: 9px;
       font-weight: 800;
       color: #000;
       background: var(--accent-neon);
-      padding: 3px 7px;
+      padding: 3px 8px;
       border-radius: 6px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .tour-close-btn {
       background: none;
@@ -218,21 +223,47 @@
       color: var(--text-color-muted);
       font-size: 16px;
       cursor: pointer;
-      padding: 2px 6px;
+      padding: 0 4px;
+      transition: color 0.2s;
     }
     .tour-close-btn:active { color: #fff; }
 
+    /* Парящая левитирующая картинка */
+    .tour-levitate-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: -36px;
+      margin-bottom: 4px;
+      height: 90px;
+      pointer-events: none;
+    }
+
     .tour-img {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 10px;
-      border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.02);
+      max-height: 95px;
+      max-width: 130px;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+      animation: tourFloat 3.2s ease-in-out infinite;
+    }
+
+    @keyframes tourFloat {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-8px) rotate(1.5deg);
+      }
+    }
+
+    .tour-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
 
     .tour-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       color: #fff;
       margin: 0;
@@ -241,7 +272,7 @@
     }
     .tour-text {
       font-size: 11px;
-      color: #b0b0b5;
+      color: #b0b0b8;
       line-height: 1.45;
       margin: 0;
     }
@@ -253,9 +284,9 @@
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      margin-top: 4px;
+      margin-top: 6px;
     }
-
+    
     .header-title-label {
       font-size: 12px;
       font-weight: 900;
@@ -504,18 +535,25 @@
 
   <div id="profile-popup-root"></div>
 
-  <!-- === ТЕМНЫЙ БЛЮР И ОКНО ОБУЧЕНИЯ === -->
+  <!-- === ТЕМНЫЙ БЛЮР, ПРОЖЕКТОР И ОКНО ОБУЧЕНИЯ === -->
   <div id="tour-backdrop" class="tour-backdrop" onclick="closeGrindTour()"></div>
+  <div id="tour-spotlight" class="tour-spotlight" style="display: none;"></div>
+
   <div id="tour-card" class="tour-card" style="display: none;">
       <div class="tour-card-header">
           <span class="tour-step-badge" id="tour-step-badge">Шаг 1 из 4</span>
           <button class="tour-close-btn" onclick="closeGrindTour()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <img id="tour-img" class="tour-img" src="" alt="Обучение" onerror="this.style.display='none'">
+      <!-- Левитирующий блок -->
+      <div class="tour-levitate-stage" id="tour-img-stage">
+          <img id="tour-img" class="tour-img" src="" alt="Обучение" onerror="document.getElementById('tour-img-stage').style.display='none'">
+      </div>
 
-      <h4 class="tour-title" id="tour-title">Что такое Гринд?</h4>
-      <p class="tour-text" id="tour-text">Текст обучения...</p>
+      <div class="tour-card-body">
+          <h4 class="tour-title" id="tour-title">Что такое Гринд?</h4>
+          <p class="tour-text" id="tour-text">Текст обучения...</p>
+      </div>
 
       <div class="tour-actions">
           <button class="premium-btn" id="tour-prev-btn" style="flex: 1;" onclick="prevTourStep()">Назад</button>
@@ -1365,7 +1403,7 @@
         }
     });
 
-    // ==========================================
+// ==========================================
     // 🎓 ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ (ГРИНД-ГИД)
     // ==========================================
     let currentTourStep = 0;
@@ -1373,31 +1411,31 @@
     const grindTourSteps = [
         {
             title: "Что такое Гринд?",
-            text: "<b>Гринд</b> — это твоя ежедневная активность. Заходи каждый день, забирай награду и получай <span class='fire'>гринд-монеты 🔥</span>. Чем больше дней подряд ты заходишь, тем больше монет получаешь за серию!",
+            text: "<b>Гринд</b> — это твоя ежедневная серия. Заходи каждый день, забирай награду и получай <span class='fire'>гринд-монеты 🔥</span>. Чем больше дней подряд ты заходишь, тем жирнее бонус!",
             img: "/public/static/grind_intro.png",
             tab: "tasks",
-            highlightSelector: "#tab-tasks .glass-card:first-child" // подсвечиваем карточку Стрика
+            highlightSelector: "#tab-tasks .glass-card:first-child"
         },
         {
             title: "Задания активности",
-            text: "Здесь находятся <b>Телеграм-задания</b>. Укажи ник бота в фамилии, поставь ссылку в Bio, подпишись на канал или отдай голос. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span> на баланс!",
+            text: "Выполняй <b>Телеграм-задания</b>: ставь ник бота в фамилию, ссылку в Bio, подписывайся или голосуй за канал. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
             img: "/public/static/grind_tasks.png",
             tab: "tasks",
-            highlightSelector: "#tg-tasks-list" // подсвечиваем блок заданий
+            highlightSelector: "#tg-tasks-list"
         },
         {
             title: "Ежедневный Билет",
-            text: "Во вкладке <b>«Бесплатно»</b> тебя ждёт бесплатный билет каждые 24 часа. <span class='gold'>VIP-статус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> дают сразу +5 билетов вместо одного!",
+            text: "Во вкладке <b>«Бесплатно»</b> тебя ждёт бесплатный билет каждые 24 часа. <span class='gold'>VIP-бонус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> дают сразу +5 билетов за раз!",
             img: "/public/static/grind_tickets.png",
             tab: "free",
-            highlightSelector: "#tab-free .glass-card" // подсвечиваем карточку билета
+            highlightSelector: "#tab-free .glass-card"
         },
         {
             title: "Обменник и Магазин",
             text: "Твои <span class='fire'>гринд-монеты 🔥</span> — это валюта для покупок! Меняй их на <span style='color:#00f2ea;'>Билеты</span> для аукционов и розыгрышей скинов или покупай <span class='gold'>основные монеты 🟡</span> для кейсов.",
             img: "/public/static/grind_shop.png",
             tab: "shop",
-            highlightSelector: ".shop-balance-card" // подсвечиваем баланс магазина
+            highlightSelector: ".shop-balance-card"
         }
     ];
 
@@ -1410,9 +1448,27 @@
     };
 
     window.closeGrindTour = function() {
-        document.getElementById('tour-backdrop').classList.remove('active');
-        document.getElementById('tour-card').style.display = 'none';
-        removeTourHighlight();
+        const backdrop = document.getElementById('tour-backdrop');
+        const card = document.getElementById('tour-card');
+        const spotlight = document.getElementById('tour-spotlight');
+
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            backdrop.style.clipPath = 'none';
+        }
+        if (card) card.style.display = 'none';
+        if (spotlight) spotlight.style.display = 'none';
+
+        // 🔥 Возвращаем пользователя на главную (Задания) и скроллим вверх
+        const mainTabBtn = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn')[0];
+        if (mainTabBtn) {
+            window.switchMainTab('tasks', mainTabBtn);
+        }
+        const scrollArea = document.getElementById('main-scroll-area');
+        if (scrollArea) {
+            scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         localStorage.setItem('grind_tour_viewed', 'true');
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     };
@@ -1435,15 +1491,49 @@
         }
     };
 
-    function removeTourHighlight() {
-        document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+    function updateSpotlight(selector) {
+        const spotlight = document.getElementById('tour-spotlight');
+        const backdrop = document.getElementById('tour-backdrop');
+        const target = document.querySelector(selector);
+
+        if (!target || !spotlight || !backdrop) {
+            if (spotlight) spotlight.style.display = 'none';
+            if (backdrop) backdrop.style.clipPath = 'none';
+            return;
+        }
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+            const rect = target.getBoundingClientRect();
+            const pad = 6;
+            const top = Math.max(0, rect.top - pad);
+            const left = Math.max(0, rect.left - pad);
+            const right = Math.min(window.innerWidth, rect.right + pad);
+            const bottom = Math.min(window.innerHeight, rect.bottom + pad);
+            const width = right - left;
+            const height = bottom - top;
+
+            // 1. Позиционируем независимую рамку
+            spotlight.style.top = `${top}px`;
+            spotlight.style.left = `${left}px`;
+            spotlight.style.width = `${width}px`;
+            spotlight.style.height = `${height}px`;
+            spotlight.style.display = 'block';
+
+            // 2. Делаем прозрачный вырез в блюре ровно под размер элемента
+            backdrop.style.clipPath = `polygon(
+                0% 0%, 0% 100%,
+                ${left}px 100%, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px 100%,
+                100% 100%, 100% 0%
+            )`;
+        }, 180);
     }
 
     function renderCurrentTourStep() {
         const step = grindTourSteps[currentTourStep];
-        removeTourHighlight();
 
-        // 1. Программно переключаем вкладку страницы
+        // 1. Переключаем вкладку
         if (step.tab) {
             const tabBtnIndex = step.tab === 'tasks' ? 0 : (step.tab === 'free' ? 1 : 2);
             const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
@@ -1457,12 +1547,14 @@
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').innerHTML = step.text;
 
+        const stageEl = document.getElementById('tour-img-stage');
         const imgEl = document.getElementById('tour-img');
+
         if (step.img) {
-            imgEl.style.display = 'block';
+            stageEl.style.display = 'flex';
             imgEl.src = step.img;
         } else {
-            imgEl.style.display = 'none';
+            stageEl.style.display = 'none';
         }
 
         // 3. Настройка кнопок
@@ -1472,16 +1564,8 @@
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 4. Подсвечиваем элемент поверх блюра и скроллим к нему
-        setTimeout(() => {
-            if (step.highlightSelector) {
-                const target = document.querySelector(step.highlightSelector);
-                if (target) {
-                    target.classList.add('tour-highlighted');
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        }, 150);
+        // 4. Наводим прожектор
+        updateSpotlight(step.highlightSelector);
     }
 
     // Авто-запуск для новых пользователей (если еще не видели)
