@@ -1408,7 +1408,7 @@
 
         overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="background: rgba(10, 10, 14, 0.75); border: none; box-shadow: none; backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 300px; padding: 22px 18px;">
+            <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 300px; padding: 22px 18px;">
                 <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
                     <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
