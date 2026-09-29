@@ -2484,6 +2484,10 @@ window.closeSuccessModal = function() {
             }
             pulledDistance = 0;
         });
+    } // 👈 ВОТ ЭТА СКОБКА БЫЛА ПРОПУЩЕНА
+
+    // HAPTIC FEEDBACK
+    document.body.addEventListener('click', (e) => {
 
     // HAPTIC FEEDBACK
     document.body.addEventListener('click', (e) => {
@@ -2608,28 +2612,28 @@ window.closeSuccessModal = function() {
         {
             title: "Что такое Гринд?",
             text: "<b>Гринд</b> — это твоя ежедневная серия. Заходи каждый день, забирай награду и получай <span class='fire'>гринд-монеты 🔥</span>. Чем больше дней подряд ты заходишь, тем жирнее бонус!",
-            img: "/public/static/grind_intro.png",
+            img: "/static/grind_intro.png",
             tab: "tasks",
             highlightSelector: "#tab-tasks .glass-card:first-child"
         },
         {
             title: "Задания активности",
             text: "Выполняй <b>задания активности</b>: ежедневные квесты, подписки, голосования и специальные испытания. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
-            img: "/public/static/grind_tasks.png",
+            img: "/static/grind_tasks.png",
             tab: "tasks",
             highlightSelector: "#tg-tasks-list .glass-card:first-child, #tg-tasks-list"
         },
         {
             title: "Ежедневный Билет",
             text: "Во вкладке <b>«Бесплатно»</b> тебя ждёт бесплатный билет каждые 24 часа. <span class='gold'>VIP-бонус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> дают сразу +5 билетов за раз!",
-            img: "/public/static/grind_tickets.png",
+            img: "/static/grind_tickets.png",
             tab: "free",
             highlightSelector: "#tab-free .glass-card"
         },
         {
             title: "Обменник и Магазин",
             text: "Твои <span class='fire'>гринд-монеты 🔥</span> — это валюта для покупок! Меняй их на <span style='color:#00f2ea;'>Билеты</span> для аукционов и розыгрышей скинов или покупай <span class='gold'>основные монеты 🟡</span> для кейсов.",
-            img: "/public/static/grind_shop.png",
+            img: "/static/grind_shop.png",
             tab: "shop",
             highlightSelector: ".shop-balance-card"
         }
