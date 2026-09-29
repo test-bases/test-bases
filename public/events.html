@@ -1845,7 +1845,10 @@
 
         const modal = document.getElementById('skin-inspect-modal');
         const img = document.getElementById('inspect-skin-img');
+        
+        // Сбрасываем зум и полное затемнение фона при открытии
         img.classList.remove('zoomed');
+        if (modal) modal.classList.remove('is-zoomed');
 
         // Моментально берем готовую картинку из карточки без ожидания
         const loadedCardImg = document.getElementById(`shop-skin-img-${item.id}`);
@@ -1874,18 +1877,29 @@
 
     window.closeSkinInspect = function() {
         const modal = document.getElementById('skin-inspect-modal');
-        if (modal) modal.classList.remove('visible');
+        if (modal) {
+            modal.classList.remove('visible');
+            modal.classList.remove('is-zoomed');
+        }
+        const img = document.getElementById('inspect-skin-img');
+        if (img) {
+            img.classList.remove('zoomed');
+        }
     };
 
     window.toggleSkinZoom = function(box) {
         const img = box.querySelector('img');
+        const modal = document.getElementById('skin-inspect-modal');
         if (img) {
-            img.classList.toggle('zoomed');
+            const isZoomed = img.classList.toggle('zoomed');
+            if (modal) {
+                modal.classList.toggle('is-zoomed', isZoomed);
+            }
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
     };
 
-    // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ
+   // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ
     window.exchangeCoins = async (cost, rewardTickets) => {
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
         const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
@@ -1924,10 +1938,14 @@
             }
         };
 
+        // Неоновая иконка билета для окна подтверждения
+        const ticketVisual = `<i class="fa-solid fa-ticket" style="font-size: 68px; color: #00f2ea; filter: drop-shadow(0 0 20px rgba(0, 242, 234, 0.75));"></i>`;
+
         window.showBuyConfirm(
             `+${rewardTickets} ${ticketWord.toUpperCase()}`,
             `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
-            doExchange
+            doExchange,
+            ticketVisual
         );
     };
 
@@ -1959,7 +1977,8 @@
         window.showBuyConfirm(
             skinName,
             `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
-            doBuySkin
+            doBuySkin,
+            skinImg // Передаем картинку скина в модалку покупки
         );
     };
 
@@ -2001,13 +2020,16 @@
             }
         };
 
+        // Неоновая иконка монет для окна подтверждения
+        const coinsVisual = `<i class="fa-solid fa-coins" style="font-size: 68px; color: #FFD700; filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.75));"></i>`;
+
         window.showBuyConfirm(
             `+${val} основных ${mainCoinWord}`,
             `Стоимость: ${val} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
-            doBuy
+            doBuy,
+            coinsVisual
         );
     };
-
 
     // ==========================================
     // ⚙️ УТИЛИТЫ И НАВИГАЦИЯ
@@ -2035,7 +2057,7 @@
         document.body.appendChild(overlay);
     };
 
-    window.showBuyConfirm = function(line1, line2, onConfirm, imgUrl = null) {
+    window.showBuyConfirm = function(title, costHtml, onConfirm, visualContent = null) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
         
@@ -2045,20 +2067,30 @@
             overlay.remove();
         };
 
-        const imgHtml = imgUrl ? `
-            <div style="width: 100%; height: 95px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-                <img src="${imgUrl}" style="max-width: 100%; max-height: 95px; object-fit: contain; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.95));">
-            </div>
-        ` : '';
+        // Поддержка как картинки скина, так и неоновой иконки билетов / монет
+        let visualHtml = '';
+        if (visualContent) {
+            if (visualContent.trim().startsWith('<')) {
+                visualHtml = `
+                    <div style="width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px 0;">
+                        ${visualContent}
+                    </div>`;
+            } else {
+                visualHtml = `
+                    <div style="width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px 0;">
+                        <img src="${visualContent}" style="max-width: 100%; max-height: 125px; object-fit: contain; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.98));">
+                    </div>`;
+            }
+        }
 
         overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 300px; padding: 22px 18px;">
-                <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
-                ${imgHtml}
-                <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
-                    <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
-                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${line2}</span>
+            <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 310px; padding: 20px 18px;">
+                <h3 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
+                ${visualHtml}
+                <div style="margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 13px; font-weight: 800; line-height: 1.2;">${title}</span>
+                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${costHtml}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="premium-btn" id="confirm-btn-cancel" style="flex: 1; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;">ОТМЕНА</button>
