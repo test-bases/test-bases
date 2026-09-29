@@ -226,9 +226,13 @@
       pointer-events: none !important;
     }
 
-    /* 🔥 НА 2 ЭТАПЕ: полностью отключаем оверлей и блюр фона, все задания четкие */
+    /* 🔥 НА 2 ЭТАПЕ: убираем затемнение и блюр, но сохраняем щит от нажатий */
     body.tour-no-blur .tour-backdrop {
-      display: none !important;
+      display: block !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: auto !important; /* Блокирует любые тапы по фону и вкладкам */
     }
 
     body.tour-no-blur .glass-card {
@@ -236,6 +240,7 @@
       filter: none !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
+      pointer-events: none !important; /* Блокирует клики по карточкам и кнопкам */
     }
 
     /* 🌫️ Тонкая белая светящаяся обводка + глубокий жидкий блюр */
@@ -1403,14 +1408,14 @@
 
         overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="background: rgba(14, 14, 16, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); max-width: 300px; padding: 22px 18px;">
+            <div class="bottom-sheet" style="background: rgba(10, 10, 14, 0.75); border: none; box-shadow: none; backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 300px; padding: 22px 18px;">
                 <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
                     <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
                     <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${line2}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="premium-btn" id="confirm-btn-cancel" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #8e8e93; font-weight: 800;">ОТМЕНА</button>
+                    <button class="premium-btn" id="confirm-btn-cancel" style="flex: 1; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;">ОТМЕНА</button>
                     <button class="premium-btn" id="confirm-btn-buy" disabled style="flex: 1.2; background: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.4); border: none; font-weight: 900; cursor: not-allowed; transition: all 0.25s ease;">КУПИТЬ (3)</button>
                 </div>
             </div>
@@ -1641,6 +1646,30 @@
     // 🎓 ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ (ГРИНД-ГИД)
     // ==========================================
     let currentTourStep = 0;
+    let tourStepTimeout = null;
+    let tourScrollRaf = null;
+
+    // Плавный контролируемый скролл с отменой предыдущих движений
+    function smoothScrollTour(element, targetY, duration = 700) {
+        if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
+        const startY = element.scrollTop;
+        const diff = targetY - startY;
+        if (Math.abs(diff) < 2) return;
+        const startTime = performance.now();
+
+        function stepScroll(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+            element.scrollTop = startY + diff * ease;
+            if (progress < 1) {
+                tourScrollRaf = requestAnimationFrame(stepScroll);
+            } else {
+                tourScrollRaf = null;
+            }
+        }
+        tourScrollRaf = requestAnimationFrame(stepScroll);
+    }
 
     const grindTourSteps = [
         {
@@ -1764,38 +1793,27 @@
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 5. Плавная анимация спуска вниз и позиционирование
-        setTimeout(() => {
+        // 5. Позиционирование с гарантированной отменой предыдущих очередей
+        if (tourStepTimeout) clearTimeout(tourStepTimeout);
+        if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
+
+        tourStepTimeout = setTimeout(() => {
             const target = document.querySelector(step.highlightSelector);
             const scrollArea = document.getElementById('main-scroll-area');
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
 
-                // 1-й шаг: держимся в самом верху с отступом
+                // 1-й шаг: всегда гарантированно возвращаемся в самый верх
                 if (currentTourStep === 0) {
-                    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+                    smoothScrollTour(scrollArea, 0, 500);
                     return;
                 }
 
-                // 🔥 2-й шаг: медленный и плавный спуск (1.2 сек), чтобы глаз успел всё рассмотреть
+                // 🔥 2-й шаг: плавный спуск к списку заданий
                 if (currentTourStep === 1) {
                     const tasksListEl = document.getElementById('tg-tasks-list');
-                    const targetY = tasksListEl ? tasksListEl.offsetTop - 10 : (target.offsetTop - 10);
-                    
-                    const startY = scrollArea.scrollTop;
-                    const diff = Math.max(0, targetY) - startY;
-                    const startTime = performance.now();
-                    const duration = 1200; // 1.2 секунды
-
-                    function stepScroll(currentTime) {
-                        const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        // Мягкое замедление easeInOut
-                        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-                        scrollArea.scrollTop = startY + diff * ease;
-                        if (progress < 1) requestAnimationFrame(stepScroll);
-                    }
-                    requestAnimationFrame(stepScroll);
+                    const targetY = tasksListEl ? (tasksListEl.offsetTop - 14) : (target.offsetTop - 14);
+                    smoothScrollTour(scrollArea, Math.max(0, targetY), 900);
                     return;
                 }
 
@@ -1806,9 +1824,9 @@
                 const centerOffset = (scrollArea.clientHeight - target.offsetHeight) / 2;
                 const targetY = Math.max(0, currentPos - Math.max(15, centerOffset));
 
-                scrollArea.scrollTo({ top: targetY, behavior: 'smooth' });
+                smoothScrollTour(scrollArea, targetY, 600);
             }
-        }, 120);
+        }, 80);
     }
   </script>
 </body>
