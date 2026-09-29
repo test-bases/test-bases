@@ -779,7 +779,7 @@ html.vk-mode #main-content { position: absolute !important; width: 100% !importa
     
     position: relative; 
     z-index: 2; 
-    transform: translateZ(0);
+    transform: translate(150px, 22px) !important;
     will-change: transform;
 }
 .schedule-box:active {
