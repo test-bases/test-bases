@@ -941,7 +941,7 @@
       </div>
   </div>
 
-  <!-- МОДАЛКА ДОБАВЛЕНИЯ СКИНА АДМИНОМ -->
+ <!-- МОДАЛКА ДОБАВЛЕНИЯ СКИНА АДМИНОМ -->
   <!-- 1. МОДАЛКА ДОБАВЛЕНИЯ СКИНА В МАГАЗИН -->
   <div id="admin-skin-modal" class="modal-overlay" onclick="if(event.target===this) closeAddSkinModal()">
       <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px; text-align: left;">
@@ -976,7 +976,7 @@
 
           <div style="display: flex; gap: 8px;">
               <button class="premium-btn" style="flex: 1; background: rgba(255,255,255,0.05); color: #8e8e93;" onclick="closeAddSkinModal()">ОТМЕНА</button>
-              <button class="premium-btn active-state" style="flex: 1.2; color: #000; font-weight: 900;" onclick="submitAdminAddSkin()">ДОБАВИТЬ</button>
+              <button class="premium-btn active-state" style="flex: 1.2; color: #fff; font-weight: 900;" onclick="submitAdminAddSkin()">ДОБАВИТЬ</button>
           </div>
       </div>
   </div>
@@ -1047,7 +1047,7 @@
               </div>
           </div>
 
-          <button class="premium-btn active-state" onclick="fetchMarketSkins()" style="color: #000; font-weight: 900; margin-bottom: 6px;">
+          <button class="premium-btn active-state" onclick="fetchMarketSkins()" style="color: #fff; font-weight: 900; margin-bottom: 6px;">
               <i class="fa-solid fa-magnifying-glass"></i> ПРИМЕНИТЬ И ИСКАТЬ
           </button>
 
@@ -1059,7 +1059,7 @@
           </div>
       </div>
   </div>
-
+  
   <div id="profile-popup-root"></div>
 
   <!-- ОВЕРЛЕЙ БЛОКИРОВКИ ЭКРАНА В РЕЖИМЕ ТУРА -->
@@ -1140,6 +1140,27 @@
         return clean + '/360fx360f';
     }
 
+    // 🚀 Глобальный кэш изображений в памяти для мгновенного отображения без повторных загрузок
+    const skinImageMemoryCache = new Map();
+
+    function preloadAndCacheSkinImage(url) {
+        if (!url || url.includes('default_skin.png')) return;
+        const targetUrl = formatSteamImg(url);
+        if (skinImageMemoryCache.has(targetUrl)) return skinImageMemoryCache.get(targetUrl);
+
+        const img = new Image();
+        img.src = targetUrl;
+        img.decoding = 'async';
+        
+        // Предварительно раскодируем картинку в память устройства (устраняет микрофризы при зуме)
+        if (img.decode) {
+            img.decode().catch(() => {});
+        }
+
+        skinImageMemoryCache.set(targetUrl, img);
+        return img;
+    }
+
     window.openSkinPickerModal = function() {
         document.getElementById('admin-skin-picker-modal').classList.add('visible');
         fetchMarketSkins(); // Сразу подгружаем первые скины по дефолтным фильтрам
@@ -1179,11 +1200,12 @@
                 card.className = 'market-skin-card';
                 card.onclick = () => selectSkinFromPicker(item);
 
-                // Оптимизируем ссылку на картинку
-                const fastImg = formatSteamImg(item.image_url, '180fx180f');
+                // Оптимизируем ссылку на картинку и кэшируем в память
+                const fastImg = formatSteamImg(item.image_url);
+                preloadAndCacheSkinImage(fastImg);
 
                 card.innerHTML = `
-                    <img src="${fastImg}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f'" style="width: 100%; height: 50px; object-fit: contain; margin-bottom: 4px;">
+                    <img src="${fastImg}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f'" style="width: 100%; height: 50px; object-fit: contain; margin-bottom: 4px;">
                     <div style="font-size: 9px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 3px; max-height: 22px; overflow: hidden;">${item.market_hash_name}</div>
                     <div style="font-size: 9px; font-weight: 900; color: var(--accent-neon); margin-top: auto;">${parseFloat(item.price_rub).toFixed(0)} ₽</div>
                 `;
@@ -1728,6 +1750,10 @@
             const cachedSkins = JSON.parse(localStorage.getItem('cache_shop_skins') || '[]');
             const cachedPromos = JSON.parse(localStorage.getItem('cache_shop_promos') || '[]');
             shopItems = [...baseTickets, ...cachedSkins, ...cachedPromos];
+            
+            // Сразу кэшируем в память картинки из сохраненных данных
+            cachedSkins.forEach(s => preloadAndCacheSkinImage(s.image_url));
+
             renderShopList();
         } catch (e) {
             shopItems = [...baseTickets];
@@ -1744,6 +1770,9 @@
             const freshSkins = [];
             if (skinsRes.status === 'fulfilled' && Array.isArray(skinsRes.value)) {
                 skinsRes.value.forEach(s => {
+                    // Фоново предзагружаем каждую полученную картинку
+                    preloadAndCacheSkinImage(s.image_url);
+
                     freshSkins.push({
                         id: s.id,
                         type: 'skin',
@@ -1824,7 +1853,7 @@
                 const fastImg = formatSteamImg(item.image_url);
                 visualHeader = `
                     <div style="position:relative; width:100%; display:flex; justify-content:center;" onclick="openSkinInspect('${item.id}')">
-                        <img id="shop-skin-img-${item.id}" src="${fastImg}" class="shop-skin-img" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/public/static/default_skin.png'">
+                        <img id="shop-skin-img-${item.id}" src="${fastImg}" class="shop-skin-img" alt="${item.title}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/public/static/default_skin.png'">
                         <span style="position:absolute; bottom:2px; right:4px; font-size:9px; color:rgba(255,255,255,0.4);"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
                     </div>
                 `;
@@ -1903,6 +1932,7 @@
 
     // 🔍 МОДАЛКА ДЕТАЛЬНОГО ОСМОТРА СКИНА
     window.openSkinInspect = function(skinId) {
+        // Находим скин независимо от того, строка id или число
         const item = shopItems.find(i => String(i.id) === String(skinId));
         if (!item) return;
 
@@ -1911,10 +1941,18 @@
         img.classList.remove('zoomed');
         if (modal) modal.classList.remove('is-zoomed');
 
+        // Моментально берем готовую картинку из кэша памяти или готовой карточки
+        const fastImgUrl = formatSteamImg(item.image_url);
         const loadedCardImg = document.getElementById(`shop-skin-img-${item.id}`);
-        img.src = (loadedCardImg && loadedCardImg.complete && loadedCardImg.naturalWidth > 0) 
-            ? loadedCardImg.src 
-            : formatSteamImg(item.image_url);
+        
+        if (loadedCardImg && loadedCardImg.complete && loadedCardImg.naturalWidth > 0) {
+            img.src = loadedCardImg.src;
+        } else if (skinImageMemoryCache.has(fastImgUrl)) {
+            img.src = skinImageMemoryCache.get(fastImgUrl).src;
+        } else {
+            img.src = fastImgUrl;
+            preloadAndCacheSkinImage(fastImgUrl);
+        }
 
         document.getElementById('inspect-skin-title').textContent = item.title;
         
