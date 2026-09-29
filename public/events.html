@@ -1114,10 +1114,10 @@
     let grindSettings = { twitch_status_boost_coins: 0.5, twitch_status_free_tickets: 5, ref_boost_coins_per_user: 0.1 };
 
     let shopItems = [];
-    // ==========================================
-    // 🛍️ МАГАЗИН: СКИHЫ И АДМИНКА С MARKET_CACHE
-    // ==========================================
-    let currentShopTab = 'skins'; // Скины первой вкладкой
+// ==========================================
+// 🛍️ МАГАЗИН: СКИHЫ И АДМИНКА С MARKET_CACHE
+// ==========================================
+let currentShopTab = sessionStorage.getItem('grind_shop_tab') || 'skins';
 
     // Переключение спойлера фильтров
     window.togglePickerSpoiler = function() {
@@ -1266,11 +1266,14 @@
     let telegramTasksCache = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadTelegramTasks();
-        fetchShopItems();
+    restoreSavedTabs(); // Восстанавливаем вкладку, на которой был пользователь
+    initTabSwipe();     // Включаем свайп влево-вправо на мобильных
 
-        init();
-        initPullToRefresh();
+    loadTelegramTasks();
+    fetchShopItems();
+
+    init();
+    initPullToRefresh();
 
         const grindBtn = document.getElementById('grind-btn');
         if(grindBtn) {
@@ -1873,18 +1876,19 @@
     }
 
     window.switchShopSubTab = function(tab) {
-        currentShopTab = tab;
-        const btnSkins = document.getElementById('subtab-skins');
-        const btnTickets = document.getElementById('subtab-tickets');
-        const btnPromos = document.getElementById('subtab-promos');
-        
-        if (btnSkins) btnSkins.classList.toggle('active', tab === 'skins');
-        if (btnTickets) btnTickets.classList.toggle('active', tab === 'tickets');
-        if (btnPromos) btnPromos.classList.toggle('active', tab === 'promos');
-        
-        renderShopList();
-        if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    };
+    currentShopTab = tab;
+    sessionStorage.setItem('grind_shop_tab', tab); // Запоминаем подвкладку магазина
+    const btnSkins = document.getElementById('subtab-skins');
+    const btnTickets = document.getElementById('subtab-tickets');
+    const btnPromos = document.getElementById('subtab-promos');
+    
+    if (btnSkins) btnSkins.classList.toggle('active', tab === 'skins');
+    if (btnTickets) btnTickets.classList.toggle('active', tab === 'tickets');
+    if (btnPromos) btnPromos.classList.toggle('active', tab === 'promos');
+    
+    renderShopList();
+    if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+};
 
    // 🏷️ Вспомогательные функции русификации и окраски
     function formatSkinWearRu(wear, title = '') {
@@ -2027,10 +2031,20 @@
                 }
                 
                 const res = await response.json();
-                userState.coins = parseFloat(res.new_coins);
-                userState.tickets = res.new_tickets;
-                updateUI();
-                window.showSuccessModal(`Успешно! Вы получили +${rewardTickets} ${ticketWord}.`);
+userState.coins = parseFloat(res.new_coins);
+userState.tickets = res.new_tickets;
+updateUI();
+
+// Фиксируем текущую вкладку магазина
+sessionStorage.setItem('grind_main_tab', 'shop');
+sessionStorage.setItem('grind_shop_tab', 'tickets');
+
+window.showSuccessModal(
+    `Успешно! Вы получили +${rewardTickets} ${ticketWord}.`,
+    null,
+    null,
+    () => window.location.reload()
+);
             } catch (e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
                 else window.customAlert(e.message || 'Ошибка обмена');
@@ -2112,7 +2126,17 @@
                     userState.coins = Math.max(0, userState.coins - val);
                 }
                 updateUI();
-                window.showSuccessModal(`Успешно! +${val} монет зачислено на ваш баланс.`);
+
+// Фиксируем текущую вкладку магазина
+sessionStorage.setItem('grind_main_tab', 'shop');
+sessionStorage.setItem('grind_shop_tab', 'promos');
+
+window.showSuccessModal(
+    `Успешно! +${val} монет зачислено на ваш баланс.`,
+    null,
+    null,
+    () => window.location.reload()
+);
             } catch(e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Не удалось купить');
                 else window.customAlert(e.message || 'Не удалось купить');
@@ -2134,14 +2158,25 @@
     // ⚙️ УТИЛИТЫ И НАВИГАЦИЯ
     // ==========================================
     window.switchMainTab = function(tabId, btnElement) {
-        document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (btnElement) {
         btnElement.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.getElementById(`tab-${tabId}`).classList.add('active');
-        if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    } else {
+        const tabIdx = tabId === 'tasks' ? 0 : (tabId === 'free' ? 1 : 2);
+        const btns = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
+        if (btns[tabIdx]) btns[tabIdx].classList.add('active');
+    }
 
-        if (tabId === 'shop') renderShopList(); 
-    };
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    const targetContent = document.getElementById(`tab-${tabId}`);
+    if (targetContent) targetContent.classList.add('active');
+    
+    sessionStorage.setItem('grind_main_tab', tabId); // Запоминаем главную вкладку
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+
+    if (tabId === 'shop') renderShopList(); 
+};
 
     window.customAlert = function(text) {
         const overlay = document.createElement('div'); 
@@ -2227,37 +2262,46 @@
         };
     };
 
-    window.showSuccessModal = function(message, promoCode = null, imgUrl = null) {
-        const msgEl = document.getElementById('success-message');
-        if (msgEl) msgEl.textContent = message;
+    let successModalCloseCallback = null;
 
-        const skinImgEl = document.getElementById('success-skin-img');
-        if (skinImgEl) {
-            if (imgUrl) {
-                skinImgEl.src = imgUrl;
-                skinImgEl.style.display = 'block';
-            } else {
-                skinImgEl.style.display = 'none';
-            }
+window.showSuccessModal = function(message, promoCode = null, imgUrl = null, onCloseCallback = null) {
+    successModalCloseCallback = typeof onCloseCallback === 'function' ? onCloseCallback : null;
+
+    const msgEl = document.getElementById('success-message');
+    if (msgEl) msgEl.textContent = message;
+
+    const skinImgEl = document.getElementById('success-skin-img');
+    if (skinImgEl) {
+        if (imgUrl) {
+            skinImgEl.src = imgUrl;
+            skinImgEl.style.display = 'block';
+        } else {
+            skinImgEl.style.display = 'none';
         }
+    }
 
-        const promoContainer = document.getElementById('success-promo-container');
-        if (promoContainer) {
-            if (promoCode) {
-                promoContainer.style.display = 'flex';
-                document.getElementById('success-promo-code').textContent = promoCode;
-            } else {
-                promoContainer.style.display = 'none';
-            }
+    const promoContainer = document.getElementById('success-promo-container');
+    if (promoContainer) {
+        if (promoCode) {
+            promoContainer.style.display = 'flex';
+            document.getElementById('success-promo-code').textContent = promoCode;
+        } else {
+            promoContainer.style.display = 'none';
         }
-        document.getElementById('success-modal').classList.add('visible');
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    };
-    window.showSuccess = window.showSuccessModal;
+    }
+    document.getElementById('success-modal').classList.add('visible');
+    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+};
+window.showSuccess = window.showSuccessModal;
 
-    window.closeSuccessModal = function() { 
-        document.getElementById('success-modal').classList.remove('visible'); 
-    };
+window.closeSuccessModal = function() { 
+    document.getElementById('success-modal').classList.remove('visible'); 
+    if (successModalCloseCallback) {
+        const cb = successModalCloseCallback;
+        successModalCloseCallback = null;
+        cb();
+    }
+};
 
     window.copyPromo = function(el) {
         const codeElement = el || document.getElementById('success-promo-code');
@@ -2428,6 +2472,74 @@
             }
         }
     });
+
+    // ==========================================
+    // 📱 ВОССТАНОВЛЕНИЕ ВКЛАДКИ И СВАЙП
+    // ==========================================
+    function restoreSavedTabs() {
+        const savedMainTab = sessionStorage.getItem('grind_main_tab');
+        if (savedMainTab && savedMainTab !== 'tasks') {
+            const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
+            const idx = savedMainTab === 'free' ? 1 : (savedMainTab === 'shop' ? 2 : 0);
+            if (tabButtons[idx]) {
+                window.switchMainTab(savedMainTab, tabButtons[idx]);
+            }
+        }
+        const savedShopTab = sessionStorage.getItem('grind_shop_tab');
+        if (savedShopTab) {
+            window.switchShopSubTab(savedShopTab);
+        }
+    }
+
+    function initTabSwipe() {
+        const mainTabs = ['tasks', 'free', 'shop'];
+        const scrollArea = document.getElementById('main-scroll-area');
+        if (!scrollArea) return;
+
+        let startX = 0;
+        let startY = 0;
+        let isTouching = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            // Не свайпаем во время обучения, если открыты модалки или фокус в инпутах
+            if (document.body.classList.contains('tour-mode')) return;
+            if (document.querySelector('.modal-overlay.visible')) return;
+            if (e.target.closest('input, select, textarea')) return;
+
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isTouching = true;
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', (e) => {
+            if (!isTouching) return;
+            isTouching = false;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+
+            // Жест должен быть четко горизонтальным (разница по X больше, чем по Y) и длинее 50px
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                const currentTabEl = document.querySelector('.segment-control:not(#tab-shop .segment-control) .segment-btn.active');
+                const allTabBtns = Array.from(document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn'));
+                let currentIndex = allTabBtns.indexOf(currentTabEl);
+                if (currentIndex === -1) currentIndex = 0;
+
+                if (diffX < -50 && currentIndex < mainTabs.length - 1) {
+                    // Свайп пальцем влево -> переход на следующую вкладку
+                    const nextIndex = currentIndex + 1;
+                    window.switchMainTab(mainTabs[nextIndex], allTabBtns[nextIndex]);
+                } else if (diffX > 50 && currentIndex > 0) {
+                    // Свайп пальцем вправо -> переход на предыдущую вкладку
+                    const prevIndex = currentIndex - 1;
+                    window.switchMainTab(mainTabs[prevIndex], allTabBtns[prevIndex]);
+                }
+            }
+        }, { passive: true });
+    }
 
 // ==========================================
     // 🎓 ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ (ГРИНД-ГИД)
