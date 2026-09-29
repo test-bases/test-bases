@@ -1226,7 +1226,7 @@
         if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
             btnHtml = `<button class="premium-btn locked-state" disabled style="font-size: 9px;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
         } else {
-            btnHtml = `<button class="premium-btn ${isAffordable ? 'active-state' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО ГРИНД-МОНЕТ'}</button>`;
+            btnHtml = `<button class="premium-btn ${isAffordable ? 'task-claim-btn' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО ГРИНД-МОНЕТ'}</button>`;
         }
 
         const extra = item.quantity !== undefined && item.quantity !== null ? `<span style="opacity:0.6; font-size:8px; display:block; margin-top:2px;">(Ост: ${item.quantity})</span>` : '';
@@ -1283,7 +1283,7 @@
 
         window.showBuyConfirm(
             `${rewardTickets} ${ticketWord}`,
-            `Стоимость: ${cost} ${coinWord}`,
+            `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
             doExchange
         );
     };
@@ -1383,23 +1383,52 @@
     window.showBuyConfirm = function(line1, line2, onConfirm) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        
+        let timer = null;
+        const closeOverlay = () => {
+            if (timer) clearInterval(timer);
+            overlay.remove();
+        };
+
+        overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="background: -webkit-backdrop-filter: blur(30px); max-width: 300px; padding: 22px 18px;">
+            <div class="bottom-sheet" style="background: rgba(14, 14, 16, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); max-width: 300px; padding: 22px 18px;">
                 <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
-                <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 4px; text-align: center;">
+                <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
                     <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
-                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600;">${line2}</span>
+                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${line2}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="premium-btn" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #8e8e93; font-weight: 800;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
-                    <button class="premium-btn" style="flex: 1.2; background: #ffffff; color: #000000; border: none; font-weight: 900; box-shadow: 0 0 20px rgba(255,255,255,0.25);" id="confirm-btn-buy">КУПИТЬ</button>
+                    <button class="premium-btn" id="confirm-btn-cancel" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #8e8e93; font-weight: 800;">ОТМЕНА</button>
+                    <button class="premium-btn" id="confirm-btn-buy" disabled style="flex: 1.2; background: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.4); border: none; font-weight: 900; cursor: not-allowed; transition: all 0.25s ease;">КУПИТЬ (3)</button>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
-        overlay.querySelector('#confirm-btn-buy').onclick = () => {
-            overlay.remove();
+
+        overlay.querySelector('#confirm-btn-cancel').onclick = closeOverlay;
+
+        const buyBtn = overlay.querySelector('#confirm-btn-buy');
+        let secondsLeft = 3;
+        timer = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft > 0) {
+                buyBtn.textContent = `КУПИТЬ (${secondsLeft})`;
+            } else {
+                clearInterval(timer);
+                timer = null;
+                buyBtn.disabled = false;
+                buyBtn.style.background = '#ffffff';
+                buyBtn.style.color = '#000000';
+                buyBtn.style.cursor = 'pointer';
+                buyBtn.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.25)';
+                buyBtn.textContent = 'КУПИТЬ';
+            }
+        }, 1000);
+
+        buyBtn.onclick = () => {
+            if (buyBtn.disabled) return;
+            closeOverlay();
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             onConfirm();
         };
