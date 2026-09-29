@@ -214,13 +214,13 @@
     }
 
     /* Активная карточка четкая, видна поверх оверлея, но защищена от случайных нажатий */
-    /* 🛡️ Приземленное минималистичное бело-темно-серое выделение */
+    /* 🛡️ Белая неоновая подсветка обводки активной карточки */
     body.tour-mode .glass-card.tour-target-active {
       opacity: 1 !important;
       filter: none !important;
-      border: 1px solid rgba(255, 255, 255, 0.3) !important;
-      background: rgba(28, 28, 32, 0.85) !important;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.6) !important;
+      background: rgba(24, 24, 28, 0.88) !important;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.28), 0 16px 40px rgba(0, 0, 0, 0.9) !important;
       position: relative;
       z-index: 9991;
       pointer-events: none !important;
@@ -238,7 +238,7 @@
       -webkit-backdrop-filter: none !important;
     }
 
-    /* 🌫️ Без рамки и непрозрачного фона — только глубокий жидкий блюр */
+    /* 🌫️ Тонкая белая светящаяся обводка + глубокий жидкий блюр */
     .tour-card {
       position: fixed;
       bottom: 12px;
@@ -246,11 +246,11 @@
       right: 12px;
       max-width: 420px;
       margin: 0 auto;
-      background: rgba(0, 0, 0, 0.2); /* Практически невидимая подложка для работы блюра */
+      background: rgba(14, 14, 18, 0.7); /* Мягкое темное стекло для контраста */
       backdrop-filter: blur(35px);
       -webkit-backdrop-filter: blur(35px);
-      border: none; /* Рамка полностью убрана */
-      box-shadow: none; /* Жёлтые и резкие тени убраны */
+      border: 1px solid rgba(255, 255, 255, 0.16); /* Тонкая аккуратная белая линия */
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.08), 0 20px 60px rgba(0, 0, 0, 0.95); /* Мягкая белая аура */
       border-radius: 24px;
       padding: 14px 16px;
       z-index: 99999;
@@ -269,6 +269,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
+      z-index: 10; /* Кнопка закрытия и бейдж всегда выше лягушки */
     }
     .tour-step-badge {
       font-size: 9px;
@@ -290,23 +292,25 @@
     }
     .tour-close-btn:active { color: #fff; }
 
-    /* 🖼️ Парящая зона под увеличенного персонажа */
+    /* 🖼️ Парящая зона под персонажа: слой z-index 1 (под текстом) */
     .tour-levitate-stage {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: -70px; /* Приподнимаем, чтобы не перекрывать текст */
-      margin-bottom: 0px;
-      height: 110px;
+      margin-top: -95px; /* Приподняли выше: голова и кружка торчат над карточкой */
+      margin-bottom: -15px; /* Ноги уходят под заголовок */
+      height: 125px;
       pointer-events: none;
+      position: relative;
+      z-index: 1; /* Лягушка на заднем плане относительно текста */
     }
 
-    /* Картинка увеличена в 2 раза (170px вместо 85px) + мощная двойная тень */
+    /* Картинка: темная глубокая тень сзади, чтобы не сливалась с черным фоном */
     .tour-img {
       max-height: 170px;
       max-width: 240px;
       object-fit: contain;
-      filter: drop-shadow(0 14px 25px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 35px rgba(0, 0, 0, 0.85));
+      filter: drop-shadow(0 16px 25px rgba(0, 0, 0, 0.98)) drop-shadow(0 0 35px rgba(0, 0, 0, 0.9));
     }
 
     @keyframes tourFloat {
@@ -314,10 +318,13 @@
       50% { transform: translateY(-6px); }
     }
 
+    /* Текст вынесен на слой z-index 5 (над ногами) + тень текста для четкости */
     .tour-card-body {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      position: relative;
+      z-index: 5; /* Текст строго поверх ног */
     }
 
     .tour-title {
@@ -327,12 +334,14 @@
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
     }
     .tour-text {
       font-size: 11px;
       color: #b0b0b8;
       line-height: 1.4;
       margin: 0;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
     }
     .tour-text b { color: #fff; }
     .tour-text span.fire { color: #ff3b30; font-weight: 700; }
@@ -1768,14 +1777,25 @@
                     return;
                 }
 
-                // 🔥 2-й шаг: кинематографичный плавный спуск сверху вниз к заданиям
+                // 🔥 2-й шаг: медленный и плавный спуск (1.2 сек), чтобы глаз успел всё рассмотреть
                 if (currentTourStep === 1) {
                     const tasksListEl = document.getElementById('tg-tasks-list');
                     const targetY = tasksListEl ? tasksListEl.offsetTop - 10 : (target.offsetTop - 10);
-                    scrollArea.scrollTo({
-                        top: Math.max(0, targetY),
-                        behavior: 'smooth'
-                    });
+                    
+                    const startY = scrollArea.scrollTop;
+                    const diff = Math.max(0, targetY) - startY;
+                    const startTime = performance.now();
+                    const duration = 1200; // 1.2 секунды
+
+                    function stepScroll(currentTime) {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        // Мягкое замедление easeInOut
+                        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                        scrollArea.scrollTop = startY + diff * ease;
+                        if (progress < 1) requestAnimationFrame(stepScroll);
+                    }
+                    requestAnimationFrame(stepScroll);
                     return;
                 }
 
