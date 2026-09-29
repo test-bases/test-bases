@@ -1131,16 +1131,33 @@ let currentShopTab = sessionStorage.getItem('grind_shop_tab') || 'skins';
     window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
     window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
 
-    // ⚡ Быстрый CDN Steam со стандартным готовым размером 360fx360f (не пережимается на лету)
+   // Запасной скин (локальный путь без /public/ + fallback на случай отсутствия локального файла)
+    const DEFAULT_SKIN_FALLBACK = '/static/default_skin.png';
+    const STEAM_FALLBACK_IMG = 'https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f';
+
+    // ⚡ Надежный CDN Steam через Cloudflare (открывается без блокировок и таймаутов)
     function formatSteamImg(url) {
-        if (!url) return '/public/static/default_skin.png';
-        let clean = url.replace('community.cloudflare.steamstatic.com', 'steamcommunity-a.akamaihd.net')
-                       .replace('community.akamai.steamstatic.com', 'steamcommunity-a.akamaihd.net');
+        if (!url) return DEFAULT_SKIN_FALLBACK;
+        let clean = url.trim();
+
+        // Если передан только хэш картинки без домена
+        if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+            if (clean.startsWith('//')) {
+                clean = 'https:' + clean;
+            } else {
+                clean = 'https://community.cloudflare.steamstatic.com/economy/image/' + clean;
+            }
+        }
+
+        // Заменяем заблокированный Akamai на рабочий Cloudflare
+        clean = clean.replace('steamcommunity-a.akamaihd.net', 'community.cloudflare.steamstatic.com')
+                     .replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com');
+        
         clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '').replace(/\/+$/, '');
         return clean + '/360fx360f';
     }
 
-    // 🚀 Глобальный кэш изображений в памяти для мгновенного отображения без повторных загрузок
+    // 🚀 Кэш изображений в памяти (кэшируем только успешно загруженные)
     const skinImageMemoryCache = new Map();
 
     function preloadAndCacheSkinImage(url) {
@@ -1149,15 +1166,14 @@ let currentShopTab = sessionStorage.getItem('grind_shop_tab') || 'skins';
         if (skinImageMemoryCache.has(targetUrl)) return skinImageMemoryCache.get(targetUrl);
 
         const img = new Image();
-        img.src = targetUrl;
         img.decoding = 'async';
-        
-        // Предварительно раскодируем картинку в память устройства (устраняет микрофризы при зуме)
-        if (img.decode) {
-            img.decode().catch(() => {});
-        }
-
-        skinImageMemoryCache.set(targetUrl, img);
+        img.onload = () => {
+            skinImageMemoryCache.set(targetUrl, img);
+        };
+        img.onerror = () => {
+            skinImageMemoryCache.delete(targetUrl);
+        };
+        img.src = targetUrl;
         return img;
     }
 
