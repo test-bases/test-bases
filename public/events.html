@@ -560,20 +560,20 @@
       margin-bottom: 10px;
     }
     .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
-    .shop-item { align-items: center; text-align: center; gap: 6px; padding: 12px 10px;}
-    .shop-item-title { font-size: 11px; font-weight: 800; color: #fff; }
+    .shop-item { align-items: center; text-align: center; gap: 6px; padding: 10px 8px 12px 8px; }
+    .shop-item-title { font-size: 11px; font-weight: 800; color: #fff; line-height: 1.2; }
     .shop-item-cost { font-size: 9px; color: var(--text-color-muted); font-weight: 700; margin-bottom: 4px; }
     .shop-skin-img {
       width: 100%;
-      height: 90px;
+      height: 120px;
       object-fit: contain;
       cursor: zoom-in;
-      transition: transform 0.25s ease, filter 0.25s ease;
-      filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 215, 0, 0.2));
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.95));
     }
     .shop-skin-img:hover, .shop-skin-img:active {
-      transform: scale(1.08);
-      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.45));
+      transform: scale(1.1);
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 1));
     }
 
     /* Окно осмотра: на всю ширину экрана, без рамок и бликов, с мощным зумом */
@@ -881,11 +881,12 @@
       </div>
   </div>
 
-  <!-- === МОДАЛКА УСПЕХА === -->
+ <!-- === МОДАЛКА УСПЕХА === -->
   <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
       <div class="bottom-sheet">
           <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
           <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
+          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 95px; object-fit: contain; margin: 6px 0 10px 0; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.95));">
           <p id="success-message" style="margin: 0 0 15px 0; font-size: 11px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
 
           <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 10px; border-radius: 12px; margin-bottom: 15px;">
@@ -1910,6 +1911,8 @@
     // 🔥 ПОКУПКА СКИНА: СРАЗУ В ИНВЕНТАРЬ (БЕЗ ТРЕЙДА)
     window.buySkin = function(skinId, skinName, cost) {
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
+        const item = shopItems.find(i => String(i.id) === String(skinId));
+        const skinImg = item ? formatSteamImg(item.image_url) : null;
         
         const doBuySkin = async () => {
             try {
@@ -1917,7 +1920,11 @@
                 if (res.success) {
                     if (res.new_coins !== undefined) userState.coins = parseFloat(res.new_coins);
                     updateUI();
-                    window.showSuccessModal(`Скин «${skinName}» успешно добавлен в ваш инвентарь!\nОн сохранён в профиле. Вы можете использовать или забрать его в любое удобное время.`);
+                    window.showSuccessModal(
+                        `Скин «${skinName}» успешно добавлен в ваш инвентарь!\nОн сохранён в профиле. Вы можете использовать или забрать его в любое удобное время.`,
+                        null,
+                        skinImg
+                    );
                     fetchShopItems();
                 }
             } catch (e) {
@@ -1925,6 +1932,14 @@
                 else window.customAlert(e.message || "Ошибка покупки");
             }
         };
+
+        window.showBuyConfirm(
+            skinName,
+            `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
+            doBuySkin,
+            skinImg
+        );
+    };
 
         window.showBuyConfirm(
             skinName,
@@ -2005,7 +2020,7 @@
         document.body.appendChild(overlay);
     };
 
-    window.showBuyConfirm = function(line1, line2, onConfirm) {
+    window.showBuyConfirm = function(line1, line2, onConfirm, imgUrl = null) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
         
@@ -2015,10 +2030,17 @@
             overlay.remove();
         };
 
+        const imgHtml = imgUrl ? `
+            <div style="width: 100%; height: 95px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                <img src="${imgUrl}" style="max-width: 100%; max-height: 95px; object-fit: contain; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.95));">
+            </div>
+        ` : '';
+
         overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
             <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 300px; padding: 22px 18px;">
-                <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
+                <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
+                ${imgHtml}
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
                     <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
                     <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${line2}</span>
@@ -2059,9 +2081,19 @@
         };
     };
 
-    window.showSuccessModal = function(message, promoCode = null) {
+    window.showSuccessModal = function(message, promoCode = null, imgUrl = null) {
         const msgEl = document.getElementById('success-message');
         if (msgEl) msgEl.textContent = message;
+
+        const skinImgEl = document.getElementById('success-skin-img');
+        if (skinImgEl) {
+            if (imgUrl) {
+                skinImgEl.src = imgUrl;
+                skinImgEl.style.display = 'block';
+            } else {
+                skinImgEl.style.display = 'none';
+            }
+        }
 
         const promoContainer = document.getElementById('success-promo-container');
         if (promoContainer) {
