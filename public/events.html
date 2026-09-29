@@ -807,6 +807,21 @@
         }
     }
 
+    // 🔤 Универсальное склонение слов по числам и падежам
+    function pluralize(n, forms) {
+        // forms: [для 1, для 2-4, для 5-0 / 11-19]
+        const num = Math.abs(Number(n));
+        // Для дробных чисел (0.1, 0.5) всегда форма родительного падежа ед. ч.
+        if (num % 1 !== 0) return forms[1]; 
+        
+        const rem100 = num % 100;
+        const rem10 = num % 10;
+        if (rem100 >= 11 && rem100 <= 19) return forms[2];
+        if (rem10 === 1) return forms[0];
+        if (rem10 >= 2 && rem10 <= 4) return forms[1];
+        return forms[2];
+    }
+
     // ==========================================
     // 🎨 UI ОБНОВЛЕНИЯ
     // ==========================================
@@ -983,8 +998,9 @@
         } else if (isFinalDay) {
             btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
         } else {
-            // Награда в гринд-монетах с красным огоньком
-            btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ГРИНД-МОНЕТ`;
+            // 1 гринд-монету, 2-4 гринд-монеты, 5-10 гринд-монет
+            const coinLabel = pluralize(task.reward_amount, ['ГРИНД-МОНЕТУ', 'ГРИНД-МОНЕТЫ', 'ГРИНД-МОНЕТ']);
+            btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ${coinLabel}`;
         }
 
         let linkHtml = '';
@@ -1101,8 +1117,9 @@
                 }
 
                 updateUI();
-                window.showSuccessModal(data.message || `Получено +${rewardVal} гринд-монет!`);
-                loadTelegramTasks(); 
+        const coinSuccess = pluralize(rewardVal, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
+        window.showSuccessModal(data.message || `Получено +${rewardVal} ${coinSuccess}!`);
+        loadTelegramTasks(); 
             } else {
                 handleTaskError(data, taskKey, actionUrl);
                 btn.disabled = false;
@@ -1198,7 +1215,13 @@
             div.innerHTML = `
                 <i class="fa-solid ${item.icon || (item.type === 'ticket' ? 'fa-ticket' : 'fa-coins')}" style="font-size:22px; color:${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}80);"></i>
                 <div class="shop-item-title">${item.title}</div>
-                <div class="shop-item-cost">Цена: ${item.cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 9px;"></i> гринд-монет ${extra}</div>
+                const costWord = pluralize(item.cost, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
+    div.innerHTML = `
+        <i class="fa-solid ${item.icon || (item.type === 'ticket' ? 'fa-ticket' : 'fa-coins')}" style="font-size:22px; color:${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}80);"></i>
+        <div class="shop-item-title">${item.title}</div>
+        <div class="shop-item-cost">Цена: ${item.cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 9px;"></i> ${costWord} ${extra}</div>
+        <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
+    `;
                 <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
             `;
             container.appendChild(div);
@@ -1216,7 +1239,10 @@
     };
 
     window.exchangeCoins = async (cost, rewardTickets) => {
-        const confirmText = `Купить ${rewardTickets} билет(ов) за ${cost} гринд-монет?`;
+        const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
+        const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
+        const confirmText = `Купить ${rewardTickets} ${ticketWord} за ${cost} ${coinWord}?`;
+
         const doExchange = async () => {
             try {
                 const response = await fetch('/api/v1/user/grind/exchange', {
@@ -1234,7 +1260,7 @@
                 userState.coins = parseFloat(res.new_coins);
                 userState.tickets = res.new_tickets;
                 updateUI();
-                window.showSuccessModal(`Вы получили ${rewardTickets} билет(ов)!`);
+                window.showSuccessModal(`Вы получили ${rewardTickets} ${ticketWord}!`);
 
             } catch (e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
