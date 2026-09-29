@@ -576,29 +576,28 @@
       filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.45));
     }
 
-    /* Модалка детального осмотра и зума скина */
+    /* Модалка детального осмотра скина (стиль как при покупке, без рамок и бликов) */
     .inspect-img-box {
       position: relative;
       width: 100%;
-      height: 170px;
+      height: 230px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%);
-      border-radius: 14px;
-      margin-bottom: 12px;
-      overflow: hidden;
+      background: transparent;
+      margin-bottom: 10px;
     }
     .inspect-img-zoom {
-      max-width: 90%;
-      max-height: 150px;
+      width: 100%;
+      height: 100%;
+      max-height: 220px;
       object-fit: contain;
-      filter: drop-shadow(0 10px 25px rgba(0,0,0,0.95)) drop-shadow(0 0 20px rgba(255,215,0,0.3));
-      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.95));
+      transition: transform 0.25s ease;
       cursor: zoom-in;
     }
     .inspect-img-zoom.zoomed {
-      transform: scale(1.4);
+      transform: scale(1.35);
       cursor: zoom-out;
     }
     .inspect-tags-row {
@@ -606,15 +605,15 @@
       gap: 6px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .inspect-pill {
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--glass-border);
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #fff;
       text-transform: uppercase;
     }
@@ -848,33 +847,24 @@
   </main>
 
   <!-- === МОДАЛКА УСПЕХА === -->
-  <!-- === МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
+ <!-- === МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
   <div id="skin-inspect-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinInspect()">
-      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.96); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 18px; text-align: center;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <span style="font-size:9px; font-weight:800; color:var(--text-color-muted); text-transform:uppercase; letter-spacing:1px;">Осмотр скина</span>
-              <button class="tour-close-btn" onclick="closeSkinInspect()"><i class="fa-solid fa-xmark"></i></button>
-          </div>
+      <div class="bottom-sheet" style="box-shadow: none; border: none; background: transparent; -webkit-backdrop-filter: blur(35px); max-width: 360px; width: 100%; padding: 20px 14px; text-align: center;">
+          <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
 
           <div class="inspect-img-box" onclick="toggleSkinZoom(this)">
               <img id="inspect-skin-img" class="inspect-img-zoom" src="" alt="Скин">
           </div>
 
-          <h3 id="inspect-skin-title" style="margin: 0 0 8px 0; font-size: 13px; font-weight: 900; color: #fff; line-height: 1.2;">-</h3>
+          <h3 id="inspect-skin-title" style="margin: 0 0 10px 0; font-size: 14px; font-weight: 800; color: #fff; line-height: 1.2;">-</h3>
 
           <div class="inspect-tags-row">
-              <span id="inspect-skin-wear" class="inspect-pill" style="color: var(--accent-neon); border-color: rgba(255,215,0,0.3);">-</span>
+              <span id="inspect-skin-wear" class="inspect-pill">-</span>
               <span id="inspect-skin-rarity" class="inspect-pill">-</span>
               <span id="inspect-skin-qty" class="inspect-pill" style="color: var(--text-color-muted);">-</span>
           </div>
 
-          <div style="font-size: 12px; font-weight: 900; color: var(--accent-neon); margin-bottom: 14px;">
-              Цена: <span id="inspect-skin-cost">0</span> <i class="fa-solid fa-fire" style="color: #ff3b30;"></i>
-          </div>
-
-          <button id="inspect-buy-btn" class="premium-btn active-state" style="width: 100%; color: #000; font-weight: 900;">
-              КУПИТЬ В ИНВЕНТАРЬ
-          </button>
+          <button class="premium-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
       </div>
   </div>
 
@@ -1809,12 +1799,6 @@
         document.getElementById('inspect-skin-wear').textContent = wear;
         document.getElementById('inspect-skin-rarity').textContent = item.rarity || 'Армейское';
         document.getElementById('inspect-skin-qty').textContent = item.quantity ? `В наличии: ${item.quantity} шт.` : '1 шт.';
-        
-        const buyBtn = document.getElementById('inspect-buy-btn');
-        buyBtn.onclick = () => {
-            closeSkinInspect();
-            buySkin(item.id, item.title, item.cost);
-        };
         
         modal.classList.add('visible');
         if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
