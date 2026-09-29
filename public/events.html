@@ -594,7 +594,25 @@
       padding: 12px 6px !important;
       position: relative;
     }
-    /* Плавное скрытие заголовков и характеристик при зуме */
+    /* Окно осмотра: на всю ширину экрана, с адаптивным зумом без вылета за края */
+    #skin-inspect-modal {
+      transition: background 0.3s ease;
+    }
+    #skin-inspect-modal.is-zoomed {
+      background: rgba(0, 0, 0, 0.96) !important;
+    }
+    #skin-inspect-modal .bottom-sheet {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      max-width: 96vw !important;
+      width: 100% !important;
+      padding: 12px 6px !important;
+      position: relative;
+    }
+    /* Скрываем текст и бейджи при зуме */
     #skin-inspect-modal .bottom-sheet > *:not(.inspect-img-box):not(.inspect-close-box) {
       transition: opacity 0.25s ease, transform 0.25s ease;
     }
@@ -617,18 +635,20 @@
     }
     .inspect-img-zoom {
       width: 100%;
-      height: 100%;
-      max-height: 270px;
+      height: auto;
+      max-width: 72vw; /* В спокойном состоянии держим баланс */
+      max-height: 240px;
       object-fit: contain;
       filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.95));
-      transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.3s ease;
       cursor: zoom-in;
       transform-origin: center center;
     }
     .inspect-img-zoom.zoomed {
-      transform: scale(1.75);
+      /* 72vw * 1.32 = ~95vw — картинка крупная, но гарантированно влезает в экран любого устройства */
+      transform: scale(1.32);
       cursor: zoom-out;
-      filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 1));
+      filter: drop-shadow(0 22px 48px rgba(0, 0, 0, 1));
     }
     .inspect-close-box {
       position: relative;
@@ -903,13 +923,13 @@
       </div>
   </div>
 
- <!-- === МОДАЛКА УСПЕХА === -->
+<!-- === МОДАЛКА УСПЕХА === -->
   <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
-      <div class="bottom-sheet">
-          <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
+      <div class="bottom-sheet" style="max-width: 335px;">
+          <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
           <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
-          <!-- Картинка увеличена до 150px с красивой сочной тенью -->
-          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 150px; object-fit: contain; margin: 6px 0 12px 0; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.98));">
+          <!-- Высота увеличена с 95px до 175px с глубокой контрастной тенью -->
+          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 175px; object-fit: contain; margin: 8px 0 16px 0; filter: drop-shadow(0 18px 36px rgba(0,0,0,1)); transform: scale(1.08);">
           <p id="success-message" style="margin: 0 0 15px 0; font-size: 11px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
 
           <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 10px; border-radius: 12px; margin-bottom: 15px;">
@@ -2057,7 +2077,7 @@
         document.body.appendChild(overlay);
     };
 
-    window.showBuyConfirm = function(title, costHtml, onConfirm, visualContent = null) {
+   window.showBuyConfirm = function(line1, line2, onConfirm, visualContent = null) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
         
@@ -2067,30 +2087,30 @@
             overlay.remove();
         };
 
-        // Поддержка как картинки скина, так и неоновой иконки билетов / монет
         let visualHtml = '';
         if (visualContent) {
             if (visualContent.trim().startsWith('<')) {
                 visualHtml = `
-                    <div style="width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px 0;">
+                    <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px 0;">
                         ${visualContent}
                     </div>`;
             } else {
+                // Высота увеличена до 170px + scale(1.08) для крупного вида
                 visualHtml = `
-                    <div style="width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px 0;">
-                        <img src="${visualContent}" style="max-width: 100%; max-height: 125px; object-fit: contain; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.98));">
+                    <div style="width: 100%; height: 170px; display: flex; align-items: center; justify-content: center; margin: 4px 0 12px 0;">
+                        <img src="${visualContent}" style="width: 100%; height: 165px; object-fit: contain; filter: drop-shadow(0 16px 32px rgba(0,0,0,1)); transform: scale(1.08);">
                     </div>`;
             }
         }
 
         overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 310px; padding: 20px 18px;">
-                <h3 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
+            <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 335px; padding: 20px 18px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
                 ${visualHtml}
                 <div style="margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; text-align: center;">
-                    <span style="color: #ffffff; font-size: 13px; font-weight: 800; line-height: 1.2;">${title}</span>
-                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${costHtml}</span>
+                    <span style="color: #ffffff; font-size: 13px; font-weight: 800; line-height: 1.2;">${line1}</span>
+                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">${line2}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="premium-btn" id="confirm-btn-cancel" style="flex: 1; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;">ОТМЕНА</button>
