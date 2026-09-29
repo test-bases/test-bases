@@ -580,6 +580,99 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+
+    /* === СТИЛИ ДЛЯ ПИКЕРА СКИНОВ ИЗ MARKET_CACHE === */
+    .filter-spoiler {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .filter-spoiler-header {
+      padding: 9px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-color-muted);
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .filter-spoiler-header:active {
+      color: #fff;
+    }
+    .filter-spoiler-body {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 12px 12px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .filter-spoiler.open .filter-spoiler-body {
+      display: flex;
+    }
+    .filter-spoiler.open .spoiler-chevron {
+      transform: rotate(180deg);
+    }
+
+    .custom-select-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #fff;
+      padding: 6px 8px;
+      font-size: 10px;
+      outline: none;
+    }
+    .custom-select-input option {
+      background: #121214;
+      color: #fff;
+    }
+
+    /* Сетка найденных скинов в меню выбора */
+    .market-search-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 8px;
+    }
+    .market-skin-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .market-skin-card:active {
+      transform: scale(0.97);
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Выбранный скин в окне добавления */
+    .selected-skin-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+    }
+    
   </style>
 </head>
 <body>
@@ -690,10 +783,10 @@
               <div class="segment-btn" id="subtab-promos" onclick="switchShopSubTab('promos')">Монеты</div>
           </div>
 
-          <!-- Скрытая панель добавления скина (видна ТОЛЬКО админу на вкладке Скины) -->
+          <!-- Кнопка админа (видна только на вкладке Скины) -->
           <div id="admin-skin-panel" style="display: none; margin-bottom: 10px;">
               <button class="premium-btn" onclick="openAddSkinModal()" style="background: rgba(255, 255, 255, 0.06); border: 1px dashed rgba(255, 255, 255, 0.25); color: #fff;">
-                  <i class="fa-solid fa-plus" style="color: var(--accent-neon);"></i> ДОБАВИТЬ СКИН ИЗ MARKET_CACHE
+                  <i class="fa-solid fa-plus" style="color: var(--accent-neon);"></i> ДОБАВИТЬ СКИН В МАГАЗИН
               </button>
           </div>
 
@@ -721,26 +814,35 @@
   </div>
 
   <!-- МОДАЛКА ДОБАВЛЕНИЯ СКИНА АДМИНОМ -->
+  <!-- 1. МОДАЛКА ДОБАВЛЕНИЯ СКИНА В МАГАЗИН -->
   <div id="admin-skin-modal" class="modal-overlay" onclick="if(event.target===this) closeAddSkinModal()">
-      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 310px; padding: 20px; text-align: left;">
-          <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase;">ДОБАВИТЬ СКИН (RAFFLE)</h3>
-          
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-              <div>
-                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Market Hash Name:</span>
-                  <input id="admin-skin-name" type="text" placeholder="'Blueberries' Buckshot | NSWC SEAL" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
-                  <span style="font-size: 8px; color: #8e8e93; display: block; margin-top: 2px;">Картинка и редкость автоматически подтянутся из market_cache</span>
+      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px; text-align: left;">
+          <h3 style="margin: 0 0 14px 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase;">ДОБАВИТЬ СКИН (RAFFLE)</h3>
+
+          <!-- Кнопка вызова меню выбора -->
+          <button class="premium-btn active-state" onclick="openSkinPickerModal()" style="color: #fff; margin-bottom: 12px;">
+              <i class="fa-solid fa-crosshairs"></i> ВЫБРАТЬ СКИН ИЗ БАЗЫ
+          </button>
+
+          <!-- Превью выбранного скина -->
+          <div id="selected-skin-box" class="selected-skin-preview" style="display: none;">
+              <img id="selected-skin-img" src="" style="width: 50px; height: 38px; object-fit: contain;">
+              <div style="display: flex; flex-direction: column; overflow: hidden;">
+                  <span id="selected-skin-title" style="font-size: 11px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</span>
+                  <span id="selected-skin-price-rub" style="font-size: 9px; color: var(--accent-neon); font-weight: 700;">Цена Steam: 0 ₽</span>
               </div>
-              
-              <div style="display: flex; gap: 8px;">
-                  <div style="flex: 1.2;">
-                      <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Цена (монеты):</span>
-                      <input id="admin-skin-cost" type="number" step="0.5" placeholder="25.0" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
-                  </div>
-                  <div style="flex: 0.8;">
-                      <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Кол-во:</span>
-                      <input id="admin-skin-qty" type="number" value="1" min="1" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
-                  </div>
+          </div>
+          <input type="hidden" id="admin-skin-name-val">
+
+          <!-- Поля для ввода цены в гринд-монетах и остатка -->
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <div style="flex: 1.2;">
+                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Цена (монеты):</span>
+                  <input id="admin-skin-cost" type="number" step="0.5" placeholder="50.0" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
+              </div>
+              <div style="flex: 0.8;">
+                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Кол-во:</span>
+                  <input id="admin-skin-qty" type="number" value="1" min="1" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
               </div>
           </div>
 
@@ -751,7 +853,84 @@
       </div>
   </div>
 
-  <div id="profile-popup-root"></div>
+  <!-- 2. МОДАЛКА ВЫБОРА СКИНА СО СПОЙЛЕРОМ ФИЛЬТРОВ -->
+  <div id="admin-skin-picker-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinPickerModal()">
+      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.98); border: 1px solid rgba(255, 255, 255, 0.14); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); max-width: 360px; padding: 18px; text-align: left;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase;">ВЫБОР ИЗ MARKET_CACHE</h3>
+              <button class="tour-close-btn" onclick="closeSkinPickerModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <!-- Строка быстрого поиска -->
+          <div style="margin-bottom: 8px;">
+              <input id="picker-search-query" type="text" placeholder="Название (AK-47, AWP, Printstream)..." style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 12px; color: #fff; font-size: 11px; outline: none;">
+          </div>
+
+          <!-- СПОЙЛЕР ФИЛЬТРОВ (СКРЫТ ПО УМОЛЧАНИЮ) -->
+          <div class="filter-spoiler" id="picker-spoiler">
+              <div class="filter-spoiler-header" onclick="togglePickerSpoiler()">
+                  <span><i class="fa-solid fa-sliders" style="margin-right: 5px;"></i> Фильтры выборки</span>
+                  <i class="fa-solid fa-chevron-down spoiler-chevron" id="picker-spoiler-chevron"></i>
+              </div>
+              <div class="filter-spoiler-body">
+                  <!-- Качество (Wear) -->
+                  <div>
+                      <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Качество (Экстерьер):</span>
+                      <select id="picker-wear" class="custom-select-input" style="margin-top: 3px;">
+                          <option value="all">Все качества</option>
+                          <option value="Factory New" selected>Прямо с завода (Factory New)</option>
+                          <option value="Minimal Wear">Немного поношенное (Minimal Wear)</option>
+                          <option value="Field-Tested">После полевых (Field-Tested)</option>
+                          <option value="Well-Worn">Поношенное (Well-Worn)</option>
+                          <option value="Battle-Scarred">Закаленное в боях (Battle-Scarred)</option>
+                      </select>
+                  </div>
+
+                  <!-- Редкость (Rarity) -->
+                  <div>
+                      <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Редкость:</span>
+                      <select id="picker-rarity" class="custom-select-input" style="margin-top: 3px;">
+                          <option value="all" selected>Любая редкость</option>
+                          <option value="blue">Армейское (Синее)</option>
+                          <option value="purple">Запрещенное (Фиолетовое)</option>
+                          <option value="pink">Засекреченное (Розовое)</option>
+                          <option value="red">Тайное (Красное)</option>
+                      </select>
+                  </div>
+
+                  <!-- Диапазон цен в рублях -->
+                  <div style="display: flex; gap: 8px;">
+                      <div style="flex: 1;">
+                          <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Мин. цена (₽):</span>
+                          <input id="picker-min-price" type="number" placeholder="0" class="custom-select-input" style="margin-top: 3px;">
+                      </div>
+                      <div style="flex: 1;">
+                          <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Макс. цена (₽):</span>
+                          <input id="picker-max-price" type="number" placeholder="5000" class="custom-select-input" style="margin-top: 3px;">
+                      </div>
+                  </div>
+
+                  <!-- Чекбокс: Только оружие -->
+                  <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 9px; color: #fff; font-weight: 700; margin-top: 2px;">
+                      <input id="picker-only-weapons" type="checkbox" checked style="accent-color: var(--accent-neon);">
+                      Только оружие (без наклеек и граффити)
+                  </label>
+              </div>
+          </div>
+
+          <button class="premium-btn active-state" onclick="fetchMarketSkins()" style="color: #000; font-weight: 900; margin-bottom: 6px;">
+              <i class="fa-solid fa-magnifying-glass"></i> ПРИМЕНИТЬ И ИСКАТЬ
+          </button>
+
+          <!-- Список найденных предметов -->
+          <div class="market-search-grid" id="picker-results-container">
+              <div style="grid-column: 1/-1; text-align: center; color: var(--text-color-muted); font-size: 10px; padding: 25px 0;">
+                  Нажмите «Применить и искать» для загрузки списка
+              </div>
+          </div>
+      </div>
+  </div>
 
   <div id="profile-popup-root"></div>
 
@@ -807,7 +986,115 @@
     let grindSettings = { twitch_status_boost_coins: 0.5, twitch_status_free_tickets: 5, ref_boost_coins_per_user: 0.1 };
 
     let shopItems = [];
-    let currentShopTab = 'skins';
+    // ==========================================
+    // 🛍️ МАГАЗИН: СКИHЫ И АДМИНКА С MARKET_CACHE
+    // ==========================================
+    let currentShopTab = 'skins'; // Скины первой вкладкой
+
+    // Переключение спойлера фильтров
+    window.togglePickerSpoiler = function() {
+        const spoiler = document.getElementById('picker-spoiler');
+        if (spoiler) {
+            spoiler.classList.toggle('open');
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+    };
+
+    window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
+    window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
+
+    window.openSkinPickerModal = function() {
+        document.getElementById('admin-skin-picker-modal').classList.add('visible');
+        fetchMarketSkins(); // Сразу подгружаем первые скины по дефолтным фильтрам
+    };
+    window.closeSkinPickerModal = () => document.getElementById('admin-skin-picker-modal').classList.remove('visible');
+
+    // Запрос в market_cache с учётом всех фильтров
+    window.fetchMarketSkins = async function() {
+        const container = document.getElementById('picker-results-container');
+        if (!container) return;
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); font-size:10px; padding:25px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Поиск в market_cache...</div>';
+
+        const q = encodeURIComponent(document.getElementById('picker-search-query').value.trim());
+        const wear = encodeURIComponent(document.getElementById('picker-wear').value);
+        const rarity = encodeURIComponent(document.getElementById('picker-rarity').value);
+        const minP = document.getElementById('picker-min-price').value;
+        const maxP = document.getElementById('picker-max-price').value;
+        const onlyWeapons = document.getElementById('picker-only-weapons').checked;
+
+        let url = `/api/v1/admin/market/search?initData=${encodeURIComponent(tg.initData || '')}&q=${q}&wear=${wear}&rarity=${rarity}&only_weapons=${onlyWeapons}`;
+        if (minP) url += `&min_price=${minP}`;
+        if (maxP) url += `&max_price=${maxP}`;
+
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error();
+            const items = await resp.json();
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); font-size:10px; padding:25px 0;">Ничего не найдено. Ослабьте фильтры.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'market-skin-card';
+                card.onclick = () => selectSkinFromPicker(item);
+
+                card.innerHTML = `
+                    <img src="${item.image_url}" style="width: 100%; height: 50px; object-fit: contain; margin-bottom: 4px;">
+                    <div style="font-size: 9px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 3px; max-height: 22px; overflow: hidden;">${item.market_hash_name}</div>
+                    <div style="font-size: 9px; font-weight: 900; color: var(--accent-neon); margin-top: auto;">${parseFloat(item.price_rub).toFixed(0)} ₽</div>
+                `;
+                container.appendChild(card);
+            });
+        } catch (e) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--danger-color); font-size:10px; padding:25px 0;">Ошибка поиска в базе</div>';
+        }
+    };
+
+    // Автозаполнение полей при выборе скина
+    window.selectSkinFromPicker = function(item) {
+        document.getElementById('admin-skin-name-val').value = item.market_hash_name;
+        document.getElementById('selected-skin-title').textContent = item.market_hash_name;
+        document.getElementById('selected-skin-img').src = item.image_url;
+        document.getElementById('selected-skin-price-rub').textContent = `Цена Steam: ~${parseFloat(item.price_rub).toFixed(0)} ₽`;
+        document.getElementById('selected-skin-box').style.display = 'flex';
+
+        // Закрываем окно поиска и возвращаемся к добавлению
+        closeSkinPickerModal();
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    };
+
+    // Отправка скина на добавление в витрину магазина
+    window.submitAdminAddSkin = async function() {
+        const name = document.getElementById('admin-skin-name-val').value;
+        const cost = parseFloat(document.getElementById('admin-skin-cost').value);
+        const qty = parseInt(document.getElementById('admin-skin-qty').value) || 1;
+
+        if (!name) {
+            return window.customAlert("Сначала выберите скин из базы!");
+        }
+        if (isNaN(cost) || cost <= 0) {
+            return window.customAlert("Укажите цену в гринд-монетах!");
+        }
+
+        try {
+            const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/add', {
+                skin_name: name,
+                cost_coins: cost,
+                quantity: qty
+            }, 'POST');
+
+            closeAddSkinModal();
+            window.showSuccessModal(res.message || "Скин успешно добавлен!");
+            fetchShopItems(); // Перезагружаем витрину магазина
+        } catch (e) {
+            if (tg.showAlert) tg.showAlert(e.message || "Ошибка добавления");
+            else window.customAlert(e.message || "Ошибка добавления");
+        }
+    };
     const MAX_STREAK = 10;
     const GRIND_COOLDOWN = 24 * 60 * 60 * 1000;
 
@@ -992,6 +1279,12 @@
         }
 
         renderFreeTicketBtn();
+
+        // Показываем кнопку админа, если у пользователя есть права
+        const adminPanel = document.getElementById('admin-skin-panel');
+        if (adminPanel) {
+            adminPanel.style.display = (userState.is_admin && currentShopTab === 'skins') ? 'block' : 'none';
+        }
     }
 
     function renderFreeTicketBtn() {
@@ -1395,34 +1688,6 @@
         );
     };
 
-    // 🛠️ АДМИНКА ДЛЯ СКИНОВ
-    window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
-    window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
-
-    window.submitAdminAddSkin = async function() {
-        const name = document.getElementById('admin-skin-name').value.trim();
-        const cost = parseFloat(document.getElementById('admin-skin-cost').value);
-        const qty = parseInt(document.getElementById('admin-skin-qty').value) || 1;
-
-        if (!name || isNaN(cost) || cost <= 0) {
-            return window.customAlert("Укажите точное название и цену в монетах!");
-        }
-
-        try {
-            const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/add', {
-                skin_name: name,
-                cost_coins: cost,
-                quantity: qty
-            }, 'POST');
-
-            closeAddSkinModal();
-            window.showSuccessModal(res.message || "Скин добавлен!");
-            fetchShopItems();
-        } catch (e) {
-            if (tg.showAlert) tg.showAlert(e.message || "Ошибка добавления");
-            else window.customAlert(e.message || "Ошибка добавления");
-        }
-    };
 
     // ==========================================
     // ⚙️ УТИЛИТЫ И НАВИГАЦИЯ
