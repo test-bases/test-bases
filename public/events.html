@@ -550,7 +550,7 @@
     /* === МОДАЛКИ === */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; }
     .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-    .bottom-sheet { background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); width: 100%; max-width: 320px; border-radius: 20px; padding: 20px; transform: scale(0.95); transition: all 0.3s ease; text-align: center; }
+    .bottom-sheet { box-shadow: var(--glass-shadow); width: 100%; max-width: 320px; border-radius: 20px; transition: all 0.3s ease; text-align: center; }
     .modal-overlay.visible .bottom-sheet { transform: scale(1); }
 
     /* PULL TO REFRESH */
@@ -1385,7 +1385,7 @@
         overlay.className = 'modal-overlay visible'; 
         overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="background: rgba(12, 12, 14, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); max-width: 300px; padding: 22px 18px;">
+            <div class="bottom-sheet" style="background: -webkit-backdrop-filter: blur(30px); max-width: 300px; padding: 22px 18px;">
                 <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 4px; text-align: center;">
                     <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
