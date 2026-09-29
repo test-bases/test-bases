@@ -606,13 +606,20 @@
 
       <!-- ВКЛАДКА 2: ХАЛЯВА (БЕСПЛАТНЫЙ БИЛЕТ) -->
       <div id="tab-free" class="tab-content">
-          <div class="glass-card" style="align-items: center; text-align: center; padding: 26px 15px;">
-              <i class="fa-solid fa-ticket" style="font-size: 38px; color: var(--accent-neon); filter: drop-shadow(0 0 15px rgba(255,215,0,0.3)); margin-bottom: 8px;"></i>
-              <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900; text-transform: uppercase;">Ежедневный Билет</h3>
-              <p id="ticket-subtitle" style="margin: 0 0 15px 0; font-size: 10px; color: var(--text-color-muted);">Обновляется раз в 24 часа</p>
-
+          <div class="glass-card">
+              <div class="task-header">
+                  <div class="task-icon" style="color: var(--accent-neon); text-shadow: 0 0 10px rgba(255,215,0,0.5);">
+                      <i class="fa-solid fa-ticket"></i>
+                  </div>
+                  <div class="task-text">
+                      <span class="task-title">Ежедневный Билет</span>
+                      <span class="task-desc">Обновление раз в 24 часа • Награда: <span id="ticket-reward-desc" style="color:var(--accent-neon); font-weight:800;">+1</span></span>
+                  </div>
+              </div>
               <div id="free-ticket-container" style="width: 100%;">
-                 <button class="premium-btn" disabled><i class="fa-solid fa-spinner fa-spin"></i></button>
+                  <button class="premium-btn locked-state" disabled>
+                      <i class="fa-solid fa-spinner fa-spin"></i> ЗАГРУЗКА
+                  </button>
               </div>
           </div>
       </div>
@@ -879,11 +886,15 @@
         const diff = Date.now() - lastClaim;
         let tReward = 1 + (isVipActive() ? 1 : 0) + (isTwitchBoostActive() ? grindSettings.twitch_status_free_tickets : 0);
 
+        // Динамически обновляем цифру награды в строке описания
+        const rewardDescEl = document.getElementById('ticket-reward-desc');
+        if (rewardDescEl) rewardDescEl.textContent = `+${tReward}`;
+
         const container = document.getElementById('free-ticket-container');
         if (!container) return;
 
         if (diff > GRIND_COOLDOWN) {
-            container.innerHTML = `<button class="premium-btn active-state" onclick="claimFreeTicket()">ЗАБРАТЬ +${tReward}</button>`;
+            container.innerHTML = `<button class="premium-btn active-state" onclick="claimFreeTicket()">ЗАБРАТЬ БОНУС</button>`;
         } else {
             container.innerHTML = `<button class="premium-btn locked-state" disabled>${formatCooldown(diff)}</button>`;
         }
