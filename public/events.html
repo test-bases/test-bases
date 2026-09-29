@@ -161,42 +161,39 @@
     }
 
     /* === РАЗДЕЛЕНИЕ ЭКРАНА В РЕЖИМЕ ОБУЧЕНИЯ === */
-    /* Верхняя зона контента ужимается ровно до границы окна объяснения */
+    /* Поднимаем весь скролл-контейнер ВЫШЕ затемняющего слоя tour-backdrop (9990), чтобы карточки не оставались под оверлеем */
     body.tour-mode #main-scroll-area {
+      position: relative !important;
+      z-index: 9992 !important;
       height: calc(100vh - 275px) !important;
       padding-bottom: 20px !important;
       transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* Опускаем карточку в 2.5 раза ниже (с 35px до 90px) */
-    body.tour-mode .tab-content {
-      padding-top: 180px !important;
-    }
-
-    /* Воздух сверху, чтобы 1-й шаг не упирался в верхние кнопки */
+    /* Отключаем fadeIn-анимацию на время обучения, чтобы не блокировать снятие блюра на мобильных */
     body.tour-mode .tab-content {
       padding-top: 35px !important;
+      animation: none !important;
     }
 
-    /* На шагах 1, 3, 4: глубокий заметный блюр и затемнение всего фона */
-    /* 🛡️ БЛОКИРУЮЩИЙ СЛОЙ: закрывает экран сверху до нижней панели */
+    /* 🛡️ БЛОКИРУЮЩИЙ СЛОЙ: закрывает верхнюю шапку и вкладки */
     .tour-backdrop {
       display: none;
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      bottom: 60px; /* Нижняя панель (60px) остается свободной и доступной */
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 9990; /* Перекрывает шапку, вкладки и карточки */
-      pointer-events: auto; /* Блокирует все клики, свайпы и тапы */
+      bottom: 60px;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 9990;
+      pointer-events: auto;
     }
 
     body.tour-mode .tour-backdrop {
       display: block;
     }
 
-    /* Нижняя панель навигации гарантированно активна и кликабельна */
+    /* Нижняя панель навигации */
     body.tour-mode nav,
     body.tour-mode footer,
     body.tour-mode .bottom-nav,
@@ -206,24 +203,28 @@
       pointer-events: auto !important;
     }
 
-    /* На шагах 1, 3, 4: блюр и блокировка нажатий */
+    /* Блюр неактивных карточек (убран transition по filter, из-за которого зависает видеочип в WebKit) */
     body.tour-mode .glass-card {
-      opacity: 0.15;
+      opacity: 0.2;
       filter: blur(5px);
-      transition: opacity 0.4s ease, filter 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-      pointer-events: none !important; /* Блокирует клики по карточкам */
+      -webkit-filter: blur(5px);
+      transition: opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      pointer-events: none !important;
     }
 
-    /* Активная карточка четкая, видна поверх оверлея, но защищена от случайных нажатий */
-    /* 🛡️ Белая неоновая подсветка обводки активной карточки */
-    body.tour-mode .glass-card.tour-target-active {
+    /* 🔥 Активная карточка: принудительное отключение WebKit-фильтра + аппаратный рендер translateZ(0) */
+    body.tour-mode .glass-card.tour-target-active,
+    body.tour-mode #tg-tasks-list.tour-target-active .glass-card {
       opacity: 1 !important;
       filter: none !important;
-      border: 1px solid rgba(255, 255, 255, 0.6) !important;
-      background: rgba(24, 24, 28, 0.88) !important;
-      box-shadow: 0 0 25px rgba(255, 255, 255, 0.28), 0 16px 40px rgba(0, 0, 0, 0.9) !important;
+      -webkit-filter: none !important;
+      transform: translateZ(0) !important;
+      -webkit-transform: translateZ(0) !important;
+      border: 1px solid rgba(255, 255, 255, 0.7) !important;
+      background: rgba(24, 24, 28, 0.95) !important;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.35), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
       position: relative;
-      z-index: 9991;
+      z-index: 9995 !important;
       pointer-events: none !important;
     }
 
@@ -938,7 +939,7 @@
           <!-- Кнопка админа (видна только на вкладке Скины) -->
           <div id="admin-skin-panel" style="display: none; margin-bottom: 10px;">
               <button class="premium-btn" onclick="openAddSkinModal()" style="background: rgba(255, 255, 255, 0.06); border: 1px dashed rgba(255, 255, 255, 0.25); color: #fff;">
-                  <i class="fa-solid fa-plus" style="color: var(--accent-neon);"></i> ДОБАВИТЬ СКИН В МАГАЗИН
+                  <i class="fa-solid fa-sliders" style="color: var(--accent-neon);"></i> УПРАВЛЕНИЕ СКИНАМИ МАГАЗИНА
               </button>
           </div>
 
@@ -991,18 +992,37 @@
       </div>
   </div>
 
- <!-- МОДАЛКА ДОБАВЛЕНИЯ СКИНА АДМИНОМ -->
-  <!-- 1. МОДАЛКА ДОБАВЛЕНИЯ СКИНА В МАГАЗИН -->
+ <!-- ЕДИНОЕ ОКНО УПРАВЛЕНИЯ: ДОБАВЛЕНИЕ, РЕДАКТИРОВАНИЕ, УДАЛЕНИЕ -->
   <div id="admin-skin-modal" class="modal-overlay" onclick="if(event.target===this) closeAddSkinModal()">
-      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px; text-align: left;">
-          <h3 style="margin: 0 0 14px 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase;">ДОБАВИТЬ СКИН (RAFFLE)</h3>
+      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.96); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 330px; max-height: 85vh; overflow-y: auto; padding: 18px 16px; text-align: left;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase;">СКИНЫ МАГАЗИНА</h3>
+              <button class="tour-close-btn" onclick="closeAddSkinModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
 
-          <!-- Кнопка вызова меню выбора -->
-          <button class="premium-btn active-state" onclick="openSkinPickerModal()" style="color: #fff; margin-bottom: 12px;">
-              <i class="fa-solid fa-crosshairs"></i> ВЫБРАТЬ СКИН ИЗ БАЗЫ
-          </button>
+          <!-- ПЕРЕКЛЮЧАТЕЛЬ: НОВЫЙ ИЛИ РЕДАКТИРОВАТЬ -->
+          <div style="display: flex; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 2px; margin-bottom: 12px; gap: 4px;">
+              <button id="admin-mode-btn-add" class="premium-btn active-state" style="flex: 1; padding: 6px 0; font-size: 10px;" onclick="switchAdminSkinMode('add')">➕ ДОБАВИТЬ</button>
+              <button id="admin-mode-btn-edit" class="premium-btn" style="flex: 1; padding: 6px 0; font-size: 10px; background: transparent; border: none; color: var(--text-color-muted);" onclick="switchAdminSkinMode('edit')">✏️ НА ВИТРИНЕ</button>
+          </div>
 
-          <!-- Превью выбранного скина -->
+          <!-- 1. ВЫБОР СКИНА ИЗ СУЩЕСТВУЮЩИХ (ДЛЯ РЕЖИМА РЕДАКТИРОВАНИЯ) -->
+          <div id="admin-edit-selector-block" style="display: none; margin-bottom: 10px;">
+              <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Выберите скин с витрины:</span>
+              <select id="admin-existing-skin-select" class="custom-select-input" style="margin-top: 4px;" onchange="onExistingSkinSelected(this.value)">
+                  <option value="">-- Выберите скин --</option>
+              </select>
+          </div>
+
+          <!-- 2. КНОПКА ПОИСКА ИЗ MARKET_CACHE (ДЛЯ РЕЖИМА ДОБАВЛЕНИЯ) -->
+          <div id="admin-add-picker-block" style="margin-bottom: 12px;">
+              <button class="premium-btn active-state" onclick="openSkinPickerModal()" style="color: #fff; width: 100%;">
+                  <i class="fa-solid fa-crosshairs"></i> ВЫБРАТЬ СКИН ИЗ БАЗЫ
+              </button>
+          </div>
+
+          <!-- ПРЕВЬЮ ВЫБРАННОГО СКИНА -->
           <div id="selected-skin-box" class="selected-skin-preview" style="display: none;">
               <img id="selected-skin-img" src="" style="width: 50px; height: 38px; object-fit: contain;">
               <div style="display: flex; flex-direction: column; overflow: hidden;">
@@ -1010,27 +1030,39 @@
                   <span id="selected-skin-price-rub" style="font-size: 9px; color: var(--accent-neon); font-weight: 700;">Цена Steam: 0 ₽</span>
               </div>
           </div>
+          <input type="hidden" id="admin-skin-id-val">
           <input type="hidden" id="admin-skin-name-val">
 
-          <!-- Поля для ввода цены в гринд-монетах и остатка -->
+          <!-- ПОЛЯ ВВОДА ЦЕНЫ И КОЛИЧЕСТВА -->
           <div style="display: flex; gap: 8px; margin-bottom: 16px;">
               <div style="flex: 1.2;">
-                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Цена (монеты):</span>
+                  <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Цена (монеты):</span>
                   <input id="admin-skin-cost" type="number" step="0.5" placeholder="50.0" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
               </div>
               <div style="flex: 0.8;">
-                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Кол-во:</span>
-                  <input id="admin-skin-qty" type="number" value="1" min="1" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
+                  <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Остаток:</span>
+                  <input id="admin-skin-qty" type="number" value="1" min="0" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
               </div>
           </div>
 
-          <div style="display: flex; gap: 8px;">
+          <!-- КНОПКИ ДЕЙСТВИЙ (МЕНЯЮТСЯ В ЗАВИСИМОСТИ ОТ РЕЖИМА) -->
+          <div id="admin-action-add-group" style="display: flex; gap: 8px;">
               <button class="premium-btn" style="flex: 1; background: rgba(255,255,255,0.05); color: #8e8e93;" onclick="closeAddSkinModal()">ОТМЕНА</button>
-              <button class="premium-btn active-state" style="flex: 1.2; color: #fff; font-weight: 900;" onclick="submitAdminAddSkin()">ДОБАВИТЬ</button>
+              <button class="premium-btn active-state" style="flex: 1.3; color: #fff; font-weight: 900;" onclick="submitAdminAddSkin()">ДОБАВИТЬ</button>
           </div>
+
+          <div id="admin-action-edit-group" style="display: none; gap: 8px;">
+              <button class="premium-btn" style="flex: 1; background: rgba(255, 69, 58, 0.15); border: 1px solid rgba(255, 69, 58, 0.4); color: #ff453a;" onclick="submitAdminDeleteSkin()">
+                  <i class="fa-solid fa-trash"></i> УДАЛИТЬ
+              </button>
+              <button class="premium-btn active-state" style="flex: 1.3; color: #fff; font-weight: 900;" onclick="submitAdminEditSkin()">
+                  <i class="fa-solid fa-check"></i> СОХРАНИТЬ
+              </button>
+          </div>
+
       </div>
   </div>
-
+  
   <!-- 2. МОДАЛКА ВЫБОРА СКИНА СО СПОЙЛЕРОМ ФИЛЬТРОВ -->
   <div id="admin-skin-picker-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinPickerModal()">
       <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.98); border: 1px solid rgba(255, 255, 255, 0.14); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); max-width: 360px; padding: 18px; text-align: left;">
@@ -1187,9 +1219,6 @@ let currentShopTab = 'skins';
             if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         }
     };
-
-    window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
-    window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
 
    // Запасной скин (локальный путь без /public/ + fallback на случай отсутствия локального файла)
     const DEFAULT_SKIN_FALLBACK = '/static/default_skin.png';
@@ -1430,18 +1459,108 @@ let currentShopTab = 'skins';
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     };
 
-    // Отправка скина на добавление в витрину магазина
+   // ==========================================
+    // ⚙️ УПРАВЛЕНИЕ СКИНАМИ (ДОБАВИТЬ / ИЗМЕНИТЬ / УДАЛИТЬ)
+    // ==========================================
+    let currentAdminSkinMode = 'add'; // Режимы: 'add' (создание) или 'edit' (с витрины)
+
+    window.openAddSkinModal = function() {
+        switchAdminSkinMode('add');
+        document.getElementById('admin-skin-modal').classList.add('visible');
+    };
+
+    window.closeAddSkinModal = function() {
+        document.getElementById('admin-skin-modal').classList.remove('visible');
+        resetAdminSkinForm();
+    };
+
+    function resetAdminSkinForm() {
+        document.getElementById('admin-skin-id-val').value = '';
+        document.getElementById('admin-skin-name-val').value = '';
+        document.getElementById('admin-skin-cost').value = '';
+        document.getElementById('admin-skin-qty').value = '1';
+        document.getElementById('selected-skin-box').style.display = 'none';
+        const select = document.getElementById('admin-existing-skin-select');
+        if (select) select.value = '';
+    }
+
+    // Переключение вкладок «➕ ДОБАВИТЬ» и «✏️ НА ВИТРИНЕ»
+    window.switchAdminSkinMode = function(mode) {
+        currentAdminSkinMode = mode;
+        resetAdminSkinForm();
+
+        const btnAdd = document.getElementById('admin-mode-btn-add');
+        const btnEdit = document.getElementById('admin-mode-btn-edit');
+        const pickerBlock = document.getElementById('admin-add-picker-block');
+        const selectorBlock = document.getElementById('admin-edit-selector-block');
+        const groupAdd = document.getElementById('admin-action-add-group');
+        const groupEdit = document.getElementById('admin-action-edit-group');
+
+        if (mode === 'add') {
+            btnAdd.className = 'premium-btn active-state';
+            btnEdit.className = 'premium-btn';
+            btnEdit.style.background = 'transparent';
+            btnEdit.style.border = 'none';
+            btnEdit.style.color = 'var(--text-color-muted)';
+
+            pickerBlock.style.display = 'block';
+            selectorBlock.style.display = 'none';
+            groupAdd.style.display = 'flex';
+            groupEdit.style.display = 'none';
+        } else {
+            btnEdit.className = 'premium-btn active-state';
+            btnAdd.className = 'premium-btn';
+            btnAdd.style.background = 'transparent';
+            btnAdd.style.border = 'none';
+            btnAdd.style.color = 'var(--text-color-muted)';
+
+            pickerBlock.style.display = 'none';
+            selectorBlock.style.display = 'block';
+            groupAdd.style.display = 'none';
+            groupEdit.style.display = 'flex';
+
+            // Наполняем выпадающий список скинами, которые сейчас выставлены в магазине
+            const select = document.getElementById('admin-existing-skin-select');
+            select.innerHTML = '<option value="">-- Выберите скин --</option>';
+            const currentSkins = shopItems.filter(i => i.type === 'skin');
+            currentSkins.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.title} (${s.cost} 🔥, ост: ${s.quantity ?? 1})`;
+                select.appendChild(opt);
+            });
+        }
+        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    };
+
+    // При выборе скина из списка существующих подставляем его параметры
+    window.onExistingSkinSelected = function(skinId) {
+        if (!skinId) {
+            resetAdminSkinForm();
+            return;
+        }
+        const item = shopItems.find(i => String(i.id) === String(skinId));
+        if (!item) return;
+
+        document.getElementById('admin-skin-id-val').value = item.id;
+        document.getElementById('admin-skin-name-val').value = item.title;
+        document.getElementById('admin-skin-cost').value = item.cost;
+        document.getElementById('admin-skin-qty').value = item.quantity ?? 1;
+
+        document.getElementById('selected-skin-title').textContent = item.title;
+        document.getElementById('selected-skin-img').src = formatSteamImg(item.image_url);
+        document.getElementById('selected-skin-price-rub').textContent = `Текущая цена: ${item.cost} монет`;
+        document.getElementById('selected-skin-box').style.display = 'flex';
+    };
+
+    // 1. ДЕЙСТВИЕ: ДОБАВИТЬ СКИН
     window.submitAdminAddSkin = async function() {
         const name = document.getElementById('admin-skin-name-val').value;
         const cost = parseFloat(document.getElementById('admin-skin-cost').value);
         const qty = parseInt(document.getElementById('admin-skin-qty').value) || 1;
 
-        if (!name) {
-            return window.customAlert("Сначала выберите скин из базы!");
-        }
-        if (isNaN(cost) || cost <= 0) {
-            return window.customAlert("Укажите цену в гринд-монетах!");
-        }
+        if (!name) return window.customAlert("Сначала выберите скин из базы!");
+        if (isNaN(cost) || cost <= 0) return window.customAlert("Укажите цену в гринд-монетах!");
 
         try {
             const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/add', {
@@ -1452,10 +1571,67 @@ let currentShopTab = 'skins';
 
             closeAddSkinModal();
             window.showSuccessModal(res.message || "Скин успешно добавлен!");
-            fetchShopItems(); // Перезагружаем витрину магазина
+            fetchShopItems();
         } catch (e) {
             if (tg.showAlert) tg.showAlert(e.message || "Ошибка добавления");
             else window.customAlert(e.message || "Ошибка добавления");
+        }
+    };
+
+    // 2. ДЕЙСТВИЕ: СОХРАНИТЬ ИЗМЕНЕНИЯ (ЦЕНА / ОСТАТОК)
+    window.submitAdminEditSkin = async function() {
+        const skinId = document.getElementById('admin-skin-id-val').value;
+        const cost = parseFloat(document.getElementById('admin-skin-cost').value);
+        const qty = parseInt(document.getElementById('admin-skin-qty').value);
+
+        if (!skinId) return window.customAlert("Сначала выберите скин для редактирования!");
+        if (isNaN(cost) || cost <= 0) return window.customAlert("Укажите корректную цену!");
+        if (isNaN(qty) || qty < 0) return window.customAlert("Укажите корректный остаток!");
+
+        try {
+            const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/update', {
+                skin_id: skinId,
+                cost_coins: cost,
+                quantity: qty
+            }, 'POST');
+
+            closeAddSkinModal();
+            window.showSuccessModal(res.message || "Скин успешно обновлён!");
+            fetchShopItems();
+        } catch (e) {
+            if (tg.showAlert) tg.showAlert(e.message || "Ошибка обновления");
+            else window.customAlert(e.message || "Ошибка обновления");
+        }
+    };
+
+    // 3. ДЕЙСТВИЕ: СНЯТЬ/УДАЛИТЬ СКИН С ВИТРИНЫ
+    window.submitAdminDeleteSkin = async function() {
+        const skinId = document.getElementById('admin-skin-id-val').value;
+        const skinName = document.getElementById('admin-skin-name-val').value;
+
+        if (!skinId) return window.customAlert("Сначала выберите скин для удаления!");
+
+        const doDelete = async () => {
+            try {
+                const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/delete', {
+                    skin_id: skinId
+                }, 'POST');
+
+                closeAddSkinModal();
+                window.showSuccessModal(res.message || `Скин «${skinName}» удалён из магазина!`);
+                fetchShopItems();
+            } catch (e) {
+                if (tg.showAlert) tg.showAlert(e.message || "Ошибка удаления");
+                else window.customAlert(e.message || "Ошибка удаления");
+            }
+        };
+
+        if (tg.showConfirm) {
+            tg.showConfirm(`Удалить скин «${skinName}» из магазина?`, (confirmed) => {
+                if (confirmed) doDelete();
+            });
+        } else {
+            if (confirm(`Удалить скин «${skinName}» из магазина?`)) doDelete();
         }
     };
     const MAX_STREAK = 10;
@@ -2921,28 +3097,28 @@ window.closeSuccessModal = function() {
 
                 // 1-й шаг: всегда гарантированно возвращаемся в самый верх
                 if (currentTourStep === 0) {
-                    smoothScrollTour(scrollArea, 0, 500);
+                    smoothScrollTour(scrollArea, 0, 450);
                     return;
                 }
 
-                // 🔥 2-й шаг: плавный спуск к списку заданий
+                // 2-й шаг: плавный спуск к списку заданий
                 if (currentTourStep === 1) {
                     const tasksListEl = document.getElementById('tg-tasks-list');
                     const targetY = tasksListEl ? (tasksListEl.offsetTop - 14) : (target.offsetTop - 14);
-                    smoothScrollTour(scrollArea, Math.max(0, targetY), 900);
+                    smoothScrollTour(scrollArea, Math.max(0, targetY), 650);
                     return;
                 }
 
-                // 3 и 4 шаги: центрирование
+                // 3 и 4 шаги: плавное центрирование
                 const targetRect = target.getBoundingClientRect();
                 const scrollRect = scrollArea.getBoundingClientRect();
                 const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
                 const centerOffset = (scrollArea.clientHeight - target.offsetHeight) / 2;
                 const targetY = Math.max(0, currentPos - Math.max(15, centerOffset));
 
-                smoothScrollTour(scrollArea, targetY, 600);
+                smoothScrollTour(scrollArea, targetY, 500);
             }
-        }, 80);
+        }, 120);
     }
 
   </script>
