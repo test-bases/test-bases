@@ -226,25 +226,28 @@
 
             <!-- 🔥 БАННЕР: ЕЖЕДНЕВНАЯ НАГРАДА (ЧЕРНО-БЕЛЫЙ LIQUID GLASS) 🔥 -->
             <div onclick="window.location.href='/events.html'" 
-                 style="margin: 145px 16px 20px 16px; height: 74px; min-height: 74px; background: rgba(20, 20, 24, 0.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 18px; padding: 10px 16px 10px 12px; position: relative; z-index: 12; overflow: visible; display: flex; align-items: center; justify-content: space-between; cursor: pointer; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08); transition: transform 0.15s ease;"
+                 style="margin: 185px 16px 25px 16px; height: 84px; min-height: 84px; background: rgba(20, 20, 24, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 20px; padding: 12px 16px 12px 12px; position: relative; z-index: 12; overflow: visible; display: flex; align-items: center; justify-content: space-between; cursor: pointer; box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1); transition: transform 0.15s ease;"
                  onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform='scale(1)'">
 
-                <!-- Левая часть: крупная лягушка (голова торчит вверх, низ уходит за нижнюю грань) -->
-                <div style="position: relative; width: 110px; height: 100%; display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0;">
+                <!-- Левая часть: огромный лягушонок (голова высоко торчит над баннером, низ плавно тонет в теле карточки) -->
+                <div style="position: relative; width: 130px; height: 100%; display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0;">
                     <img src="/static/grind_banner.png" 
                          alt="Ежедневная награда" 
-                         style="position: absolute; left: -6px; bottom: -18px; height: 145px; max-width: 140px; object-fit: contain; pointer-events: none; z-index: 3; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.65));">
+                         style="position: absolute; left: -14px; bottom: 0px; height: 215px; max-width: 215px; object-fit: contain; pointer-events: none; z-index: 3; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.85)); -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 68%, rgba(0, 0, 0, 0.4) 86%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 68%, rgba(0, 0, 0, 0.4) 86%, transparent 100%);">
                 </div>
 
-                <!-- Правая часть: минималистичный белый заголовок и подпись -->
-                <div style="display: flex; flex-direction: column; justify-content: center; z-index: 2; flex-grow: 1; padding-left: 10px;">
+                <!-- Правая часть: заголовок, подпись и зарезервированное место под статус награды -->
+                <div style="display: flex; flex-direction: column; justify-content: center; z-index: 2; flex-grow: 1; padding-left: 8px;">
                     <div style="font-size: 14px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.15; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);">
                         ЕЖЕДНЕВНАЯ НАГРАДА
                     </div>
 
-                    <div style="font-size: 9px; color: #8e8e93; font-weight: 600; line-height: 1.2; margin-top: 4px;">
+                    <div style="font-size: 9px; color: #8e8e93; font-weight: 600; line-height: 1.2; margin-top: 3px;">
                         Задания, билеты и магазин скинов
                     </div>
+
+                    <!-- 🏷️ Зарезервированное место под плашку "ДОСТУПНА НАГРАДА" (на будущее) -->
+                    <div id="grind-reward-badge-slot" style="min-height: 15px; margin-top: 4px; display: flex; align-items: center;"></div>
                 </div>
 
                 <!-- Стрелочка перехода справа -->
