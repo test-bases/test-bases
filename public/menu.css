@@ -822,7 +822,7 @@ html.vk-mode #main-content { position: absolute !important; width: 100% !importa
     object-fit: contain;
     pointer-events: none;
     z-index: 1;
-    transform: translateY(105px) translateX(70px); 
+    transform: translateY(270px) translateX(70px); 
 }
 
 /* SCHEDULE STYLES */
