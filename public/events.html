@@ -577,6 +577,12 @@
     }
 
     /* Окно осмотра: на всю ширину экрана, без рамок и бликов, с мощным зумом */
+    #skin-inspect-modal {
+      transition: background 0.3s ease;
+    }
+    #skin-inspect-modal.is-zoomed {
+      background: rgba(0, 0, 0, 0.96) !important; /* Глубокое затемнение фона */
+    }
     #skin-inspect-modal .bottom-sheet {
       background: transparent !important;
       border: none !important;
@@ -586,6 +592,16 @@
       max-width: 96vw !important;
       width: 100% !important;
       padding: 12px 6px !important;
+      position: relative;
+    }
+    /* Плавное скрытие заголовков и характеристик при зуме */
+    #skin-inspect-modal .bottom-sheet > *:not(.inspect-img-box):not(.inspect-close-box) {
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    #skin-inspect-modal.is-zoomed .bottom-sheet > *:not(.inspect-img-box):not(.inspect-close-box) {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: scale(0.95);
     }
     .inspect-img-box {
       position: relative;
@@ -597,6 +613,7 @@
       background: transparent;
       margin: 10px 0 14px 0;
       touch-action: manipulation;
+      z-index: 10;
     }
     .inspect-img-zoom {
       width: 100%;
@@ -609,8 +626,13 @@
       transform-origin: center center;
     }
     .inspect-img-zoom.zoomed {
-      transform: scale(1.65);
+      transform: scale(1.75);
       cursor: zoom-out;
+      filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 1));
+    }
+    .inspect-close-box {
+      position: relative;
+      z-index: 20;
     }
     .inspect-tags-row {
       display: flex;
@@ -857,7 +879,7 @@
 
   </main>
 
- <!-- === МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
+<!-- === МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
   <div id="skin-inspect-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinInspect()">
       <div class="bottom-sheet">
           <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
@@ -875,7 +897,7 @@
               <span id="inspect-skin-qty" class="inspect-pill" style="color: var(--text-color-muted);">-</span>
           </div>
 
-          <div style="max-width: 280px; margin: 0 auto; width: 100%;">
+          <div class="inspect-close-box" style="max-width: 280px; margin: 0 auto; width: 100%;">
               <button class="premium-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
           </div>
       </div>
@@ -886,7 +908,8 @@
       <div class="bottom-sheet">
           <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
           <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
-          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 95px; object-fit: contain; margin: 6px 0 10px 0; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.95));">
+          <!-- Картинка увеличена до 150px с красивой сочной тенью -->
+          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 150px; object-fit: contain; margin: 6px 0 12px 0; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.98));">
           <p id="success-message" style="margin: 0 0 15px 0; font-size: 11px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
 
           <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 10px; border-radius: 12px; margin-bottom: 15px;">
