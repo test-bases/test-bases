@@ -224,23 +224,20 @@
                 
             </div>
 
-            <!-- 🔥 БАННЕР: ЕЖЕДНЕВНАЯ НАГРАДА (ЧЕТКИЙ 3D POP-OUT) 🔥 -->
+            <!-- 🔥 БАННЕР: ЕЖЕДНЕВНАЯ НАГРАДА (КРУПНЫЙ ПЕРСОНАЖ С ВЫХОДОМ ВВЕРХ И ВНИЗ) 🔥 -->
             <div onclick="window.location.href='/events.html'" 
-                 style="position: relative; margin: 215px 16px 25px 16px; height: 86px; min-height: 86px; background: rgba(18, 18, 22, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 12px 16px 12px 135px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08); transition: transform 0.15s ease; overflow: visible; z-index: 12;"
+                 style="position: relative; margin: 235px 16px 30px 16px; height: 82px; min-height: 82px; background: rgba(18, 18, 22, 0.88); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 10px 16px 10px 135px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08); transition: transform 0.15s ease; overflow: visible; z-index: 12;"
                  onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform='scale(1)'">
 
-                <!-- Зона персонажа: голова и нож выходят за верхний край, тело видно внутри карточки -->
-                <div style="position: absolute; left: 4px; bottom: 0; width: 130px; height: 86px; pointer-events: none; overflow: visible; z-index: 3;">
+                <!-- Зона персонажа: увеличен в 1.5 раза, голова высоко над верхом, ноги уходят ниже донышка карточки -->
+                <div style="position: absolute; left: 0; bottom: 0; width: 130px; height: 100%; pointer-events: none; overflow: visible; z-index: 5;">
                     <img src="/static/grind_banner.png" 
                          alt="Ежедневная награда" 
-                         style="position: absolute; left: 0; bottom: 0; height: 185px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); -webkit-backface-visibility: hidden; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.75));">
-                    
-                    <!-- Нижняя градиентная маска без потери резкости: мягко растворяет ноги в дне карточки -->
-                    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 26px; border-radius: 0 0 0 20px; background: linear-gradient(to top, rgba(18, 18, 22, 0.95) 0%, rgba(18, 18, 22, 0.4) 60%, transparent 100%);"></div>
+                         style="position: absolute; left: -10px; bottom: -22px; height: 195px; width: auto; max-width: 195px; object-fit: contain; transform: translateZ(0); -webkit-transform: translateZ(0);">
                 </div>
 
-                <!-- Правая часть: тексты и место под будущий статус -->
-                <div style="display: flex; flex-direction: column; justify-content: center; z-index: 4; flex-grow: 1;">
+                <!-- Правая часть: тексты и зарезервированное место под статус награды -->
+                <div style="display: flex; flex-direction: column; justify-content: center; z-index: 6; flex-grow: 1;">
                     <div style="font-size: 14px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.15; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);">
                         ЕЖЕДНЕВНАЯ НАГРАДА
                     </div>
@@ -249,18 +246,16 @@
                         Задания, билеты и магазин скинов
                     </div>
 
-                    <!-- 🏷️ Зарезервированное место под плашку "ДОСТУПНА НАГРАДА" -->
+                    <!-- 🏷️ Место под будущую плашку "ДОСТУПНА НАГРАДА" -->
                     <div id="grind-reward-badge-slot" style="min-height: 16px; margin-top: 6px; display: flex; align-items: center;"></div>
                 </div>
 
                 <!-- Стрелочка перехода -->
-                <div style="z-index: 4; color: rgba(255, 255, 255, 0.4); font-size: 13px; margin-left: 8px;">
+                <div style="z-index: 6; color: rgba(255, 255, 255, 0.4); font-size: 13px; margin-left: 8px;">
                     <i class="fa-solid fa-chevron-right"></i>
                 </div>
 
             </div>
-            
-        </div>
 
         </div>
 
