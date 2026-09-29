@@ -576,28 +576,40 @@
       filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.45));
     }
 
-    /* Модалка детального осмотра скина (стиль как при покупке, без рамок и бликов) */
+    /* Окно осмотра: на всю ширину экрана, без рамок и бликов, с мощным зумом */
+    #skin-inspect-modal .bottom-sheet {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      max-width: 96vw !important;
+      width: 100% !important;
+      padding: 12px 6px !important;
+    }
     .inspect-img-box {
       position: relative;
       width: 100%;
-      height: 230px;
+      height: 280px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: transparent;
-      margin-bottom: 10px;
+      margin: 10px 0 14px 0;
+      touch-action: manipulation;
     }
     .inspect-img-zoom {
       width: 100%;
       height: 100%;
-      max-height: 220px;
+      max-height: 270px;
       object-fit: contain;
-      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.95));
-      transition: transform 0.25s ease;
+      filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.95));
+      transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
       cursor: zoom-in;
+      transform-origin: center center;
     }
     .inspect-img-zoom.zoomed {
-      transform: scale(1.35);
+      transform: scale(1.65);
       cursor: zoom-out;
     }
     .inspect-tags-row {
@@ -605,19 +617,18 @@
       gap: 6px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
     }
     .inspect-pill {
       font-size: 10px;
       font-weight: 800;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       color: #fff;
       text-transform: uppercase;
     }
-
     /* === МОДАЛКИ === */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; }
     .modal-overlay.visible { opacity: 1; pointer-events: auto; }
@@ -846,11 +857,11 @@
 
   </main>
 
-  <!-- === МОДАЛКА УСПЕХА === -->
  <!-- === МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
   <div id="skin-inspect-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinInspect()">
-      <div class="bottom-sheet" style="box-shadow: none; border: none; background: transparent; -webkit-backdrop-filter: blur(35px); max-width: 360px; width: 100%; padding: 20px 14px; text-align: center;">
-          <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
+      <div class="bottom-sheet">
+          <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
+          <span style="font-size: 9px; color: var(--text-color-muted); text-transform: uppercase; letter-spacing: 0.5px;">Нажмите на скин для приближения</span>
 
           <div class="inspect-img-box" onclick="toggleSkinZoom(this)">
               <img id="inspect-skin-img" class="inspect-img-zoom" src="" alt="Скин">
@@ -864,7 +875,9 @@
               <span id="inspect-skin-qty" class="inspect-pill" style="color: var(--text-color-muted);">-</span>
           </div>
 
-          <button class="premium-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
+          <div style="max-width: 280px; margin: 0 auto; width: 100%;">
+              <button class="premium-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
+          </div>
       </div>
   </div>
 
@@ -1735,7 +1748,7 @@
             if (item.type === 'skin') {
                 const fastImg = formatSteamImg(item.image_url);
                 visualHeader = `
-                    <div style="position:relative; width:100%; display:flex; justify-content:center;" onclick="openSkinInspect(${item.id})">
+                    <div style="position:relative; width:100%; display:flex; justify-content:center;" onclick="openSkinInspect('${item.id}')">
                         <img id="shop-skin-img-${item.id}" src="${fastImg}" class="shop-skin-img" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/public/static/default_skin.png'">
                         <span style="position:absolute; bottom:2px; right:4px; font-size:9px; color:rgba(255,255,255,0.4);"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
                     </div>
@@ -1769,23 +1782,23 @@
         if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     };
 
-    // 🔍 МОДАЛКА ДЕТАЛЬНОГО ОСМОТРА СКИНА (МГНОВЕННО ИЗ ПАМЯТИ)
+   // 🔍 МОДАЛКА ДЕТАЛЬНОГО ОСМОТРА СКИНА (МГНОВЕННО ИЗ ПАМЯТИ)
     window.openSkinInspect = function(skinId) {
-        const item = shopItems.find(i => i.id === skinId);
+        // Находим скин независимо от того, строка id или число
+        const item = shopItems.find(i => String(i.id) === String(skinId));
         if (!item) return;
 
         const modal = document.getElementById('skin-inspect-modal');
         const img = document.getElementById('inspect-skin-img');
         img.classList.remove('zoomed');
 
-        // Моментально берем готовую отрисованную картинку из карточки без повторного запроса
-        const loadedCardImg = document.getElementById(`shop-skin-img-${skinId}`);
+        // Моментально берем готовую картинку из карточки без ожидания
+        const loadedCardImg = document.getElementById(`shop-skin-img-${item.id}`);
         img.src = (loadedCardImg && loadedCardImg.complete && loadedCardImg.naturalWidth > 0) 
             ? loadedCardImg.src 
             : formatSteamImg(item.image_url);
 
         document.getElementById('inspect-skin-title').textContent = item.title;
-        document.getElementById('inspect-skin-cost').textContent = item.cost;
         
         let wear = item.wear;
         if (!wear) {
@@ -1813,8 +1826,41 @@
         const img = box.querySelector('img');
         if (img) {
             img.classList.toggle('zoomed');
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
+    };
+
+    // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ (ВОССТАНОВЛЕННАЯ ФУНКЦИЯ)
+    window.exchangeCoins = function(cost, reward) {
+        const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
+        const ticketWord = pluralize(reward, ['билет', 'билета', 'билетов']);
+
+        if (userState.coins < cost) {
+            return window.customAlert(`Недостаточно гринд-монет! Нужно: ${cost}`);
+        }
+
+        const doExchange = async () => {
+            try {
+                const res = await window.makeApiRequest('/api/v1/user/grind/exchange_ticket', { cost: cost, tickets: reward }, 'POST');
+                if (res.new_coins !== undefined) userState.coins = parseFloat(res.new_coins);
+                else userState.coins = Math.max(0, userState.coins - cost);
+                
+                if (res.new_tickets !== undefined) userState.tickets = res.new_tickets;
+                else userState.tickets = (userState.tickets || 0) + reward;
+
+                updateUI();
+                window.showSuccessModal(res.message || `Успешно! +${reward} ${ticketWord} начислено на баланс.`);
+            } catch (e) {
+                if (tg.showAlert) tg.showAlert(e.message || "Ошибка покупки билетов");
+                else window.customAlert(e.message || "Ошибка покупки билетов");
+            }
+        };
+
+        window.showBuyConfirm(
+            `+${reward} ${ticketWord.toUpperCase()}`,
+            `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
+            doExchange
+        );
     };
 
     // 🔥 ПОКУПКА СКИНА: СРАЗУ В ИНВЕНТАРЬ (БЕЗ ТРЕЙДА)
