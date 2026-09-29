@@ -8702,6 +8702,62 @@ async def admin_add_grind_shop_skin(
 # =====================================================================
 # 3. ПОКУПКА СКИНА (СПИСАНИЕ МОНЕТ + ЗАПИСЬ В cs_history С ТИПОМ RAFFLE)
 # =====================================================================
+
+# =====================================================================
+# ПОИСК И ФИЛЬТРАЦИЯ СКИНОВ В MARKET_CACHE ДЛЯ АДМИНКИ
+# =====================================================================
+@app.get("/api/v1/admin/market/search")
+async def search_market_cache(
+    initData: str,
+    q: Optional[str] = "",
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    rarity: Optional[str] = None,
+    wear: Optional[str] = None,
+    only_weapons: bool = True,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Проверка прав администратора
+    user_info = is_valid_init_data(initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    # 2. Формируем условия для PostgREST
+    conditions = []
+    
+    if q and q.strip():
+        conditions.append(f"market_hash_name.ilike.%{q.strip()}%")
+        
+    if wear and wear != "all":
+        conditions.append(f"market_hash_name.ilike.%({wear})%")
+        
+    if only_weapons:
+        for exc in ["Sticker |", "Sealed Graffiti |", "Patch |", "Music Kit |", "Case", "Capsule"]:
+            conditions.append(f"market_hash_name.not.ilike.%{exc}%")
+            
+    if rarity and rarity != "all":
+        conditions.append(f"rarity.eq.{rarity.lower()}")
+        
+    if min_price is not None and min_price > 0:
+        conditions.append(f"price_rub.gte.{min_price}")
+        
+    if max_price is not None and max_price > 0:
+        conditions.append(f"price_rub.lte.{max_price}")
+
+    params = {
+        "select": "market_hash_name,price_rub,rarity,image_url",
+        "order": "price_rub.asc",
+        "limit": "40"
+    }
+
+    if conditions:
+        params["and"] = f"({','.join(conditions)})"
+
+    resp = await supabase.get("/market_cache", params=params)
+    if resp.status_code != 200:
+        return []
+    return resp.json()
+
 @app.post("/api/v1/user/grind/buy_skin")
 async def user_buy_grind_skin(
     req: GrindSkinBuyRequest,
