@@ -8579,6 +8579,209 @@ async def admin_p2p_approve(
 
 # --- ДОБАВИТЬ В index.py ---
 
+# --- МОДЕЛИ ДЛЯ МАГАЗИНА СКИНОВ ---
+class GrindSkinAddRequest(BaseModel):
+    initData: str
+    skin_name: str
+    cost_coins: float
+    quantity: int = 1
+
+class GrindSkinBuyRequest(BaseModel):
+    initData: str
+    skin_id: int
+
+# =====================================================================
+# 1. ПОЛУЧИТЬ СПИСОК СКИНОВ В МАГАЗИНЕ ГРИНДА
+# =====================================================================
+@app.get("/api/v1/user/grind/shop/skins")
+async def get_grind_shop_skins(supabase: httpx.AsyncClient = Depends(get_supabase_client)):
+    resp = await supabase.get(
+        "/grind_shop_skins",
+        params={
+            "is_active": "eq.true", 
+            "quantity": "gt.0", 
+            "order": "cost_coins.asc"
+        }
+    )
+    if resp.status_code != 200:
+        return []
+    return resp.json()
+
+# =====================================================================
+# 2. АДМИНКА: ДОБАВИТЬ СКИН (СВЯЗКА: market_cache -> cs_items -> grind_shop_skins)
+# =====================================================================
+@app.post("/api/v1/admin/grind/shop/skin/add")
+async def admin_add_grind_shop_skin(
+    req: GrindSkinAddRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Проверка прав администратора
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    skin_name = req.skin_name.strip()
+
+    # 2. ИЩЕМ СКИН В market_cache
+    mc_resp = await supabase.get(
+        "/market_cache",
+        params={
+            "market_hash_name": f"ilike.{skin_name}",
+            "select": "market_hash_name, price_rub, image_url, rarity",
+            "limit": 1
+        }
+    )
+    mc_data = mc_resp.json()
+    if not mc_data or not isinstance(mc_data, list) or len(mc_data) == 0:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Скин «{skin_name}» не найден в market_cache! Убедитесь, что название совпадает с Market Hash Name."
+        )
+
+    market_item = mc_data[0]
+    exact_name = market_item["market_hash_name"]
+    image_url = market_item.get("image_url")
+    price_rub = float(market_item.get("price_rub") or 0.0)
+    rarity = market_item.get("rarity") or "blue"
+
+    # 3. ПРОВЕРЯЕМ / СОЗДАЕМ СКИН В cs_items
+    cs_resp = await supabase.get(
+        "/cs_items",
+        params={"name": f"eq.{exact_name}", "select": "id, image_url"}
+    )
+    cs_data = cs_resp.json()
+
+    cs_item_id = None
+    if cs_data and len(cs_data) > 0:
+        # Скин уже есть в cs_items — берем его id
+        cs_item_id = cs_data[0]["id"]
+        # Если в cs_items почему-то не было картинки — дописываем из market_cache
+        if not cs_data[0].get("image_url") and image_url:
+            await supabase.patch("/cs_items", params={"id": f"eq.{cs_item_id}"}, json={"image_url": image_url})
+    else:
+        # Создаем новую уникальную запись в cs_items
+        new_item_payload = {
+            "name": exact_name,
+            "price_rub": price_rub,
+            "image_url": image_url,
+            "rarity": rarity
+        }
+        create_res = await supabase.post(
+            "/cs_items",
+            json=new_item_payload,
+            headers={"Prefer": "return=representation"}
+        )
+        if create_res.status_code < 400 and create_res.json():
+            cs_item_id = create_res.json()[0].get("id")
+            logging.info(f"✨ Скин «{exact_name}» успешно создан в cs_items с ID {cs_item_id}")
+        else:
+            logging.warning(f"Не удалось создать cs_items: {create_res.text}")
+
+    # 4. СОХРАНЯЕМ В ВИТРИНУ МАГАЗИНА (grind_shop_skins)
+    shop_payload = {
+        "skin_name": exact_name,
+        "cost_coins": float(req.cost_coins),
+        "quantity": int(req.quantity),
+        "image_url": image_url,
+        "rarity": rarity,
+        "cs_item_id": cs_item_id,
+        "is_active": True,
+        "reward_type": "raffle" # 🔥 Фиксируем тип выдачи
+    }
+
+    # Если уже есть на витрине — обновляем остаток и цену, иначе создаем
+    check_shop = await supabase.get("/grind_shop_skins", params={"skin_name": f"eq.{exact_name}", "select": "id"})
+    if check_shop.json():
+        target_id = check_shop.json()[0]["id"]
+        await supabase.patch("/grind_shop_skins", params={"id": f"eq.{target_id}"}, json=shop_payload)
+        return {"message": f"Скин «{exact_name}» обновлен на витрине", "image_url": image_url}
+    else:
+        await supabase.post("/grind_shop_skins", json=shop_payload)
+        return {"message": f"Скин «{exact_name}» добавлен в магазин", "image_url": image_url}
+
+# =====================================================================
+# 3. ПОКУПКА СКИНА (СПИСАНИЕ МОНЕТ + ЗАПИСЬ В cs_history С ТИПОМ RAFFLE)
+# =====================================================================
+@app.post("/api/v1/user/grind/buy_skin")
+async def user_buy_grind_skin(
+    req: GrindSkinBuyRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Ошибка авторизации")
+
+    user_id = user_info["id"]
+
+    # 1. Получаем пользователя и баланс
+    u_res = await supabase.get(
+        "/users", 
+        params={"telegram_id": f"eq.{user_id}", "select": "id, coins, trade_link, full_name, username"}
+    )
+    u_data = u_res.json()
+    if not u_data:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    user_row = u_data[0]
+
+    # 2. Получаем скин из магазина
+    s_res = await supabase.get("/grind_shop_skins", params={"id": f"eq.{req.skin_id}", "select": "*"})
+    s_data = s_res.json()
+    if not s_data:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    skin = s_data[0]
+
+    if not skin.get("is_active") or skin.get("quantity", 0) <= 0:
+        raise HTTPException(status_code=400, detail="К сожалению, данный скин уже разобрали!")
+
+    cost = float(skin["cost_coins"])
+    current_coins = float(user_row.get("coins", 0.0))
+
+    if current_coins < cost:
+        raise HTTPException(status_code=400, detail="Недостаточно гринд-монет для покупки!")
+
+    # 3. Списываем гринд-монеты и уменьшаем остаток
+    new_coins = round(current_coins - cost, 2)
+    await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins})
+    
+    new_qty = skin["quantity"] - 1
+    await supabase.patch(
+        "/grind_shop_skins", 
+        params={"id": f"eq.{req.skin_id}"}, 
+        json={"quantity": new_qty, "is_active": new_qty > 0}
+    )
+
+    # 4. 🔥 ЗАПИСЫВАЕМ В cs_history (СВЯЗЫВАЕМ item_id С cs_items!)
+    trade_link = user_row.get("trade_link")
+    history_payload = {
+        "user_id": user_id,
+        "item_id": skin.get("cs_item_id"), # Связка для select(*, item:cs_items(*))
+        "case_name": f"Магазин: {skin['skin_name']}",
+        "status": "pending",
+        "source": "grind_shop",
+        "details": f"Тип: raffle | Скин: {skin['skin_name']} | Трейд: {trade_link or 'Не указан'}"
+    }
+    await supabase.post("/cs_history", json=history_payload)
+
+    # 5. Уведомление администратора в чат
+    if ADMIN_NOTIFY_CHAT_ID:
+        u_name = user_row.get("full_name") or user_row.get("username") or str(user_id)
+        admin_text = (
+            f"🎁 <b>Покупка скина в магазине Гринда!</b>\n\n"
+            f"<b>Пользователь:</b> {html_decoration.quote(u_name)} (ID: <code>{user_id}</code>)\n"
+            f"<b>Скин:</b> {skin['skin_name']}\n"
+            f"<b>Цена:</b> {cost} гринд-монет\n"
+            f"<b>Тип:</b> <code>raffle</code>\n"
+            f"<b>Трейд-ссылка:</b> {trade_link or '⚠️ НЕ ПРИВЯЗАНА'}\n"
+            f"<b>Остаток:</b> {new_qty} шт."
+        )
+        await safe_send_message(ADMIN_NOTIFY_CHAT_ID, admin_text)
+
+    return {
+        "success": True,
+        "message": f"Скин «{skin['skin_name']}» успешно куплен!",
+        "new_coins": new_coins
+    }
+
 # 1. Эндпоинт для ПОДТВЕРЖДЕНИЯ отправки скина (Админ нажал "Одобрить")
 @app.post("/api/v1/admin/cs_history/complete")
 async def complete_cs_history_reward(
