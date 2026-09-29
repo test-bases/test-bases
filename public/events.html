@@ -214,14 +214,16 @@
     }
 
     /* Активная карточка четкая, видна поверх оверлея, но защищена от случайных нажатий */
+    /* 🛡️ Приземленное минималистичное бело-темно-серое выделение */
     body.tour-mode .glass-card.tour-target-active {
       opacity: 1 !important;
       filter: none !important;
-      border-color: var(--accent-neon) !important;
-      box-shadow: 0 0 25px rgba(255, 215, 0, 0.35) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
+      background: rgba(28, 28, 32, 0.85) !important;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.08) !important;
       position: relative;
-      z-index: 9991; /* Чтобы подсвеченная карточка была ярко видна */
-      pointer-events: none !important; /* Защита от случайного нажатия кнопки во время тура */
+      z-index: 9991;
+      pointer-events: none !important;
     }
 
     /* 🔥 НА 2 ЭТАПЕ: полностью отключаем оверлей и блюр фона, все задания четкие */
@@ -236,7 +238,7 @@
       -webkit-backdrop-filter: none !important;
     }
 
-    /* Нижняя зона: зафиксированное диалоговое окно */
+    /* 🌫️ Без рамки и непрозрачного фона — только глубокий жидкий блюр */
     .tour-card {
       position: fixed;
       bottom: 12px;
@@ -244,12 +246,12 @@
       right: 12px;
       max-width: 420px;
       margin: 0 auto;
-      background: rgba(18, 18, 20, 0.98);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border: 1px solid rgba(255, 215, 0, 0.35);
-      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.15);
-      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.2); /* Практически невидимая подложка для работы блюра */
+      backdrop-filter: blur(35px);
+      -webkit-backdrop-filter: blur(35px);
+      border: none; /* Рамка полностью убрана */
+      box-shadow: none; /* Жёлтые и резкие тени убраны */
+      border-radius: 24px;
       padding: 14px 16px;
       z-index: 99999;
       display: flex;
@@ -257,7 +259,7 @@
       gap: 6px;
       animation: tourSlideUp 0.3s ease;
     }
-
+    
     @keyframes tourSlideUp {
       from { transform: translateY(30px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
@@ -288,23 +290,23 @@
     }
     .tour-close-btn:active { color: #fff; }
 
-    /* Парящий персонаж: аккуратная тень БЕЗ желтого свечения */
+    /* 🖼️ Парящая зона под увеличенного персонажа */
     .tour-levitate-stage {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: -38px;
-      margin-bottom: 2px;
-      height: 75px;
+      margin-top: -70px; /* Приподнимаем, чтобы не перекрывать текст */
+      margin-bottom: 0px;
+      height: 110px;
       pointer-events: none;
     }
 
+    /* Картинка увеличена в 2 раза (170px вместо 85px) + мощная двойная тень */
     .tour-img {
-      max-height: 85px;
-      max-width: 120px;
+      max-height: 170px;
+      max-width: 240px;
       object-fit: contain;
-      filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.75));
-      /* Анимация отключена: картинка статична */
+      filter: drop-shadow(0 14px 25px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 35px rgba(0, 0, 0, 0.85));
     }
 
     @keyframes tourFloat {
@@ -1641,10 +1643,9 @@
         },
         {
             title: "Задания активности",
-            text: "Выполняй <b>Телеграм-задания</b>: ставь ник бота в фамилию, ссылку в Bio, подписывайся или голосуй за канал. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
+            text: "Выполняй <b>задания активности</b>: ежедневные квесты, подписки, голосования и специальные испытания. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
             img: "/public/static/grind_tasks.png",
             tab: "tasks",
-            // Выделяем именно первую карточку задания, а не весь длинный список
             highlightSelector: "#tg-tasks-list .glass-card:first-child, #tg-tasks-list"
         },
         {
@@ -1767,13 +1768,14 @@
                     return;
                 }
 
-                // 🔥 2-й шаг: красивый плавный спуск вниз к заданиям
+                // 🔥 2-й шаг: кинематографичный плавный спуск сверху вниз к заданиям
                 if (currentTourStep === 1) {
-                    const targetRect = target.getBoundingClientRect();
-                    const scrollRect = scrollArea.getBoundingClientRect();
-                    const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
-                    // Плавно спускаем ровно к шапке списка заданий
-                    scrollArea.scrollTo({ top: Math.max(0, currentPos - 12), behavior: 'smooth' });
+                    const tasksListEl = document.getElementById('tg-tasks-list');
+                    const targetY = tasksListEl ? tasksListEl.offsetTop - 10 : (target.offsetTop - 10);
+                    scrollArea.scrollTo({
+                        top: Math.max(0, targetY),
+                        behavior: 'smooth'
+                    });
                     return;
                 }
 
