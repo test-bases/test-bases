@@ -562,6 +562,12 @@
     .shop-item { align-items: center; text-align: center; gap: 6px; padding: 12px 10px;}
     .shop-item-title { font-size: 11px; font-weight: 800; color: #fff; }
     .shop-item-cost { font-size: 9px; color: var(--text-color-muted); font-weight: 700; margin-bottom: 4px; }
+    .shop-skin-img {
+      width: 100%;
+      height: 65px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.75));
+    }
 
     /* === МОДАЛКИ === */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; }
@@ -677,9 +683,18 @@
               </div>
           </div>
 
+          <!-- ПЕРЕКЛЮЧАТЕЛЬ: СКИHЫ (первые) -> БИЛЕТЫ -> МОНЕТЫ -->
           <div class="segment-control" style="margin: 0 0 10px 0;">
-              <div class="segment-btn active" id="subtab-tickets" onclick="switchShopSubTab('tickets')">Билеты</div>
+              <div class="segment-btn active" id="subtab-skins" onclick="switchShopSubTab('skins')">Скины</div>
+              <div class="segment-btn" id="subtab-tickets" onclick="switchShopSubTab('tickets')">Билеты</div>
               <div class="segment-btn" id="subtab-promos" onclick="switchShopSubTab('promos')">Монеты</div>
+          </div>
+
+          <!-- Скрытая панель добавления скина (видна ТОЛЬКО админу на вкладке Скины) -->
+          <div id="admin-skin-panel" style="display: none; margin-bottom: 10px;">
+              <button class="premium-btn" onclick="openAddSkinModal()" style="background: rgba(255, 255, 255, 0.06); border: 1px dashed rgba(255, 255, 255, 0.25); color: #fff;">
+                  <i class="fa-solid fa-plus" style="color: var(--accent-neon);"></i> ДОБАВИТЬ СКИН ИЗ MARKET_CACHE
+              </button>
           </div>
 
           <div class="shop-grid" id="shop-container">
@@ -702,6 +717,37 @@
           </div>
 
           <button class="premium-btn active-state" style="width: 100%; color: #fff;" onclick="closeSuccessModal()">ОТЛИЧНО</button>
+      </div>
+  </div>
+
+  <!-- МОДАЛКА ДОБАВЛЕНИЯ СКИНА АДМИНОМ -->
+  <div id="admin-skin-modal" class="modal-overlay" onclick="if(event.target===this) closeAddSkinModal()">
+      <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 310px; padding: 20px; text-align: left;">
+          <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase;">ДОБАВИТЬ СКИН (RAFFLE)</h3>
+          
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+              <div>
+                  <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Market Hash Name:</span>
+                  <input id="admin-skin-name" type="text" placeholder="'Blueberries' Buckshot | NSWC SEAL" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
+                  <span style="font-size: 8px; color: #8e8e93; display: block; margin-top: 2px;">Картинка и редкость автоматически подтянутся из market_cache</span>
+              </div>
+              
+              <div style="display: flex; gap: 8px;">
+                  <div style="flex: 1.2;">
+                      <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Цена (монеты):</span>
+                      <input id="admin-skin-cost" type="number" step="0.5" placeholder="25.0" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
+                  </div>
+                  <div style="flex: 0.8;">
+                      <span style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Кол-во:</span>
+                      <input id="admin-skin-qty" type="number" value="1" min="1" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 11px; outline: none; margin-top: 4px;">
+                  </div>
+              </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+              <button class="premium-btn" style="flex: 1; background: rgba(255,255,255,0.05); color: #8e8e93;" onclick="closeAddSkinModal()">ОТМЕНА</button>
+              <button class="premium-btn active-state" style="flex: 1.2; color: #000; font-weight: 900;" onclick="submitAdminAddSkin()">ДОБАВИТЬ</button>
+          </div>
       </div>
   </div>
 
@@ -761,7 +807,7 @@
     let grindSettings = { twitch_status_boost_coins: 0.5, twitch_status_free_tickets: 5, ref_boost_coins_per_user: 0.1 };
 
     let shopItems = [];
-    let currentShopTab = 'tickets';
+    let currentShopTab = 'skins';
     const MAX_STREAK = 10;
     const GRIND_COOLDOWN = 24 * 60 * 60 * 1000;
 
@@ -835,6 +881,7 @@
 
             // 🔄 2. Фоновый сетевой запрос для актуализации
             const data = await window.makeApiRequest('/api/v1/user/me', {}, 'POST');
+            userState.is_admin = !!data.is_admin;
             userState.tickets = data.tickets || 0;
             userState.coins = parseFloat(data.coins || 0);
             userState.streakDays = data.streak_days || 1;
@@ -1212,6 +1259,28 @@
             { type: 'ticket', cost: 300, reward: 100, title: '100 Билетов', icon: 'fa-ticket', color: '#00f2ea' }
         ];
 
+        // 1. Загружаем доступные скины
+        try {
+            const skinResp = await fetch('/api/v1/user/grind/shop/skins');
+            if (skinResp.ok) {
+                const skins = await skinResp.json();
+                skins.forEach(s => {
+                    shopItems.push({
+                        id: s.id,
+                        type: 'skin',
+                        cost: parseFloat(s.cost_coins),
+                        title: s.skin_name,
+                        image_url: s.image_url,
+                        quantity: s.quantity,
+                        rarity: s.rarity
+                    });
+                });
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки скинов:", e);
+        }
+
+        // 2. Загружаем обмен на монеты
         try {
             const response = await fetch('/api/v1/user/grind/shop');
             if (response.ok) {
@@ -1228,161 +1297,130 @@
                             quantity: p.quantity
                         });
                     });
-                    shopItems.sort((a, b) => a.cost - b.cost);
                 }
             }
-        } catch (e) {
-            console.error("Ошибка загрузки магазина:", e);
-        }
+        } catch (e) {}
+
         renderShopList();
     }
-
+    
     function renderShopList() {
-    const container = document.getElementById('shop-container');
-    if (!container) return;
-    container.innerHTML = '';
+        const container = document.getElementById('shop-container');
+        if (!container) return;
+        container.innerHTML = '';
 
-    const items = shopItems.filter(i => i.type === (currentShopTab === 'tickets' ? 'ticket' : 'promo'));
-    if (items.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); padding:30px 10px; font-size:11px;">Нет предложений</div>';
-        return;
-    }
-
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'glass-card shop-item';
-        const isAffordable = userState.coins >= item.cost;
-        const btnClick = item.type === 'ticket' ? `exchangeCoins(${item.cost}, ${item.reward})` : `buyItem(${item.reward})`;
-
-        let btnHtml = '';
-        if (item.type === 'promo' && !window.coinsPurchasesEnabled) {
-            btnHtml = `<button class="premium-btn locked-state" disabled style="font-size: 9px;"><i class="fa-solid fa-lock"></i> ОТКЛЮЧЕНО</button>`;
-        } else {
-            btnHtml = `<button class="premium-btn ${isAffordable ? 'task-claim-btn' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО ГРИНД-МОНЕТ'}</button>`;
+        // Панель админа видна только на вкладке скинов
+        const adminPanel = document.getElementById('admin-skin-panel');
+        if (adminPanel) {
+            adminPanel.style.display = (userState.is_admin && currentShopTab === 'skins') ? 'block' : 'none';
         }
 
-        const extra = item.quantity !== undefined && item.quantity !== null ? `<span style="opacity:0.6; font-size:8px; display:block; margin-top:2px;">(Ост: ${item.quantity})</span>` : '';
-        const costWord = pluralize(item.cost, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
+        const tabType = currentShopTab === 'skins' ? 'skin' : (currentShopTab === 'tickets' ? 'ticket' : 'promo');
+        const items = shopItems.filter(i => i.type === tabType);
 
-        div.innerHTML = `
-            <i class="fa-solid ${item.icon || (item.type === 'ticket' ? 'fa-ticket' : 'fa-coins')}" style="font-size:22px; color:${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700')}80);"></i>
-            <div class="shop-item-title">${item.title}</div>
-            <div class="shop-item-cost">Цена: ${item.cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 9px;"></i> ${costWord} ${extra}</div>
-            <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
-        `;
-        container.appendChild(div);
-    });
-}
+        if (items.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); padding:30px 10px; font-size:11px;">Нет доступных предложений</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'glass-card shop-item';
+            const isAffordable = userState.coins >= item.cost;
+
+            let btnClick = '';
+            if (item.type === 'skin') btnClick = `buySkin(${item.id}, '${item.title.replace(/'/g, "\\'")}', ${item.cost})`;
+            else if (item.type === 'ticket') btnClick = `exchangeCoins(${item.cost}, ${item.reward})`;
+            else btnClick = `buyItem(${item.reward})`;
+
+            const btnHtml = `<button class="premium-btn ${isAffordable ? 'task-claim-btn' : 'locked-state'}" onclick="${btnClick}" ${isAffordable ? '' : 'disabled'}>${isAffordable ? 'КУПИТЬ' : 'МАЛО ГРИНД-МОНЕТ'}</button>`;
+            const extra = item.quantity !== undefined && item.quantity !== null ? `<span style="opacity:0.6; font-size:8px; display:block; margin-top:2px;">(Ост: ${item.quantity})</span>` : '';
+            const costWord = pluralize(item.cost, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
+
+            let visualHeader = '';
+            if (item.type === 'skin') {
+                visualHeader = `<img src="${item.image_url}" class="shop-skin-img" alt="${item.title}" onerror="this.src='/public/static/default_skin.png'">`;
+            } else {
+                const color = item.color || (item.type === 'ticket' ? '#00f2ea' : '#FFD700');
+                visualHeader = `<i class="fa-solid ${item.icon}" style="font-size:22px; color:${color}; margin-bottom:2px; filter:drop-shadow(0 0 10px ${color}80);"></i>`;
+            }
+
+            div.innerHTML = `
+                ${visualHeader}
+                <div class="shop-item-title">${item.title}</div>
+                <div class="shop-item-cost">Цена: ${item.cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 9px;"></i> ${costWord} ${extra}</div>
+                <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
 
     window.switchShopSubTab = function(tab) {
         currentShopTab = tab;
+        const btnSkins = document.getElementById('subtab-skins');
         const btnTickets = document.getElementById('subtab-tickets');
         const btnPromos = document.getElementById('subtab-promos');
+        
+        if (btnSkins) btnSkins.classList.toggle('active', tab === 'skins');
         if (btnTickets) btnTickets.classList.toggle('active', tab === 'tickets');
         if (btnPromos) btnPromos.classList.toggle('active', tab === 'promos');
+        
         renderShopList();
         if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     };
 
-    window.exchangeCoins = async (cost, rewardTickets) => {
-        const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
+    // 🔥 ПОКУПКА СКИНА ПОЛЬЗОВАТЕЛЕМ
+    window.buySkin = function(skinId, skinName, cost) {
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
-
-        const doExchange = async () => {
+        
+        const doBuySkin = async () => {
             try {
-                const response = await fetch('/api/v1/user/grind/exchange', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg.initData || window.Telegram?.WebApp?.initData || '', cost: cost, tickets_reward: rewardTickets })
-                });
-
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    throw new Error(err.detail || 'Ошибка обмена');
+                const res = await window.makeApiRequest('/api/v1/user/grind/buy_skin', { skin_id: skinId }, 'POST');
+                if (res.success) {
+                    userState.coins = parseFloat(res.new_coins);
+                    updateUI();
+                    window.showSuccessModal(`Скин «${skinName}» успешно приобретен!\nЗаявка создана. Ожидайте трейд в Steam.`);
+                    fetchShopItems();
                 }
-
-                const res = await response.json();
-                userState.coins = parseFloat(res.new_coins);
-                userState.tickets = res.new_tickets;
-                updateUI();
-                window.showSuccessModal(`Вы получили ${rewardTickets} ${ticketWord}!`);
-
             } catch (e) {
-                if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
-                else window.customAlert(e.message || 'Ошибка обмена');
+                if (tg.showAlert) tg.showAlert(e.message || "Ошибка покупки");
+                else window.customAlert(e.message || "Ошибка покупки");
             }
         };
 
         window.showBuyConfirm(
-            `${rewardTickets} ${ticketWord}`,
+            skinName,
             `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
-            doExchange
+            doBuySkin
         );
     };
 
-    window.buyItem = async (val) => {
-        if (!window.coinsPurchasesEnabled) {
-            const msg = "🛠 Обмен на основные монеты временно отключен разработчиком!";
-            if (tg.showAlert) return tg.showAlert(msg);
-            return window.customAlert(msg);
+    // 🛠️ АДМИНКА ДЛЯ СКИНОВ
+    window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
+    window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
+
+    window.submitAdminAddSkin = async function() {
+        const name = document.getElementById('admin-skin-name').value.trim();
+        const cost = parseFloat(document.getElementById('admin-skin-cost').value);
+        const qty = parseInt(document.getElementById('admin-skin-qty').value) || 1;
+
+        if (!name || isNaN(cost) || cost <= 0) {
+            return window.customAlert("Укажите точное название и цену в монетах!");
         }
 
-        const coinWord = pluralize(val, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
-        const mainCoinWord = pluralize(val, ['монета', 'монеты', 'монет']);
-
-        const doBuy = async () => {
-            try {
-                const response = await fetch('/api/v1/user/grind/buy_item', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg.initData || window.Telegram?.WebApp?.initData || '', reward_value: val })
-                });
-
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    throw new Error(err.detail || 'Ошибка');
-                }
-
-                const res = await response.json();
-                userState.coins = parseFloat(res.new_coins);
-                updateUI();
-                window.showSuccessModal(`Успешно! +${val} монет зачислено на ваш баланс.`);
-
-            } catch(e) {
-                if (tg.showAlert) tg.showAlert(e.message || 'Не удалось купить');
-                else window.customAlert(e.message || 'Не удалось купить');
-            }
-        };
-
-        window.showBuyConfirm(
-            `+${val} основных ${mainCoinWord}`,
-            `Стоимость: ${val} ${coinWord}`,
-            doBuy
-        );
-    };
-
-    window.claimFreeTicket = async () => {
         try {
-            const response = await fetch('/api/v1/user/claim-free-ticket', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ initData: tg.initData || window.Telegram?.WebApp?.initData || '' })
-            });
+            const res = await window.makeApiRequest('/api/v1/admin/grind/shop/skin/add', {
+                skin_name: name,
+                cost_coins: cost,
+                quantity: qty
+            }, 'POST');
 
-            if (response.ok) {
-                const res = await response.json();
-                let incoming = res.new_ticket_balance;
-                let finalTickets = (typeof incoming === 'object' && incoming !== null) ? Number(incoming.new_ticket_balance) : Number(incoming);
-
-                userState.tickets = finalTickets;
-                userState.lastFreeTicket = new Date().toISOString();
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                window.showSuccessModal(res.message || 'Билет успешно получен!'); 
-                updateUI();
-            } else { throw new Error(); }
+            closeAddSkinModal();
+            window.showSuccessModal(res.message || "Скин добавлен!");
+            fetchShopItems();
         } catch (e) {
-            if (tg.showAlert) tg.showAlert('Ошибка получения билета');
-            else window.customAlert('Ошибка получения билета');
+            if (tg.showAlert) tg.showAlert(e.message || "Ошибка добавления");
+            else window.customAlert(e.message || "Ошибка добавления");
         }
     };
 
@@ -1844,6 +1882,7 @@
             }
         }, 80);
     }
+
   </script>
 </body>
 </html>
