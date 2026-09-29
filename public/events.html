@@ -165,18 +165,50 @@
     }
 
     /* На шагах 1, 3, 4: глубокий заметный блюр и затемнение всего фона */
-    body.tour-mode .glass-card {
-      opacity: 0.15;
-      filter: blur(5px); /* 🔥 Сделали блюр сочным и глубоким */
-      transition: opacity 0.4s ease, filter 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    /* 🛡️ БЛОКИРУЮЩИЙ СЛОЙ: закрывает экран сверху до нижней панели */
+    .tour-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 60px; /* Нижняя панель (60px) остается свободной и доступной */
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 9990; /* Перекрывает шапку, вкладки и карточки */
+      pointer-events: auto; /* Блокирует все клики, свайпы и тапы */
     }
 
-    /* Активная карточка всегда четкая и подсвеченная */
+    body.tour-mode .tour-backdrop {
+      display: block;
+    }
+
+    /* Нижняя панель навигации гарантированно активна и кликабельна */
+    body.tour-mode nav,
+    body.tour-mode footer,
+    body.tour-mode .bottom-nav,
+    body.tour-mode .bottom-bar {
+      position: fixed;
+      z-index: 99995 !important;
+      pointer-events: auto !important;
+    }
+
+    /* На шагах 1, 3, 4: блюр и блокировка нажатий */
+    body.tour-mode .glass-card {
+      opacity: 0.15;
+      filter: blur(5px);
+      transition: opacity 0.4s ease, filter 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      pointer-events: none !important; /* Блокирует клики по карточкам */
+    }
+
+    /* Активная карточка четкая, видна поверх оверлея, но защищена от случайных нажатий */
     body.tour-mode .glass-card.tour-target-active {
       opacity: 1 !important;
       filter: none !important;
       border-color: var(--accent-neon) !important;
       box-shadow: 0 0 25px rgba(255, 215, 0, 0.35) !important;
+      position: relative;
+      z-index: 9991; /* Чтобы подсвеченная карточка была ярко видна */
+      pointer-events: none !important; /* Защита от случайного нажатия кнопки во время тура */
     }
 
     /* 🔥 НА 2 ЭТАПЕ: полностью отключаем блюр страницы, все задания четкие */
@@ -253,7 +285,7 @@
       max-width: 120px;
       object-fit: contain;
       filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.75));
-      animation: tourFloat 3.2s ease-in-out infinite;
+      /* Анимация отключена: картинка статична */
     }
 
     @keyframes tourFloat {
@@ -632,6 +664,11 @@
   </div>
 
   <div id="profile-popup-root"></div>
+
+  <div id="profile-popup-root"></div>
+
+  <!-- ОВЕРЛЕЙ БЛОКИРОВКИ ЭКРАНА В РЕЖИМЕ ТУРА -->
+  <div id="tour-backdrop" class="tour-backdrop"></div>
 
   <!-- ДИАЛОГОВОЕ ОКНО ОБУЧЕНИЯ В НИЖНЕЙ ЗОНЕ -->
   <div id="tour-card" class="tour-card" style="display: none;">
