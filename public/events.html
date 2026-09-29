@@ -2488,9 +2488,6 @@ window.closeSuccessModal = function() {
 
     // HAPTIC FEEDBACK
     document.body.addEventListener('click', (e) => {
-
-    // HAPTIC FEEDBACK
-    document.body.addEventListener('click', (e) => {
         if (e.target.closest('button, .segment-btn, .footer-item')) {
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (err) {}
