@@ -8779,10 +8779,10 @@ async def user_buy_grind_skin(
 
     user_id = user_info["id"]
 
-    # 1. Получаем юзера из базы (без несуществующего поля id)
+    # 1. Получаем юзера из базы (только существующие колонки)
     u_res = await supabase.get(
         "/users", 
-        params={"telegram_id": f"eq.{user_id}", "select": "idx,telegram_id,coins,trade_link,full_name,username", "limit": 1}
+        params={"telegram_id": f"eq.{user_id}", "select": "telegram_id,coins,trade_link,full_name,username", "limit": 1}
     )
     
     if u_res.status_code != 200:
