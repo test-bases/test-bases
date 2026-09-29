@@ -754,7 +754,7 @@ html.vk-mode #main-content { position: absolute !important; width: 100% !importa
     height: 110px; 
     width: 100%;
     margin-top: -30px; 
-    margin-bottom: 20px;
+    margin-bottom: 95px; /* 🔥 Увеличили отступ, чтобы автомат не налезал на баннер */
     position: relative;
 }
 
