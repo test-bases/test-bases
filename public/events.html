@@ -823,6 +823,17 @@
                 window.coinsPurchasesEnabled = cachedBootstrap?.menu?.coins_purchases_enabled !== false;
             } catch(e) { window.coinsPurchasesEnabled = true; }
 
+            // ⚡ 1. Мгновенно достаем данные пользователя из кэша (0 мс)
+            try {
+                const cachedUser = JSON.parse(localStorage.getItem('cache_user_state') || 'null');
+                if (cachedUser) {
+                    Object.assign(userState, cachedUser);
+                    if (cachedUser.grind_settings) grindSettings = cachedUser.grind_settings;
+                    updateUI(); // Монеты, стрик и кнопка отрисуются моментально!
+                }
+            } catch(e) {}
+
+            // 🔄 2. Фоновый сетевой запрос для актуализации
             const data = await window.makeApiRequest('/api/v1/user/me', {}, 'POST');
             userState.tickets = data.tickets || 0;
             userState.coins = parseFloat(data.coins || 0);
@@ -834,6 +845,11 @@
             userState.twitch_status = data.twitch_status;
 
             if (data.grind_settings) grindSettings = data.grind_settings;
+
+            // Сохраняем свежие данные в кэш для следующего быстрого открытия
+            try {
+                localStorage.setItem('cache_user_state', JSON.stringify({ ...userState, grind_settings: grindSettings }));
+            } catch(e) {}
 
             updateUI();
             setInterval(updateUI, 60000); 
