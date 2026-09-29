@@ -774,6 +774,53 @@
       padding: 8px 10px;
       margin-bottom: 12px;
     }
+
+    /* === КНОПКА ОБНОВЛЕНИЯ И ЭКРАН СИНХРОНИЗАЦИИ === */
+    .reload-btn-spinning i {
+      animation: spin-slow 0.8s linear infinite;
+      color: var(--accent-neon) !important;
+    }
+
+    .app-preloader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      z-index: 100005;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .app-preloader.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .preloader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .preloader-icon-ring {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--accent-neon);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+    }
     
   </style>
 </head>
@@ -783,11 +830,14 @@
 
   <!-- ШАПКА СО СТАТУСОМ -->
   <header class="sub-header">
-    <!-- Левая часть: название и сразу прижатый к нему знак вопроса -->
+    <!-- Левая часть: название, вопрос и кнопка перезагрузки без лесенки -->
     <div style="display: flex; align-items: center; gap: 6px;">
         <span class="header-title-label">Гринд-фарм</span>
         <button class="tour-help-btn" onclick="startGrindTour()" title="Что такое гринд?">
             <i class="fa-solid fa-question"></i>
+        </button>
+        <button class="tour-help-btn" id="manual-reload-btn" onclick="fullAppReloadWithPreload()" title="Обновить страницу">
+            <i class="fa-solid fa-rotate-right"></i>
         </button>
     </div>
 
@@ -1086,6 +1136,16 @@
           <button class="premium-btn active-state" id="tour-next-btn" style="flex: 1.5;" onclick="nextTourStep()">Далее</button>
       </div>
   </div>
+
+  <!-- ОВЕРЛЕЙ БЕСШОВНОЙ ПРЕДЗАГРУЗКИ КАРТИНОК -->
+  <div id="app-preloader" class="app-preloader">
+      <div class="preloader-box">
+          <div class="preloader-icon-ring">
+              <i class="fa-solid fa-rotate-right fa-spin"></i>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #fff; letter-spacing: 0.8px; text-transform: uppercase;">Синхронизация...</span>
+      </div>
+  </div>
   
   <!-- НИЖНИЙ И ВЕРХНИЙ БАР -->
   <script src="/top_nav.js" defer></script>
@@ -1157,25 +1217,150 @@ let currentShopTab = 'skins';
         return clean + '/360fx360f';
     }
 
-    // 🚀 Кэш изображений в памяти (кэшируем только успешно загруженные)
+    // 🚀 Кэш изображений в оперативной памяти
     const skinImageMemoryCache = new Map();
 
-    function preloadAndCacheSkinImage(url) {
-        if (!url || url.includes('default_skin.png')) return;
-        const targetUrl = formatSteamImg(url);
-        if (skinImageMemoryCache.has(targetUrl)) return skinImageMemoryCache.get(targetUrl);
+    // Асинхронная предзагрузка и мгновенное раскодирование в видеопамять (Promise)
+    function preloadImageAsync(url) {
+        return new Promise((resolve) => {
+            if (!url || url.includes('default_skin.png')) return resolve(null);
+            const targetUrl = formatSteamImg(url);
+            
+            if (skinImageMemoryCache.has(targetUrl)) {
+                return resolve(skinImageMemoryCache.get(targetUrl));
+            }
 
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-            skinImageMemoryCache.set(targetUrl, img);
-        };
-        img.onerror = () => {
-            skinImageMemoryCache.delete(targetUrl);
-        };
-        img.src = targetUrl;
-        return img;
+            const img = new Image();
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+
+            img.onload = () => {
+                if (img.decode) {
+                    img.decode()
+                        .then(() => {
+                            skinImageMemoryCache.set(targetUrl, img);
+                            resolve(img);
+                        })
+                        .catch(() => {
+                            skinImageMemoryCache.set(targetUrl, img);
+                            resolve(img);
+                        });
+                } else {
+                    skinImageMemoryCache.set(targetUrl, img);
+                    resolve(img);
+                }
+            };
+            img.onerror = () => resolve(null); // Не прерываем цепочку ошибок
+            img.src = targetUrl;
+        });
     }
+
+    function preloadAndCacheSkinImage(url) {
+        preloadImageAsync(url);
+    }
+
+    // ⚡ Главная функция бесшовного обновления: опрашивает БД, кэширует ВСЕ картинки и открывает страницу монолитом
+    window.fullAppReloadWithPreload = async function() {
+        const preloader = document.getElementById('app-preloader');
+        const reloadBtn = document.getElementById('manual-reload-btn');
+
+        if (preloader) preloader.classList.add('active');
+        if (reloadBtn) reloadBtn.classList.add('reload-btn-spinning');
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+        try {
+            // 1. Параллельно запрашиваем свежие данные из базы (пользователь, задания, скины, промо)
+            const [userData, tasksData, skinsRes, promosRes] = await Promise.allSettled([
+                window.makeApiRequest('/api/v1/user/me', {}, 'POST'),
+                window.makeApiRequest(`/api/v1/telegram/tasks?user_id=${tg.initDataUnsafe?.user?.id}`, {}, 'GET', true),
+                fetch('/api/v1/user/grind/shop/skins').then(r => r.ok ? r.json() : []),
+                fetch('/api/v1/user/grind/shop').then(r => r.ok ? r.json() : [])
+            ]);
+
+            // Применяем свежего пользователя
+            if (userData.status === 'fulfilled' && userData.value) {
+                const data = userData.value;
+                userState.is_admin = !!data.is_admin;
+                userState.tickets = data.tickets || 0;
+                userState.coins = parseFloat(data.coins || 0);
+                userState.streakDays = data.streak_days || 1;
+                userState.lastGrindTime = data.last_grind_at;
+                userState.lastFreeTicket = data.last_free_ticket_claimed_at;
+                userState.active_referrals_count = data.active_referrals_count || 0;
+                userState.referral_activated_at = data.referral_activated_at;
+                userState.twitch_status = data.twitch_status;
+                if (data.grind_settings) grindSettings = data.grind_settings;
+                localStorage.setItem('cache_user_state', JSON.stringify({ ...userState, grind_settings: grindSettings }));
+            }
+
+            // Обрабатываем свежие скины и промо
+            const freshSkins = [];
+            const imagesToPreload = [];
+
+            if (skinsRes.status === 'fulfilled' && Array.isArray(skinsRes.value)) {
+                skinsRes.value.forEach(s => {
+                    if (s.image_url) imagesToPreload.push(s.image_url);
+                    freshSkins.push({
+                        id: s.id,
+                        type: 'skin',
+                        cost: parseFloat(s.cost_coins),
+                        title: s.skin_name,
+                        image_url: s.image_url,
+                        quantity: s.quantity,
+                        rarity: s.rarity || 'Армейское',
+                        wear: s.wear || null
+                    });
+                });
+                localStorage.setItem('cache_shop_skins', JSON.stringify(freshSkins));
+            }
+
+            const freshPromos = [];
+            if (promosRes.status === 'fulfilled' && Array.isArray(promosRes.value)) {
+                promosRes.value.forEach(p => {
+                    freshPromos.push({
+                        type: 'promo',
+                        cost: p.reward_value,
+                        reward: p.reward_value,
+                        title: `+${p.reward_value} на баланс 🟡`,
+                        icon: 'fa-coins',
+                        color: '#FFD700',
+                        quantity: p.quantity
+                    });
+                });
+                localStorage.setItem('cache_shop_promos', JSON.stringify(freshPromos));
+            }
+
+            shopItems = [...baseTickets, ...freshSkins, ...freshPromos];
+
+            // Добавляем картинки обучения в пул предзагрузки
+            grindTourSteps.forEach(st => { if (st.img) imagesToPreload.push(st.img); });
+
+            // 2. ⚡ Асинхронно раскодируем все картинки в память (с предохранителем по времени 1.5 сек)
+            const preloadingPromise = Promise.allSettled(imagesToPreload.map(url => preloadImageAsync(url)));
+            const timeoutPromise = new Promise(r => setTimeout(r, 1500));
+            await Promise.race([preloadingPromise, timeoutPromise]);
+
+            // 3. Синхронно отрисовываем весь DOM в готовом виде
+            updateUI();
+            if (tasksData.status === 'fulfilled' && Array.isArray(tasksData.value)) {
+                telegramTasksCache = tasksData.value;
+                localStorage.setItem('cache_tg_tasks', JSON.stringify(tasksData.value));
+                const tgContainer = document.getElementById('tg-tasks-list');
+                if (tgContainer) renderTasksDOM(tasksData.value, tgContainer);
+            }
+            renderShopList();
+
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        } catch (e) {
+            console.error("Ошибка синхронизации:", e);
+        } finally {
+            // Плавно снимаем экран прелоадера — перед пользователем уже 100% загруженный интерфейс
+            setTimeout(() => {
+                if (preloader) preloader.classList.remove('active');
+                if (reloadBtn) reloadBtn.classList.remove('reload-btn-spinning');
+            }, 120);
+        }
+    };
 
     window.openSkinPickerModal = function() {
         document.getElementById('admin-skin-picker-modal').classList.add('visible');
@@ -2058,7 +2243,7 @@ window.showSuccessModal(
     `Успешно! Вы получили +${rewardTickets} ${ticketWord}.`,
     null,
     null,
-    () => window.location.reload()
+    () => window.fullAppReloadWithPreload()
 );
             } catch (e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
@@ -2149,7 +2334,7 @@ window.showSuccessModal(
     `Успешно! +${val} монет зачислено на ваш баланс.`,
     null,
     null,
-    () => window.location.reload()
+    () => window.fullAppReloadWithPreload()
 );
             } catch(e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Не удалось купить');
@@ -2464,20 +2649,17 @@ window.closeSuccessModal = function() {
             if (!isPulling) return;
             isPulling = false;
             content.style.transition = 'transform 0.3s ease-out'; ptrContainer.style.transition = 'transform 0.3s ease-out';
-            if (pulledDistance > 60) {
+           if (pulledDistance > 60) {
                 content.style.transform = `translateY(60px)`; ptrContainer.style.transform = `translateY(60px)`;
                 icon.className = 'fa-solid fa-circle-notch'; icon.style.animation = 'spin-slow 1s linear infinite';
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                // 📌 Сохраняем текущую активную вкладку и подвкладку перед обновлением свайпом
-                const activeTabEl = document.querySelector('.tab-content.active');
-                const activeMainTab = activeTabEl ? activeTabEl.id.replace('tab-', '') : 'tasks';
-                sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({
-                    main: activeMainTab,
-                    sub: currentShopTab
-                }));
-
-                setTimeout(() => window.location.reload(), 500);
+                // Запускаем бесшовную синхронизацию с предзагрузкой картинок
+                setTimeout(() => {
+                    content.style.transform = 'translateY(0px)';
+                    ptrContainer.style.transform = 'translateY(0px)';
+                    icon.style.transform = 'rotate(0deg)';
+                    window.fullAppReloadWithPreload();
+                }, 300);
             } else {
                 content.style.transform = 'translateY(0px)'; ptrContainer.style.transform = 'translateY(0px)';
                 icon.style.transform = 'rotate(0deg)';
