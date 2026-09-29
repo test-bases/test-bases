@@ -292,25 +292,27 @@
     }
     .tour-close-btn:active { color: #fff; }
 
-    /* 🖼️ Парящая зона под персонажа: слой z-index 1 (под текстом) */
+    /* 🖼️ Парящая зона: аккуратно приподнята над заголовком */
     .tour-levitate-stage {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: -95px; /* Приподняли выше: голова и кружка торчат над карточкой */
-      margin-bottom: -15px; /* Ноги уходят под заголовок */
-      height: 125px;
+      margin-top: -85px;
+      margin-bottom: 2px;
+      height: 120px;
       pointer-events: none;
       position: relative;
-      z-index: 1; /* Лягушка на заднем плане относительно текста */
     }
 
-    /* Картинка: темная глубокая тень сзади, чтобы не сливалась с черным фоном */
+    /* Картинка: лапки снизу мягко тают в полупрозрачный градиент */
     .tour-img {
       max-height: 170px;
       max-width: 240px;
       object-fit: contain;
-      filter: drop-shadow(0 16px 25px rgba(0, 0, 0, 0.98)) drop-shadow(0 0 35px rgba(0, 0, 0, 0.9));
+      filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 30px rgba(0, 0, 0, 0.85));
+      /* 🔥 Мягкий градиент: от шорт вниз лапки плавно растворяются в фон */
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 62%, rgba(0, 0, 0, 0) 96%);
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 62%, rgba(0, 0, 0, 0) 96%);
     }
 
     @keyframes tourFloat {
