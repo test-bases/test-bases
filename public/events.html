@@ -1402,6 +1402,37 @@
         }
     }
 
+    // 🎟️ ЗАБРАТЬ ЕЖЕДНЕВНЫЙ БИЛЕТ
+    window.claimFreeTicket = async () => {
+        try {
+            const response = await fetch('/api/v1/user/claim-free-ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData: tg.initData || window.Telegram?.WebApp?.initData || '' })
+            });
+            
+            if (response.ok) {
+                const res = await response.json();
+                let incoming = res.new_ticket_balance;
+                let finalTickets = (typeof incoming === 'object' && incoming !== null) ? Number(incoming.new_ticket_balance) : Number(incoming);
+                
+                userState.tickets = finalTickets;
+                userState.lastFreeTicket = new Date().toISOString();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                if (tg.showAlert) tg.showAlert(res.message || 'Билет получен!');
+                else window.customAlert(res.message || 'Билет получен!');
+                updateUI();
+            } else {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || err.error || 'Ошибка получения билета');
+            }
+        } catch (e) { 
+            console.error(e);
+            if (tg.showAlert) tg.showAlert(e.message || 'Ошибка получения билета');
+            else window.customAlert(e.message || 'Ошибка получения билета');
+        }
+    };
+
     // ==========================================
     // 📋 TELEGRAM ЗАДАНИЯ (СПОЙЛЕР + ГРИНД-МОНЕТЫ)
     // ==========================================
@@ -1830,34 +1861,47 @@
         }
     };
 
-    // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ (ВОССТАНОВЛЕННАЯ ФУНКЦИЯ)
-    window.exchangeCoins = function(cost, reward) {
+    // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ
+    window.exchangeCoins = async (cost, rewardTickets) => {
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
-        const ticketWord = pluralize(reward, ['билет', 'билета', 'билетов']);
+        const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
 
         if (userState.coins < cost) {
-            return window.customAlert(`Недостаточно гринд-монет! Нужно: ${cost}`);
+            const msg = `Недостаточно гринд-монет! Нужно: ${cost}`;
+            if (tg.showAlert) return tg.showAlert(msg);
+            return window.customAlert(msg);
         }
 
         const doExchange = async () => {
             try {
-                const res = await window.makeApiRequest('/api/v1/user/grind/exchange_ticket', { cost: cost, tickets: reward }, 'POST');
-                if (res.new_coins !== undefined) userState.coins = parseFloat(res.new_coins);
-                else userState.coins = Math.max(0, userState.coins - cost);
+                const response = await fetch('/api/v1/user/grind/exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        initData: tg.initData || window.Telegram?.WebApp?.initData || '', 
+                        cost: cost, 
+                        tickets_reward: rewardTickets 
+                    })
+                });
                 
-                if (res.new_tickets !== undefined) userState.tickets = res.new_tickets;
-                else userState.tickets = (userState.tickets || 0) + reward;
-
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || err.error || 'Ошибка обмена');
+                }
+                
+                const res = await response.json();
+                userState.coins = parseFloat(res.new_coins);
+                userState.tickets = res.new_tickets;
                 updateUI();
-                window.showSuccessModal(res.message || `Успешно! +${reward} ${ticketWord} начислено на баланс.`);
+                window.showSuccessModal(`Успешно! Вы получили +${rewardTickets} ${ticketWord}.`);
             } catch (e) {
-                if (tg.showAlert) tg.showAlert(e.message || "Ошибка покупки билетов");
-                else window.customAlert(e.message || "Ошибка покупки билетов");
+                if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
+                else window.customAlert(e.message || 'Ошибка обмена');
             }
         };
 
         window.showBuyConfirm(
-            `+${reward} ${ticketWord.toUpperCase()}`,
+            `+${rewardTickets} ${ticketWord.toUpperCase()}`,
             `Стоимость: ${cost} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px;"></i> ${coinWord}`,
             doExchange
         );
