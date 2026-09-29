@@ -2468,6 +2468,15 @@ window.closeSuccessModal = function() {
                 content.style.transform = `translateY(60px)`; ptrContainer.style.transform = `translateY(60px)`;
                 icon.className = 'fa-solid fa-circle-notch'; icon.style.animation = 'spin-slow 1s linear infinite';
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                // 📌 Сохраняем текущую активную вкладку и подвкладку перед обновлением свайпом
+                const activeTabEl = document.querySelector('.tab-content.active');
+                const activeMainTab = activeTabEl ? activeTabEl.id.replace('tab-', '') : 'tasks';
+                sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({
+                    main: activeMainTab,
+                    sub: currentShopTab
+                }));
+
                 setTimeout(() => window.location.reload(), 500);
             } else {
                 content.style.transform = 'translateY(0px)'; ptrContainer.style.transform = 'translateY(0px)';
@@ -2475,7 +2484,6 @@ window.closeSuccessModal = function() {
             }
             pulledDistance = 0;
         });
-    }
 
     // HAPTIC FEEDBACK
     document.body.addEventListener('click', (e) => {
