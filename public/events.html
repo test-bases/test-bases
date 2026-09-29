@@ -1117,7 +1117,7 @@
 // ==========================================
 // 🛍️ МАГАЗИН: СКИHЫ И АДМИНКА С MARKET_CACHE
 // ==========================================
-let currentShopTab = sessionStorage.getItem('grind_shop_tab') || 'skins';
+let currentShopTab = 'skins';
 
     // Переключение спойлера фильтров
     window.togglePickerSpoiler = function() {
@@ -1892,19 +1892,18 @@ let currentShopTab = sessionStorage.getItem('grind_shop_tab') || 'skins';
     }
 
     window.switchShopSubTab = function(tab) {
-    currentShopTab = tab;
-    sessionStorage.setItem('grind_shop_tab', tab); // Запоминаем подвкладку магазина
-    const btnSkins = document.getElementById('subtab-skins');
-    const btnTickets = document.getElementById('subtab-tickets');
-    const btnPromos = document.getElementById('subtab-promos');
-    
-    if (btnSkins) btnSkins.classList.toggle('active', tab === 'skins');
-    if (btnTickets) btnTickets.classList.toggle('active', tab === 'tickets');
-    if (btnPromos) btnPromos.classList.toggle('active', tab === 'promos');
-    
-    renderShopList();
-    if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-};
+        currentShopTab = tab;
+        const btnSkins = document.getElementById('subtab-skins');
+        const btnTickets = document.getElementById('subtab-tickets');
+        const btnPromos = document.getElementById('subtab-promos');
+        
+        if (btnSkins) btnSkins.classList.toggle('active', tab === 'skins');
+        if (btnTickets) btnTickets.classList.toggle('active', tab === 'tickets');
+        if (btnPromos) btnPromos.classList.toggle('active', tab === 'promos');
+        
+        renderShopList();
+        if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    };
 
    // 🏷️ Вспомогательные функции русификации и окраски
     function formatSkinWearRu(wear, title = '') {
@@ -2052,8 +2051,8 @@ userState.tickets = res.new_tickets;
 updateUI();
 
 // Фиксируем текущую вкладку магазина
-sessionStorage.setItem('grind_main_tab', 'shop');
-sessionStorage.setItem('grind_shop_tab', 'tickets');
+// Одноразовая метка: вернуть именно сюда после перезагрузки
+sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'tickets' }));
 
 window.showSuccessModal(
     `Успешно! Вы получили +${rewardTickets} ${ticketWord}.`,
@@ -2143,9 +2142,8 @@ window.showSuccessModal(
                 }
                 updateUI();
 
-// Фиксируем текущую вкладку магазина
-sessionStorage.setItem('grind_main_tab', 'shop');
-sessionStorage.setItem('grind_shop_tab', 'promos');
+// Одноразовая метка: вернуть именно сюда после перезагрузки
+sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'promos' }));
 
 window.showSuccessModal(
     `Успешно! +${val} монет зачислено на ваш баланс.`,
@@ -2174,25 +2172,24 @@ window.showSuccessModal(
     // ⚙️ УТИЛИТЫ И НАВИГАЦИЯ
     // ==========================================
     window.switchMainTab = function(tabId, btnElement) {
-    document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn').forEach(btn => btn.classList.remove('active'));
-    
-    if (btnElement) {
-        btnElement.classList.add('active');
-    } else {
-        const tabIdx = tabId === 'tasks' ? 0 : (tabId === 'free' ? 1 : 2);
-        const btns = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
-        if (btns[tabIdx]) btns[tabIdx].classList.add('active');
-    }
+        document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn').forEach(btn => btn.classList.remove('active'));
+        
+        if (btnElement) {
+            btnElement.classList.add('active');
+        } else {
+            const tabIdx = tabId === 'tasks' ? 0 : (tabId === 'free' ? 1 : 2);
+            const btns = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
+            if (btns[tabIdx]) btns[tabIdx].classList.add('active');
+        }
 
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    const targetContent = document.getElementById(`tab-${tabId}`);
-    if (targetContent) targetContent.classList.add('active');
-    
-    sessionStorage.setItem('grind_main_tab', tabId); // Запоминаем главную вкладку
-    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        const targetContent = document.getElementById(`tab-${tabId}`);
+        if (targetContent) targetContent.classList.add('active');
+        
+        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
 
-    if (tabId === 'shop') renderShopList(); 
-};
+        if (tabId === 'shop') renderShopList(); 
+    };
 
     window.customAlert = function(text) {
         const overlay = document.createElement('div'); 
@@ -2493,17 +2490,30 @@ window.closeSuccessModal = function() {
     // 📱 ВОССТАНОВЛЕНИЕ ВКЛАДКИ И СВАЙП
     // ==========================================
     function restoreSavedTabs() {
-        const savedMainTab = sessionStorage.getItem('grind_main_tab');
-        if (savedMainTab && savedMainTab !== 'tasks') {
-            const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
-            const idx = savedMainTab === 'free' ? 1 : (savedMainTab === 'shop' ? 2 : 0);
-            if (tabButtons[idx]) {
-                window.switchMainTab(savedMainTab, tabButtons[idx]);
-            }
+        const pendingRestore = sessionStorage.getItem('restore_tab_after_reload');
+        if (!pendingRestore) {
+            // Обычный вход / ручной свайп-обновление: ничего не делаем,
+            // страница остаётся на приоритетной главной вкладке "Задания"
+            return;
         }
-        const savedShopTab = sessionStorage.getItem('grind_shop_tab');
-        if (savedShopTab) {
-            window.switchShopSubTab(savedShopTab);
+
+        try {
+            const { main, sub } = JSON.parse(pendingRestore);
+            // СРАЗУ УДАЛЯЕМ: метка сработала, последующие обновления будут на главную
+            sessionStorage.removeItem('restore_tab_after_reload');
+
+            if (main && main !== 'tasks') {
+                const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
+                const idx = main === 'free' ? 1 : (main === 'shop' ? 2 : 0);
+                if (tabButtons[idx]) {
+                    window.switchMainTab(main, tabButtons[idx]);
+                }
+            }
+            if (sub) {
+                window.switchShopSubTab(sub);
+            }
+        } catch (e) {
+            sessionStorage.removeItem('restore_tab_after_reload');
         }
     }
 
