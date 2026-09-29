@@ -8591,10 +8591,18 @@ class GrindSkinBuyRequest(BaseModel):
     skin_id: int
 
 # =====================================================================
-# 1. ПОЛУЧИТЬ СПИСОК СКИНОВ В МАГАЗИНЕ ГРИНДА
+# 1. ПОЛУЧИТЬ СПИСОК СКИНОВ В МАГАЗИНЕ ГРИНДА (С IN-MEMORY КЭШЕМ)
 # =====================================================================
+import time
+_GRIND_SKINS_CACHE = {"data": [], "expires_at": 0}
+
 @app.get("/api/v1/user/grind/shop/skins")
 async def get_grind_shop_skins(supabase: httpx.AsyncClient = Depends(get_supabase_client)):
+    now = time.time()
+    # Отдаем за 1 мс из памяти сервера, если кэш свежий
+    if _GRIND_SKINS_CACHE["data"] and now < _GRIND_SKINS_CACHE["expires_at"]:
+        return _GRIND_SKINS_CACHE["data"]
+
     resp = await supabase.get(
         "/grind_shop_skins",
         params={
@@ -8604,8 +8612,12 @@ async def get_grind_shop_skins(supabase: httpx.AsyncClient = Depends(get_supabas
         }
     )
     if resp.status_code != 200:
-        return []
-    return resp.json()
+        return _GRIND_SKINS_CACHE["data"] or []
+        
+    data = resp.json()
+    _GRIND_SKINS_CACHE["data"] = data
+    _GRIND_SKINS_CACHE["expires_at"] = now + 45  # кэш на 45 секунд
+    return data
 
 # =====================================================================
 # 2. АДМИНКА: ДОБАВИТЬ СКИН (СВЯЗКА: market_cache -> cs_items -> grind_shop_skins)
@@ -8779,14 +8791,13 @@ async def user_buy_grind_skin(
 
     user_id = user_info["id"]
 
-    # 1. Получаем юзера из базы (только существующие колонки)
-    u_res = await supabase.get(
-        "/users", 
-        params={"telegram_id": f"eq.{user_id}", "select": "telegram_id,coins,trade_link,full_name,username", "limit": 1}
+    # 1. Параллельно за 1 шаг получаем пользователя и скин
+    u_res, s_res = await asyncio.gather(
+        supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "telegram_id,coins,trade_link,full_name,username", "limit": 1}),
+        supabase.get("/grind_shop_skins", params={"id": f"eq.{req.skin_id}", "select": "*"})
     )
     
     if u_res.status_code != 200:
-        logging.error(f"❌ Ошибка Supabase users ({u_res.status_code}): {u_res.text}")
         raise HTTPException(status_code=500, detail="Ошибка базы данных при поиске пользователя")
 
     u_data = u_res.json()
@@ -8794,8 +8805,6 @@ async def user_buy_grind_skin(
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     user_row = u_data[0]
 
-    # 2. Получаем скин из витрины магазина
-    s_res = await supabase.get("/grind_shop_skins", params={"id": f"eq.{req.skin_id}", "select": "*"})
     if s_res.status_code != 200 or not s_res.json():
         raise HTTPException(status_code=404, detail="Товар не найден")
     skin = s_res.json()[0]
@@ -8809,31 +8818,30 @@ async def user_buy_grind_skin(
     if current_coins < cost:
         raise HTTPException(status_code=400, detail="Недостаточно гринд-монет для покупки!")
 
-    # 3. Списываем монеты
     new_coins = round(current_coins - cost, 2)
-    await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": str(new_coins)})
-    
-    # 4. Уменьшаем остаток на витрине
     new_qty = skin["quantity"] - 1
-    await supabase.patch(
-        "/grind_shop_skins", 
-        params={"id": f"eq.{req.skin_id}"}, 
-        json={"quantity": new_qty, "is_active": new_qty > 0}
-    )
-
-    # 5. 🔥 ОТПРАВЛЯЕМ СКИН В ПРОФИЛЬ (В ТАБЛИЦУ cs_history)
     trade_link = user_row.get("trade_link")
+
     history_payload = {
-        "user_id": user_id,                      # Telegram ID юзера для отображения в профиле
-        "item_id": skin.get("cs_item_id"),       # Связка со скином из cs_items
+        "user_id": user_id,
+        "item_id": skin.get("cs_item_id"),
         "case_name": f"Магазин: {skin['skin_name']}",
-        "status": "pending",                     # В обработке
-        "source": "grind_shop",                  # Источник покупки
+        "status": "pending",
+        "source": "grind_shop",
         "details": f"Тип: raffle | Скин: {skin['skin_name']} | Трейд: {trade_link or 'Не указан'}"
     }
-    await supabase.post("/cs_history", json=history_payload)
 
-    # 6. Уведомление администратору в чат
+    # 2. Параллельно записываем списание, обновление товара и инвентарь (1 сетевой раундтрип вместо 3)
+    await asyncio.gather(
+        supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": str(new_coins)}),
+        supabase.patch("/grind_shop_skins", params={"id": f"eq.{req.skin_id}"}, json={"quantity": new_qty, "is_active": new_qty > 0}),
+        supabase.post("/cs_history", json=history_payload)
+    )
+
+    # Сбрасываем кэш витрины, чтобы остальные сразу увидели актуальный остаток
+    _GRIND_SKINS_CACHE["expires_at"] = 0
+
+    # 3. Уведомление администратору уходит в фоне — клиент НЕ ждёт Telegram API!
     if ADMIN_NOTIFY_CHAT_ID:
         u_name = user_row.get("full_name") or user_row.get("username") or str(user_id)
         admin_text = (
@@ -8845,7 +8853,7 @@ async def user_buy_grind_skin(
             f"<b>Трейд-ссылка:</b> {trade_link or '⚠️ НЕ ПРИВЯЗАНА'}\n"
             f"<b>Остаток:</b> {new_qty} шт."
         )
-        await safe_send_message(ADMIN_NOTIFY_CHAT_ID, admin_text)
+        asyncio.create_task(safe_send_message(ADMIN_NOTIFY_CHAT_ID, admin_text))
 
     return {
         "success": True,
