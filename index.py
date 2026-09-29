@@ -8722,18 +8722,21 @@ async def search_market_cache(
     if not user_info or user_info.get("id") not in ADMIN_IDS:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
-    # 2. Формируем условия для PostgREST
+    # 2. Безопасное формирование условий с экранированием кавычками
     conditions = []
     
     if q and q.strip():
-        conditions.append(f"market_hash_name.ilike.%{q.strip()}%")
+        # Оборачиваем в двойные кавычки, чтобы пробелы не ломали URL
+        clean_q = q.strip().replace('"', '')
+        conditions.append(f'market_hash_name.ilike."*{clean_q}*"')
         
     if wear and wear != "all":
-        conditions.append(f"market_hash_name.ilike.%({wear})%")
+        # Скобки экранируются внутри двойных кавычек: "*(Factory New)*"
+        conditions.append(f'market_hash_name.ilike."*({wear})*"')
         
     if only_weapons:
-        for exc in ["Sticker |", "Sealed Graffiti |", "Patch |", "Music Kit |", "Case", "Capsule"]:
-            conditions.append(f"market_hash_name.not.ilike.%{exc}%")
+        for exc in ["Sticker |*", "Sealed Graffiti |*", "Patch |*", "Music Kit |*", "*Case*", "*Capsule*"]:
+            conditions.append(f'market_hash_name.not.ilike."{exc}"')
             
     if rarity and rarity != "all":
         conditions.append(f"rarity.eq.{rarity.lower()}")
@@ -8754,8 +8757,12 @@ async def search_market_cache(
         params["and"] = f"({','.join(conditions)})"
 
     resp = await supabase.get("/market_cache", params=params)
+    
+    # 🔥 Выводим реальный ответ в лог сервера, если что-то не так
     if resp.status_code != 200:
+        logging.error(f"❌ Ошибка market_cache ({resp.status_code}): {resp.text}")
         return []
+        
     return resp.json()
 
 @app.post("/api/v1/user/grind/buy_skin")
