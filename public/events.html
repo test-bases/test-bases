@@ -1255,7 +1255,6 @@
     window.exchangeCoins = async (cost, rewardTickets) => {
         const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
-        const confirmText = `Купить ${rewardTickets} ${ticketWord} за ${cost} ${coinWord}?`;
 
         const doExchange = async () => {
             try {
@@ -1282,13 +1281,11 @@
             }
         };
 
-        if (tg.showConfirm) {
-            tg.showConfirm(confirmText, (ok) => { if(ok) doExchange(); });
-        } else if (window.customConfirm) {
-            window.customConfirm(confirmText, doExchange);
-        } else {
-            if (confirm(confirmText)) doExchange();
-        }
+        window.showBuyConfirm(
+            `${rewardTickets} ${ticketWord}`,
+            `Стоимость: ${cost} ${coinWord}`,
+            doExchange
+        );
     };
 
     window.buyItem = async (val) => {
@@ -1298,7 +1295,9 @@
             return window.customAlert(msg);
         }
 
-        const confirmText = `Обменять гринд-монеты на ${val} основных монет?`;
+        const coinWord = pluralize(val, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
+        const mainCoinWord = pluralize(val, ['монета', 'монеты', 'монет']);
+
         const doBuy = async () => {
             try {
                 const response = await fetch('/api/v1/user/grind/buy_item', {
@@ -1323,13 +1322,11 @@
             }
         };
 
-        if (tg.showConfirm) {
-            tg.showConfirm(confirmText, (ok) => { if(ok) doBuy(); });
-        } else if (window.customConfirm) {
-            window.customConfirm(confirmText, doBuy);
-        } else {
-            if (confirm(confirmText)) doBuy();
-        }
+        window.showBuyConfirm(
+            `+${val} основных ${mainCoinWord}`,
+            `Стоимость: ${val} ${coinWord}`,
+            doBuy
+        );
     };
 
     window.claimFreeTicket = async () => {
@@ -1383,21 +1380,29 @@
         document.body.appendChild(overlay);
     };
 
-    window.customConfirm = function(text, onConfirm) {
+    window.showBuyConfirm = function(line1, line2, onConfirm) {
         const overlay = document.createElement('div'); 
         overlay.className = 'modal-overlay visible'; 
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
         overlay.innerHTML = `
-            <div class="bottom-sheet">
-                <h3 style="margin: 0 0 10px; font-size: 14px; color: #fff;">Подтверждение</h3>
-                <p style="margin: 0 0 15px; font-size: 11px; color: var(--text-color-muted);">${text}</p>
-                <div style="display:flex; gap:8px;">
-                    <button class="premium-btn" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
-                    <button class="premium-btn active-state" style="flex:1; color:#fff;" id="confirm-btn-action">ДА</button>
+            <div class="bottom-sheet" style="background: rgba(12, 12, 14, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); max-width: 300px; padding: 22px 18px;">
+                <h3 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">КУПИТЬ</h3>
+                <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 4px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${line1}</span>
+                    <span style="color: var(--text-color-muted); font-size: 11px; font-weight: 600;">${line2}</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="premium-btn" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #8e8e93; font-weight: 800;" onclick="this.closest('.modal-overlay').remove()">ОТМЕНА</button>
+                    <button class="premium-btn" style="flex: 1.2; background: #ffffff; color: #000000; border: none; font-weight: 900; box-shadow: 0 0 20px rgba(255,255,255,0.25);" id="confirm-btn-buy">КУПИТЬ</button>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
-        overlay.querySelector('#confirm-btn-action').onclick = () => { overlay.remove(); onConfirm(); };
+        overlay.querySelector('#confirm-btn-buy').onclick = () => {
+            overlay.remove();
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            onConfirm();
+        };
     };
 
     window.showSuccessModal = function(message, promoCode = null) {
