@@ -1084,16 +1084,13 @@
     window.openAddSkinModal = () => document.getElementById('admin-skin-modal').classList.add('visible');
     window.closeAddSkinModal = () => document.getElementById('admin-skin-modal').classList.remove('visible');
 
-    // ⚡ Оптимизатор картинок Steam: Cloudflare CDN + легкий размер 180x180
-    function formatSteamImg(url, size = '180fx180f') {
+    // ⚡ Быстрый CDN Steam со стандартным готовым размером 360fx360f (не пережимается на лету)
+    function formatSteamImg(url) {
         if (!url) return '/public/static/default_skin.png';
-        // 1. Меняем проблемный akamai на быстрый cloudflare
-        let clean = url.replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com');
-        // 2. Убираем старый размер, если был
-        clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '');
-        // 3. Добавляем сжатый размер для мгновенной отдачи
-        clean = clean.replace(/\/+$/, '') + '/' + size;
-        return clean;
+        let clean = url.replace('community.cloudflare.steamstatic.com', 'steamcommunity-a.akamaihd.net')
+                       .replace('community.akamai.steamstatic.com', 'steamcommunity-a.akamaihd.net');
+        clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '').replace(/\/+$/, '');
+        return clean + '/360fx360f';
     }
 
     window.openSkinPickerModal = function() {
@@ -1782,6 +1779,20 @@
         renderShopList();
         if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     };
+
+    window.openSkinInspect = function(skinId) {
+        const item = shopItems.find(i => i.id === skinId);
+        if (!item) return;
+
+        const modal = document.getElementById('skin-inspect-modal');
+        const img = document.getElementById('inspect-skin-img');
+        img.classList.remove('zoomed');
+
+        // Моментально берем готовую отрисованную картинку из карточки без сетевого запроса
+        const loadedCardImg = document.getElementById(`shop-skin-img-${skinId}`);
+        img.src = (loadedCardImg && loadedCardImg.complete && loadedCardImg.naturalWidth > 0) 
+            ? loadedCardImg.src 
+            : formatSteamImg(item.image_url);
 
     // 🔍 МОДАЛКА ДЕТАЛЬНОГО ОСМОТРА СКИНА (ZOOM)
     window.openSkinInspect = function(encodedItem) {
