@@ -292,7 +292,7 @@
     }
     .tour-close-btn:active { color: #fff; }
 
-    /* 🖼️ Парящая зона: аккуратно приподнята над заголовком */
+    /* 🖼️ Парящая зона: приподняли чуть выше для красивой посадки */
     .tour-levitate-stage {
       display: flex;
       justify-content: center;
@@ -301,18 +301,16 @@
       margin-bottom: 2px;
       height: 120px;
       pointer-events: none;
-      position: relative;
     }
 
-    /* Картинка: лапки снизу мягко тают в полупрозрачный градиент */
+    /* Чистый силуэт БЕЗ ореола на фоне + мягкое растворение лапок внутри объекта */
     .tour-img {
       max-height: 170px;
       max-width: 240px;
       object-fit: contain;
-      filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 30px rgba(0, 0, 0, 0.85));
-      /* 🔥 Мягкий градиент: от шорт вниз лапки плавно растворяются в фон */
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 62%, rgba(0, 0, 0, 0) 96%);
-      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 62%, rgba(0, 0, 0, 0) 96%);
+      filter: none; /* Убран внешний drop-shadow, создававший грязное облако */
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
     }
 
     @keyframes tourFloat {
