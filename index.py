@@ -8586,6 +8586,16 @@ class GrindSkinAddRequest(BaseModel):
     cost_coins: float
     quantity: int = 1
 
+class GrindSkinUpdateRequest(BaseModel):
+    initData: str
+    skin_id: Union[int, str]
+    cost_coins: float
+    quantity: int
+
+class GrindSkinDeleteRequest(BaseModel):
+    initData: str
+    skin_id: Union[int, str]
+
 class GrindSkinBuyRequest(BaseModel):
     initData: str
     skin_id: int
@@ -8593,7 +8603,6 @@ class GrindSkinBuyRequest(BaseModel):
 # =====================================================================
 # 1. ПОЛУЧИТЬ СПИСОК СКИНОВ В МАГАЗИНЕ ГРИНДА (С IN-MEMORY КЭШЕМ)
 # =====================================================================
-import time
 _GRIND_SKINS_CACHE = {"data": [], "expires_at": 0}
 
 @app.get("/api/v1/user/grind/shop/skins")
@@ -8703,6 +8712,10 @@ async def admin_add_grind_shop_skin(
 
     # Если уже есть на витрине — обновляем остаток и цену, иначе создаем
     check_shop = await supabase.get("/grind_shop_skins", params={"skin_name": f"eq.{exact_name}", "select": "id"})
+    
+    # Сбрасываем кэш витрины
+    _GRIND_SKINS_CACHE["expires_at"] = 0
+
     if check_shop.json():
         target_id = check_shop.json()[0]["id"]
         await supabase.patch("/grind_shop_skins", params={"id": f"eq.{target_id}"}, json=shop_payload)
@@ -8712,8 +8725,97 @@ async def admin_add_grind_shop_skin(
         return {"message": f"Скин «{exact_name}» добавлен в магазин", "image_url": image_url}
 
 # =====================================================================
-# 3. ПОКУПКА СКИНА (СПИСАНИЕ МОНЕТ + ЗАПИСЬ В cs_history С ТИПОМ RAFFLE)
+# 2.1 АДМИНКА: РЕДАКТИРОВАТЬ СКИН НА ВИТРИНЕ
 # =====================================================================
+@app.post("/api/v1/admin/grind/shop/skin/update")
+async def admin_update_grind_shop_skin(
+    req: GrindSkinUpdateRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Проверка прав администратора
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    if req.cost_coins <= 0:
+        raise HTTPException(status_code=400, detail="Цена должна быть больше нуля")
+    if req.quantity < 0:
+        raise HTTPException(status_code=400, detail="Количество не может быть отрицательным")
+
+    # 2. Проверяем существование скина на витрине
+    check_resp = await supabase.get(
+        "/grind_shop_skins",
+        params={"id": f"eq.{req.skin_id}", "select": "id, skin_name"}
+    )
+    items = check_resp.json()
+    if not items or not isinstance(items, list) or len(items) == 0:
+        raise HTTPException(status_code=404, detail="Скин не найден в магазине")
+
+    skin_name = items[0].get("skin_name", "Скин")
+
+    # 3. Обновляем цену, остаток и активность
+    update_payload = {
+        "cost_coins": float(req.cost_coins),
+        "quantity": int(req.quantity),
+        "is_active": True if req.quantity > 0 else False
+    }
+
+    patch_resp = await supabase.patch(
+        "/grind_shop_skins",
+        params={"id": f"eq.{req.skin_id}"},
+        json=update_payload
+    )
+
+    if patch_resp.status_code >= 400:
+        raise HTTPException(status_code=500, detail="Не удалось обновить скин в базе данных")
+
+    # Сбрасываем кэш витрины
+    _GRIND_SKINS_CACHE["expires_at"] = 0
+
+    return {"success": True, "message": f"Скин «{skin_name}» успешно обновлен"}
+
+# =====================================================================
+# 2.2 АДМИНКА: УДАЛИТЬ СКИН С ВИТРИНЫ
+# =====================================================================
+@app.post("/api/v1/admin/grind/shop/skin/delete")
+async def admin_delete_grind_shop_skin(
+    req: GrindSkinDeleteRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Проверка прав администратора
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    # 2. Проверяем существование скина
+    check_resp = await supabase.get(
+        "/grind_shop_skins",
+        params={"id": f"eq.{req.skin_id}", "select": "id, skin_name"}
+    )
+    items = check_resp.json()
+    if not items or not isinstance(items, list) or len(items) == 0:
+        raise HTTPException(status_code=404, detail="Скин не найден на витрине")
+
+    skin_name = items[0].get("skin_name", "Скин")
+
+    # 3. Пробуем удалить запись из таблицы
+    del_resp = await supabase.delete(
+        "/grind_shop_skins",
+        params={"id": f"eq.{req.skin_id}"}
+    )
+
+    # Если скин уже участвовал в операциях и есть внешний ключ — мягко скрываем
+    if del_resp.status_code >= 400:
+        await supabase.patch(
+            "/grind_shop_skins",
+            params={"id": f"eq.{req.skin_id}"},
+            json={"is_active": False, "quantity": 0}
+        )
+    
+    # Сбрасываем кэш витрины
+    _GRIND_SKINS_CACHE["expires_at"] = 0
+
+    return {"success": True, "message": f"Скин «{skin_name}» удален из магазина"}
 
 # =====================================================================
 # ПОИСК И ФИЛЬТРАЦИЯ СКИНОВ В MARKET_CACHE ДЛЯ АДМИНКИ
