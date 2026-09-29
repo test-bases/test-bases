@@ -103,6 +103,19 @@
       box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
     }
 
+    /* 🔥 Аккуратная кнопка заданий: серый графитовый фон + золотой текст */
+    .premium-btn.task-claim-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--accent-neon);
+      box-shadow: none;
+    }
+    .premium-btn.task-claim-btn:active:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: scale(0.97);
+    }
+
     .premium-btn:disabled, .premium-btn.locked-state {
       background: rgba(0, 0, 0, 0.4) !important;
       border: 1px solid rgba(255, 255, 255, 0.03) !important;
@@ -994,7 +1007,7 @@
         if (task.task_key === 'tg_vote') { iconClass = 'fa-solid fa-rocket'; iconColor = '#ff3b30'; }
 
         let btnContent = '';
-        let activeClass = 'premium-btn active-state';
+        let activeClass = 'premium-btn task-claim-btn';
         let btnDisabled = '';
 
         if (task.is_completed) {
