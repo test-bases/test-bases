@@ -7588,19 +7588,30 @@ async def get_telegram_tasks(
         user_progress = {item["task_key"]: item for item in progress_resp.json()}
 
         result_list = []
+        now_dt = datetime.now(timezone.utc)
         
         for task in tasks:
-            # Находим прогресс для этого задания
-            prog = user_progress.get(task["task_key"], {})
+            t_key = task.get("task_key")
+            prog = user_progress.get(t_key, {})
             is_completed = prog.get("completed", False)
             current_day = prog.get("current_day", 0)
+            last_claimed = prog.get("last_claimed_at")
             
+            # 🔥 Если это tg_vote и прошло 30+ дней — задание СНОВА АКТИВНО (is_completed = False)
+            if t_key == "tg_vote" and last_claimed:
+                try:
+                    last_dt = parser.isoparse(last_claimed)
+                    if now_dt - last_dt >= timedelta(days=30):
+                        is_completed = False
+                except Exception:
+                    pass
+
             task_data = {
                 **task,
                 "is_completed": is_completed, # Флаг для фронтенда (серый цвет)
                 "current_day": current_day,
                 # !!! ВАЖНО: Передаем дату последнего клейма для таймера !!!
-                "last_claimed_at": prog.get("last_claimed_at")
+                "last_claimed_at": last_claimed
             }
             result_list.append(task_data)
 
@@ -25595,8 +25606,9 @@ def calculate_daily_reward(total_amount, total_days, current_day):
 #         FASTAPI ENDPOINTS (API ДЛЯ ФРОНТЕНДА)
 # ==========================================================
 
-# Кэш картинок кейсов в оперативной памяти (чтобы не парсить тяжелый shop_cache каждый раз)
+# Кэш картинок кейсов в оперативной памяти
 _CASE_IMAGE_CACHE = {}
+EXPLORER_CASE_IMG = "https://storage.bot-t.com/bot/233790/photos/keysikblin.png"
 
 @app.post("/api/v1/telegram/claim_daily")
 async def claim_daily_task(
@@ -25637,15 +25649,31 @@ async def claim_daily_task(
             await supabase.post("/user_telegram_progress", json=progress)
 
         # === 4. БАЗОВЫЕ ПРОВЕРКИ ===
-        if progress["completed"]:
+        now_dt = datetime.now(timezone.utc)
+        last_claimed_str = progress.get("last_claimed_at")
+
+        # 🔥 Специальная проверка для tg_vote (кулдаун 30 дней)
+        if task_key == "tg_vote":
+            if last_claimed_str:
+                last_claim_dt = parser.isoparse(last_claimed_str)
+                time_passed = now_dt - last_claim_dt
+                if time_passed < timedelta(days=30):
+                    days_left = 30 - time_passed.days
+                    return JSONResponse({
+                        "success": False, 
+                        "error": f"Голосовать можно раз в 30 дней. До следующей награды осталось дней: {days_left}"
+                    })
+                else:
+                    progress["completed"] = False  # 30 дней прошло — разрешаем повторно забрать!
+        elif progress.get("completed"):
             return JSONResponse({"success": False, "error": "Задание уже выполнено!"})
 
         current_day_val = progress.get("current_day", 0)
         is_golden_claim = (current_day_val == 7)
 
-        if task.get("is_daily") and progress.get("last_claimed_at") and not is_golden_claim:
-            last_claim = parser.isoparse(progress["last_claimed_at"])
-            if datetime.now(timezone.utc) - last_claim < timedelta(hours=20):
+        if task.get("is_daily") and last_claimed_str and not is_golden_claim:
+            last_claim = parser.isoparse(last_claimed_str)
+            if now_dt - last_claim < timedelta(hours=20):
                 return JSONResponse({"success": False, "error": "Награда уже получена сегодня. Приходи завтра!"})
 
         # === 5. ЛОГИКА ПРОВЕРКИ ===
@@ -25706,17 +25734,15 @@ async def claim_daily_task(
             })
             
         # === 6. ГЛАВНАЯ ЛОГИКА ДНЕЙ ===
-        last_claimed_str = progress.get("last_claimed_at")
         next_day = 1
         streak_reset = False 
-        reward = task.get("reward_amount", 0)
+        reward = float(task.get("reward_amount", 0))
         secret_code = None
         case_image_url = None
         custom_message = None 
 
         if last_claimed_str and not is_golden_claim:
             last_claim_dt = parser.isoparse(last_claimed_str)
-            now_dt = datetime.now(timezone.utc)
             delta = now_dt - last_claim_dt
             if delta.days >= 2:
                 next_day = 1 
@@ -25727,8 +25753,32 @@ async def claim_daily_task(
         # Список параллельных задач на запись в базу
         save_db_tasks = []
 
-        # 🔥 ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
-        if is_golden_claim and not streak_reset:
+        # 🔥 1. НАГРАДА ЗА ГОЛОСОВАНИЕ (РАЗ В 30 ДНЕЙ): +10 МОНЕТ + КЕЙС ПЕРВООТКРЫВАТЕЛЬ
+        if task_key == "tg_vote":
+            reward = 10.0
+            case_image_url = EXPLORER_CASE_IMG
+            unique_code = f"VOTE-{user_id}-{uuid.uuid4().hex[:4].upper()}"
+            coupon_data = {
+                "code": unique_code,
+                "max_uses": 1,
+                "current_uses": 0,
+                "is_active": True,
+                "description": "Авто-выдача: Награда за голос (Кейс Первооткрыватель)",
+                "is_copied": False,
+                "assigned_to": user_id,
+                "assigned_at": now_dt.isoformat(),
+                "target_case_name": "Кейс | Первооткрыватель", 
+                "used_by_ids": [],
+                "activated_by_ids": [str(user_id)],
+                "campaign_id": 777
+            }
+            save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
+            custom_message = "Голос учтён! Вам начислено +10.0 гринд-монет и выдан Кейс | Первооткрыватель!"
+            is_done = True
+            next_day = 1
+
+        # 🔥 2. ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
+        elif is_golden_claim and not streak_reset:
             reward_choice = data.get("reward_choice", "case")  # "case" или "coins"
 
             if reward_choice == "coins":
@@ -25738,6 +25788,7 @@ async def claim_daily_task(
                 case_image_url = None
                 custom_message = "Суперприз получен! Вам начислено +10.0 гринд-монет 🔥"
                 next_day = 1
+                is_done = False
             else:
                 # Вариант 2: Игрок выбрал кейс
                 target_case = "Кейс | TELEGRAM"
@@ -25750,7 +25801,7 @@ async def claim_daily_task(
                     "description": "Авто-код: Награда за 7 дней (Telegram Серия)",
                     "is_copied": False,
                     "assigned_to": user_id,
-                    "assigned_at": datetime.now(timezone.utc).isoformat(),
+                    "assigned_at": now_dt.isoformat(),
                     "target_case_name": target_case, 
                     "used_by_ids": [],
                     "activated_by_ids": [str(user_id)],
@@ -25786,6 +25837,7 @@ async def claim_daily_task(
                 secret_code = None 
                 custom_message = "Вам выдан Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
                 next_day = 1
+                is_done = False
 
         # 🔥 ОБЫЧНЫЙ ДЕНЬ (1-6)
         else:
@@ -25793,8 +25845,7 @@ async def claim_daily_task(
                 next_day = 1 
             else:
                 next_day = current_day_val + 1
-        
-        is_done = False if task.get("is_daily") else True 
+            is_done = False if task.get("is_daily") else True 
 
         # 7. Обновляем баланс (начисляем гринд-монеты только если reward > 0)
         new_coins = None
@@ -25808,7 +25859,7 @@ async def claim_daily_task(
         # 8. Обновляем прогресс
         update_data = {
             "current_day": next_day,
-            "last_claimed_at": datetime.now(timezone.utc).isoformat(),
+            "last_claimed_at": now_dt.isoformat(),
             "completed": is_done
         }
         save_db_tasks.append(supabase.patch(
@@ -25818,14 +25869,20 @@ async def claim_daily_task(
         ))
 
         # 🔥 ПИШЕМ СОБЫТИЕ В ИСТОРИЮ (ДОБАВЛЯЕМ В ПАРАЛЛЕЛЬНУЮ ПАЧКУ) 🔥
-        event_title = "Серия заданий (Суперприз)" if secret_code or custom_message else f"Задание TG (День {next_day})"
+        if task_key == "tg_vote":
+            event_title = "Голосование за канал"
+        elif is_golden_claim:
+            event_title = "Серия заданий (Суперприз)"
+        else:
+            event_title = f"Задание TG (День {next_day})"
+
         save_db_tasks.append(log_user_event(
             supabase=supabase,
             user_id=user_id,
             event_type="trial",
             title=event_title,
             description="Награда за активность в Telegram.",
-            coins_reward=reward if not (secret_code or custom_message) else 0
+            coins_reward=reward if not (secret_code or custom_message and reward == 0) else 0
         ))
 
         # ⚡ ПАРАЛЛЕЛЬНО ВЫПОЛНЯЕМ ВСЕ ОПЕРАЦИИ ЗАПИСИ ЗА 1 РАУНДТРИП
