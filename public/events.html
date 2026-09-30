@@ -1027,40 +1027,40 @@
 
   <!-- === МОДАЛКА ВЫБОРА СУПЕРПРИЗА === -->
 <div id="super-prize-modal" class="modal-overlay" onclick="if(event.target===this) closeSuperPrizeModal()">
-    <div class="bottom-sheet" style="max-width: 335px; background: rgba(20, 20, 24, 0.96); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 20px; padding: 22px 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.95); text-align: center;">
+    <div class="bottom-sheet" style="max-width: 335px; background: rgba(14, 14, 18, 0.82); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); border-radius: 24px; padding: 22px 18px; box-shadow: 0 0 35px rgba(255, 215, 0, 0.15), 0 24px 60px rgba(0, 0, 0, 0.95); text-align: center;">
         
-        <div style="font-size: 30px; margin-bottom: 6px;">🎁</div>
-        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">ТВОЙ СУПЕРПРИЗ!</h3>
-        <p style="font-size: 11px; color: #d1d1d6; margin: 0 0 16px 0; line-height: 1.4;">
-            Серия в 7 дней завершена! Выбери награду, которая тебе нужнее:
+        <div style="font-size: 32px; margin-bottom: 6px; filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.6));">🎁</div>
+        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.8px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);">ТВОЙ СУПЕРПРИЗ!</h3>
+        <p style="font-size: 11px; color: #e5e5ea; margin: 0 0 16px 0; line-height: 1.4; font-weight: 500;">
+            Серия в 7 дней завершена! Выбери свою награду:
         </p>
 
-        <!-- Сетка из 2 карточек на выбор -->
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px;">
+        <!-- Сетка из 2 ярких карточек -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
             
             <!-- Вариант 1: Кейс -->
-            <div onclick="selectSuperPrizeReward('case')" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.2s ease;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">
-                <img src="https://storage.bot-t.com/bot/233790/photos/tgkeys.png" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.8));">
-                <div style="margin-top: 8px;">
-                    <div style="font-size: 11px; font-weight: 900; color: #fff; line-height: 1.2;">КЕЙС<br>TELEGRAM</div>
-                    <span style="font-size: 8px; color: var(--accent-neon); font-weight: 800; text-transform: uppercase; display: block; margin-top: 4px;">Бесплатно</span>
+            <div onclick="selectSuperPrizeReward('case')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 234, 0.35); border-radius: 18px; padding: 14px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.6);" onmousedown="this.style.transform='scale(0.96)'; this.style.borderColor='rgba(0, 242, 234, 0.9)'; this.style.boxShadow='0 0 20px rgba(0, 242, 234, 0.35)';" onmouseup="this.style.transform='scale(1)';">
+                <img src="https://storage.bot-t.com/bot/233790/photos/tgkeys.png" style="width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0, 242, 234, 0.35)); transform: scale(1.05);">
+                <div style="margin-top: 10px; width: 100%;">
+                    <div style="font-size: 11px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 1px 4px rgba(0,0,0,0.8);">КЕЙС<br>TELEGRAM</div>
+                    <span style="font-size: 9px; color: #00f2ea; font-weight: 900; text-transform: uppercase; display: block; margin-top: 5px; text-shadow: 0 0 10px rgba(0, 242, 234, 0.7); letter-spacing: 0.5px;">БЕСПЛАТНО</span>
                 </div>
             </div>
 
-            <!-- Вариант 2: 10 Монет -->
-            <div onclick="selectSuperPrizeReward('coins')" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.2s ease;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">
-                <div style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-fire" style="font-size: 42px; color: #ff3b30; filter: drop-shadow(0 0 15px rgba(255,59,48,0.7));"></i>
+            <!-- Вариант 2: +10 ГРИНД. МОНЕТ -->
+            <div onclick="selectSuperPrizeReward('coins')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 59, 48, 0.4); border-radius: 18px; padding: 14px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.6);" onmousedown="this.style.transform='scale(0.96)'; this.style.borderColor='rgba(255, 59, 48, 0.9)'; this.style.boxShadow='0 0 20px rgba(255, 59, 48, 0.45)';" onmouseup="this.style.transform='scale(1)';">
+                <div style="width: 72px; height: 72px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-fire" style="font-size: 46px; color: #ff3b30; filter: drop-shadow(0 0 22px rgba(255, 59, 48, 0.95));"></i>
                 </div>
-                <div style="margin-top: 8px;">
-                    <div style="font-size: 11px; font-weight: 900; color: #fff; line-height: 1.2;">+10.0<br>МОНЕТ</div>
-                    <span style="font-size: 8px; color: #34c759; font-weight: 800; text-transform: uppercase; display: block; margin-top: 4px;">На баланс</span>
+                <div style="margin-top: 10px; width: 100%;">
+                    <div style="font-size: 11px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 1px 4px rgba(0,0,0,0.8);">+10<br>ГРИНД. МОНЕТ</div>
+                    <span style="font-size: 9px; color: #ff9500; font-weight: 900; text-transform: uppercase; display: block; margin-top: 5px; text-shadow: 0 0 10px rgba(255, 149, 0, 0.7); letter-spacing: 0.5px;">НА БАЛАНС</span>
                 </div>
             </div>
 
         </div>
 
-        <button class="premium-btn" style="background: rgba(255, 255, 255, 0.06); color: var(--text-color-muted); border: none; padding: 8px;" onclick="closeSuperPrizeModal()">ОТМЕНА</button>
+        <button class="premium-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); color: #8e8e93; font-weight: 800; border-radius: 12px; padding: 10px;" onclick="closeSuperPrizeModal()">ОТМЕНА</button>
     </div>
 </div>
 
@@ -2086,15 +2086,15 @@ let currentShopTab = 'skins';
         } else if (isFinalDay) {
             btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
         } else {
-            // 1 гринд-монету, 2-4 гринд-монеты, 5-10 гринд-монет
             const coinLabel = pluralize(task.reward_amount, ['ГРИНД-МОНЕТУ', 'ГРИНД-МОНЕТЫ', 'ГРИНД-МОНЕТ']);
             btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ${coinLabel}`;
         }
 
+        // 🔥 Кнопка-ссылка в аккуратном виде (для размещения в одну строчку)
         let linkHtml = '';
         if (!task.is_completed && (task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
             const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-            linkHtml = `<div class="task-link" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
+            linkHtml = `<span class="task-link" style="margin: 0; font-size: 9px; cursor: pointer; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; color: var(--accent-blue); font-weight: 800;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
         }
 
         let streakHtml = '';
@@ -2107,15 +2107,18 @@ let currentShopTab = 'skins';
         }
 
         el.innerHTML = `
-            <div class="task-header">
+            <div class="task-header" style="align-items: flex-start;">
                 <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
-                <div class="task-text">
+                <div class="task-text" style="width: 100%;">
                     <span class="task-title">${task.title || 'Задание'}</span>
-                    <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                    <!-- Описание и кнопка в одной строке -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;">
+                        <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                        ${linkHtml}
+                    </div>
                     ${streakHtml}
                 </div>
             </div>
-            ${linkHtml}
             <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
         `;
 
