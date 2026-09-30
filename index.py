@@ -34587,11 +34587,17 @@ async def get_profile_shop_items(
     telegram_id = user_info["id"]
 
     try:
-        # 1. Запрашиваем юзера (баланс билетов, рефералы, бан)
-        user_res = await supabase.get(
+        # 1. Запрашиваем юзера + ПАРАЛЛЕЛЬНО считаем реальных рефералов через head=true
+        user_task = supabase.get(
             "/users",
-            params={"telegram_id": f"eq.{telegram_id}", "select": "tickets,referrals_count,is_banned"}
+            params={"telegram_id": f"eq.{telegram_id}", "select": "tickets,is_banned"}
         )
+        refs_task = supabase.get(
+            "/users", 
+            params={"referrer_id": f"eq.{telegram_id}", "select": "id", "count": "exact", "head": "true"}
+        )
+
+        user_res, refs_res = await asyncio.gather(user_task, refs_task)
         user_data = user_res.json()
         
         if not user_data or len(user_data) == 0:
@@ -34599,11 +34605,18 @@ async def get_profile_shop_items(
         if user_data[0].get("is_banned"):
             raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован.")
 
-        # Парсим билеты как float (хранятся с копейками)
         balance = float(user_data[0].get("tickets", 0))
-        refs_count = int(user_data[0].get("referrals_count", 0))
 
-        # 2. Асинхронно стягиваем товары, покупки юзера (для лимитов) и выполненные квесты
+        # 🔥 Считаем рефералов точно так же, как в claim:
+        refs_count = 0
+        content_range = refs_res.headers.get("Content-Range")
+        if content_range:
+            try:
+                refs_count = int(content_range.split('/')[-1])
+            except:
+                refs_count = 0
+
+        # 2. Асинхронно стягиваем товары, покупки и квесты
         async def fetch_items():
             res = await supabase.get("/shop_items", params={"is_active": "eq.true", "order": "price.asc"})
             return res.json()
@@ -34624,7 +34637,6 @@ async def get_profile_shop_items(
             i_id = p.get("item_id")
             purchase_counts[i_id] = purchase_counts.get(i_id, 0) + 1
 
-        # Собираем ID выполненных квестов
         completed_quests = {str(q.get("quest_id")) for q in quests_data}
 
         # 3. Обрабатываем товары перед отправкой на фронт
@@ -34637,7 +34649,6 @@ async def get_profile_shop_items(
             
             p_count = purchase_counts.get(item_id, 0)
             
-            # Логика блокировок
             is_locked = False
             lock_reason = ""
 
