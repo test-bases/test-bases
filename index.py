@@ -22463,62 +22463,44 @@ async def claim_grind_reward_endpoint(
     request_data: InitDataRequest,
     supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
-    """
-    Пользователь забирает ежедневную награду.
-    ИСПРАВЛЕНО: Убрано двойное ожидание задач (double await fix).
-    ДОБАВЛЕНО: Подсчет рефералов (+0.1 за каждого).
-    ЗАЩИЩЕНО: Проверка на бан перед выдачей награды.
-    """
     user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
     if not user_info or "id" not in user_info:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     telegram_id = user_info["id"]
 
-    # 🔥 ЖЕЛЕЗНЫЙ ЩИТ: Рубим забаненных до того, как они получат халяву 🔥
     await verify_user_not_banned(telegram_id, supabase)
 
     try:
-        # 1. ЗАПУСКАЕМ ЗАДАЧИ (но НЕ ждем их тут!)
+        # 1. Запрашиваем RPC, данные юзера (включая referrals_count!) и настройки
         task_rpc = supabase.post("/rpc/claim_grind_reward", json={"p_user_id": telegram_id})
-        task_user = supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_status, referral_activated_at"})
+        task_user = supabase.get(
+            "/users", 
+            params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_status,referral_activated_at,referrals_count"}
+        )
         task_settings = get_grind_settings_async_global()
-        
-        # 🔥 ЗАДАЧА НА ПОДСЧЕТ РЕФЕРАЛОВ (head=true возвращает только кол-во в заголовках)
-        task_refs = supabase.get("/users", params={"referrer_id": f"eq.{telegram_id}", "select": "id", "count": "exact", "head": "true"})
 
-        # 2. Ждем ВСЕ результаты ОДИН РАЗ в одной точке
-        rpc_resp, user_resp, settings, refs_resp = await asyncio.gather(task_rpc, task_user, task_settings, task_refs)
+        rpc_resp, user_resp, settings = await asyncio.gather(task_rpc, task_user, task_settings)
 
-        # 3. Проверяем ошибки
         rpc_resp.raise_for_status()
-        user_resp.raise_for_status() # Важно проверить и это!
-        # refs_resp.raise_for_status() # (Можно не проверять жестко, если ошибка - просто 0 рефералов)
+        user_resp.raise_for_status()
 
         result = rpc_resp.json()
-        
-        # Берем данные пользователя
         user_data_list = user_resp.json()
         user_data = user_data_list[0] if user_data_list else {}
 
-        # 🔥 Парсим количество рефералов из заголовка
-        referrals_count = 0
-        content_range = refs_resp.headers.get("Content-Range") # Пример: "0-5/6" (где 6 - общее кол-во)
-        if content_range:
-            try:
-                referrals_count = int(content_range.split('/')[-1])
-            except:
-                pass
+        # Берем рефералов прямо из колонки referrals_count
+        referrals_count = int(user_data.get("referrals_count") or 0)
 
         extra_bonus = 0.0
 
         # --- A. Бонус за Рефералов (+0.1 за каждого) ---
         if referrals_count > 0:
-            ref_bonus = referrals_count * 0.1
+            ref_bonus = round(referrals_count * 0.1, 4)
             extra_bonus += ref_bonus
             logging.info(f"🚀 Бонус за {referrals_count} рефералов: +{ref_bonus}")
 
-        # --- B. Бонус за VIP ---
+        # --- B. Бонус за VIP (7 дней) ---
         ref_date_str = user_data.get('referral_activated_at')
         if ref_date_str:
             try:
@@ -22535,33 +22517,29 @@ async def claim_grind_reward_endpoint(
 
         # 4. Доначисляем бонус
         if extra_bonus > 0:
-            logging.info(f"💰 Доп. бонус +{extra_bonus} для {telegram_id}")
             current_coins = float(result.get('new_coins', 0))
             final_coins = round(current_coins + extra_bonus, 4)
 
-            # Обновляем базу
             await supabase.patch(
                 "/users",
                 params={"telegram_id": f"eq.{telegram_id}"},
                 json={"coins": final_coins}
             )
 
-            # Обновляем ответ
             result['new_coins'] = final_coins
             result['reward_claimed'] = round(float(result.get('reward_claimed', 0)) + extra_bonus, 4)
-        
-        # Добавляем кол-во рефералов в ответ, чтобы фронт мог отрисовать "🚀 Друзья (N)"
+
+        # Отдаем оба ключа, чтобы фронт 100% подхватил число
+        result['referrals_count'] = referrals_count
         result['active_referrals_count'] = referrals_count
 
-        # 🔥 ПИШЕМ СОБЫТИЕ В ИСТОРИЮ 🔥
-        # Достаем итоговую награду из результата (сколько всего начислили)
         total_claimed = float(result.get('reward_claimed', 0))
         await log_user_event(
             supabase=supabase,
             user_id=telegram_id,
             event_type="grind",
             title="Ежедневный гринд",
-            description=f"Включая бонусы за рефералов и статус.",
+            description="Включая бонусы за рефералов и статус.",
             coins_reward=total_claimed
         )
 
@@ -22570,7 +22548,7 @@ async def claim_grind_reward_endpoint(
     except httpx.HTTPStatusError as e:
         try:
             error_msg = e.response.json().get("message", e.response.text)
-        except:
+        except Exception:
             error_msg = e.response.text
         raise HTTPException(status_code=400, detail=error_msg)
     except Exception as e:
@@ -34587,17 +34565,10 @@ async def get_profile_shop_items(
     telegram_id = user_info["id"]
 
     try:
-        # 1. Запрашиваем юзера + ПАРАЛЛЕЛЬНО считаем реальных рефералов через head=true
-        user_task = supabase.get(
+        user_res = await supabase.get(
             "/users",
-            params={"telegram_id": f"eq.{telegram_id}", "select": "tickets,is_banned"}
+            params={"telegram_id": f"eq.{telegram_id}", "select": "tickets,referrals_count,is_banned"}
         )
-        refs_task = supabase.get(
-            "/users", 
-            params={"referrer_id": f"eq.{telegram_id}", "select": "id", "count": "exact", "head": "true"}
-        )
-
-        user_res, refs_res = await asyncio.gather(user_task, refs_task)
         user_data = user_res.json()
         
         if not user_data or len(user_data) == 0:
@@ -34606,17 +34577,8 @@ async def get_profile_shop_items(
             raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован.")
 
         balance = float(user_data[0].get("tickets", 0))
+        refs_count = int(user_data[0].get("referrals_count") or 0)
 
-        # 🔥 Считаем рефералов точно так же, как в claim:
-        refs_count = 0
-        content_range = refs_res.headers.get("Content-Range")
-        if content_range:
-            try:
-                refs_count = int(content_range.split('/')[-1])
-            except:
-                refs_count = 0
-
-        # 2. Асинхронно стягиваем товары, покупки и квесты
         async def fetch_items():
             res = await supabase.get("/shop_items", params={"is_active": "eq.true", "order": "price.asc"})
             return res.json()
@@ -34631,7 +34593,6 @@ async def get_profile_shop_items(
 
         items_data, purchases_data, quests_data = await asyncio.gather(fetch_items(), fetch_purchases(), fetch_quests())
 
-        # Считаем, сколько раз юзер купил каждый товар
         purchase_counts = {}
         for p in purchases_data:
             i_id = p.get("item_id")
@@ -34639,14 +34600,12 @@ async def get_profile_shop_items(
 
         completed_quests = {str(q.get("quest_id")) for q in quests_data}
 
-        # 3. Обрабатываем товары перед отправкой на фронт
         processed_items = []
         for item in items_data:
             item_id = item.get("id")
             unlock_type = item.get("unlock_type", "none")
             unlock_target = str(item.get("unlock_target", ""))
             user_limit = int(item.get("user_limit", 1))
-            
             p_count = purchase_counts.get(item_id, 0)
             
             is_locked = False
@@ -34681,7 +34640,7 @@ async def get_profile_shop_items(
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"[PROFILE_SHOP] Ошибка загрузки: {e}")
+        logging.error(f"[PROFILE_SHOP] Ошибка: {e}")
         raise HTTPException(status_code=500, detail="Ошибка базы данных")
 
 
