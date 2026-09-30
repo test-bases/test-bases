@@ -3522,13 +3522,12 @@ window.closeSuccessModal = function() {
                     return;
                 }
 
-                // 2-й шаг: плавный спуск к списку заданий
-                if (currentTourStep === 1) {
-                    const tasksListEl = document.getElementById('tg-tasks-list');
-                    const targetY = tasksListEl ? (tasksListEl.offsetTop - 14) : (target.offsetTop - 14);
-                    smoothScrollTour(scrollArea, Math.max(0, targetY), 650);
-                    return;
-                }
+                // 2-й шаг: плавный спуск до самого низа ко всем заданиям
+if (currentTourStep === 1) {
+    const targetY = scrollArea.scrollHeight;
+    smoothScrollTour(scrollArea, targetY, 750);
+    return;
+}
 
                 // 3 и 4 шаги: плавное центрирование
                 const targetRect = target.getBoundingClientRect();
