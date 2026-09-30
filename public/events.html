@@ -2140,12 +2140,12 @@ let currentShopTab = 'skins';
                 <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
                 <div class="task-text" style="width: 100%;">
                     <span class="task-title">${task.title || 'Задание'}</span>
-                    <!-- Описание + (подробнее) + кнопка ссылки в одной строке -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;">
-                        <span class="task-desc">
-                            ${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}
-                            <span onclick="openTgTaskInfoModal('${task.task_key}')" style="color: var(--accent-blue); cursor: pointer; text-decoration: underline; margin-left: 4px; font-weight: 700; white-space: nowrap;">(подробнее)</span>
-                        </span>
+                    <!-- Описание + (подробнее) строго под буквой «Г» при переносе -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; width: 100%;">
+                        <div style="display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 5px; row-gap: 2px;">
+                            <span class="task-desc" style="margin: 0; padding: 0;">${(task.description || '').trim().replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                            <span onclick="openTgTaskInfoModal('${task.task_key}')" style="color: var(--accent-blue); cursor: pointer; text-decoration: underline; margin: 0; padding: 0; font-size: 10px; font-weight: 700; white-space: nowrap; line-height: 1.2;">(подробнее)</span>
+                        </div>
                         ${linkHtml}
                     </div>
                     ${streakHtml}
