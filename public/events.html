@@ -870,10 +870,19 @@
                   <div class="task-header">
                       <div class="task-icon" style="color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.5);"><i class="fa-solid fa-fire"></i></div>
                       <div class="task-text">
-                          <span class="task-title">Ежедневная серия</span>
-                          <span class="task-desc">День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-neon); font-weight:800;">+0.1</span></span>
-                          <div class="streak-steps-mini" id="streak-steps-mini"></div>
-                      </div>
+                          <div class="task-text">
+    <span class="task-title">Ежедневная серия</span>
+    <div class="task-desc" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+        <span>День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-neon); font-weight:800;">+0.1</span></span>
+        <span onclick="openStreakCalcModal()" 
+              style="font-size: 8.5px; font-weight: 700; color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; transition: opacity 0.2s;"
+              onmouseenter="this.style.opacity='0.7'"
+              onmouseleave="this.style.opacity='1'">
+            (подробнее)
+        </span>
+    </div>
+    <div class="streak-steps-mini" id="streak-steps-mini"></div>
+</div>
                   </div>
                   <button id="grind-btn" class="premium-btn" disabled>
                       <i class="fa-solid fa-spinner fa-spin"></i> ЗАГРУЗКА
@@ -970,6 +979,89 @@
           </div>
       </div>
   </div>
+
+  <!-- === МОДАЛКА КАЛЬКУЛЯЦИИ СТРИКА === -->
+<div id="streak-calc-modal" class="modal-overlay" onclick="if(event.target===this) closeStreakCalcModal()">
+    <div class="bottom-sheet" style="max-width: 335px; text-align: left; padding: 18px 16px; background: rgba(16, 16, 20, 0.96); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); box-shadow: 0 16px 40px rgba(0,0,0,0.9);">
+        
+        <!-- Шапка -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 59, 48, 0.15); display: flex; align-items: center; justify-content: center; color: #ff3b30; box-shadow: 0 0 10px rgba(255,59,48,0.3);">
+                    <i class="fa-solid fa-fire" style="font-size: 14px;"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Расчёт награды</h3>
+            </div>
+            <button class="tour-close-btn" onclick="closeStreakCalcModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <p style="font-size: 10px; color: var(--text-color-muted); margin: 0 0 12px; line-height: 1.4;">
+            Награда начисляется в <span style="color:#ff3b30; font-weight:700;">гринд-монетах 🔥</span> и складывается из длины серии и активных усилителей:
+        </p>
+
+        <!-- Модификаторы -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+            
+            <!-- 1. Базовый стрик -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-day" style="color: var(--accent-neon); font-size: 13px; width: 16px; text-align: center;"></i>
+                    <div>
+                        <div style="font-size: 10px; font-weight: 800; color: #fff;">Серия входов (День <span id="calc-modal-streak-day">1</span>/10)</div>
+                        <div style="font-size: 8.5px; color: var(--text-color-muted);">+0.1 за день (макс. +1.0)</div>
+                    </div>
+                </div>
+                <span id="calc-modal-streak-val" style="font-size: 11px; font-weight: 900; color: var(--accent-neon); font-family: 'SF Mono', monospace;">+0.1</span>
+            </div>
+
+            <!-- 2. Рефералы -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-users" style="color: #0a84ff; font-size: 13px; width: 16px; text-align: center;"></i>
+                    <div>
+                        <div style="font-size: 10px; font-weight: 800; color: #fff;">Активные друзья (<span id="calc-modal-ref-count">0</span>)</div>
+                        <div style="font-size: 8.5px; color: var(--text-color-muted);">+0.1 за каждого активного</div>
+                    </div>
+                </div>
+                <span id="calc-modal-ref-val" style="font-size: 11px; font-weight: 900; color: #fff; font-family: 'SF Mono', monospace;">+0.0</span>
+            </div>
+
+            <!-- 3. VIP-бонус -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-crown" style="color: #ffd700; font-size: 13px; width: 16px; text-align: center;"></i>
+                    <div>
+                        <div style="font-size: 10px; font-weight: 800; color: #fff;">VIP-бонус (<span id="calc-modal-vip-status">Не активен</span>)</div>
+                        <div style="font-size: 8.5px; color: var(--text-color-muted);">+0.2 на 7 дней после промокода</div>
+                    </div>
+                </div>
+                <span id="calc-modal-vip-val" style="font-size: 11px; font-weight: 900; color: #fff; font-family: 'SF Mono', monospace;">+0.0</span>
+            </div>
+
+            <!-- 4. Twitch-буст -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-brands fa-twitch" style="color: #a970ff; font-size: 14px; width: 16px; text-align: center;"></i>
+                    <div>
+                        <div style="font-size: 10px; font-weight: 800; color: #fff;">Twitch (<span id="calc-modal-twitch-status">Нет роли</span>)</div>
+                        <div style="font-size: 8.5px; color: var(--text-color-muted);">Буст за VIP / SUB на стриме</div>
+                    </div>
+                </div>
+                <span id="calc-modal-twitch-val" style="font-size: 11px; font-weight: 900; color: #fff; font-family: 'SF Mono', monospace;">+0.0</span>
+            </div>
+        </div>
+
+        <!-- Итог -->
+        <div style="background: linear-gradient(135deg, rgba(255, 59, 48, 0.12) 0%, rgba(255, 215, 0, 0.06) 100%); border: 1px solid rgba(255, 59, 48, 0.35); border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 12px;">
+            <div style="font-size: 9px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase;">Итоговая награда сегодня:</div>
+            <div style="font-size: 18px; font-weight: 900; color: #ff3b30; text-shadow: 0 0 12px rgba(255,59,48,0.5); font-family: 'SF Mono', monospace; margin-top: 2px;">
+                <span id="calc-modal-total-reward">+0.1</span> <i class="fa-solid fa-fire" style="font-size: 14px;"></i>
+            </div>
+        </div>
+
+        <button class="premium-btn active-state" style="width: 100%; color: #fff; font-size: 11px; padding: 10px;" onclick="closeStreakCalcModal()">ПОНЯТНО</button>
+    </div>
+</div>
 
 <!-- === МОДАЛКА УСПЕХА === -->
   <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
@@ -2051,6 +2143,54 @@ let currentShopTab = 'skins';
 
         timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
     }
+
+    window.openStreakCalcModal = function() {
+    const modal = document.getElementById('streak-calc-modal');
+    if (!modal) return;
+
+    // Расчёты в соответствии с логикой updateUI()
+    const streakDay = userState.streakDays || 1;
+    const baseReward = Math.min(streakDay * 0.1, 1.0);
+    const refBonus = (userState.active_referrals_count || 0) * (grindSettings.ref_boost_coins_per_user || 0.1);
+    const vipBonus = isVipActive() ? 0.2 : 0;
+    const twitchBonus = isTwitchBoostActive() ? (grindSettings.twitch_status_boost_coins || 0.5) : 0;
+    const total = baseReward + refBonus + vipBonus + twitchBonus;
+
+    // 1. Стрик
+    document.getElementById('calc-modal-streak-day').textContent = streakDay;
+    document.getElementById('calc-modal-streak-val').textContent = `+${baseReward.toFixed(1)}`;
+
+    // 2. Рефералы
+    document.getElementById('calc-modal-ref-count').textContent = userState.active_referrals_count || 0;
+    const refValEl = document.getElementById('calc-modal-ref-val');
+    refValEl.textContent = refBonus > 0 ? `+${refBonus.toFixed(1)}` : '+0.0';
+    refValEl.style.color = refBonus > 0 ? '#34c759' : '#fff';
+
+    // 3. VIP
+    const isVip = isVipActive();
+    document.getElementById('calc-modal-vip-status').textContent = isVip ? 'Активен' : 'Не активен';
+    const vipValEl = document.getElementById('calc-modal-vip-val');
+    vipValEl.textContent = vipBonus > 0 ? `+${vipBonus.toFixed(1)}` : '+0.0';
+    vipValEl.style.color = vipBonus > 0 ? 'var(--accent-neon)' : '#fff';
+
+    // 4. Twitch
+    const hasTwitch = isTwitchBoostActive();
+    document.getElementById('calc-modal-twitch-status').textContent = userState.twitch_status ? (userState.twitch_status === 'vip' ? 'VIP' : 'SUB') : 'Нет роли';
+    const twitchValEl = document.getElementById('calc-modal-twitch-val');
+    twitchValEl.textContent = twitchBonus > 0 ? `+${twitchBonus.toFixed(1)}` : '+0.0';
+    twitchValEl.style.color = twitchBonus > 0 ? '#a970ff' : '#fff';
+
+    // Итог
+    document.getElementById('calc-modal-total-reward').textContent = `+${total.toFixed(1)}`;
+
+    modal.classList.add('visible');
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+};
+
+window.closeStreakCalcModal = function() {
+    const modal = document.getElementById('streak-calc-modal');
+    if (modal) modal.classList.remove('visible');
+};
 
     window.handleDailyClaim = async function(taskKey, actionUrl) {
         const btn = document.getElementById(`btn-${taskKey}`);
