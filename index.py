@@ -22472,12 +22472,9 @@ async def claim_grind_reward_endpoint(
     await verify_user_not_banned(telegram_id, supabase)
 
     try:
-        # 1. Запрашиваем RPC, данные юзера (включая referrals_count!) и настройки
+        # 1. Запускаем SQL функцию (она считает стрик + 126 активных рефералов + VIP и обновляет баланс)
         task_rpc = supabase.post("/rpc/claim_grind_reward", json={"p_user_id": telegram_id})
-        task_user = supabase.get(
-            "/users", 
-            params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_status,referral_activated_at,referrals_count"}
-        )
+        task_user = supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_status"})
         task_settings = get_grind_settings_async_global()
 
         rpc_resp, user_resp, settings = await asyncio.gather(task_rpc, task_user, task_settings)
@@ -22489,36 +22486,15 @@ async def claim_grind_reward_endpoint(
         user_data_list = user_resp.json()
         user_data = user_data_list[0] if user_data_list else {}
 
-        # Берем рефералов прямо из колонки referrals_count
-        referrals_count = int(user_data.get("referrals_count") or 0)
-
-        extra_bonus = 0.0
-
-        # --- A. Бонус за Рефералов (+0.1 за каждого) ---
-        if referrals_count > 0:
-            ref_bonus = round(referrals_count * 0.1, 4)
-            extra_bonus += ref_bonus
-            logging.info(f"🚀 Бонус за {referrals_count} рефералов: +{ref_bonus}")
-
-        # --- B. Бонус за VIP (7 дней) ---
-        ref_date_str = user_data.get('referral_activated_at')
-        if ref_date_str:
-            try:
-                ref_dt = datetime.fromisoformat(ref_date_str.replace('Z', '+00:00'))
-                if (datetime.now(timezone.utc) - ref_dt) < timedelta(days=7):
-                    extra_bonus += 0.2
-            except ValueError:
-                pass
-
-        # --- C. Бонус за Twitch ---
+        # 2. В SQL функции нет только Твича. Если есть Twitch VIP/SUB — доначисляем:
+        twitch_bonus = 0.0
         t_status = user_data.get('twitch_status')
         if t_status in ['vip', 'subscriber']:
-            extra_bonus += settings.twitch_status_boost_coins
+            twitch_bonus = float(settings.twitch_status_boost_coins)
 
-        # 4. Доначисляем бонус
-        if extra_bonus > 0:
+        if twitch_bonus > 0:
             current_coins = float(result.get('new_coins', 0))
-            final_coins = round(current_coins + extra_bonus, 4)
+            final_coins = round(current_coins + twitch_bonus, 4)
 
             await supabase.patch(
                 "/users",
@@ -22527,12 +22503,9 @@ async def claim_grind_reward_endpoint(
             )
 
             result['new_coins'] = final_coins
-            result['reward_claimed'] = round(float(result.get('reward_claimed', 0)) + extra_bonus, 4)
+            result['reward_claimed'] = round(float(result.get('reward_claimed', 0)) + twitch_bonus, 4)
 
-        # Отдаем оба ключа, чтобы фронт 100% подхватил число
-        result['referrals_count'] = referrals_count
-        result['active_referrals_count'] = referrals_count
-
+        # 3. Логируем реальную выданную сумму в историю
         total_claimed = float(result.get('reward_claimed', 0))
         await log_user_event(
             supabase=supabase,
