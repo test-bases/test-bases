@@ -25592,8 +25592,11 @@ def calculate_daily_reward(total_amount, total_days, current_day):
 
 
 # ==========================================================
-#        FASTAPI ENDPOINTS (API ДЛЯ ФРОНТЕНДА)
+#         FASTAPI ENDPOINTS (API ДЛЯ ФРОНТЕНДА)
 # ==========================================================
+
+# Кэш картинок кейсов в оперативной памяти (чтобы не парсить тяжелый shop_cache каждый раз)
+_CASE_IMAGE_CACHE = {}
 
 @app.post("/api/v1/telegram/claim_daily")
 async def claim_daily_task(
@@ -25610,25 +25613,23 @@ async def claim_daily_task(
 
         task_key = data.get("task_key")
         
-        # === 2. ПОЛУЧАЕМ ЗАДАНИЕ ===
-        task_resp = await supabase.get(
+        # === 2 + 3. ПОЛУЧАЕМ ЗАДАНИЕ И ПРОГРЕСС (ПАРАЛЛЕЛЬНО ДЛЯ СКОРОСТИ) ===
+        t_task = supabase.get(
             "/telegram_tasks", 
             params={"task_key": f"eq.{task_key}", "select": "*", "limit": 1}
         )
-        task_data = task_resp.json()
-        
-        if not task_data:
-             return JSONResponse({"success": False, "error": "Задание не найдено"})
-        
-        task = task_data[0]
-
-        # === 3. ПОЛУЧАЕМ ПРОГРЕСС ===
-        progress_resp = await supabase.get(
+        p_task = supabase.get(
             "/user_telegram_progress", 
             params={"user_id": f"eq.{user_id}", "task_key": f"eq.{task_key}", "select": "*"}
         )
-        progress_list = progress_resp.json()
+        task_resp, progress_resp = await asyncio.gather(t_task, p_task)
 
+        task_data = task_resp.json()
+        if not task_data:
+             return JSONResponse({"success": False, "error": "Задание не найдено"})
+        task = task_data[0]
+
+        progress_list = progress_resp.json()
         if progress_list:
             progress = progress_list[0]
         else:
@@ -25723,6 +25724,9 @@ async def claim_daily_task(
                 current_day_val = 1 
                 is_golden_claim = False 
 
+        # Список параллельных задач на запись в базу
+        save_db_tasks = []
+
         # 🔥 ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
         if is_golden_claim and not streak_reset:
             reward_choice = data.get("reward_choice", "case")  # "case" или "coins"
@@ -25752,30 +25756,35 @@ async def claim_daily_task(
                     "activated_by_ids": [str(user_id)],
                     "campaign_id": 777
                 }
-                await supabase.post("/cs_codes", json=coupon_data)
+                save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
 
-                # Достаем картинку кейса из shop_cache
-                try:
-                    sc_resp = await supabase.get("/shop_cache", params={"select": "data"})
-                    if sc_resp.status_code == 200:
-                        for row in sc_resp.json():
-                            raw_data = row.get("data")
-                            items = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data or [])
-                            for item in items:
-                                if item.get("name") == target_case or "TELEGRAM" in item.get("name", ""):
-                                    case_image_url = item.get("image_url")
+                # Достаем картинку кейса (с мгновенным in-memory кэшем)
+                if target_case in _CASE_IMAGE_CACHE:
+                    case_image_url = _CASE_IMAGE_CACHE[target_case]
+                else:
+                    try:
+                        sc_resp = await supabase.get("/shop_cache", params={"select": "data"})
+                        if sc_resp.status_code == 200:
+                            for row in sc_resp.json():
+                                raw_data = row.get("data")
+                                items = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data or [])
+                                for item in items:
+                                    if item.get("name") == target_case or "TELEGRAM" in item.get("name", ""):
+                                        case_image_url = item.get("image_url")
+                                        _CASE_IMAGE_CACHE[target_case] = case_image_url
+                                        break
+                                if case_image_url:
                                     break
-                            if case_image_url:
-                                break
-                except Exception as e:
-                    logger.error(f"Ошибка получения картинки кейса: {e}")
+                    except Exception as e:
+                        logger.error(f"Ошибка получения картинки кейса: {e}")
 
-                if not case_image_url:
-                    case_image_url = "https://storage.bot-t.com/bot/233790/photos/tgkeys.png"
+                    if not case_image_url:
+                        case_image_url = "https://storage.bot-t.com/bot/233790/photos/tgkeys.png"
+                        _CASE_IMAGE_CACHE[target_case] = case_image_url
 
                 reward = 0 
                 secret_code = None 
-                custom_message = "Успешная серия! Вам выдан бесплатный Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
+                custom_message = "Вам выдан Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
                 next_day = 1
 
         # 🔥 ОБЫЧНЫЙ ДЕНЬ (1-6)
@@ -25787,14 +25796,14 @@ async def claim_daily_task(
         
         is_done = False if task.get("is_daily") else True 
 
-        # 7. Обновляем баланс (начисляем гринд-монеты)
-        user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "coins"})
-        user_rows = user_resp.json()
-        current_coins = float(user_rows[0].get("coins", 0) if user_rows else 0)
-        new_coins = round(current_coins + float(reward), 4)
-
-        if reward > 0:
-            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins})
+        # 7. Обновляем баланс (начисляем гринд-монеты только если reward > 0)
+        new_coins = None
+        if float(reward) > 0:
+            user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "coins"})
+            user_rows = user_resp.json()
+            current_coins = float(user_rows[0].get("coins", 0) if user_rows else 0)
+            new_coins = round(current_coins + float(reward), 4)
+            save_db_tasks.append(supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins}))
 
         # 8. Обновляем прогресс
         update_data = {
@@ -25802,22 +25811,26 @@ async def claim_daily_task(
             "last_claimed_at": datetime.now(timezone.utc).isoformat(),
             "completed": is_done
         }
-        await supabase.patch(
+        save_db_tasks.append(supabase.patch(
             "/user_telegram_progress", 
             params={"user_id": f"eq.{user_id}", "task_key": f"eq.{task_key}"},
             json=update_data
-        )
+        ))
 
-        # 🔥 ПИШЕМ СОБЫТИЕ В ИСТОРИЮ 🔥
+        # 🔥 ПИШЕМ СОБЫТИЕ В ИСТОРИЮ (ДОБАВЛЯЕМ В ПАРАЛЛЕЛЬНУЮ ПАЧКУ) 🔥
         event_title = "Серия заданий (Суперприз)" if secret_code or custom_message else f"Задание TG (День {next_day})"
-        await log_user_event(
+        save_db_tasks.append(log_user_event(
             supabase=supabase,
             user_id=user_id,
             event_type="trial",
             title=event_title,
             description="Награда за активность в Telegram.",
             coins_reward=reward if not (secret_code or custom_message) else 0
-        )
+        ))
+
+        # ⚡ ПАРАЛЛЕЛЬНО ВЫПОЛНЯЕМ ВСЕ ОПЕРАЦИИ ЗАПИСИ ЗА 1 РАУНДТРИП
+        if save_db_tasks:
+            await asyncio.gather(*save_db_tasks)
 
         return JSONResponse({
             "success": True, 
