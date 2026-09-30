@@ -8600,15 +8600,30 @@ class GrindSkinBuyRequest(BaseModel):
     initData: str
     skin_id: int
 
+from fastapi import Response
+
 # =====================================================================
 # 1. ПОЛУЧИТЬ СПИСОК СКИНОВ В МАГАЗИНЕ ГРИНДА (С IN-MEMORY КЭШЕМ)
 # =====================================================================
 _GRIND_SKINS_CACHE = {"data": [], "expires_at": 0}
 
+def invalidate_grind_skins_cache():
+    """Мгновенно сбрасывает кэш в оперативной памяти сервера"""
+    _GRIND_SKINS_CACHE["data"] = []
+    _GRIND_SKINS_CACHE["expires_at"] = 0
+
 @app.get("/api/v1/user/grind/shop/skins")
-async def get_grind_shop_skins(supabase: httpx.AsyncClient = Depends(get_supabase_client)):
+async def get_grind_shop_skins(
+    response: Response,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # Запрещаем CDN Vercel и Telegram кэшировать ответ на уровне браузера
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
     now = time.time()
-    # Отдаем за 1 мс из памяти сервера, если кэш свежий
+    # Отдаем из памяти, только если кэш еще валиден
     if _GRIND_SKINS_CACHE["data"] and now < _GRIND_SKINS_CACHE["expires_at"]:
         return _GRIND_SKINS_CACHE["data"]
 
@@ -8625,11 +8640,103 @@ async def get_grind_shop_skins(supabase: httpx.AsyncClient = Depends(get_supabas
         
     data = resp.json()
     _GRIND_SKINS_CACHE["data"] = data
-    _GRIND_SKINS_CACHE["expires_at"] = now + 45  # кэш на 45 секунд
+    _GRIND_SKINS_CACHE["expires_at"] = now + 45  # кэш на 45 сек для обычных пользователей
     return data
 
+
 # =====================================================================
-# 2. АДМИНКА: ДОБАВИТЬ СКИН (СВЯЗКА: market_cache -> cs_items -> grind_shop_skins)
+# 2. ПОКУПКА СКИНА (ОТПРАВЛЯЕТ В ПРОФИЛЬ В CS_HISTORY)
+# =====================================================================
+@app.post("/api/v1/user/grind/buy_skin")
+async def user_buy_grind_skin(
+    req: GrindSkinBuyRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user_id = user_info["id"]
+
+    # 1. Параллельно за 1 шаг получаем пользователя и скин
+    u_res, s_res = await asyncio.gather(
+        supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "telegram_id,coins,trade_link,full_name,username", "limit": 1}),
+        supabase.get("/grind_shop_skins", params={"id": f"eq.{req.skin_id}", "select": "*"})
+    )
+    
+    if u_res.status_code != 200:
+        raise HTTPException(status_code=500, detail="Ошибка базы данных при поиске пользователя")
+
+    u_data = u_res.json()
+    if not isinstance(u_data, list) or len(u_data) == 0:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    user_row = u_data[0]
+
+    if s_res.status_code != 200 or not s_res.json():
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    skin = s_res.json()[0]
+
+    if not skin.get("is_active") or skin.get("quantity", 0) <= 0:
+        raise HTTPException(status_code=400, detail="Скин уже разобрали!")
+
+    cost = float(skin["cost_coins"])
+    current_coins = float(user_row.get("coins") or 0.0)
+
+    if current_coins < cost:
+        raise HTTPException(status_code=400, detail="Недостаточно гринд-монет для покупки!")
+
+    new_coins = round(current_coins - cost, 2)
+    new_qty = skin["quantity"] - 1
+    trade_link = user_row.get("trade_link")
+
+    # Префикс "Выигрыш:" гарантирует 100% отображение имени скина в profile.html
+    history_payload = {
+        "user_id": user_id,
+        "item_id": skin.get("cs_item_id"),
+        "case_name": f"Магазин: {skin['skin_name']}",
+        "status": "pending",
+        "source": "grind_shop",
+        "details": f"Выигрыш: {skin['skin_name']} || Трейд: {trade_link or 'Не указан'}"
+    }
+
+    # 2. Параллельно записываем списание, обновление товара и инвентарь
+    patch_u, patch_s, post_h = await asyncio.gather(
+        supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": str(new_coins)}),
+        supabase.patch("/grind_shop_skins", params={"id": f"eq.{req.skin_id}"}, json={"quantity": new_qty, "is_active": new_qty > 0}),
+        supabase.post("/cs_history", json=history_payload)
+    )
+
+    # Проверяем, что все 3 записи в базе прошли успешно
+    if patch_u.status_code >= 400 or patch_s.status_code >= 400 or post_h.status_code >= 400:
+        logging.error(f"[BUY_SKIN] Ошибка сохранения: u={patch_u.status_code}, s={patch_s.status_code}, h={post_h.status_code}")
+        raise HTTPException(status_code=500, detail="Ошибка базы данных при оформлении покупки")
+
+    # Мгновенно сбрасываем кэш витрины
+    invalidate_grind_skins_cache()
+
+    # 3. Уведомление администратору уходит в фоне
+    if ADMIN_NOTIFY_CHAT_ID:
+        u_name = user_row.get("full_name") or user_row.get("username") or str(user_id)
+        admin_text = (
+            f"🎁 <b>Покупка скина в магазине Гринда!</b>\n\n"
+            f"<b>Пользователь:</b> {html_decoration.quote(u_name)} (ID: <code>{user_id}</code>)\n"
+            f"<b>Скин:</b> {skin['skin_name']}\n"
+            f"<b>Списано:</b> {cost} гринд-монет\n"
+            f"<b>Тип:</b> <code>raffle</code> (отправлен в профиль)\n"
+            f"<b>Трейд-ссылка:</b> {trade_link or '⚠️️ НЕ ПРИВЯЗАНА'}\n"
+            f"<b>Остаток:</b> {new_qty} шт."
+        )
+        asyncio.create_task(safe_send_message(ADMIN_NOTIFY_CHAT_ID, admin_text))
+
+    return {
+        "success": True,
+        "message": f"Скин «{skin['skin_name']}» куплен и добавлен в ваш профиль!",
+        "new_coins": new_coins
+    }
+
+
+# =====================================================================
+# 3. АДМИНКА: ДОБАВИТЬ СКИН НА ВИТРИНУ
 # =====================================================================
 @app.post("/api/v1/admin/grind/shop/skin/add")
 async def admin_add_grind_shop_skin(
@@ -8643,7 +8750,7 @@ async def admin_add_grind_shop_skin(
 
     skin_name = req.skin_name.strip()
 
-    # 2. ИЩЕМ СКИН В market_cache
+    # 2. Ищем скин в market_cache
     mc_resp = await supabase.get(
         "/market_cache",
         params={
@@ -8665,7 +8772,7 @@ async def admin_add_grind_shop_skin(
     price_rub = float(market_item.get("price_rub") or 0.0)
     rarity = market_item.get("rarity") or "blue"
 
-    # 3. ПРОВЕРЯЕМ / СОЗДАЕМ СКИН В cs_items
+    # 3. Проверяем / создаем скин в cs_items
     cs_resp = await supabase.get(
         "/cs_items",
         params={"name": f"eq.{exact_name}", "select": "id, image_url"}
@@ -8674,13 +8781,10 @@ async def admin_add_grind_shop_skin(
 
     cs_item_id = None
     if cs_data and len(cs_data) > 0:
-        # Скин уже есть в cs_items — берем его id
         cs_item_id = cs_data[0]["id"]
-        # Если в cs_items почему-то не было картинки — дописываем из market_cache
         if not cs_data[0].get("image_url") and image_url:
             await supabase.patch("/cs_items", params={"id": f"eq.{cs_item_id}"}, json={"image_url": image_url})
     else:
-        # Создаем новую уникальную запись в cs_items
         new_item_payload = {
             "name": exact_name,
             "price_rub": price_rub,
@@ -8698,7 +8802,7 @@ async def admin_add_grind_shop_skin(
         else:
             logging.warning(f"Не удалось создать cs_items: {create_res.text}")
 
-    # 4. СОХРАНЯЕМ В ВИТРИНУ МАГАЗИНА (grind_shop_skins)
+    # 4. Сохраняем на витрину (grind_shop_skins)
     shop_payload = {
         "skin_name": exact_name,
         "cost_coins": float(req.cost_coins),
@@ -8707,25 +8811,24 @@ async def admin_add_grind_shop_skin(
         "rarity": rarity,
         "cs_item_id": cs_item_id,
         "is_active": True,
-        "reward_type": "raffle" # 🔥 Фиксируем тип выдачи
+        "reward_type": "raffle"
     }
 
-    # Если уже есть на витрине — обновляем остаток и цену, иначе создаем
     check_shop = await supabase.get("/grind_shop_skins", params={"skin_name": f"eq.{exact_name}", "select": "id"})
     
-    # Сбрасываем кэш витрины
-    _GRIND_SKINS_CACHE["expires_at"] = 0
-
     if check_shop.json():
         target_id = check_shop.json()[0]["id"]
         await supabase.patch("/grind_shop_skins", params={"id": f"eq.{target_id}"}, json=shop_payload)
+        invalidate_grind_skins_cache()
         return {"message": f"Скин «{exact_name}» обновлен на витрине", "image_url": image_url}
     else:
         await supabase.post("/grind_shop_skins", json=shop_payload)
+        invalidate_grind_skins_cache()
         return {"message": f"Скин «{exact_name}» добавлен в магазин", "image_url": image_url}
 
+
 # =====================================================================
-# 2.1 АДМИНКА: РЕДАКТИРОВАТЬ СКИН НА ВИТРИНЕ
+# 4. АДМИНКА: РЕДАКТИРОВАТЬ СКИН НА ВИТРИНЕ
 # =====================================================================
 @app.post("/api/v1/admin/grind/shop/skin/update")
 async def admin_update_grind_shop_skin(
@@ -8770,12 +8873,13 @@ async def admin_update_grind_shop_skin(
         raise HTTPException(status_code=500, detail="Не удалось обновить скин в базе данных")
 
     # Сбрасываем кэш витрины
-    _GRIND_SKINS_CACHE["expires_at"] = 0
+    invalidate_grind_skins_cache()
 
     return {"success": True, "message": f"Скин «{skin_name}» успешно обновлен"}
 
+
 # =====================================================================
-# 2.2 АДМИНКА: УДАЛИТЬ СКИН С ВИТРИНЫ
+# 5. АДМИНКА: УДАЛИТЬ СКИН С ВИТРИНЫ
 # =====================================================================
 @app.post("/api/v1/admin/grind/shop/skin/delete")
 async def admin_delete_grind_shop_skin(
@@ -8804,7 +8908,7 @@ async def admin_delete_grind_shop_skin(
         params={"id": f"eq.{req.skin_id}"}
     )
 
-    # Если скин уже участвовал в операциях и есть внешний ключ — мягко скрываем
+    # Если скин уже есть в истории и держится внешним ключом — мягко деактивируем
     if del_resp.status_code >= 400:
         await supabase.patch(
             "/grind_shop_skins",
@@ -8813,7 +8917,7 @@ async def admin_delete_grind_shop_skin(
         )
     
     # Сбрасываем кэш витрины
-    _GRIND_SKINS_CACHE["expires_at"] = 0
+    invalidate_grind_skins_cache()
 
     return {"success": True, "message": f"Скин «{skin_name}» удален из магазина"}
 
@@ -8878,90 +8982,6 @@ async def search_market_cache(
         return []
         
     return resp.json()
-
-# =====================================================================
-# ПОКУПКА СКИНА (ОТПРАВЛЯЕТ В ПРОФИЛЬ В CS_HISTORY)
-# =====================================================================
-@app.post("/api/v1/user/grind/buy_skin")
-async def user_buy_grind_skin(
-    req: GrindSkinBuyRequest,
-    supabase: httpx.AsyncClient = Depends(get_supabase_client)
-):
-    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
-    if not user_info or "id" not in user_info:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    user_id = user_info["id"]
-
-    # 1. Параллельно за 1 шаг получаем пользователя и скин
-    u_res, s_res = await asyncio.gather(
-        supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "telegram_id,coins,trade_link,full_name,username", "limit": 1}),
-        supabase.get("/grind_shop_skins", params={"id": f"eq.{req.skin_id}", "select": "*"})
-    )
-    
-    if u_res.status_code != 200:
-        raise HTTPException(status_code=500, detail="Ошибка базы данных при поиске пользователя")
-
-    u_data = u_res.json()
-    if not isinstance(u_data, list) or len(u_data) == 0:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-    user_row = u_data[0]
-
-    if s_res.status_code != 200 or not s_res.json():
-        raise HTTPException(status_code=404, detail="Товар не найден")
-    skin = s_res.json()[0]
-
-    if not skin.get("is_active") or skin.get("quantity", 0) <= 0:
-        raise HTTPException(status_code=400, detail="Скин уже разобрали!")
-
-    cost = float(skin["cost_coins"])
-    current_coins = float(user_row.get("coins") or 0.0)
-
-    if current_coins < cost:
-        raise HTTPException(status_code=400, detail="Недостаточно гринд-монет для покупки!")
-
-    new_coins = round(current_coins - cost, 2)
-    new_qty = skin["quantity"] - 1
-    trade_link = user_row.get("trade_link")
-
-    history_payload = {
-        "user_id": user_id,
-        "item_id": skin.get("cs_item_id"),
-        "case_name": f"Магазин: {skin['skin_name']}",
-        "status": "pending",
-        "source": "grind_shop",
-        "details": f"Тип: raffle | Скин: {skin['skin_name']} | Трейд: {trade_link or 'Не указан'}"
-    }
-
-    # 2. Параллельно записываем списание, обновление товара и инвентарь (1 сетевой раундтрип вместо 3)
-    await asyncio.gather(
-        supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": str(new_coins)}),
-        supabase.patch("/grind_shop_skins", params={"id": f"eq.{req.skin_id}"}, json={"quantity": new_qty, "is_active": new_qty > 0}),
-        supabase.post("/cs_history", json=history_payload)
-    )
-
-    # Сбрасываем кэш витрины, чтобы остальные сразу увидели актуальный остаток
-    _GRIND_SKINS_CACHE["expires_at"] = 0
-
-    # 3. Уведомление администратору уходит в фоне — клиент НЕ ждёт Telegram API!
-    if ADMIN_NOTIFY_CHAT_ID:
-        u_name = user_row.get("full_name") or user_row.get("username") or str(user_id)
-        admin_text = (
-            f"🎁 <b>Покупка скина в магазине Гринда!</b>\n\n"
-            f"<b>Пользователь:</b> {html_decoration.quote(u_name)} (ID: <code>{user_id}</code>)\n"
-            f"<b>Скин:</b> {skin['skin_name']}\n"
-            f"<b>Списано:</b> {cost} гринд-монет\n"
-            f"<b>Тип:</b> <code>raffle</code> (отправлен в профиль)\n"
-            f"<b>Трейд-ссылка:</b> {trade_link or '⚠️ НЕ ПРИВЯЗАНА'}\n"
-            f"<b>Остаток:</b> {new_qty} шт."
-        )
-        asyncio.create_task(safe_send_message(ADMIN_NOTIFY_CHAT_ID, admin_text))
-
-    return {
-        "success": True,
-        "message": f"Скин «{skin['skin_name']}» куплен и добавлен в ваш профиль!",
-        "new_coins": new_coins
-    }
 
 # 1. Эндпоинт для ПОДТВЕРЖДЕНИЯ отправки скина (Админ нажал "Одобрить")
 @app.post("/api/v1/admin/cs_history/complete")
