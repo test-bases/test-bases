@@ -7564,6 +7564,38 @@ async def get_case_contents(
         logging.error(f"[SHOP] Error getting relational contents: {e}")
         raise HTTPException(status_code=500, detail="Ошибка загрузки содержимого")
         
+Отличный бэкенд, вся база уже готова! Причина обеих проблем видна как на ладони.
+
+Давай разберём и исправим обе задачи по порядку: сначала докрутку скролла в гиде, затем полную синхронизацию голосования (tg_vote) с автоматической выдачей и сгоранием через 30 дней.
+
+Задача 1. Скролл на 2 шаге гида
+В чём была причина
+В функции renderCurrentTourStep() на втором шаге целевая позиция рассчитывалась как:
+tasksListEl.offsetTop - 14.
+Это координата начала блока #tg-tasks-list. Так как снизу экран поджимает карточка обучения (height: calc(100vh - 275px)), скролл останавливался ровно на заголовке списка заданий, и на экран помещались только первые 1–2 карточки.
+
+Решение
+В твоём HTML/JS внутри renderCurrentTourStep() найди блок if (currentTourStep === 1) и замени его на прокрутку до самого низа контейнера:
+
+JavaScript
+// 2-й шаг: плавный спуск до самого конца списка заданий
+if (currentTourStep === 1) {
+    const targetY = scrollArea.scrollHeight;
+    smoothScrollTour(scrollArea, targetY, 750);
+    return;
+}
+Задача 2. Логика голосования (tg_vote), автовыдача и сгорание за 30 дней
+Почему голос не выдавал награду как ник и био:
+В visibilitychange на фронтенде отслеживались только surname и bio. Когда человек нажимал «Проголосовать», переходил в Telegram, отдавал буст и возвращался — скрипт вообще не отправлял запрос на проверку.
+
+В бэкенде tg_vote помечался completed = True и is_done = True, из-за чего после первого же раза улетал в архивный спойлер «Выполненные», вместо того чтобы жить циклично с таймером, как ник и био.
+
+Не было проверки даты отданного голоса (b.add_date): если голос был отдан более 30 дней назад, награда не сгорала, а продолжала висеть.
+
+Шаг 1. Обновление Бэкенда (Python / FastAPI)
+Вставь обновлённые обработчики claim_daily_task и get_telegram_tasks. Здесь добавлена проверка времени жизни буста (add_date), сгорание через 30 дней, запрет повторного использования старого буста и циклический статус задания:
+
+Python
 @app.get("/api/v1/telegram/tasks")
 async def get_telegram_tasks(
     request: Request,
@@ -7571,20 +7603,16 @@ async def get_telegram_tasks(
     supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
     try:
-        # 1. Берем ВСЕ активные задания из таблицы telegram_tasks
         tasks_resp = await supabase.get(
             "/telegram_tasks", 
             params={"is_active": "eq.true", "select": "*", "order": "sort_order.asc"}
         )
         tasks = tasks_resp.json()
 
-        # 2. Берем прогресс пользователя по этим заданиям
-        # !!! ВАЖНО: Добавил last_claimed_at в select, чтобы работал таймер !!!
         progress_resp = await supabase.get(
             "/user_telegram_progress",
             params={"user_id": f"eq.{user_id}", "select": "task_key, completed, current_day, last_claimed_at"}
         )
-        # Превращаем прогресс в удобный словарь
         user_progress = {item["task_key"]: item for item in progress_resp.json()}
 
         result_list = []
@@ -7597,36 +7625,28 @@ async def get_telegram_tasks(
             current_day = prog.get("current_day", 0)
             last_claimed = prog.get("last_claimed_at")
             
-            # 🔥 Если это tg_vote и прошло 30+ дней — задание СНОВА АКТИВНО (is_completed = False)
-            if t_key == "tg_vote" and last_claimed:
-                try:
-                    last_dt = parser.isoparse(last_claimed)
-                    if now_dt - last_dt >= timedelta(days=30):
-                        is_completed = False
-                except Exception:
-                    pass
+            # 🔥 Для tg_vote: задание цикличное (как ник и био).
+            # Оно не должно падать в архив выполненных, а должно быть активно с таймером кулдауна.
+            if t_key == "tg_vote":
+                is_completed = False
 
             task_data = {
                 **task,
-                "is_completed": is_completed, # Флаг для фронтенда (серый цвет)
+                "is_completed": is_completed,
                 "current_day": current_day,
-                # !!! ВАЖНО: Передаем дату последнего клейма для таймера !!!
                 "last_claimed_at": last_claimed
             }
             result_list.append(task_data)
 
-        # 3. СОРТИРОВКА:
-        # Сначала те, где is_completed = False (0), потом True (1)
-        # Внутри групп сохраняем sort_order
-        result_list.sort(key=lambda x: x["sort_order"]) # Сначала по порядку админки
-        result_list.sort(key=lambda x: x["is_completed"]) # Потом выполненные ВНИЗ
+        # Сортировка: сначала активные по порядку sort_order, затем выполненные вниз
+        result_list.sort(key=lambda x: x["sort_order"])
+        result_list.sort(key=lambda x: x["is_completed"])
 
         return JSONResponse(result_list)
 
     except Exception as e:
-        print(f"Error fetching tasks: {e}")
+        logger.error(f"Error fetching tasks: {e}")
         return JSONResponse({"success": False, "error": str(e)})
-
 
 
 # --- 1. Публичный API: Получить список предметов (для прокрутки) ---
@@ -25656,12 +25676,15 @@ async def claim_daily_task(
         if task_key == "tg_vote":
             if last_claimed_str:
                 last_claim_dt = parser.isoparse(last_claimed_str)
+                if not last_claim_dt.tzinfo:
+                    last_claim_dt = last_claim_dt.replace(tzinfo=timezone.utc)
                 time_passed = now_dt - last_claim_dt
                 if time_passed < timedelta(days=30):
                     days_left = 30 - time_passed.days
+                    hours_left = int((timedelta(days=30) - time_passed).total_seconds() // 3600 % 24)
                     return JSONResponse({
                         "success": False, 
-                        "error": f"Голосовать можно раз в 30 дней. До следующей награды осталось дней: {days_left}"
+                        "error": f"Голосовать можно раз в 30 дней. До следующей награды осталось дней: {days_left} (и {hours_left} ч.)"
                     })
                 else:
                     progress["completed"] = False  # 30 дней прошло — разрешаем повторно забрать!
@@ -25673,6 +25696,8 @@ async def claim_daily_task(
 
         if task.get("is_daily") and last_claimed_str and not is_golden_claim:
             last_claim = parser.isoparse(last_claimed_str)
+            if not last_claim.tzinfo:
+                last_claim = last_claim.replace(tzinfo=timezone.utc)
             if now_dt - last_claim < timedelta(hours=20):
                 return JSONResponse({"success": False, "error": "Награда уже получена сегодня. Приходи завтра!"})
 
@@ -25694,12 +25719,56 @@ async def claim_daily_task(
             elif task_key == "tg_vote":
                 try:
                     user_boosts = await main_bot.get_user_chat_boosts(chat_id=TG_QUEST_CHANNEL_ID, user_id=user_id)
-                    if user_boosts.boosts:
-                        check_passed = True
-                    else:
-                        return JSONResponse({"success": False, "error": "Голос не найден!"})
-                except Exception:
-                     return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
+                    if not user_boosts.boosts:
+                        return JSONResponse({"success": False, "error": "Голос не найден! Проголосуйте за канал."})
+
+                    # 🔥 ПРОВЕРКА НА СГОРАНИЕ (30 ДНЕЙ) И АКТУАЛЬНОСТЬ БУСТА
+                    valid_boost_found = False
+                    expired_boost_found = False
+                    
+                    last_claim_dt = None
+                    if last_claimed_str:
+                        last_claim_dt = parser.isoparse(last_claimed_str)
+                        if not last_claim_dt.tzinfo:
+                            last_claim_dt = last_claim_dt.replace(tzinfo=timezone.utc)
+
+                    for b in user_boosts.boosts:
+                        b_date = b.add_date
+                        if hasattr(b_date, "timestamp"):
+                            b_dt = b_date if b_date.tzinfo else b_date.replace(tzinfo=timezone.utc)
+                        elif isinstance(b_date, (int, float)):
+                            b_dt = datetime.fromtimestamp(float(b_date), tz=timezone.utc)
+                        else:
+                            b_dt = now_dt
+
+                        # Если буст был отдан до или в момент предыдущей выплаты — он уже был использован
+                        if last_claim_dt and b_dt <= last_claim_dt:
+                            continue
+
+                        # Если с момента отдачи голоса прошло более 30 дней — награда СГОРЕЛА
+                        if (now_dt - b_dt) > timedelta(days=30):
+                            expired_boost_found = True
+                            continue
+
+                        # Найден свежий активный голос в пределах 30 дней
+                        valid_boost_found = True
+                        break
+
+                    if not valid_boost_found:
+                        if expired_boost_found:
+                            return JSONResponse({
+                                "success": False,
+                                "error": "Награда за голос сгорела (прошло более 30 дней с момента голосования). Пожалуйста, отдайте голос заново!"
+                            })
+                        return JSONResponse({
+                            "success": False,
+                            "error": "Активный голос не найден или за него уже была получена награда!"
+                        })
+
+                    check_passed = True
+                except Exception as e:
+                    logger.error(f"Boost check error for {user_id}: {e}")
+                    return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
 
             else:
                 try:
@@ -25743,6 +25812,8 @@ async def claim_daily_task(
 
         if last_claimed_str and not is_golden_claim:
             last_claim_dt = parser.isoparse(last_claimed_str)
+            if not last_claim_dt.tzinfo:
+                last_claim_dt = last_claim_dt.replace(tzinfo=timezone.utc)
             delta = now_dt - last_claim_dt
             if delta.days >= 2:
                 next_day = 1 
@@ -25774,7 +25845,7 @@ async def claim_daily_task(
             }
             save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
             custom_message = "Голос учтён! Вам начислено +10.0 гринд-монет и выдан Кейс | Первооткрыватель!"
-            is_done = True
+            is_done = False  # 🔥 ВАЖНО: False, чтобы задание не исчезало в выполненные, а висело на кулдауне 30 дней как ник и био
             next_day = 1
 
         # 🔥 2. ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
@@ -25905,7 +25976,6 @@ async def claim_daily_task(
     except Exception as e:
         logger.error(f"Global Error in claim_daily: {e}")
         return JSONResponse({"success": False, "error": f"Ошибка сервера: {str(e)}"})
-
 @app.post("/api/v1/telegram/status")
 async def get_telegram_status(
     request: Request,
