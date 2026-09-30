@@ -984,35 +984,35 @@
             <button class="tour-close-btn" onclick="closeStreakCalcModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
-        <!-- Список только активных бонусов (без фонов и рамок) -->
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+        <!-- Список только активных бонусов (все названия белые, цифры в едином золотом цвете) -->
+        <div style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px;">
             
             <!-- Базовый стрик (активен всегда) -->
-            <div id="calc-row-streak" style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-color-muted);">
+            <div id="calc-row-streak" style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                 <span>Серия (День <span id="calc-modal-streak-day">1</span>/10):</span>
-                <span id="calc-modal-streak-val" style="color: var(--accent-neon); font-weight: 800;">+0.1</span>
+                <span id="calc-modal-streak-val" style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+0.1</span>
             </div>
 
             <!-- Рефералы (скрывается, если 0) -->
-            <div id="calc-row-refs" style="display: none; justify-content: space-between; font-size: 11px; color: var(--text-color-muted);">
+            <div id="calc-row-refs" style="display: none; justify-content: space-between; font-size: 11px; color: #ffffff;">
                 <span>Друзья (<span id="calc-modal-ref-count">0</span>):</span>
-                <span id="calc-modal-ref-val" style="color: #34c759; font-weight: 800;">+0.0</span>
+                <span id="calc-modal-ref-val" style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+0.0</span>
             </div>
 
             <!-- VIP (скрывается, если не активен) -->
-            <div id="calc-row-vip" style="display: none; justify-content: space-between; font-size: 11px; color: var(--text-color-muted);">
+            <div id="calc-row-vip" style="display: none; justify-content: space-between; font-size: 11px; color: #ffffff;">
                 <span>VIP Бонус:</span>
-                <span id="calc-modal-vip-val" style="color: var(--accent-neon); font-weight: 800;">+0.2</span>
+                <span id="calc-modal-vip-val" style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+0.2</span>
             </div>
 
             <!-- Twitch (скрывается, если нет статуса) -->
-            <div id="calc-row-twitch" style="display: none; justify-content: space-between; font-size: 11px; color: var(--text-color-muted);">
+            <div id="calc-row-twitch" style="display: none; justify-content: space-between; font-size: 11px; color: #ffffff;">
                 <span>Twitch (<span id="calc-modal-twitch-status">VIP</span>):</span>
-                <span id="calc-modal-twitch-val" style="color: #a970ff; font-weight: 800;">+0.5</span>
+                <span id="calc-modal-twitch-val" style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+0.5</span>
             </div>
         </div>
 
-        <!-- Итог: чистый текст без плашек и фигур -->
+        <!-- Итог -->
         <div style="margin-bottom: 18px; text-align: center;">
             <div style="font-size: 10px; color: var(--text-color-muted); text-transform: uppercase; font-weight: 700;">Итого сегодня:</div>
             <div style="font-size: 20px; font-weight: 900; color: #ff3b30; margin-top: 2px;">
@@ -1020,7 +1020,8 @@
             </div>
         </div>
 
-        <button class="premium-btn active-state" style="width: 100%; color: #fff;" onclick="closeStreakCalcModal()">ПОНЯТНО</button>
+        <!-- Кнопка 1в1 как «ЗАБРАТЬ БОНУС» -->
+        <button class="premium-btn active-state" onclick="closeStreakCalcModal()">ПОНЯТНО</button>
     </div>
 </div>
 
@@ -2115,11 +2116,11 @@ let currentShopTab = 'skins';
     const vipBonus = isVipActive() ? 0.2 : 0;
     const twitchBonus = isTwitchBoostActive() ? (grindSettings.twitch_status_boost_coins || 0.5) : 0;
 
-    // 1. Базовый стрик (виден всегда)
+    // 1. Базовый стрик
     document.getElementById('calc-modal-streak-day').textContent = streakDay;
     document.getElementById('calc-modal-streak-val').textContent = `+${baseReward.toFixed(1)}`;
 
-    // 2. Рефералы: показываем только если есть хотя бы 1 реферал
+    // 2. Рефералы
     const rowRefs = document.getElementById('calc-row-refs');
     if (rowRefs) {
         if (refBonus > 0) {
@@ -2131,7 +2132,7 @@ let currentShopTab = 'skins';
         }
     }
 
-    // 3. VIP: показываем только если действует 7-дневный бонус
+    // 3. VIP
     const rowVip = document.getElementById('calc-row-vip');
     if (rowVip) {
         if (vipBonus > 0) {
@@ -2142,7 +2143,7 @@ let currentShopTab = 'skins';
         }
     }
 
-    // 4. Twitch: показываем только если статус vip или subscriber
+    // 4. Twitch
     const rowTwitch = document.getElementById('calc-row-twitch');
     if (rowTwitch) {
         if (twitchBonus > 0) {
