@@ -25723,49 +25723,60 @@ async def claim_daily_task(
                 current_day_val = 1 
                 is_golden_claim = False 
 
-        # 🔥 ЗОЛОТАЯ КНОПКА (7 ДЕНЬ)
+        # 🔥 ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
         if is_golden_claim and not streak_reset:
-            target_case = "Кейс | TELEGRAM"
-            unique_code = f"DAY7-{user_id}-{uuid.uuid4().hex[:4].upper()}"
-            coupon_data = {
-                "code": unique_code,
-                "max_uses": 1,
-                "current_uses": 0,
-                "is_active": True,
-                "description": "Авто-код: Награда за 7 дней (Telegram Серия)",
-                "is_copied": False,
-                "assigned_to": user_id,
-                "assigned_at": datetime.now(timezone.utc).isoformat(),
-                "target_case_name": target_case, 
-                "used_by_ids": [],
-                "activated_by_ids": [str(user_id)],
-                "campaign_id": 777
-            }
-            await supabase.post("/cs_codes", json=coupon_data)
+            reward_choice = data.get("reward_choice", "case")  # "case" или "coins"
 
-            # 🔥 Достаем картинку кейса из shop_cache
-            try:
-                sc_resp = await supabase.get("/shop_cache", params={"select": "data"})
-                if sc_resp.status_code == 200:
-                    for row in sc_resp.json():
-                        raw_data = row.get("data")
-                        items = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data or [])
-                        for item in items:
-                            if item.get("name") == target_case or "TELEGRAM" in item.get("name", ""):
-                                case_image_url = item.get("image_url")
+            if reward_choice == "coins":
+                # Вариант 1: Игрок выбрал 10 монет
+                reward = 10.0
+                secret_code = None
+                case_image_url = None
+                custom_message = "Суперприз получен! Вам начислено +10.0 гринд-монет 🔥"
+                next_day = 1
+            else:
+                # Вариант 2: Игрок выбрал кейс
+                target_case = "Кейс | TELEGRAM"
+                unique_code = f"DAY7-{user_id}-{uuid.uuid4().hex[:4].upper()}"
+                coupon_data = {
+                    "code": unique_code,
+                    "max_uses": 1,
+                    "current_uses": 0,
+                    "is_active": True,
+                    "description": "Авто-код: Награда за 7 дней (Telegram Серия)",
+                    "is_copied": False,
+                    "assigned_to": user_id,
+                    "assigned_at": datetime.now(timezone.utc).isoformat(),
+                    "target_case_name": target_case, 
+                    "used_by_ids": [],
+                    "activated_by_ids": [str(user_id)],
+                    "campaign_id": 777
+                }
+                await supabase.post("/cs_codes", json=coupon_data)
+
+                # Достаем картинку кейса из shop_cache
+                try:
+                    sc_resp = await supabase.get("/shop_cache", params={"select": "data"})
+                    if sc_resp.status_code == 200:
+                        for row in sc_resp.json():
+                            raw_data = row.get("data")
+                            items = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data or [])
+                            for item in items:
+                                if item.get("name") == target_case or "TELEGRAM" in item.get("name", ""):
+                                    case_image_url = item.get("image_url")
+                                    break
+                            if case_image_url:
                                 break
-                        if case_image_url:
-                            break
-            except Exception as e:
-                logger.error(f"Ошибка получения картинки кейса: {e}")
+                except Exception as e:
+                    logger.error(f"Ошибка получения картинки кейса: {e}")
 
-            if not case_image_url:
-                case_image_url = "https://storage.bot-t.com/bot/233790/photos/tgkeys.png"
+                if not case_image_url:
+                    case_image_url = "https://storage.bot-t.com/bot/233790/photos/tgkeys.png"
 
-            reward = 0 
-            secret_code = None 
-            custom_message = "Успешная серия! Вам выдан бесплатный Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
-            next_day = 1 
+                reward = 0 
+                secret_code = None 
+                custom_message = "Успешная серия! Вам выдан бесплатный Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
+                next_day = 1
 
         # 🔥 ОБЫЧНЫЙ ДЕНЬ (1-6)
         else:
