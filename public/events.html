@@ -866,28 +866,19 @@
           <div class="task-list-container" id="unified-tasks-container">
 
               <!-- 1. ЕЖЕДНЕВНЫЙ СТРИК -->
-              <div class="glass-card">
-                  <div class="task-header">
-                      <div class="task-icon" style="color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.5);"><i class="fa-solid fa-fire"></i></div>
-                      <div class="task-text">
-                          <div class="task-text">
-    <span class="task-title">Ежедневная серия</span>
-    <div class="task-desc" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
-        <span>День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-neon); font-weight:800;">+0.1</span></span>
-        <span onclick="openStreakCalcModal()" 
-              style="font-size: 8.5px; font-weight: 700; color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; transition: opacity 0.2s;"
-              onmouseenter="this.style.opacity='0.7'"
-              onmouseleave="this.style.opacity='1'">
-            (подробнее)
-        </span>
+<div class="glass-card">
+    <div class="task-header">
+        <div class="task-icon" style="color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.5);"><i class="fa-solid fa-fire"></i></div>
+        <div class="task-text">
+            <span class="task-title">Ежедневная серия</span>
+            <span class="task-desc">День <span id="current-streak-day">1</span>/10 • Награда: <span id="today-reward" style="color:var(--accent-neon); font-weight:800;">+0.1</span> <span onclick="openStreakCalcModal()" style="color: var(--accent-blue); cursor: pointer; text-decoration: underline; margin-left: 4px;">(подробнее)</span></span>
+            <div class="streak-steps-mini" id="streak-steps-mini"></div>
+        </div>
     </div>
-    <div class="streak-steps-mini" id="streak-steps-mini"></div>
+    <button id="grind-btn" class="premium-btn" disabled>
+        <i class="fa-solid fa-spinner fa-spin"></i> ЗАГРУЗКА
+    </button>
 </div>
-                  </div>
-                  <button id="grind-btn" class="premium-btn" disabled>
-                      <i class="fa-solid fa-spinner fa-spin"></i> ЗАГРУЗКА
-                  </button>
-              </div>
 
               <!-- 2. ТЕЛЕГРАМ ЗАДАНИЯ (АКТИВНЫЕ + СПОЙЛЕР) -->
               <div id="tg-tasks-list" style="display:flex; flex-direction:column; gap:10px;">
