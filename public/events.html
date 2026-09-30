@@ -1064,25 +1064,25 @@
     </div>
 </div>
 
-  <!-- === МОДАЛКА ПОДРОБНОСТЕЙ ТГ ЗАДАНИЯ === -->
+ <!-- === МОДАЛКА ПОДРОБНОСТЕЙ ТГ ЗАДАНИЯ === -->
 <div id="tg-task-info-modal" class="modal-overlay" onclick="if(event.target===this) closeTgTaskInfoModal()">
-    <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 325px; padding: 20px 18px; text-align: left; background: rgba(14, 14, 18, 0.96); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 22px;">
+    <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px 18px; text-align: left;">
         
         <!-- Шапка -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <i id="tg-info-icon" class="fa-solid fa-circle-info" style="color: var(--accent-neon); font-size: 16px;"></i>
+                <i id="tg-info-icon" class="fa-solid fa-circle-info" style="color: var(--accent-neon); font-size: 15px;"></i>
                 <h3 id="tg-info-title" style="margin: 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">О задании</h3>
             </div>
             <button class="tour-close-btn" onclick="closeTgTaskInfoModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
-        <!-- Динамический контент (заполняется в JS) -->
-        <div id="tg-info-content" style="display: flex; flex-direction: column; gap: 11px; margin-bottom: 18px;">
+        <!-- Чистые строки без рамок и фонов -->
+        <div id="tg-info-content" style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px;">
         </div>
 
-        <!-- Кнопка ПОНЯТНО -->
-        <button class="premium-btn active-state" style="width: 100%; height: 42px; font-size: 12px; font-weight: 800; border-radius: 12px;" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
+        <!-- Кнопка ПОНЯТНО (1в1 как в калькуляторе стрика) -->
+        <button class="premium-btn active-state" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
     </div>
 </div>
 
@@ -2228,7 +2228,6 @@ let currentShopTab = 'skins';
 
         if (titleEl) titleEl.textContent = task.title || 'О задании';
 
-        // Иконка
         if (iconEl) {
             if (taskKey === 'tg_surname') { iconEl.className = 'fa-solid fa-signature'; iconEl.style.color = '#0a84ff'; }
             else if (taskKey === 'tg_bio') { iconEl.className = 'fa-solid fa-link'; iconEl.style.color = '#34c759'; }
@@ -2236,67 +2235,57 @@ let currentShopTab = 'skins';
             else { iconEl.className = 'fa-brands fa-telegram'; iconEl.style.color = '#2AABEE'; }
         }
 
-        // Наполнение в зависимости от типа задания
+        // Чистые строки 1-в-1 как в расчёте гринда
         if (task.is_daily) {
-            // Ежедневные серии (Фамилия / Био)
             const currentDay = task.current_day || 0;
             const totalDays = task.total_days || 7;
-            const reqText = taskKey === 'tg_surname' ? 'ник бота <b>@HATElavka_bot</b> в фамилии' : 'реферальная ссылка в поле <b>«О себе» (Bio)</b>';
 
             contentEl.innerHTML = `
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Текущая серия:</span>
-                    <span style="color: var(--accent-neon); font-weight: 800;">День ${currentDay}/${totalDays}</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">День ${currentDay}/${totalDays}</span>
                 </div>
-
-                <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 7px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                        <span>Дни 1–6 (ежедневно):</span>
-                        <span style="color: #ff3b30; font-weight: 800;">+1.0 🔥 монет</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                        <span>День 7 (Суперприз):</span>
-                        <span style="color: var(--accent-neon); font-weight: 800;">Кейс | TG или +10 🔥</span>
-                    </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Дни 1–6 (награда):</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+1.0 🔥</span>
                 </div>
-
-                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="margin-bottom: 4px;">• <b>Таймаут:</b> награду можно забирать раз в 20 часов.</div>
-                    <div style="margin-bottom: 4px;">• <b>Сброс:</b> если пропустить более 48 часов, серия сбросится на День 1.</div>
-                    <div>• <b>Условие:</b> для проверки должен стоять ${reqText}.</div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>День 7 (Суперприз):</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">Кейс или +10 🔥</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Интервал сбора:</span>
+                    <span style="color: #ffffff; font-weight: 700;">Раз в 20 часов</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Сброс серии:</span>
+                    <span style="color: var(--danger-color); font-weight: 700;">Через 48 часов</span>
                 </div>
             `;
         } else if (taskKey === 'tg_vote') {
-            // Голосование (раз в 30 дней)
             contentEl.innerHTML = `
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                    <span>Награда за голос:</span>
-                    <span style="color: #ff3b30; font-weight: 800;">+${task.reward_amount || 3} 🔥 монет</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Награда:</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+${task.reward_amount || 3} 🔥</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Периодичность:</span>
-                    <span style="color: var(--accent-neon); font-weight: 800;">1 раз в 30 дней</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">Раз в 30 дней</span>
                 </div>
-                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="margin-bottom: 4px;">• Отдайте голос (Boost) за канал проекта по ссылке «Проголосовать».</div>
-                    <div style="margin-bottom: 4px;">• Награда начисляется моментально после нажатия кнопки.</div>
-                    <div>• Через 30 дней задание снова станет активным для повторного сбора.</div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Условие:</span>
+                    <span style="color: #ffffff; font-weight: 700;">Голос (Boost)</span>
                 </div>
             `;
         } else {
-            // Подписка на канал
             contentEl.innerHTML = `
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Награда:</span>
-                    <span style="color: #ff3b30; font-weight: 800;">+${task.reward_amount || 2} 🔥 монет</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+${task.reward_amount || 2} 🔥</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
-                    <span>Тип задания:</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                    <span>Тип:</span>
                     <span style="color: #34c759; font-weight: 800;">Разовое</span>
-                </div>
-                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="margin-bottom: 4px;">• Подпишитесь на официальный Telegram-канал проекта.</div>
-                    <div>• Нажмите кнопку «Забрать» для автоматической проверки ботом.</div>
                 </div>
             `;
         }
