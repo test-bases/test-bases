@@ -498,7 +498,7 @@
     }
     .task-text { display: flex; flex-direction: column; gap: 2px; flex-grow: 1;}
     .task-title { font-size: 11px; font-weight: 800; color: #fff; line-height: 1.1; }
-    .task-desc { font-size: 9px; color: var(--text-color-muted); line-height: 1.2; }
+    .task-desc { font-size: 10px; color: #d1d1d6; line-height: 1.3; font-weight: 500; }
     .task-link { font-size: 8px; color: var(--accent-blue); text-transform: uppercase; text-align: right; margin-bottom: 4px; cursor: pointer; font-weight: 800; }
 
     /* Стрик точки */
@@ -1025,23 +1025,72 @@
     </div>
 </div>
 
+  <!-- === МОДАЛКА ВЫБОРА СУПЕРПРИЗА === -->
+<div id="super-prize-modal" class="modal-overlay" onclick="if(event.target===this) closeSuperPrizeModal()">
+    <div class="bottom-sheet" style="max-width: 335px; background: rgba(20, 20, 24, 0.96); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 20px; padding: 22px 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.95); text-align: center;">
+        
+        <div style="font-size: 30px; margin-bottom: 6px;">🎁</div>
+        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">ТВОЙ СУПЕРПРИЗ!</h3>
+        <p style="font-size: 11px; color: #d1d1d6; margin: 0 0 16px 0; line-height: 1.4;">
+            Серия в 7 дней завершена! Выбери награду, которая тебе нужнее:
+        </p>
+
+        <!-- Сетка из 2 карточек на выбор -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px;">
+            
+            <!-- Вариант 1: Кейс -->
+            <div onclick="selectSuperPrizeReward('case')" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.2s ease;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">
+                <img src="https://storage.bot-t.com/bot/233790/photos/tgkeys.png" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.8));">
+                <div style="margin-top: 8px;">
+                    <div style="font-size: 11px; font-weight: 900; color: #fff; line-height: 1.2;">КЕЙС<br>TELEGRAM</div>
+                    <span style="font-size: 8px; color: var(--accent-neon); font-weight: 800; text-transform: uppercase; display: block; margin-top: 4px;">Бесплатно</span>
+                </div>
+            </div>
+
+            <!-- Вариант 2: 10 Монет -->
+            <div onclick="selectSuperPrizeReward('coins')" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease, border-color 0.2s ease;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">
+                <div style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-fire" style="font-size: 42px; color: #ff3b30; filter: drop-shadow(0 0 15px rgba(255,59,48,0.7));"></i>
+                </div>
+                <div style="margin-top: 8px;">
+                    <div style="font-size: 11px; font-weight: 900; color: #fff; line-height: 1.2;">+10.0<br>МОНЕТ</div>
+                    <span style="font-size: 8px; color: #34c759; font-weight: 800; text-transform: uppercase; display: block; margin-top: 4px;">На баланс</span>
+                </div>
+            </div>
+
+        </div>
+
+        <button class="premium-btn" style="background: rgba(255, 255, 255, 0.06); color: var(--text-color-muted); border: none; padding: 8px;" onclick="closeSuperPrizeModal()">ОТМЕНА</button>
+    </div>
+</div>
+
 <!-- === МОДАЛКА УСПЕХА === -->
-  <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
-      <div class="bottom-sheet" style="max-width: 335px;">
-          <div style="width: 50px; height: 50px; background: rgba(52,199,89,0.1); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #34c759; font-size: 24px; box-shadow: 0 0 15px rgba(52,199,89,0.2);"><i class="fa-solid fa-check"></i></div>
-          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; text-transform: uppercase;">Успешно</h3>
-          <!-- Высота увеличена с 95px до 175px с глубокой контрастной тенью -->
-          <img id="success-skin-img" src="" style="display: none; width: 100%; height: 175px; object-fit: contain; margin: 8px 0 16px 0; filter: drop-shadow(0 18px 36px rgba(0,0,0,1)); transform: scale(1.08);">
-          <p id="success-message" style="margin: 0 0 15px 0; font-size: 11px; color: var(--text-color-muted); line-height: 1.4;">Операция выполнена.</p>
+<div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
+    <div class="bottom-sheet" style="max-width: 335px; background: rgba(20, 20, 24, 0.96); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 22px 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.95);">
+        
+        <div style="width: 52px; height: 52px; background: rgba(52,199,89,0.15); border: 1px solid #34c759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #34c759; font-size: 26px; box-shadow: 0 0 20px rgba(52,199,89,0.3);">
+            <i class="fa-solid fa-gift" id="success-modal-icon"></i>
+        </div>
 
-          <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); border: 1px dashed var(--glass-border); padding: 10px; border-radius: 12px; margin-bottom: 15px;">
-              <span style="font-size: 9px; text-transform: uppercase; color: var(--text-color-muted);">Ваш код (нажмите):</span>
-              <span id="success-promo-code" style="font-size: 16px; font-weight: 800; color: var(--accent-neon); letter-spacing: 1px; cursor: pointer;" onclick="copyPromo(this)">CODE123</span>
-          </div>
+        <h3 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 900; text-transform: uppercase; color: #ffffff; letter-spacing: 0.5px;">НАГРАДА ПОЛУЧЕНА!</h3>
+        
+        <!-- Картинка кейса/скина с крупным отображением и мягким парением -->
+        <img id="success-skin-img" src="" style="display: none; width: 100%; height: 160px; object-fit: contain; margin: 10px 0 14px 0; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.95)); transform: scale(1.05);">
+        
+        <!-- Текст: чистый яркий белый цвет с хорошей контрастностью -->
+        <p id="success-message" style="margin: 0 0 16px 0; font-size: 13px; color: #ffffff; font-weight: 600; line-height: 1.45; text-shadow: 0 1px 5px rgba(0,0,0,0.9);">
+            Операция выполнена.
+        </p>
 
-          <button class="premium-btn active-state" style="width: 100%; color: #fff;" onclick="closeSuccessModal()">ОТЛИЧНО</button>
-      </div>
-  </div>
+        <!-- Блок промокода -->
+        <div id="success-promo-container" style="display: none; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(255, 215, 0, 0.4); padding: 12px; border-radius: 12px; margin-bottom: 16px;">
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #e5e5ea; letter-spacing: 0.5px;">Ваш промокод (нажмите, чтобы скопировать):</span>
+            <span id="success-promo-code" style="font-size: 18px; font-weight: 900; color: var(--accent-neon); letter-spacing: 1.5px; cursor: pointer; text-shadow: 0 0 12px rgba(255, 215, 0, 0.4); font-family: 'SF Mono', monospace;" onclick="copyPromo(this)">CODE123</span>
+        </div>
+
+        <button class="premium-btn active-state" style="width: 100%; height: 44px; font-size: 13px; font-weight: 800; border-radius: 12px;" onclick="closeSuccessModal()">ОТЛИЧНО</button>
+    </div>
+</div>
 
  <!-- ЕДИНОЕ ОКНО УПРАВЛЕНИЯ: ДОБАВЛЕНИЕ, РЕДАКТИРОВАНИЕ, УДАЛЕНИЕ -->
   <div id="admin-skin-modal" class="modal-overlay" onclick="if(event.target===this) closeAddSkinModal()">
@@ -2067,7 +2116,7 @@ let currentShopTab = 'skins';
                 </div>
             </div>
             ${linkHtml}
-            <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}')">${btnContent}</button>
+            <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
         `;
 
         if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !isFinalDay) {
@@ -2192,9 +2241,52 @@ window.closeStreakCalcModal = function() {
     if (modal) modal.classList.remove('visible');
 };
 
-    window.handleDailyClaim = async function(taskKey, actionUrl) {
+   // ==========================================
+    // 🎁 ВЫБОР И ПОЛУЧЕНИЕ НАГРАД (ВКЛЮЧАЯ СУПЕРПРИЗ)
+    // ==========================================
+    let pendingSuperPrize = null;
+
+    window.openSuperPrizeModal = function(taskKey, actionUrl) {
+        pendingSuperPrize = { taskKey, actionUrl };
+        const modal = document.getElementById('super-prize-modal');
+        if (modal) modal.classList.add('visible');
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+    };
+
+    window.closeSuperPrizeModal = function() {
+        pendingSuperPrize = null;
+        const modal = document.getElementById('super-prize-modal');
+        if (modal) modal.classList.remove('visible');
+    };
+
+    window.selectSuperPrizeReward = function(choice) {
+        if (!pendingSuperPrize) return;
+        const { taskKey, actionUrl } = pendingSuperPrize;
+        window.closeSuperPrizeModal();
+        executeDailyClaim(taskKey, actionUrl, choice);
+    };
+
+    window.handleDailyClaim = function(taskKey, actionUrl, isFinalDay = false) {
         const btn = document.getElementById(`btn-${taskKey}`);
-        if(!btn || btn.disabled) return;
+        if (!btn || btn.disabled) return;
+
+        // Авто-определение 7-го дня (по аргументу или по тексту кнопки «ЗАБРАТЬ ПРИЗ»)
+        const isFinal = Boolean(
+            isFinalDay || 
+            (btn && (btn.innerHTML.includes('fa-gift') || btn.innerText.includes('ЗАБРАТЬ ПРИЗ')))
+        );
+
+        if (isFinal) {
+            window.openSuperPrizeModal(taskKey, actionUrl);
+            return;
+        }
+
+        executeDailyClaim(taskKey, actionUrl, null);
+    };
+
+    async function executeDailyClaim(taskKey, actionUrl, rewardChoice = null) {
+        const btn = document.getElementById(`btn-${taskKey}`);
+        if (!btn || btn.disabled) return;
 
         const originalHtml = btn.innerHTML;
         const originalClass = btn.className;
@@ -2204,11 +2296,19 @@ window.closeStreakCalcModal = function() {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
         try {
-            const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', { user_id: tg.initDataUnsafe?.user?.id, task_key: taskKey }, 'POST');
+            const payload = { 
+                user_id: tg.initDataUnsafe?.user?.id, 
+                task_key: taskKey 
+            };
+            if (rewardChoice) {
+                payload.reward_choice = rewardChoice;
+            }
+
+            const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', payload, 'POST');
 
             if (data && data.success) {
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
                 // Начисляем гринд-монеты в стейт
                 const rewardVal = parseFloat(data.reward || 0);
                 if (data.new_coins !== undefined) {
@@ -2217,10 +2317,22 @@ window.closeStreakCalcModal = function() {
                     userState.coins += rewardVal;
                 }
 
+                // Фиксируем баланс в кэше
+                try {
+                    localStorage.setItem('cache_user_state', JSON.stringify({ ...userState, grind_settings: grindSettings }));
+                } catch (e) {}
+
                 updateUI();
-        const coinSuccess = pluralize(rewardVal, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
-        window.showSuccessModal(data.message || `Получено +${rewardVal} ${coinSuccess}!`);
-        loadTelegramTasks(); 
+
+                const coinSuccess = pluralize(rewardVal, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
+                const caseImg = data.image_url || null;
+
+                window.showSuccessModal(
+                    data.message || `Получено +${rewardVal} ${coinSuccess}!`,
+                    null,
+                    caseImg
+                );
+                loadTelegramTasks();
             } else {
                 handleTaskError(data, taskKey, actionUrl);
                 btn.disabled = false;
@@ -2232,7 +2344,7 @@ window.closeStreakCalcModal = function() {
             btn.className = originalClass;
             btn.innerHTML = originalHtml;
         }
-    };
+    }
 
     function handleTaskError(data, taskKey, actionUrl) {
         if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
@@ -2828,6 +2940,10 @@ window.showSuccessModal = function(message, promoCode = null, imgUrl = null, onC
 
     const msgEl = document.getElementById('success-message');
     if (msgEl) msgEl.textContent = message;
+
+    // Прячем круглую иконку сверху, если есть большая картинка кейса
+    const iconBox = document.getElementById('success-modal-icon')?.parentElement;
+    if (iconBox) iconBox.style.display = imgUrl ? 'none' : 'flex';
 
     const skinImgEl = document.getElementById('success-skin-img');
     if (skinImgEl) {
