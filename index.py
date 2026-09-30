@@ -25647,7 +25647,7 @@ async def claim_daily_task(
             if datetime.now(timezone.utc) - last_claim < timedelta(hours=20):
                 return JSONResponse({"success": False, "error": "Награда уже получена сегодня. Приходи завтра!"})
 
-       # === 5. ЛОГИКА ПРОВЕРКИ ===
+        # === 5. ЛОГИКА ПРОВЕРКИ ===
         check_passed = False
         main_bot = Bot(token=BOTT_BOT_TOKEN)
         
@@ -25710,6 +25710,7 @@ async def claim_daily_task(
         streak_reset = False 
         reward = task.get("reward_amount", 0)
         secret_code = None
+        case_image_url = None
         custom_message = None 
 
         if last_claimed_str and not is_golden_claim:
@@ -25724,6 +25725,7 @@ async def claim_daily_task(
 
         # 🔥 ЗОЛОТАЯ КНОПКА (7 ДЕНЬ)
         if is_golden_claim and not streak_reset:
+            target_case = "Кейс | TELEGRAM"
             unique_code = f"DAY7-{user_id}-{uuid.uuid4().hex[:4].upper()}"
             coupon_data = {
                 "code": unique_code,
@@ -25734,12 +25736,32 @@ async def claim_daily_task(
                 "is_copied": False,
                 "assigned_to": user_id,
                 "assigned_at": datetime.now(timezone.utc).isoformat(),
-                "target_case_name": "Кейс | TELEGRAM", 
+                "target_case_name": target_case, 
                 "used_by_ids": [],
                 "activated_by_ids": [str(user_id)],
                 "campaign_id": 777
             }
             await supabase.post("/cs_codes", json=coupon_data)
+
+            # 🔥 Достаем картинку кейса из shop_cache
+            try:
+                sc_resp = await supabase.get("/shop_cache", params={"select": "data"})
+                if sc_resp.status_code == 200:
+                    for row in sc_resp.json():
+                        raw_data = row.get("data")
+                        items = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data or [])
+                        for item in items:
+                            if item.get("name") == target_case or "TELEGRAM" in item.get("name", ""):
+                                case_image_url = item.get("image_url")
+                                break
+                        if case_image_url:
+                            break
+            except Exception as e:
+                logger.error(f"Ошибка получения картинки кейса: {e}")
+
+            if not case_image_url:
+                case_image_url = "https://storage.bot-t.com/bot/233790/photos/tgkeys.png"
+
             reward = 0 
             secret_code = None 
             custom_message = "Успешная серия! Вам выдан бесплатный Кейс | TELEGRAM. Он уже ждёт в разделе Кейсы!"
@@ -25754,13 +25776,14 @@ async def claim_daily_task(
         
         is_done = False if task.get("is_daily") else True 
 
-       # 7. Обновляем баланс (начисляем гринд-монеты)
+        # 7. Обновляем баланс (начисляем гринд-монеты)
         user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "coins"})
         user_rows = user_resp.json()
         current_coins = float(user_rows[0].get("coins", 0) if user_rows else 0)
         new_coins = round(current_coins + float(reward), 4)
 
-        await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins})
+        if reward > 0:
+            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins})
 
         # 8. Обновляем прогресс
         update_data = {
@@ -25794,13 +25817,13 @@ async def claim_daily_task(
             "new_coins": new_coins, 
             "streak_reset": streak_reset, 
             "secret_code": secret_code, 
+            "image_url": case_image_url,
             "message": custom_message if custom_message else (f"Секретный код получен!" if secret_code else f"Задание выполнено! +{reward} монет")
         })
 
     except Exception as e:
         logger.error(f"Global Error in claim_daily: {e}")
         return JSONResponse({"success": False, "error": f"Ошибка сервера: {str(e)}"})
-
 
 @app.post("/api/v1/telegram/status")
 async def get_telegram_status(
