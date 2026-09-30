@@ -1064,6 +1064,28 @@
     </div>
 </div>
 
+  <!-- === МОДАЛКА ПОДРОБНОСТЕЙ ТГ ЗАДАНИЯ === -->
+<div id="tg-task-info-modal" class="modal-overlay" onclick="if(event.target===this) closeTgTaskInfoModal()">
+    <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 325px; padding: 20px 18px; text-align: left; background: rgba(14, 14, 18, 0.96); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 22px;">
+        
+        <!-- Шапка -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i id="tg-info-icon" class="fa-solid fa-circle-info" style="color: var(--accent-neon); font-size: 16px;"></i>
+                <h3 id="tg-info-title" style="margin: 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">О задании</h3>
+            </div>
+            <button class="tour-close-btn" onclick="closeTgTaskInfoModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Динамический контент (заполняется в JS) -->
+        <div id="tg-info-content" style="display: flex; flex-direction: column; gap: 11px; margin-bottom: 18px;">
+        </div>
+
+        <!-- Кнопка ПОНЯТНО -->
+        <button class="premium-btn active-state" style="width: 100%; height: 42px; font-size: 12px; font-weight: 800; border-radius: 12px;" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
+    </div>
+</div>
+
 <!-- === МОДАЛКА УСПЕХА === -->
 <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
     <div class="bottom-sheet" style="max-width: 330px; width: 100%; background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 10px; text-align: center;">
@@ -2097,7 +2119,7 @@ let currentShopTab = 'skins';
             btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ${coinLabel}`;
         }
 
-        // 🔥 Кнопка-ссылка в аккуратном виде (для размещения в одну строчку)
+        // Кнопка перехода по ссылке (канал / голосование)
         let linkHtml = '';
         if (!task.is_completed && (task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
             const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
@@ -2118,9 +2140,12 @@ let currentShopTab = 'skins';
                 <div class="task-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}80;"><i class="${iconClass}"></i></div>
                 <div class="task-text" style="width: 100%;">
                     <span class="task-title">${task.title || 'Задание'}</span>
-                    <!-- Описание и кнопка в одной строке -->
+                    <!-- Описание + (подробнее) + кнопка ссылки в одной строке -->
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;">
-                        <span class="task-desc">${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}</span>
+                        <span class="task-desc">
+                            ${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span style="color:var(--text-color); font-weight:700;">$1</span>')}
+                            <span onclick="openTgTaskInfoModal('${task.task_key}')" style="color: var(--accent-blue); cursor: pointer; text-decoration: underline; margin-left: 4px; font-weight: 700; white-space: nowrap;">(подробнее)</span>
+                        </span>
                         ${linkHtml}
                     </div>
                     ${streakHtml}
@@ -2188,6 +2213,102 @@ let currentShopTab = 'skins';
 
         timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
     }
+
+    // ==========================================
+    // ℹ️ МОДАЛКА «ПОДРОБНЕЕ» ДЛЯ ТЕЛЕГРАМ ЗАДАНИЙ
+    // ==========================================
+    window.openTgTaskInfoModal = function(taskKey) {
+        const modal = document.getElementById('tg-task-info-modal');
+        if (!modal) return;
+
+        const task = (telegramTasksCache || []).find(t => t.task_key === taskKey) || { task_key: taskKey };
+        const titleEl = document.getElementById('tg-info-title');
+        const iconEl = document.getElementById('tg-info-icon');
+        const contentEl = document.getElementById('tg-info-content');
+
+        if (titleEl) titleEl.textContent = task.title || 'О задании';
+
+        // Иконка
+        if (iconEl) {
+            if (taskKey === 'tg_surname') { iconEl.className = 'fa-solid fa-signature'; iconEl.style.color = '#0a84ff'; }
+            else if (taskKey === 'tg_bio') { iconEl.className = 'fa-solid fa-link'; iconEl.style.color = '#34c759'; }
+            else if (taskKey === 'tg_vote') { iconEl.className = 'fa-solid fa-rocket'; iconEl.style.color = '#ff3b30'; }
+            else { iconEl.className = 'fa-brands fa-telegram'; iconEl.style.color = '#2AABEE'; }
+        }
+
+        // Наполнение в зависимости от типа задания
+        if (task.is_daily) {
+            // Ежедневные серии (Фамилия / Био)
+            const currentDay = task.current_day || 0;
+            const totalDays = task.total_days || 7;
+            const reqText = taskKey === 'tg_surname' ? 'ник бота <b>@HATElavka_bot</b> в фамилии' : 'реферальная ссылка в поле <b>«О себе» (Bio)</b>';
+
+            contentEl.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                    <span>Текущая серия:</span>
+                    <span style="color: var(--accent-neon); font-weight: 800;">День ${currentDay}/${totalDays}</span>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 7px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                        <span>Дни 1–6 (ежедневно):</span>
+                        <span style="color: #ff3b30; font-weight: 800;">+1.0 🔥 монет</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                        <span>День 7 (Суперприз):</span>
+                        <span style="color: var(--accent-neon); font-weight: 800;">Кейс | TG или +10 🔥</span>
+                    </div>
+                </div>
+
+                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="margin-bottom: 4px;">• <b>Таймаут:</b> награду можно забирать раз в 20 часов.</div>
+                    <div style="margin-bottom: 4px;">• <b>Сброс:</b> если пропустить более 48 часов, серия сбросится на День 1.</div>
+                    <div>• <b>Условие:</b> для проверки должен стоять ${reqText}.</div>
+                </div>
+            `;
+        } else if (taskKey === 'tg_vote') {
+            // Голосование (раз в 30 дней)
+            contentEl.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                    <span>Награда за голос:</span>
+                    <span style="color: #ff3b30; font-weight: 800;">+${task.reward_amount || 3} 🔥 монет</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                    <span>Периодичность:</span>
+                    <span style="color: var(--accent-neon); font-weight: 800;">1 раз в 30 дней</span>
+                </div>
+                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="margin-bottom: 4px;">• Отдайте голос (Boost) за канал проекта по ссылке «Проголосовать».</div>
+                    <div style="margin-bottom: 4px;">• Награда начисляется моментально после нажатия кнопки.</div>
+                    <div>• Через 30 дней задание снова станет активным для повторного сбора.</div>
+                </div>
+            `;
+        } else {
+            // Подписка на канал
+            contentEl.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                    <span>Награда:</span>
+                    <span style="color: #ff3b30; font-weight: 800;">+${task.reward_amount || 2} 🔥 монет</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #fff;">
+                    <span>Тип задания:</span>
+                    <span style="color: #34c759; font-weight: 800;">Разовое</span>
+                </div>
+                <div style="font-size: 10px; color: #b0b0b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="margin-bottom: 4px;">• Подпишитесь на официальный Telegram-канал проекта.</div>
+                    <div>• Нажмите кнопку «Забрать» для автоматической проверки ботом.</div>
+                </div>
+            `;
+        }
+
+        modal.classList.add('visible');
+        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    };
+
+    window.closeTgTaskInfoModal = function() {
+        const modal = document.getElementById('tg-task-info-modal');
+        if (modal) modal.classList.remove('visible');
+    };
 
     window.openStreakCalcModal = function() {
     const modal = document.getElementById('streak-calc-modal');
