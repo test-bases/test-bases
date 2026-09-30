@@ -2036,31 +2036,39 @@ let currentShopTab = 'skins';
     // 📋 TELEGRAM ЗАДАНИЯ (СПОЙЛЕР + ГРИНД-МОНЕТЫ)
     // ==========================================
     function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
-        const btn = document.getElementById(btnId);
-        if (!btn) return;
-        if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
 
-        const targetTime = new Date(lastClaimedIso).getTime() + (cooldownHours * 60 * 60 * 1000);
+    const targetTime = new Date(lastClaimedIso).getTime() + (cooldownHours * 60 * 60 * 1000);
 
-        const updateTimer = () => {
-            const diff = targetTime - Date.now();
-            if (diff <= 0) {
-                clearInterval(cooldownIntervalsMap[btnId]);
-                btn.disabled = false;
-                btn.className = btn.getAttribute('data-active-class') || 'premium-btn active-state';
-                btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
-                return;
-            }
-            const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+    const updateTimer = () => {
+        const diff = targetTime - Date.now();
+        if (diff <= 0) {
+            clearInterval(cooldownIntervalsMap[btnId]);
+            btn.disabled = false;
+            btn.className = btn.getAttribute('data-active-class') || 'premium-btn active-state';
+            btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
+            return;
+        }
+
+        const totalHours = Math.floor(diff / 3600000);
+        if (totalHours >= 24) {
+            const d = Math.floor(totalHours / 24);
+            const h = (totalHours % 24).toString().padStart(2, '0');
+            btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${d} ДН. ${h} Ч.`;
+        } else {
+            const h = totalHours.toString().padStart(2, '0');
             const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-
-            btn.disabled = true;
-            btn.className = 'premium-btn locked-state';
             btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}`;
-        };
-        updateTimer(); 
-        cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
-    }
+        }
+
+        btn.disabled = true;
+        btn.className = 'premium-btn locked-state';
+    };
+    updateTimer(); 
+    cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
+}
 
     async function loadTelegramTasks() {
         const container = document.getElementById('tg-tasks-list');
@@ -2123,7 +2131,10 @@ let currentShopTab = 'skins';
         let linkHtml = '';
         if (!task.is_completed && (task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
             const text = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-            linkHtml = `<span class="task-link" style="margin: 0; font-size: 9px; cursor: pointer; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; color: var(--accent-blue); font-weight: 800;" onclick="window.Telegram.WebApp.openTelegramLink('${task.action_url}')">${text} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
+            const clickAction = task.task_key === 'tg_vote'
+                ? `activeProfileCheck = 'vote'; window.Telegram.WebApp.openTelegramLink('${task.action_url}');`
+                : `window.Telegram.WebApp.openTelegramLink('${task.action_url}');`;
+            linkHtml = `<span class="task-link" style="margin: 0; font-size: 9px; cursor: pointer; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; color: var(--accent-blue); font-weight: 800;" onclick="${clickAction}">${text} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
         }
 
         let streakHtml = '';
@@ -2154,9 +2165,19 @@ let currentShopTab = 'skins';
             <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
         `;
 
-        if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !isFinalDay) {
-            if ((Date.now() - new Date(task.last_claimed_at).getTime()) < 20 * 60 * 60 * 1000) {
-                timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at });
+        // 🔥 КУЛДАУН: 30 дней для tg_vote (720 часов), 20 часов для ежедневных, ника и био
+        if (!task.is_completed && task.last_claimed_at && !isFinalDay) {
+            const timePassed = Date.now() - new Date(task.last_claimed_at).getTime();
+            if (task.task_key === 'tg_vote') {
+                const cooldown30DaysMs = 30 * 24 * 60 * 60 * 1000;
+                if (timePassed < cooldown30DaysMs) {
+                    timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 30 * 24 });
+                }
+            } else if (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') {
+                const cooldown20HoursMs = 20 * 60 * 60 * 1000;
+                if (timePassed < cooldown20HoursMs) {
+                    timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 20 });
+                }
             }
         }
         return el;
@@ -2211,7 +2232,95 @@ let currentShopTab = 'skins';
             container.appendChild(spoiler);
         }
 
-        timersToStart.forEach(data => startButtonCooldown(data.id, data.time));
+        // 🔥 Передаем hours (20 или 720) в функцию кулдауна
+        timersToStart.forEach(data => startButtonCooldown(data.id, data.time, data.hours || 20));
+    }
+
+    function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
+
+        const targetTime = new Date(lastClaimedIso).getTime() + (cooldownHours * 60 * 60 * 1000);
+
+        const updateTimer = () => {
+            const diff = targetTime - Date.now();
+            if (diff <= 0) {
+                clearInterval(cooldownIntervalsMap[btnId]);
+                btn.disabled = false;
+                btn.className = btn.getAttribute('data-active-class') || 'premium-btn active-state';
+                btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
+                return;
+            }
+
+            const totalHours = Math.floor(diff / 3600000);
+            if (totalHours >= 24) {
+                const d = Math.floor(totalHours / 24);
+                const h = (totalHours % 24).toString().padStart(2, '0');
+                btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${d} ДН. ${h} Ч.`;
+            } else {
+                const h = totalHours.toString().padStart(2, '0');
+                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}`;
+            }
+
+            btn.disabled = true;
+            btn.className = 'premium-btn locked-state';
+        };
+        updateTimer(); 
+        cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
+    }
+
+    function renderTasksDOM(tasks, container) {
+        container.innerHTML = '';
+        const timersToStart = [];
+
+        // Разделяем: активные вверху, выполненные — в спойлер
+        const activeTasks = tasks.filter(t => !t.is_completed);
+        const completedTasks = tasks.filter(t => t.is_completed);
+
+        // 1. Рендерим активные задачи
+        activeTasks.forEach(task => {
+            const isFinalDay = task.is_daily && task.current_day === task.total_days;
+            container.appendChild(createTaskCard(task, isFinalDay, timersToStart));
+        });
+
+        // 2. Выполненные задачи прячем под аккуратный спойлер
+        if (completedTasks.length > 0) {
+            const spoiler = document.createElement('div');
+            spoiler.className = 'completed-spoiler';
+
+            const header = document.createElement('div');
+            header.className = 'completed-spoiler-header';
+            header.innerHTML = `
+                <span><i class="fa-solid fa-circle-check" style="color:#34c759; margin-right:5px;"></i> Выполненные задания (${completedTasks.length})</span>
+                <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
+            `;
+            header.onclick = () => {
+                const isOpen = spoiler.classList.toggle('open');
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+
+                // 🔥 Если спойлер открылся — даем 100мс на отрисовку и плавно прокручиваем экран к нему
+                if (isOpen) {
+                    setTimeout(() => {
+                        spoiler.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 120);
+                }
+            };
+
+            const content = document.createElement('div');
+            content.className = 'completed-spoiler-content';
+
+            completedTasks.forEach(task => {
+                content.appendChild(createTaskCard(task, false, timersToStart));
+            });
+
+            spoiler.appendChild(header);
+            spoiler.appendChild(content);
+            container.appendChild(spoiler);
+        }
+
+        timersToStart.forEach(data => startButtonCooldown(data.id, data.time, data.hours || 20));;
     }
 
     // ==========================================
@@ -3167,46 +3276,75 @@ window.closeSuccessModal = function() {
     }
 
     function injectBoostPopup(url) {
-        const root = document.getElementById('profile-popup-root');
-        root.innerHTML = `
-            <div id="actionPopup" class="modal-overlay visible">
-                <div class="bottom-sheet">
-                    <h3 style="color:var(--danger-color); margin:0 0 10px; font-size:14px;">⚠️ Внимание!</h3>
-                    <p style="font-size:11px; color:var(--text-color-muted); margin-bottom:15px;">Голосование за канал необходимо для получения бонусов.</p>
-                    <button class="premium-btn active-state" style="width:100%; margin-bottom:8px; color:#fff;" onclick="document.getElementById('actionPopup').remove(); window.Telegram.WebApp.openTelegramLink('${url || 'https://t.me/boost/hatelove_ttv'}');"><i class="fa-solid fa-rocket"></i> ПРОГОЛОСОВАТЬ</button>
-                    <button class="premium-btn" style="width:100%;" onclick="document.getElementById('actionPopup').remove();">ЗАКРЫТЬ</button>
-                </div>
-            </div>`;
-    }
+    activeProfileCheck = 'vote'; // 🚀 Взводим флаг ожидания возврата
+    const root = document.getElementById('profile-popup-root');
+    const boostUrl = url || 'https://t.me/boost/hatelove_ttv';
+
+    root.innerHTML = `
+        <div id="actionPopup" class="modal-overlay visible">
+            <div class="bottom-sheet">
+                <h3 style="color:#ff3b30; margin:0 0 10px; font-size:14px;"><i class="fa-solid fa-rocket"></i> Голос не найден</h3>
+                <p style="font-size:11px; color:var(--text-color-muted); margin-bottom:15px;">Проголосуйте (буст) за канал, затем вернитесь в приложение — награда начислится автоматически!</p>
+                <button class="premium-btn active-state" style="width:100%; margin-bottom:8px; color:#fff;" onclick="window.Telegram.WebApp.openTelegramLink('${boostUrl}');"><i class="fa-solid fa-rocket"></i> ПРОГОЛОСОВАТЬ</button>
+                <button class="premium-btn" style="width:100%;" onclick="document.getElementById('actionPopup').remove(); activeProfileCheck = null;">ЗАКРЫТЬ</button>
+            </div>
+        </div>`;
+}
 
     document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible' && activeProfileCheck && !isProfileChecking) {
-            const userId = tg.initDataUnsafe?.user?.id;
-            if (!userId) return;
-            isProfileChecking = true; 
-            const taskKey = activeProfileCheck === 'surname' ? 'tg_surname' : 'tg_bio';
+    if (document.visibilityState === 'visible' && activeProfileCheck && !isProfileChecking) {
+        const userId = tg.initDataUnsafe?.user?.id;
+        if (!userId) return;
+        isProfileChecking = true;
 
-            await new Promise(r => setTimeout(r, 1500));
-            try {
-                const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', { user_id: userId, task_key: taskKey }, 'POST', true);
-                if (data && data.success) {
-                    const popup = document.getElementById('profilePopup');
-                    if (popup) popup.remove();
-                    activeProfileCheck = null;
+        // 🔥 Поддерживаем и ник, и био, и голос
+        let taskKey = 'tg_surname';
+        if (activeProfileCheck === 'surname') taskKey = 'tg_surname';
+        else if (activeProfileCheck === 'bio') taskKey = 'tg_bio';
+        else if (activeProfileCheck === 'vote') taskKey = 'tg_vote';
 
-                    const rewardVal = parseFloat(data.reward || 0);
-                    if (data.new_coins !== undefined) {
-                        userState.coins = parseFloat(data.new_coins);
-                    } else if (rewardVal) {
-                        userState.coins += rewardVal;
-                    }
-                    updateUI();
-                    window.showSuccessModal("Профиль подтвержден!");
-                    loadTelegramTasks();
+        await new Promise(r => setTimeout(r, 1200));
+
+        try {
+            const data = await window.makeApiRequest('/api/v1/telegram/claim_daily', { user_id: userId, task_key: taskKey }, 'POST', true);
+            if (data && data.success) {
+                // Закрываем модалки подтверждения
+                const pPopup = document.getElementById('profilePopup');
+                if (pPopup) pPopup.remove();
+                const aPopup = document.getElementById('actionPopup');
+                if (aPopup) aPopup.remove();
+                
+                const checkType = activeProfileCheck;
+                activeProfileCheck = null;
+
+                const rewardVal = parseFloat(data.reward || 0);
+                if (data.new_coins !== undefined) {
+                    userState.coins = parseFloat(data.new_coins);
+                } else if (rewardVal) {
+                    userState.coins += rewardVal;
                 }
-            } catch (e) {} finally { isProfileChecking = false; }
+
+                try {
+                    localStorage.setItem('cache_user_state', JSON.stringify({ ...userState, grind_settings: grindSettings }));
+                } catch (e) {}
+
+                updateUI();
+
+                const successTitle = checkType === 'vote' ? "Голос подтверждён!" : "Профиль подтверждён!";
+                window.showSuccessModal(
+                    data.message || successTitle,
+                    null,
+                    data.image_url || null
+                );
+                loadTelegramTasks();
+            }
+        } catch (e) {
+            console.error("Auto claim check error:", e);
+        } finally {
+            isProfileChecking = false;
         }
-    });
+    }
+});
 
     function showFloatText(element, text, color) {
         const rect = element.getBoundingClientRect();
