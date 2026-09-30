@@ -1704,28 +1704,52 @@ let currentShopTab = 'skins';
     initPullToRefresh();
 
         const grindBtn = document.getElementById('grind-btn');
-        if(grindBtn) {
+        if (grindBtn) {
             grindBtn.addEventListener('click', async () => {
                 if (grindBtn.disabled) return;
-                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
                 const origHtml = grindBtn.innerHTML;
                 grindBtn.disabled = true;
+                grindBtn.className = "premium-btn locked-state";
                 grindBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
                 try {
                     const res = await window.makeApiRequest('/api/v1/user/grind/claim', {}, 'POST');
+                    
+                    // 1. Обновляем локальный стейт
                     userState.coins = parseFloat(res.new_coins);
                     userState.streakDays = res.streak_days;
                     userState.lastGrindTime = res.last_grind_at;
+
+                    // 2. Мгновенно перезаписываем кэш пользователя в localStorage
+                    localStorage.setItem('cache_user_state', JSON.stringify({ 
+                        ...userState, 
+                        grind_settings: grindSettings 
+                    }));
+
+                    // 3. Синхронизируем глобальный кэш bootstrap
+                    try {
+                        const b = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                        if (b && b.user) {
+                            b.user.coins = userState.coins;
+                            b.user.streak_days = userState.streakDays;
+                            b.user.last_grind_at = userState.lastGrindTime;
+                            localStorage.setItem('cache_bootstrap', JSON.stringify(b));
+                        }
+                    } catch (cacheErr) {}
+
+                    // 4. Перерисовываем UI (запустит таймер кулдауна)
                     updateUI();
+
                     showFloatText(grindBtn, `+${parseFloat(res.reward_claimed).toFixed(2)}`, 'var(--accent-neon)');
-                    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 } catch (e) {
                     if (tg.showAlert) tg.showAlert(e.message || "Ошибка получения бонуса");
                     else window.customAlert(e.message || "Ошибка получения бонуса");
-                    grindBtn.disabled = false;
-                    grindBtn.innerHTML = origHtml;
+                    
+                    // Обновляем UI по времени, чтобы заблокировать кнопку, если сработал кулдаун базы
+                    updateUI();
                 }
             });
         }
@@ -2238,70 +2262,73 @@ window.closeStreakCalcModal = function() {
     ];
 
     async function fetchShopItems() {
-        // ⚡ 1. Мгновенная отрисовка из кэша (0 мс задержки при переключении)
-        try {
-            const cachedSkins = JSON.parse(localStorage.getItem('cache_shop_skins') || '[]');
-            const cachedPromos = JSON.parse(localStorage.getItem('cache_shop_promos') || '[]');
-            shopItems = [...baseTickets, ...cachedSkins, ...cachedPromos];
-            
-            // Сразу кэшируем в память картинки из сохраненных данных
-            cachedSkins.forEach(s => preloadAndCacheSkinImage(s.image_url));
-
-            renderShopList();
-        } catch (e) {
-            shopItems = [...baseTickets];
-            renderShopList();
-        }
-
-        // 🔄 2. Параллельный фоновый запрос без ожидания по очереди
-        try {
-            const [skinsRes, promosRes] = await Promise.allSettled([
-                fetch('/api/v1/user/grind/shop/skins').then(r => r.ok ? r.json() : []),
-                fetch('/api/v1/user/grind/shop').then(r => r.ok ? r.json() : [])
-            ]);
-
-            const freshSkins = [];
-            if (skinsRes.status === 'fulfilled' && Array.isArray(skinsRes.value)) {
-                skinsRes.value.forEach(s => {
-                    // Фоново предзагружаем каждую полученную картинку
-                    preloadAndCacheSkinImage(s.image_url);
-
-                    freshSkins.push({
-                        id: s.id,
-                        type: 'skin',
-                        cost: parseFloat(s.cost_coins),
-                        title: s.skin_name,
-                        image_url: s.image_url,
-                        quantity: s.quantity,
-                        rarity: s.rarity || 'Армейское',
-                        wear: s.wear || null
-                    });
-                });
-                localStorage.setItem('cache_shop_skins', JSON.stringify(freshSkins));
-            }
-
-            const freshPromos = [];
-            if (promosRes.status === 'fulfilled' && Array.isArray(promosRes.value)) {
-                promosRes.value.forEach(p => {
-                    freshPromos.push({
-                        type: 'promo',
-                        cost: p.reward_value,
-                        reward: p.reward_value,
-                        title: `+${p.reward_value} на баланс 🟡`,
-                        icon: 'fa-coins',
-                        color: '#FFD700',
-                        quantity: p.quantity
-                    });
-                });
-                localStorage.setItem('cache_shop_promos', JSON.stringify(freshPromos));
-            }
-
-            shopItems = [...baseTickets, ...freshSkins, ...freshPromos];
-            renderShopList();
-        } catch (e) {
-            console.error("Ошибка обновления витрины магазина:", e);
-        }
+    // 1. Сначала показываем из кэша (0 мс задержки)
+    try {
+        const cachedSkins = JSON.parse(localStorage.getItem('cache_shop_skins') || '[]');
+        const cachedPromos = JSON.parse(localStorage.getItem('cache_shop_promos') || '[]');
+        shopItems = [...baseTickets, ...cachedSkins, ...cachedPromos];
+        renderShopList();
+    } catch (e) {
+        shopItems = [...baseTickets];
+        renderShopList();
     }
+
+    // 2. Свежий запрос без кэша (cache: no-store + timestamp)
+    try {
+        const timestamp = Date.now();
+        const [skinsRes, promosRes] = await Promise.allSettled([
+            fetch(`/api/v1/user/grind/shop/skins?_t=${timestamp}`, { 
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' } 
+            }).then(r => r.ok ? r.json() : []),
+            fetch(`/api/v1/user/grind/shop?_t=${timestamp}`, { 
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' } 
+            }).then(r => r.ok ? r.json() : [])
+        ]);
+
+        const freshSkins = [];
+        if (skinsRes.status === 'fulfilled' && Array.isArray(skinsRes.value)) {
+            skinsRes.value.forEach(s => {
+                preloadAndCacheSkinImage(s.image_url);
+                freshSkins.push({
+                    id: s.id,
+                    type: 'skin',
+                    cost: parseFloat(s.cost_coins),
+                    title: s.skin_name,
+                    image_url: s.image_url,
+                    quantity: s.quantity,
+                    rarity: s.rarity || 'Армейское',
+                    wear: s.wear || null
+                });
+            });
+            // Перезаписываем кэш свежими скинами
+            localStorage.setItem('cache_shop_skins', JSON.stringify(freshSkins));
+        }
+
+        const freshPromos = [];
+        if (promosRes.status === 'fulfilled' && Array.isArray(promosRes.value)) {
+            promosRes.value.forEach(p => {
+                freshPromos.push({
+                    type: 'promo',
+                    cost: p.reward_value,
+                    reward: p.reward_value,
+                    title: `+${p.reward_value} на баланс 🟡`,
+                    icon: 'fa-coins',
+                    color: '#FFD700',
+                    quantity: p.quantity
+                });
+            });
+            localStorage.setItem('cache_shop_promos', JSON.stringify(freshPromos));
+        }
+
+        // Обновляем витрину новыми данными
+        shopItems = [...baseTickets, ...freshSkins, ...freshPromos];
+        renderShopList();
+    } catch (e) {
+        console.error("Ошибка обновления витрины магазина:", e);
+    }
+}
     
     function renderShopList() {
         const container = document.getElementById('shop-container');
@@ -2491,7 +2518,7 @@ window.closeStreakCalcModal = function() {
         }
     };
 
-   // 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ
+// 🎟️ ПОКУПКА БИЛЕТОВ ЗА ГРИНД-МОНЕТЫ
     window.exchangeCoins = async (cost, rewardTickets) => {
         const coinWord = pluralize(cost, ['гринд-монету', 'гринд-монеты', 'гринд-монет']);
         const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
@@ -2520,27 +2547,41 @@ window.closeStreakCalcModal = function() {
                 }
                 
                 const res = await response.json();
-userState.coins = parseFloat(res.new_coins);
-userState.tickets = res.new_tickets;
-updateUI();
+                userState.coins = parseFloat(res.new_coins);
+                userState.tickets = res.new_tickets;
 
-// Фиксируем текущую вкладку магазина
-// Одноразовая метка: вернуть именно сюда после перезагрузки
-sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'tickets' }));
+                // 💾 Мгновенно фиксируем в localStorage
+                localStorage.setItem('cache_user_state', JSON.stringify({ 
+                    ...userState, 
+                    grind_settings: grindSettings 
+                }));
 
-window.showSuccessModal(
-    `Успешно! Вы получили +${rewardTickets} ${ticketWord}.`,
-    null,
-    null,
-    () => window.fullAppReloadWithPreload()
-);
+                try {
+                    const b = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (b && b.user) {
+                        b.user.coins = userState.coins;
+                        b.user.tickets = userState.tickets;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(b));
+                    }
+                } catch(e) {}
+
+                updateUI();
+
+                // Фиксируем возврат на вкладку билетов
+                sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'tickets' }));
+
+                window.showSuccessModal(
+                    `Успешно! Вы получили +${rewardTickets} ${ticketWord}.`,
+                    null,
+                    null,
+                    () => window.fullAppReloadWithPreload()
+                );
             } catch (e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
                 else window.customAlert(e.message || 'Ошибка обмена');
             }
         };
 
-        // Неоновая иконка билета для окна подтверждения
         const ticketVisual = `<i class="fa-solid fa-ticket" style="font-size: 68px; color: #00f2ea; filter: drop-shadow(0 0 20px rgba(0, 242, 234, 0.75));"></i>`;
 
         window.showBuyConfirm(
@@ -2562,6 +2603,24 @@ window.showSuccessModal(
                 const res = await window.makeApiRequest('/api/v1/user/grind/buy_skin', { skin_id: skinId }, 'POST');
                 if (res.success) {
                     if (res.new_coins !== undefined) userState.coins = parseFloat(res.new_coins);
+
+                    // 💾 Мгновенно фиксируем баланс в localStorage
+                    localStorage.setItem('cache_user_state', JSON.stringify({ 
+                        ...userState, 
+                        grind_settings: grindSettings 
+                    }));
+
+                    try {
+                        const b = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                        if (b && b.user) {
+                            b.user.coins = userState.coins;
+                            localStorage.setItem('cache_bootstrap', JSON.stringify(b));
+                        }
+                    } catch(e) {}
+
+                    // 🗑️ Сбрасываем кэш витрины, чтобы сразу запросить свежий остаток
+                    localStorage.removeItem('cache_shop_skins');
+
                     updateUI();
                     window.showSuccessModal(
                         `Скин «${skinName}» успешно добавлен в ваш инвентарь!\nОн сохранён в профиле. Вы можете использовать или забрать его в любое удобное время.`,
@@ -2580,7 +2639,7 @@ window.showSuccessModal(
             skinName,
             `Стоимость: <span style="color: #ff3b30; font-weight: 800;">${cost} <i class="fa-solid fa-fire" style="font-size: 11px;"></i> ${coinWord}</span>`,
             doBuySkin,
-            skinImg // Передаем картинку скина в модалку покупки
+            skinImg
         );
     };
 
@@ -2614,24 +2673,37 @@ window.showSuccessModal(
                 } else {
                     userState.coins = Math.max(0, userState.coins - val);
                 }
+
+                // 💾 Фиксируем новый баланс в localStorage
+                localStorage.setItem('cache_user_state', JSON.stringify({ 
+                    ...userState, 
+                    grind_settings: grindSettings 
+                }));
+
+                try {
+                    const b = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (b && b.user) {
+                        b.user.coins = userState.coins;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(b));
+                    }
+                } catch(e) {}
+
                 updateUI();
 
-// Одноразовая метка: вернуть именно сюда после перезагрузки
-sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'promos' }));
+                sessionStorage.setItem('restore_tab_after_reload', JSON.stringify({ main: 'shop', sub: 'promos' }));
 
-window.showSuccessModal(
-    `Успешно! +${val} монет зачислено на ваш баланс.`,
-    null,
-    null,
-    () => window.fullAppReloadWithPreload()
-);
+                window.showSuccessModal(
+                    `Успешно! +${val} монет зачислено на ваш баланс.`,
+                    null,
+                    null,
+                    () => window.fullAppReloadWithPreload()
+                );
             } catch(e) {
                 if (tg.showAlert) tg.showAlert(e.message || 'Не удалось купить');
                 else window.customAlert(e.message || 'Не удалось купить');
             }
         };
 
-        // Неоновая иконка монет для окна подтверждения
         const coinsVisual = `<i class="fa-solid fa-coins" style="font-size: 68px; color: #FFD700; filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.75));"></i>`;
 
         window.showBuyConfirm(
