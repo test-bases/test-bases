@@ -25687,8 +25687,14 @@ async def claim_daily_task(
             elif task_key == "tg_vote":
                 try:
                     user_boosts = await main_bot.get_user_chat_boosts(chat_id=TG_QUEST_CHANNEL_ID, user_id=user_id)
-                    if not user_boosts.boosts:
+                    # Если юзер не бустит канал прямо сейчас — отказ
+                    if not user_boosts or not user_boosts.boosts:
                         return JSONResponse({"success": False, "error": "Голос не найден! Проголосуйте за канал."})
+
+                    check_passed = True
+                except Exception as e:
+                    logger.error(f"Boost check error for {user_id}: {e}")
+                    return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
 
                     # 🔥 ПРОВЕРКА НА СГОРАНИЕ (30 ДНЕЙ) И АКТУАЛЬНОСТЬ БУСТА
                     valid_boost_found = False
@@ -25792,10 +25798,10 @@ async def claim_daily_task(
         # Список параллельных задач на запись в базу
         save_db_tasks = []
 
-        # 🔥 1. НАГРАДА ЗА ГОЛОСОВАНИЕ (РАЗ В 30 ДНЕЙ): +10 МОНЕТ + КЕЙС ПЕРВООТКРЫВАТЕЛЬ
+        # 🔥 НАГРАДА ЗА ГОЛОСОВАНИЕ (РАЗ В 30 ДНЕЙ): +10 МОНЕТ + КЕЙС ПЕРВООТКРЫВАТЕЛЬ
         if task_key == "tg_vote":
             reward = 10.0
-            case_image_url = EXPLORER_CASE_IMG
+            case_image_url = EXPLORER_CASE_IMG  # Твой keysikblin.png
             unique_code = f"VOTE-{user_id}-{uuid.uuid4().hex[:4].upper()}"
             coupon_data = {
                 "code": unique_code,
@@ -25813,7 +25819,7 @@ async def claim_daily_task(
             }
             save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
             custom_message = "Голос учтён! Вам начислено +10.0 гринд-монет и выдан Кейс | Первооткрыватель!"
-            is_done = False  # 🔥 ВАЖНО: False, чтобы задание не исчезало в выполненные, а висело на кулдауне 30 дней как ник и био
+            is_done = False  # 🔥 Не уходит в архив выполненных, висит в активных
             next_day = 1
 
         # 🔥 2. ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
