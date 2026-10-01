@@ -2103,7 +2103,7 @@ let currentShopTab = 'skins';
     function createTaskCard(task, isFinalDay, timersToStart) {
         const el = document.createElement('div');
         el.className = `glass-card`;
-        if (task.is_completed) el.style.opacity = '0.55';
+        if (task.is_completed && task.task_key !== 'tg_vote') el.style.opacity = '0.55';
 
         let iconClass = 'fa-solid fa-star';
         let iconColor = 'var(--accent-neon)';
@@ -2116,12 +2116,15 @@ let currentShopTab = 'skins';
         let activeClass = 'premium-btn task-claim-btn';
         let btnDisabled = '';
 
-        if (task.is_completed) {
+        if (task.is_completed && task.task_key !== 'tg_vote') {
             btnContent = `<i class="fa-solid fa-circle-check" style="color: #34c759;"></i> ВЫПОЛНЕНО`;
             activeClass = 'premium-btn locked-state';
             btnDisabled = 'disabled';
         } else if (isFinalDay) {
             btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
+        } else if (task.task_key === 'tg_vote') {
+            // Иконка открытого кейса
+            btnContent = `<i class="fa-solid fa-box-open" style="color: var(--accent-neon);"></i> ЗАБРАТЬ КЕЙС +10 <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px;"></i>`;
         } else {
             const coinLabel = pluralize(task.reward_amount, ['ГРИНД-МОНЕТУ', 'ГРИНД-МОНЕТЫ', 'ГРИНД-МОНЕТ']);
             btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ${coinLabel}`;
@@ -2165,15 +2168,15 @@ let currentShopTab = 'skins';
             <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
         `;
 
-        // 🔥 КУЛДАУН: 30 дней для tg_vote (720 часов), 20 часов для ежедневных, ника и био
-        if (!task.is_completed && task.last_claimed_at && !isFinalDay) {
+        // 🔥 КУЛДАУН: 30 дней для tg_vote (720 часов), 20 часов для остальных циклических
+        if (task.last_claimed_at && !isFinalDay) {
             const timePassed = Date.now() - new Date(task.last_claimed_at).getTime();
             if (task.task_key === 'tg_vote') {
                 const cooldown30DaysMs = 30 * 24 * 60 * 60 * 1000;
                 if (timePassed < cooldown30DaysMs) {
                     timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 30 * 24 });
                 }
-            } else if (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') {
+            } else if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio')) {
                 const cooldown20HoursMs = 20 * 60 * 60 * 1000;
                 if (timePassed < cooldown20HoursMs) {
                     timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 20 });
@@ -2187,9 +2190,9 @@ let currentShopTab = 'skins';
         container.innerHTML = '';
         const timersToStart = [];
 
-        // Разделяем: активные вверху, выполненные — в спойлер
-        const activeTasks = tasks.filter(t => !t.is_completed);
-        const completedTasks = tasks.filter(t => t.is_completed);
+        // tg_vote ВСЕГДА в активных (оно цикличное раз в 30 дней), не прячем в спойлер
+        const activeTasks = tasks.filter(t => !t.is_completed || t.task_key === 'tg_vote');
+        const completedTasks = tasks.filter(t => t.is_completed && t.task_key !== 'tg_vote');
 
         // 1. Рендерим активные задачи
         activeTasks.forEach(task => {
@@ -2211,8 +2214,6 @@ let currentShopTab = 'skins';
             header.onclick = () => {
                 const isOpen = spoiler.classList.toggle('open');
                 if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-
-                // 🔥 Если спойлер открылся — даем 100мс на отрисовку и плавно прокручиваем экран к нему
                 if (isOpen) {
                     setTimeout(() => {
                         spoiler.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2232,97 +2233,9 @@ let currentShopTab = 'skins';
             container.appendChild(spoiler);
         }
 
-        // 🔥 Передаем hours (20 или 720) в функцию кулдауна
+        // Запуск таймеров
         timersToStart.forEach(data => startButtonCooldown(data.id, data.time, data.hours || 20));
     }
-
-    function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
-        const btn = document.getElementById(btnId);
-        if (!btn) return;
-        if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
-
-        const targetTime = new Date(lastClaimedIso).getTime() + (cooldownHours * 60 * 60 * 1000);
-
-        const updateTimer = () => {
-            const diff = targetTime - Date.now();
-            if (diff <= 0) {
-                clearInterval(cooldownIntervalsMap[btnId]);
-                btn.disabled = false;
-                btn.className = btn.getAttribute('data-active-class') || 'premium-btn active-state';
-                btn.innerHTML = btn.getAttribute('data-original-html') || 'ЗАБРАТЬ'; 
-                return;
-            }
-
-            const totalHours = Math.floor(diff / 3600000);
-            if (totalHours >= 24) {
-                const d = Math.floor(totalHours / 24);
-                const h = (totalHours % 24).toString().padStart(2, '0');
-                btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${d} ДН. ${h} Ч.`;
-            } else {
-                const h = totalHours.toString().padStart(2, '0');
-                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-                btn.innerHTML = `<i class="fa-solid fa-lock"></i> ЧЕРЕЗ ${h}:${m}`;
-            }
-
-            btn.disabled = true;
-            btn.className = 'premium-btn locked-state';
-        };
-        updateTimer(); 
-        cooldownIntervalsMap[btnId] = setInterval(updateTimer, 60000);
-    }
-
-    function renderTasksDOM(tasks, container) {
-        container.innerHTML = '';
-        const timersToStart = [];
-
-        // Разделяем: активные вверху, выполненные — в спойлер
-        const activeTasks = tasks.filter(t => !t.is_completed);
-        const completedTasks = tasks.filter(t => t.is_completed);
-
-        // 1. Рендерим активные задачи
-        activeTasks.forEach(task => {
-            const isFinalDay = task.is_daily && task.current_day === task.total_days;
-            container.appendChild(createTaskCard(task, isFinalDay, timersToStart));
-        });
-
-        // 2. Выполненные задачи прячем под аккуратный спойлер
-        if (completedTasks.length > 0) {
-            const spoiler = document.createElement('div');
-            spoiler.className = 'completed-spoiler';
-
-            const header = document.createElement('div');
-            header.className = 'completed-spoiler-header';
-            header.innerHTML = `
-                <span><i class="fa-solid fa-circle-check" style="color:#34c759; margin-right:5px;"></i> Выполненные задания (${completedTasks.length})</span>
-                <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
-            `;
-            header.onclick = () => {
-                const isOpen = spoiler.classList.toggle('open');
-                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-
-                // 🔥 Если спойлер открылся — даем 100мс на отрисовку и плавно прокручиваем экран к нему
-                if (isOpen) {
-                    setTimeout(() => {
-                        spoiler.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 120);
-                }
-            };
-
-            const content = document.createElement('div');
-            content.className = 'completed-spoiler-content';
-
-            completedTasks.forEach(task => {
-                content.appendChild(createTaskCard(task, false, timersToStart));
-            });
-
-            spoiler.appendChild(header);
-            spoiler.appendChild(content);
-            container.appendChild(spoiler);
-        }
-
-        timersToStart.forEach(data => startButtonCooldown(data.id, data.time, data.hours || 20));;
-    }
-
     // ==========================================
     // ℹ️ МОДАЛКА «ПОДРОБНЕЕ» ДЛЯ ТЕЛЕГРАМ ЗАДАНИЙ
     // ==========================================
@@ -2375,7 +2288,7 @@ let currentShopTab = 'skins';
             contentEl.innerHTML = `
                 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Награда:</span>
-                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">+${task.reward_amount || 3} 🔥</span>
+                    <span style="color: var(--accent-neon); font-weight: 800;">Кейс | Первооткрыватель + 10.0 🔥</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Периодичность:</span>
@@ -2383,7 +2296,7 @@ let currentShopTab = 'skins';
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Условие:</span>
-                    <span style="color: #ffffff; font-weight: 700;">Голос (Boost)</span>
+                    <span style="color: #ffffff; font-weight: 700;">Голос (Boost канала)</span>
                 </div>
             `;
         } else {
@@ -2499,10 +2412,10 @@ window.closeStreakCalcModal = function() {
         const btn = document.getElementById(`btn-${taskKey}`);
         if (!btn || btn.disabled) return;
 
-        // Авто-определение 7-го дня (по аргументу или по тексту кнопки «ЗАБРАТЬ ПРИЗ»)
+        // Авто-определение 7-го дня (строго кроме голосования tg_vote)
         const isFinal = Boolean(
             isFinalDay || 
-            (btn && (btn.innerHTML.includes('fa-gift') || btn.innerText.includes('ЗАБРАТЬ ПРИЗ')))
+            (taskKey !== 'tg_vote' && btn && (btn.innerHTML.includes('fa-gift') || btn.innerText.includes('ЗАБРАТЬ ПРИЗ')))
         );
 
         if (isFinal) {
@@ -2512,7 +2425,7 @@ window.closeStreakCalcModal = function() {
 
         executeDailyClaim(taskKey, actionUrl, null);
     };
-
+    
     async function executeDailyClaim(taskKey, actionUrl, rewardChoice = null) {
         const btn = document.getElementById(`btn-${taskKey}`);
         if (!btn || btn.disabled) return;
@@ -2554,10 +2467,12 @@ window.closeStreakCalcModal = function() {
                 updateUI();
 
                 const coinSuccess = pluralize(rewardVal, ['гринд-монета', 'гринд-монеты', 'гринд-монет']);
-                const caseImg = data.image_url || null;
+                // 🔥 Если забираем tg_vote — гарантированно подставляем картинку Кейса Первооткрывателя
+                const defaultVoteImg = "https://storage.bot-t.com/bot/233790/photos/keysikblin.png";
+                const caseImg = data.image_url || (taskKey === 'tg_vote' ? defaultVoteImg : null);
 
                 window.showSuccessModal(
-                    data.message || `Получено +${rewardVal} ${coinSuccess}!`,
+                    data.message || (taskKey === 'tg_vote' ? 'Голос учтён! Вам выдан Кейс | Первооткрыватель!' : `Получено +${rewardVal} ${coinSuccess}!`),
                     null,
                     caseImg
                 );
@@ -2577,8 +2492,15 @@ window.closeStreakCalcModal = function() {
 
     function handleTaskError(data, taskKey, actionUrl) {
         if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        if (taskKey === 'tg_vote') injectBoostPopup(actionUrl);
-        else if (data && data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
+        if (taskKey === 'tg_vote') {
+            // Если ошибка связана со сроком 30 дней — выводим нормальный текст, а не окно "Голос не найден"
+            if (data && data.error && (data.error.includes("30 дней") || data.error.includes("сгорела"))) {
+                if (tg.showAlert) tg.showAlert(data.error);
+                else window.customAlert(data.error);
+            } else {
+                injectBoostPopup(actionUrl);
+            }
+        } else if (data && data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
             injectProfilePopup(taskKey === 'tg_surname' ? 'surname' : 'bio');
         } else if (data && data.error && data.error.includes("не подписаны")) {
             if (tg.showAlert) tg.showAlert("Вы не подписаны на канал!");
@@ -3330,11 +3252,13 @@ window.closeSuccessModal = function() {
 
                 updateUI();
 
-                const successTitle = checkType === 'vote' ? "Голос подтверждён!" : "Профиль подтверждён!";
+                const defaultVoteImg = "https://storage.bot-t.com/bot/233790/photos/keysikblin.png";
+                const caseImg = data.image_url || (checkType === 'vote' ? defaultVoteImg : null);
+                const successTitle = checkType === 'vote' ? "Голос подтверждён! Награда начислена!" : "Профиль подтверждён!";
                 window.showSuccessModal(
                     data.message || successTitle,
                     null,
-                    data.image_url || null
+                    caseImg
                 );
                 loadTelegramTasks();
             }
