@@ -25685,16 +25685,18 @@ async def claim_daily_task(
                     return JSONResponse({"success": False, "error": "Не удалось проверить подписку."})
 
             elif task_key == "tg_vote":
-                try:
-                    user_boosts = await main_bot.get_user_chat_boosts(chat_id=TG_QUEST_CHANNEL_ID, user_id=user_id)
-                    # Если юзер не бустит канал прямо сейчас — отказ
-                    if not user_boosts or not user_boosts.boosts:
-                        return JSONResponse({"success": False, "error": "Голос не найден! Проголосуйте за канал."})
-
+                # 🧪 ТЕСТОВЫЙ ОБХОД: если это наш админ/тестер — пропускаем без буста
+                if user_id == 477521935:
                     check_passed = True
-                except Exception as e:
-                    logger.error(f"Boost check error for {user_id}: {e}")
-                    return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
+                else:
+                    try:
+                        user_boosts = await main_bot.get_user_chat_boosts(chat_id=TG_QUEST_CHANNEL_ID, user_id=user_id)
+                        if not user_boosts.boosts:
+                            return JSONResponse({"success": False, "error": "Голос не найден! Проголосуйте за канал."})
+                        check_passed = True
+                    except Exception as e:
+                        logger.error(f"Boost check error for {user_id}: {e}")
+                        return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
 
                     # 🔥 ПРОВЕРКА НА СГОРАНИЕ (30 ДНЕЙ) И АКТУАЛЬНОСТЬ БУСТА
                     valid_boost_found = False
