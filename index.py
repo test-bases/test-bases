@@ -31238,7 +31238,32 @@ async def withdraw_inventory_item(
         item_data = history_record.get('item') or {}
         item_source = history_record.get('source', 'shop') 
         item_name = history_record.get('replaced_name') or item_data.get('name', 'Неизвестный предмет')
-        
+
+        market_hash_name = history_record.get('replaced_name') or item_data.get('market_hash_name')
+
+        # 🔥 ВЫРУЧАЛОЧКА ДЛЯ GRIND_SHOP: если в cs_items нет имени, достаем чистое название из details или case_name
+        if not market_hash_name:
+            details_str = str(history_record.get('details') or '')
+            case_title = str(history_record.get('case_name') or '')
+            if "Выигрыш:" in details_str:
+                market_hash_name = details_str.split("Выигрыш:")[1].split("||")[0].strip()
+            elif case_title.startswith("Магазин: "):
+                market_hash_name = case_title.replace("Магазин: ", "").strip()
+            elif case_title.startswith("Гринд: "):
+                market_hash_name = case_title.replace("Гринд: ", "").strip()
+
+        if not item_name or item_name == 'Неизвестный предмет':
+            item_name = market_hash_name or 'Неизвестный предмет'
+
+        # Извлекаем состояние (FN, MW, FT, WW, BS), если его не было
+        item_condition = item_data.get('condition')
+        if not item_condition and market_hash_name:
+            if "(Factory New)" in market_hash_name: item_condition = "FN"
+            elif "(Minimal Wear)" in market_hash_name: item_condition = "MW"
+            elif "(Field-Tested)" in market_hash_name: item_condition = "FT"
+            elif "(Well-Worn)" in market_hash_name: item_condition = "WW"
+            elif "(Battle-Scarred)" in market_hash_name: item_condition = "BS"
+
         # ==========================================
         # 💰 ПОЛУЧЕНИЕ ЦЕНЫ И ЗАЩИТА ОТ НУЛЕВОГО БЮДЖЕТА
         # ==========================================
@@ -31253,13 +31278,11 @@ async def withdraw_inventory_item(
             logging.error(f"[PRICE ERROR] Ошибка парсинга цены для {req.history_id}: {e}")
             target_price_base = target_price_rub = 0.0
 
-        item_condition = item_data.get('condition')
-        market_hash_name = history_record.get('replaced_name') or item_data.get('market_hash_name')
-
-        # 🔥 СПАСАТЕЛЬНЫЙ КРУГ
+        # 🔥 СПАСАТЕЛЬНЫЙ КРУГ: проверяем сначала склад, а затем market_cache!
         if target_price_rub <= 0.0 and market_hash_name:
-            logging.info(f"[WITHDRAW] Бюджет 0.0 руб. Тянем актуальную цену из кэша для '{market_hash_name}'...")
+            logging.info(f"[WITHDRAW] Бюджет 0.0 руб. Тянем актуальную цену для '{market_hash_name}'...")
             try:
+                # 1. Проверяем склад бота
                 cache_res = await supabase.get("/steam_inventory_cache", params={
                     "market_hash_name": f"eq.{market_hash_name}",
                     "select": "price_rub, price",
@@ -31269,9 +31292,20 @@ async def withdraw_inventory_item(
                 if cache_data and cache_data[0].get('price_rub'):
                     target_price_rub = float(cache_data[0]['price_rub'])
                     target_price_base = float(cache_data[0].get('price', target_price_rub))
-                    logging.info(f"[WITHDRAW] ✅ Цена из кэша: {target_price_rub} руб.")
+                else:
+                    # 2. Если на складе нет — берем из market_cache (где живут товары Гринда)
+                    m_res = await supabase.get("/market_cache", params={
+                        "market_hash_name": f"eq.{market_hash_name}",
+                        "select": "price_rub",
+                        "limit": 1
+                    })
+                    m_data = m_res.json()
+                    if m_data and m_data[0].get('price_rub'):
+                        target_price_rub = float(m_data[0]['price_rub'])
+                        target_price_base = target_price_rub
+                logging.info(f"[WITHDRAW] ✅ Итоговая цена для закупки: {target_price_rub} руб.")
             except Exception as e:
-                logging.error(f"[WITHDRAW] Ошибка при запросе кэша: {e}")
+                logging.error(f"[WITHDRAW] Ошибка при запросе цены из кэша: {e}")
 
         has_english_name = market_hash_name and not bool(re.search('[а-яА-Я]', market_hash_name))
         unique_market_id = f"wd_{req.history_id}_{int(time.time())}"
