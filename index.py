@@ -133,7 +133,14 @@ _background_supabase_client: Optional[httpx.AsyncClient] = None
 
 
 
-async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, requested_item_price: float = 0.0, bypass_lock: bool = False): # ⚡ ДОБАВИЛИ bypass_lock
+async def verify_activity_lock(
+    user_record: dict, 
+    supabase: httpx.AsyncClient, 
+    requested_item_price: float = 0.0, 
+    bypass_lock: bool = False,
+    item: dict = None,
+    item_source: str = ""
+):
     import json
     import logging
     from datetime import datetime, timedelta, timezone
@@ -142,6 +149,14 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
     telegram_id = user_record.get("telegram_id")
     trust_level = user_record.get("trust_level", "gray")
     is_admin = user_record.get("is_admin", False)
+
+    # Страховка, если скин передали третьим позиционным аргументом
+    if isinstance(requested_item_price, dict) and item is None:
+        item = requested_item_price
+        requested_item_price = float(item.get("price_rub") or item.get("price") or 0.0)
+
+    # Определяем источник предмета (поддерживаем raffle, grind_shop, grind.shop)
+    current_source = str(item_source or (item.get("source") if isinstance(item, dict) else "")).lower()
 
     # ==========================================
     # 1. Читаем актуальный баланс ИЗ ПУЛА КЕЙСОВ И ДОСЧИТЫВАЕМ LIVE
@@ -161,14 +176,14 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
             market_balance = float(raw_value.get("cases_pool", 0.0))
             last_processed_id = int(raw_value.get("last_processed_id", 0))
             
-            # 🔥 НОВАЯ ЖЕЛЕЗОБЕТОННАЯ ЗАЩИТА: ДОСЧИТЫВАЕМ ТО, ЧТО КРОН НЕ УСПЕЛ 🔥
+            # 🔥 ДОСЧИТЫВАЕМ ТО, ЧТО КРОН НЕ УСПЕЛ (ТОЛЬКО КЕЙСЫ И ОБЫЧНЫЙ МАГАЗИН)
             try:
                 unprocessed_res = await supabase.get(
                     "/cs_history",
                     params={
                         "id": f"gt.{last_processed_id}",
                         "source": "in.(shop,case)",
-                        "status": "in.(auto_queued,market_pending,processing,offer_sent)", # <--- ТЕПЕРЬ ТАК
+                        "status": "in.(auto_queued,market_pending,processing,offer_sent)",
                         "select": "replaced_price, cs_items(price_rub, price)"
                     }
                 )
@@ -178,7 +193,6 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
                         if price is None:
                             item_data = row.get("cs_items") or {}
                             price = item_data.get("price_rub") or item_data.get("price") or 0.0
-                        # Вычитаем из баланса, не позволяя ему уйти в минус
                         market_balance = max(0.0, market_balance - float(price))
             except Exception as e:
                 logging.error(f"[ACTIVITY LOCK] Ошибка live-подсчета: {e}")
@@ -186,11 +200,37 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
     except Exception as e:
         logging.error(f"[ACTIVITY LOCK] Ошибка чтения баланса: {e}")
 
-    # 👇 ДОБАВЛЯЕМ ЭТО 👇
-    # Если купон дает байпас, мы просто возвращаем посчитанный баланс пула и скипаем все лимиты ниже
-    if bypass_lock:
+    # ==========================================
+    # ⚡ БАЙПАС ДЛЯ RAFFLE И GRIND_SHOP (ЖИВУТ 3 ДНЯ, ВНЕ ВСЕХ ЛИМИТОВ)
+    # ==========================================
+    if bypass_lock or current_source in ["raffle", "grind_shop", "grind.shop", "grind"]:
+        # Проверяем таймер жизни 3 дня
+        if isinstance(item, dict):
+            exp_str = item.get("expires_at")
+            exp_dt = None
+            if exp_str:
+                try:
+                    exp_dt = datetime.fromisoformat(str(exp_str).replace("Z", "+00:00"))
+                except Exception:
+                    pass
+            elif item.get("created_at") and current_source in ["raffle", "grind_shop", "grind.shop", "grind"]:
+                try:
+                    created_dt = datetime.fromisoformat(str(item["created_at"]).replace("Z", "+00:00"))
+                    exp_dt = created_dt + timedelta(days=3)
+                except Exception:
+                    pass
+
+            if exp_dt:
+                if not exp_dt.tzinfo:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) > exp_dt:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="⏳ Срок вывода предмета истек! На вывод скинов дается ровно 3 дня."
+                    )
+
+        # Пропускаем без проверок активности, очередей и недельных лимитов
         return market_balance
-    # 👆 КОНЕЦ ВСТАВКИ 👆
 
     # ==========================================
     # 2. ДИНАМИЧЕСКИЕ ЛИМИТЫ (ШТУКИ + ДЕНЬГИ)
@@ -235,8 +275,6 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
             if transit_res.status_code == 200:
                 transit_data = transit_res.json()
                 
-                # Если критическая зона - разрешаем максимум 1 скин в процессе. 
-                # Иначе 2 скина.
                 max_transit_allowed = 1 if is_critical_zone else 2
                 
                 if len(transit_data) >= max_transit_allowed:
@@ -276,7 +314,6 @@ async def verify_activity_lock(user_record: dict, supabase: httpx.AsyncClient, r
                         item_price = item_data.get("price_rub") or item_data.get("price") or 0.0
                         global_spent += float(item_price)
                 
-                # 🔥 ИСПРАВЛЕНИЕ: Учитываем цену предмета, который юзер пытается забрать СЕЙЧАС
                 if (global_spent + requested_item_price) > global_daily_limit:
                     unlock_msg = "завтра"
                     if global_drops:
@@ -629,7 +666,7 @@ def is_item_expired(updated_at_str: str, source: str) -> bool:
         if updated_time < amnesty_date:
             life_days = 14
         else:
-            life_days = 3 if source in ['raffle', 'auction', 'twitch'] else 14
+            life_days = 3 if source in ['raffle', 'auction', 'twitch', 'grind_shop', 'grind.shop', 'grind'] else 14
             
         expire_time = updated_time + timedelta(days=life_days)
         
@@ -8688,6 +8725,9 @@ async def user_buy_grind_skin(
     new_qty = skin["quantity"] - 1
     trade_link = user_row.get("trade_link")
 
+    now_dt = datetime.now(timezone.utc)
+    expires_dt = now_dt + timedelta(days=3)  # 🔥 Ровно 3 дня (72 часа)
+
     # Префикс "Выигрыш:" гарантирует 100% отображение имени скина в profile.html
     history_payload = {
         "user_id": user_id,
@@ -8695,7 +8735,8 @@ async def user_buy_grind_skin(
         "case_name": f"Магазин: {skin['skin_name']}",
         "status": "pending",
         "source": "grind_shop",
-        "details": f"Выигрыш: {skin['skin_name']} || Трейд: {trade_link or 'Не указан'}"
+        "details": f"Выигрыш: {skin['skin_name']} || Трейд: {trade_link or 'Не указан'}",
+        "expires_at": expires_dt.isoformat()  # 🔥 Записываем срок сгорания
     }
 
     # 2. Параллельно записываем списание, обновление товара и инвентарь
@@ -31102,8 +31143,8 @@ async def withdraw_inventory_item(
 
         user_info = user_list[0]
 
-        # 👇 Проверяем актив ТОЛЬКО если это не розыгрыш и не аукцион 👇
-        if item_source not in ["raffle", "auction", "checkpoint"]:
+        # 👇 Добавили grind_shop и grind.shop в исключения к raffle 👇
+        if item_source not in ["raffle", "auction", "checkpoint", "grind_shop", "grind.shop", "grind"]:
             # 🔥 Достаем цену предмета заранее, чтобы передать её в проверку бюджета
             item_data_for_lock = history_record.get('item') or {}
             replaced_price_for_lock = history_record.get('replaced_price')
@@ -31505,8 +31546,8 @@ async def confirm_replacement(
         
         user_info = u_list[0]
 
-        # 👇 Проверяем актив ТОЛЬКО если это не розыгрыш и не аукцион 👇
-        if item_source not in ["raffle", "auction", "checkpoint"]:
+       # 👇 Добавили grind_shop и grind.shop в исключения к raffle 👇
+        if item_source not in ["raffle", "auction", "checkpoint", "grind_shop", "grind.shop", "grind"]:
             # 🔥 Вытаскиваем цену из записи для передачи в Activity Lock
             item_data_for_lock = history_record.get('item') or {}
             
