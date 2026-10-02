@@ -3544,17 +3544,8 @@ window.closeFullscreenCard = function() {
             const statusRu = statusMap[rawStatus] || rawStatus;
             
            let rawImg = item.replaced_image_url || item.image_url;
-            let imageUrl = formatSteamImg(rawImg);
-
-            const modal = document.getElementById('skin-inspect-modal');
-            const img = document.getElementById('inspect-skin-img');
-            img.classList.remove('zoomed');
-            if (modal) modal.classList.remove('is-zoomed');
-
-            img.src = imageUrl;
-            img.onerror = () => { img.src = STEAM_FALLBACK_IMG; };
-
-let parsedBasePrice = parseFloat(String(item.price_rub || item.price || "0").replace(',', '.')) || 0;
+            let imageUrl = formatSteamImg(rawImg, '180fx180f');
+            let parsedBasePrice = parseFloat(String(item.price_rub || item.price || "0").replace(',', '.')) || 0;
 
             // 👇 ВОЗВРАЩАЕМ УДАЛЕННУЮ СТРОКУ СЮДА 👇
 const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Date(item.created_at || item.updated_at || item.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Неизвестно';
@@ -3755,6 +3746,15 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             const item = (window.currentInventoryItems || []).find(i => String(i.id || i.history_id) === String(historyId));
             if (!item) return;
 
+            const modal = document.getElementById('skin-inspect-modal');
+            const img = document.getElementById('inspect-skin-img');
+            if (!modal || !img) return;
+
+            // 1. МГНОВЕННО СБРАСЫВАЕМ ЗУМ И ОЧИЩАЕМ КАРТИНКУ (чтобы не мелькал прошлый скин!)
+            img.classList.remove('zoomed');
+            modal.classList.remove('is-zoomed');
+            img.src = ''; 
+
             const isSwapped = item.is_swapped === true;
             const isReplaced = !!item.replaced_name && !isSwapped;
             let displayName = (isReplaced || isSwapped) ? item.replaced_name : item.name;
@@ -3763,17 +3763,23 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             }
             if (!displayName) displayName = "Секретный приз";
 
-            let imageUrl = (isReplaced || isSwapped) ? item.replaced_image_url : item.image_url;
-            if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
-                imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(displayName)}`;
+            // 2. Достаем картинку через Cloudflare CDN (крупную 360px)
+            let rawImg = item.replaced_image_url || item.image_url;
+            let targetUrl = formatSteamImg(rawImg, '360fx360f');
+
+            // Если миниатюра уже загружена на карточке инвентаря — показываем её моментально (0 мс задержки)
+            const cardImg = document.getElementById(`inv-img-${historyId}`);
+            if (cardImg && cardImg.complete && cardImg.naturalWidth > 0) {
+                img.src = cardImg.src;
+            } else {
+                img.src = targetUrl;
             }
 
-            const modal = document.getElementById('skin-inspect-modal');
-            const img = document.getElementById('inspect-skin-img');
-            img.classList.remove('zoomed');
-            if (modal) modal.classList.remove('is-zoomed');
+            img.onerror = function() {
+                this.onerror = null;
+                this.src = STEAM_FALLBACK_IMG;
+            };
 
-            img.src = imageUrl;
             document.getElementById('inspect-skin-title').textContent = displayName;
 
             // Качество на русском
@@ -3934,10 +3940,13 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             }, "ДА, ПРИШЕЛ", "rgba(255,255,255,0.15)", "#fff");
         }
 
-        // ⚡ Надежный CDN Steam через Cloudflare (как в Гринде)
+// ⚡ Надежный CDN Steam через Cloudflare + Кэш памяти (1в1 как в Гринде)
 const STEAM_FALLBACK_IMG = 'https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f';
 
-function formatSteamImg(url) {
+// Кэш раскодированных картинок в видеопамяти
+const skinImageMemoryCache = new Map();
+
+function formatSteamImg(url, size = '180fx180f') {
     if (!url) return STEAM_FALLBACK_IMG;
     let clean = String(url).trim();
     if (!clean || clean === 'null' || clean === 'undefined') return STEAM_FALLBACK_IMG;
@@ -3951,20 +3960,55 @@ function formatSteamImg(url) {
         }
     }
 
-    // Заменяем заблокированный Akamai на рабочий Cloudflare
+    // Заменяем заблокированные домены на стабильный Cloudflare CDN
     clean = clean.replace('steamcommunity-a.akamaihd.net', 'community.cloudflare.steamstatic.com')
-                 .replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com');
+                 .replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com')
+                 .replace('steamcommunity.com', 'community.cloudflare.steamstatic.com');
     
     clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '').replace(/\/+$/, '');
-    return clean + '/360fx360f';
+    return clean + '/' + size;
 }
 
+// Мгновенная предзагрузка картинок в память
+function preloadImageAsync(url) {
+    return new Promise((resolve) => {
+        if (!url || String(url).includes('null')) return resolve(null);
+        const targetUrl = formatSteamImg(url, '180fx180f');
+        if (skinImageMemoryCache.has(targetUrl)) return resolve(skinImageMemoryCache.get(targetUrl));
+
+        const img = new Image();
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        img.onload = () => {
+            if (img.decode) {
+                img.decode().catch(() => {}).finally(() => {
+                    skinImageMemoryCache.set(targetUrl, img);
+                    resolve(img);
+                });
+            } else {
+                skinImageMemoryCache.set(targetUrl, img);
+                resolve(img);
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = targetUrl;
+    });
+}
         // --- ГЛАВНЫЙ РЕНДЕР ИНВЕНТАРЯ ---
         function renderInventory(items, isSorting = false) {
             const container = document.getElementById('inventory-list-container');
             if(!container) return; 
 
-            if (!isSorting) window.currentInventoryItems = items || [];
+            if (!isSorting) {
+                window.currentInventoryItems = items || [];
+                // 🔥 В фоне сразу раскодируем картинки в память
+                if (Array.isArray(items)) {
+                    items.forEach(it => {
+                        const u = it.replaced_image_url || it.image_url;
+                        if (u) preloadImageAsync(u);
+                    });
+                }
+            }
             const itemsToRender = [...window.currentInventoryItems];
 
             // Динамические переменные шрифтов в зависимости от Сетки
@@ -4081,9 +4125,9 @@ function formatSteamImg(url) {
                 let cleanName = displayName;
                 if (displayName.includes('|')) cleanName = displayName.split('|').slice(1).join('|').trim();
                 
-               // 🔥 Достаем картинку и форматируем под Cloudflare CDN
+               // 🔥 Для миниатюр инвентаря грузим легкий размер 180px (в 4 раза быстрее!)
                 let rawImg = item.replaced_image_url || item.image_url;
-                let imageUrl = formatSteamImg(rawImg);
+                let imageUrl = formatSteamImg(rawImg, '180fx180f');
 
                 // 🔥 СОЗДАЕМ ТОТ САМЫЙ БЕЛЫЙ ЗНАЧОК РЕЛОАДА
                 let replacedBadgeHtml = '';
@@ -4322,7 +4366,7 @@ function formatSteamImg(url) {
                     <div onclick="openSupportModal('${historyId}', event)" style="position:absolute; top:4px; left:4px; width:${supportSize}; height:${supportSize}; border-radius:50%; background:rgba(255,255,255,0.05); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text-color-muted); font-weight:900; display:flex; justify-content:center; align-items:center; z-index:20; font-size:${supportFont}; border: 1px solid var(--glass-border); cursor:pointer;">!</div>
 
                     <div style="position:absolute; inset:0; display:flex; justify-content:center; align-items:center; overflow:hidden; z-index:1; padding-bottom: 15px; cursor: zoom-in;" onclick="${!isArchived && !isFailed ? `openSkinInspect('${historyId}')` : ''}">
-                        <img src="${imageUrl}" style="${imageStyles}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;">
+                        <img id="inv-img-${historyId}" src="${imageUrl}" style="${imageStyles}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;">
                         ${centerOverlay}
                     </div>
 
