@@ -3946,7 +3946,7 @@ const STEAM_FALLBACK_IMG = 'https://community.cloudflare.steamstatic.com/economy
 // Кэш раскодированных картинок в видеопамяти
 const skinImageMemoryCache = new Map();
 
-function formatSteamImg(url, size = '180fx180f') {
+function formatSteamImg(url) {
     if (!url) return STEAM_FALLBACK_IMG;
     let clean = String(url).trim();
     if (!clean || clean === 'null' || clean === 'undefined') return STEAM_FALLBACK_IMG;
@@ -3966,14 +3966,14 @@ function formatSteamImg(url, size = '180fx180f') {
                  .replace('steamcommunity.com', 'community.cloudflare.steamstatic.com');
     
     clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '').replace(/\/+$/, '');
-    return clean + '/' + size;
+    return clean + '/360fx360f'; // 🔥 ЧЕСТНЫЙ HD РАЗМЕР 360px 1-В-1 КАК В ГРИНДЕ
 }
 
 // Мгновенная предзагрузка картинок в память
 function preloadImageAsync(url) {
     return new Promise((resolve) => {
         if (!url || String(url).includes('null')) return resolve(null);
-        const targetUrl = formatSteamImg(url, '180fx180f');
+        const targetUrl = formatSteamImg(url);
         if (skinImageMemoryCache.has(targetUrl)) return resolve(skinImageMemoryCache.get(targetUrl));
 
         const img = new Image();
