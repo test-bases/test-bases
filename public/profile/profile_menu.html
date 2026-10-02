@@ -620,16 +620,81 @@
         }
         #global-loader.active { display: flex; }
 
-        /* Fullscreen Weapon Modal */
-        #fullscreen-weapon-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 999999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(20px);
+       /* === ПРЕМИАЛЬНЫЙ ЗУМ И ОСМОТР СКИНА (1-В-1 ИЗ ГРИНДА) === */
+        #skin-inspect-modal {
+            transition: background 0.3s ease;
         }
-        #fullscreen-weapon-modal.visible { opacity: 1; pointer-events: auto; }
-        #fullscreen-weapon-img { max-width: 90%; max-height: 60%; object-fit: contain; filter: drop-shadow(0 10px 40px rgba(255,255,255,0.1)); transform: scale(1.15); }
-        #fullscreen-weapon-name { color: #fff; font-size: 18px; font-weight: 800; margin-top: 20px; text-transform: uppercase; text-shadow: 0 2px 10px rgba(0,0,0,0.8); text-align: center; padding: 0 20px; }
-        #fullscreen-weapon-close { position: absolute; top: max(env(safe-area-inset-top, 24px) + 50px, 80px); right: 20px; left: auto; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        #skin-inspect-modal.is-zoomed {
+            background: rgba(0, 0, 0, 0.96) !important;
+        }
+        #skin-inspect-modal .bottom-sheet {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            max-width: 96vw !important;
+            width: 100% !important;
+            padding: 12px 6px !important;
+            position: relative;
+        }
+        #skin-inspect-modal .bottom-sheet > *:not(.inspect-img-box):not(.inspect-close-box) {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        #skin-inspect-modal.is-zoomed .bottom-sheet > *:not(.inspect-img-box):not(.inspect-close-box) {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: scale(0.95);
+        }
+        .inspect-img-box {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            margin: 10px 0 14px 0;
+            touch-action: manipulation;
+            z-index: 10;
+        }
+        .inspect-img-zoom {
+            width: 100%;
+            height: auto;
+            max-width: 72vw;
+            max-height: 240px;
+            object-fit: contain;
+            filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.95));
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.3s ease;
+            cursor: zoom-in;
+            transform-origin: center center;
+        }
+        .inspect-img-zoom.zoomed {
+            transform: scale(1.32);
+            cursor: zoom-out;
+            filter: drop-shadow(0 22px 48px rgba(0, 0, 0, 1));
+        }
+        .inspect-close-box {
+            position: relative;
+            z-index: 20;
+        }
+        .inspect-tags-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .inspect-pill {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            text-transform: uppercase;
+        }
 
         /* --- Кнопка обновления для ПК --- */
         #desktop-refresh-btn {
@@ -1202,11 +1267,28 @@ body.is-android .system-top-banner {
         </div>
     </div>
 
-    <!-- Модалка просмотра оружия на весь экран -->
-    <div id="fullscreen-weapon-modal">
-        <button id="fullscreen-weapon-close" onclick="closeFullscreenWeapon()"><i class="fa-solid fa-xmark"></i></button>
-        <img id="fullscreen-weapon-img" src="" alt="Weapon">
-        <div id="fullscreen-weapon-name"></div>
+    <!-- === МОДАЛКА ОСМОТРА СКИНА 1-В-1 ИЗ ГРИНДА (ZOOM И ХАРАКТЕРИСТИКИ) === -->
+    <div id="skin-inspect-modal" class="modal-overlay" onclick="if(event.target===this) closeSkinInspect()">
+        <div class="bottom-sheet" style="text-align: center;">
+            <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
+            <span style="font-size: 9px; color: var(--text-color-muted); text-transform: uppercase; letter-spacing: 0.5px;">Нажмите на скин для приближения</span>
+
+            <div class="inspect-img-box" onclick="toggleSkinZoom(this)">
+                <img id="inspect-skin-img" class="inspect-img-zoom" src="" alt="Скин">
+            </div>
+
+            <h3 id="inspect-skin-title" style="margin: 0 0 10px 0; font-size: 14px; font-weight: 800; color: #fff; line-height: 1.2;">-</h3>
+
+            <div class="inspect-tags-row">
+                <span id="inspect-skin-wear" class="inspect-pill">-</span>
+                <span id="inspect-skin-rarity" class="inspect-pill">-</span>
+                <span id="inspect-skin-price" class="inspect-pill" style="color: #ffd700;">-</span>
+            </div>
+
+            <div class="inspect-close-box" style="max-width: 280px; margin: 0 auto; width: 100%;">
+                <button class="ios-btn" style="width: 100%; background: rgba(255, 255, 255, 0.08); border: none; color: #8e8e93; font-weight: 800; padding: 12px; border-radius: 12px;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
+            </div>
+        </div>
     </div>
 
     <!-- Модалка 3D просмотра карточки -->
@@ -3478,6 +3560,7 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             if (sourceText === 'auction') sourceText = 'Аукцион';
             if (sourceText === 'twitch') sourceText = 'Twitch Дроп';
             if (sourceText === 'checkpoint') sourceText = 'Баттл пасс';
+            if (['grind_shop', 'grind.shop', 'grind'].includes(sourceText)) sourceText = 'Гринд-Магазин 🔥';
 
             // 🔥 Новая логика: Прячем последние 3 символа кода, если он есть
             let displayCode = '';
@@ -3492,8 +3575,8 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
                 const amnestyTimestamp = new Date('2026-07-15T00:00:00+03:00').getTime();
                 
                 let baseLifeTimeMs = updateTimeMs < amnestyTimestamp 
-                    ? amnestyTimestamp + (14 * 24 * 60 * 60 * 1000) 
-                    : updateTimeMs + ((['raffle', 'auction', 'twitch'].includes(item.source || 'shop') ? 3 : 14) * 24 * 60 * 60 * 1000);
+                        ? amnestyTimestamp + (14 * 24 * 60 * 60 * 1000) 
+                        : updateTimeMs + ((['raffle', 'auction', 'twitch', 'grind_shop', 'grind.shop', 'grind'].includes(source) ? 3 : 14) * 24 * 60 * 60 * 1000);
                 
                 let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
                 
@@ -3639,12 +3722,94 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             }
         };
 
-        window.openFullscreenWeapon = function(url, name) {
-            document.getElementById('fullscreen-weapon-img').src = url;
-            document.getElementById('fullscreen-weapon-name').innerText = name;
-            document.getElementById('fullscreen-weapon-modal').classList.add('visible');
-            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        // 🏷️ Вспомогательные функции русификации из Гринда
+        function formatSkinWearRu(wear, title = '') {
+            const raw = ((wear || '') + ' ' + (title || '')).toLowerCase();
+            if (raw.includes('factory new') || raw.includes('прямо с завода') || raw === 'fn') return 'Прямо с завода';
+            if (raw.includes('minimal wear') || raw.includes('немного поношенное') || raw === 'mw') return 'Немного поношенное';
+            if (raw.includes('field-tested') || raw.includes('после полевых') || raw === 'ft') return 'После полевых испытаний';
+            if (raw.includes('well-worn') || raw.includes('поношенное') || raw === 'ww') return 'Поношенное';
+            if (raw.includes('battle-scarred') || raw.includes('закален') || raw === 'bs') return 'Закалённое в боях';
+            return 'Базовое';
         }
+
+        function formatSkinRarityRu(rarity) {
+            const r = (rarity || '').toLowerCase().trim();
+            if (r.includes('common') || r.includes('consumer') || r.includes('ширпотреб')) return { name: 'Ширпотреб', color: '#b0c3d9' };
+            if (r.includes('industrial') || r.includes('промышлен')) return { name: 'Промышленное', color: '#5e98d9' };
+            if (r.includes('mil-spec') || r.includes('blue') || r.includes('армейск')) return { name: 'Армейское', color: '#4b69ff' };
+            if (r.includes('restricted') || r.includes('purple') || r.includes('запрещен')) return { name: 'Запрещённое', color: '#8847ff' };
+            if (r.includes('classified') || r.includes('pink') || r.includes('засекречен')) return { name: 'Засекреченное', color: '#d32ce6' };
+            if (r.includes('covert') || r.includes('red') || r.includes('тайное')) return { name: 'Тайное', color: '#eb4b4b' };
+            if (r.includes('extraordinary') || r.includes('нож') || r.includes('перчатк') || r.includes('gold')) return { name: 'Необычайное', color: '#ffd700' };
+            return { name: rarity || 'Армейское', color: '#4b69ff' };
+        }
+
+        // 🔍 МОДАЛКА ДЕТАЛЬНОГО ОСМОТРА СКИНА 1-В-1 ИЗ ГРИНДА
+        window.openSkinInspect = function(historyId) {
+            const item = (window.currentInventoryItems || []).find(i => String(i.id || i.history_id) === String(historyId));
+            if (!item) return;
+
+            const isSwapped = item.is_swapped === true;
+            const isReplaced = !!item.replaced_name && !isSwapped;
+            let displayName = (isReplaced || isSwapped) ? item.replaced_name : item.name;
+            if (!displayName && item.details && item.details.includes('Выигрыш:')) {
+                displayName = item.details.replace('Выигрыш:', '').split('||')[0].trim();
+            }
+            if (!displayName) displayName = "Секретный приз";
+
+            let imageUrl = (isReplaced || isSwapped) ? item.replaced_image_url : item.image_url;
+            if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
+                imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(displayName)}`;
+            }
+
+            const modal = document.getElementById('skin-inspect-modal');
+            const img = document.getElementById('inspect-skin-img');
+            img.classList.remove('zoomed');
+            if (modal) modal.classList.remove('is-zoomed');
+
+            img.src = imageUrl;
+            document.getElementById('inspect-skin-title').textContent = displayName;
+
+            // Качество на русском
+            document.getElementById('inspect-skin-wear').textContent = formatSkinWearRu(item.condition, displayName);
+
+            // Редкость с неоновой обводкой
+            const rarityData = formatSkinRarityRu(item.rarity);
+            const rarityEl = document.getElementById('inspect-skin-rarity');
+            rarityEl.textContent = rarityData.name;
+            rarityEl.style.color = rarityData.color;
+            rarityEl.style.borderColor = `${rarityData.color}80`;
+            rarityEl.style.background = `${rarityData.color}15`;
+            rarityEl.style.boxShadow = `0 0 10px ${rarityData.color}35`;
+
+            // Цена предмета
+            const rawPrice = parseFloat(String(item.replaced_price || item.price_rub || item.price || 0).replace(',', '.')) || 0;
+            document.getElementById('inspect-skin-price').textContent = rawPrice > 0 ? `${rawPrice} ₽` : 'Награда';
+
+            modal.classList.add('visible');
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        };
+
+        window.closeSkinInspect = function() {
+            const modal = document.getElementById('skin-inspect-modal');
+            if (modal) {
+                modal.classList.remove('visible');
+                modal.classList.remove('is-zoomed');
+            }
+            const img = document.getElementById('inspect-skin-img');
+            if (img) img.classList.remove('zoomed');
+        };
+
+        window.toggleSkinZoom = function(box) {
+            const img = box.querySelector('img');
+            const modal = document.getElementById('skin-inspect-modal');
+            if (img) {
+                const isZoomed = img.classList.toggle('zoomed');
+                if (modal) modal.classList.toggle('is-zoomed', isZoomed);
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            }
+        };
         
         window.closeFullscreenWeapon = function() {
             document.getElementById('fullscreen-weapon-modal').classList.remove('visible');
@@ -4134,7 +4299,7 @@ if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
 
                     <div onclick="openSupportModal('${historyId}', event)" style="position:absolute; top:4px; left:4px; width:${supportSize}; height:${supportSize}; border-radius:50%; background:rgba(255,255,255,0.05); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text-color-muted); font-weight:900; display:flex; justify-content:center; align-items:center; z-index:20; font-size:${supportFont}; border: 1px solid var(--glass-border); cursor:pointer;">!</div>
 
-                    <div style="position:absolute; inset:0; display:flex; justify-content:center; align-items:center; overflow:hidden; z-index:1; padding-bottom: 15px;" onclick="${!isArchived && !isFailed ? `openFullscreenWeapon('${imageUrl}', '${safeNameStr}')` : ''}">
+                    <div style="position:absolute; inset:0; display:flex; justify-content:center; align-items:center; overflow:hidden; z-index:1; padding-bottom: 15px; cursor: zoom-in;" onclick="${!isArchived && !isFailed ? `openSkinInspect('${historyId}')` : ''}">
                         <img src="${imageUrl}" style="${imageStyles}">
                         ${centerOverlay}
                     </div>
