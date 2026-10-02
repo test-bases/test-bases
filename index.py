@@ -8728,14 +8728,18 @@ async def user_buy_grind_skin(
     now_dt = datetime.now(timezone.utc)
     expires_dt = now_dt + timedelta(days=3)  # 🔥 Ровно 3 дня (72 часа)
 
-    # Формируем запись строго по колонкам таблицы cs_history
+    # Префикс "Выигрыш:" гарантирует 100% отображение имени скина в profile.html
     history_payload = {
         "user_id": user_id,
         "item_id": skin.get("cs_item_id"),
         "case_name": f"Магазин: {skin['skin_name']}",
         "status": "pending",
         "source": "grind_shop",
-        "details": f"Выигрыш: {skin['skin_name']} || Трейд: {trade_link or 'Не указан'}"
+        "details": f"Выигрыш: {skin['skin_name']} || Трейд: {trade_link or 'Не указан'}",
+        "replaced_name": skin.get("skin_name"),
+        "replaced_image_url": skin.get("image_url"),  # 🔥 СОХРАНЯЕМ КАРТИНКУ В ИСТОРИЮ
+        "replaced_price": skin.get("price_rub") or 0.0,
+        "replaced_rarity": skin.get("rarity")
     }
 
     # 2. Параллельно записываем списание, обновление товара и инвентарь
