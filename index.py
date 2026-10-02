@@ -25640,22 +25640,22 @@ async def claim_daily_task(
         now_dt = datetime.now(timezone.utc)
         last_claimed_str = progress.get("last_claimed_at")
 
-        # 🔥 Специальная проверка для tg_vote (кулдаун 30 дней)
+        # 🔥 Специальная проверка для tg_vote (кулдаун 31 день)
         if task_key == "tg_vote":
             if last_claimed_str:
                 last_claim_dt = parser.isoparse(last_claimed_str)
                 if not last_claim_dt.tzinfo:
                     last_claim_dt = last_claim_dt.replace(tzinfo=timezone.utc)
                 time_passed = now_dt - last_claim_dt
-                if time_passed < timedelta(days=30):
-                    days_left = 30 - time_passed.days
-                    hours_left = int((timedelta(days=30) - time_passed).total_seconds() // 3600 % 24)
+                if time_passed < timedelta(days=31):
+                    days_left = 31 - time_passed.days
+                    hours_left = int((timedelta(days=31) - time_passed).total_seconds() // 3600 % 24)
                     return JSONResponse({
                         "success": False, 
-                        "error": f"Голосовать можно раз в 30 дней. До следующей награды осталось дней: {days_left} (и {hours_left} ч.)"
+                        "error": f"Голосовать можно раз в 31 день. До следующей награды осталось дней: {days_left} (и {hours_left} ч.)"
                     })
                 else:
-                    progress["completed"] = False  # 30 дней прошло — разрешаем повторно забрать
+                    progress["completed"] = False  # 31 день прошел — разрешаем повторно забрать
         elif progress.get("completed"):
             return JSONResponse({"success": False, "error": "Задание уже выполнено!"})
 
