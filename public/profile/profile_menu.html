@@ -4001,9 +4001,9 @@ function preloadImageAsync(url) {
 
             if (!isSorting) {
                 window.currentInventoryItems = items || [];
-                // 🔥 В фоне сразу раскодируем картинки в память
+                // 🔥 В фоне раскодируем только первый видимый экран (первые 15 штук), чтобы не забивать сеть
                 if (Array.isArray(items)) {
-                    items.forEach(it => {
+                    items.slice(0, 15).forEach(it => {
                         const u = it.replaced_image_url || it.image_url;
                         if (u) preloadImageAsync(u);
                     });
@@ -4366,7 +4366,7 @@ function preloadImageAsync(url) {
                     <div onclick="openSupportModal('${historyId}', event)" style="position:absolute; top:4px; left:4px; width:${supportSize}; height:${supportSize}; border-radius:50%; background:rgba(255,255,255,0.05); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text-color-muted); font-weight:900; display:flex; justify-content:center; align-items:center; z-index:20; font-size:${supportFont}; border: 1px solid var(--glass-border); cursor:pointer;">!</div>
 
                     <div style="position:absolute; inset:0; display:flex; justify-content:center; align-items:center; overflow:hidden; z-index:1; padding-bottom: 15px; cursor: zoom-in;" onclick="${!isArchived && !isFailed ? `openSkinInspect('${historyId}')` : ''}">
-                        <img id="inv-img-${historyId}" src="${imageUrl}" style="${imageStyles}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;">
+                        <img id="inv-img-${historyId}" src="${imageUrl}" style="${imageStyles}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;">
                         ${centerOverlay}
                     </div>
 
