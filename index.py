@@ -25591,7 +25591,7 @@ def calculate_daily_reward(total_amount, total_days, current_day):
 
 
 # ==========================================================
-#         FASTAPI ENDPOINTS (API ДЛЯ ФРОНТЕНДА)
+#          FASTAPI ENDPOINTS (API ДЛЯ ФРОНТЕНДА)
 # ==========================================================
 
 # Кэш картинок кейсов в оперативной памяти
@@ -25655,7 +25655,7 @@ async def claim_daily_task(
                         "error": f"Голосовать можно раз в 30 дней. До следующей награды осталось дней: {days_left} (и {hours_left} ч.)"
                     })
                 else:
-                    progress["completed"] = False  # 30 дней прошло — разрешаем повторно забрать!
+                    progress["completed"] = False  # 30 дней прошло — разрешаем повторно забрать
         elif progress.get("completed"):
             return JSONResponse({"success": False, "error": "Задание уже выполнено!"})
 
@@ -25685,66 +25685,18 @@ async def claim_daily_task(
                     return JSONResponse({"success": False, "error": "Не удалось проверить подписку."})
 
             elif task_key == "tg_vote":
-                # 🧪 ТЕСТОВЫЙ ОБХОД: если это наш админ/тестер — пропускаем без буста
+                # 🧪 ТЕСТОВЫЙ ОБХОД ДЛЯ АДМИНА
                 if user_id == 477521935:
                     check_passed = True
                 else:
                     try:
                         user_boosts = await main_bot.get_user_chat_boosts(chat_id=TG_QUEST_CHANNEL_ID, user_id=user_id)
-                        if not user_boosts.boosts:
+                        if not user_boosts or not user_boosts.boosts:
                             return JSONResponse({"success": False, "error": "Голос не найден! Проголосуйте за канал."})
                         check_passed = True
                     except Exception as e:
                         logger.error(f"Boost check error for {user_id}: {e}")
                         return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
-
-                    # 🔥 ПРОВЕРКА НА СГОРАНИЕ (30 ДНЕЙ) И АКТУАЛЬНОСТЬ БУСТА
-                    valid_boost_found = False
-                    expired_boost_found = False
-                    
-                    last_claim_dt = None
-                    if last_claimed_str:
-                        last_claim_dt = parser.isoparse(last_claimed_str)
-                        if not last_claim_dt.tzinfo:
-                            last_claim_dt = last_claim_dt.replace(tzinfo=timezone.utc)
-
-                    for b in user_boosts.boosts:
-                        b_date = b.add_date
-                        if hasattr(b_date, "timestamp"):
-                            b_dt = b_date if b_date.tzinfo else b_date.replace(tzinfo=timezone.utc)
-                        elif isinstance(b_date, (int, float)):
-                            b_dt = datetime.fromtimestamp(float(b_date), tz=timezone.utc)
-                        else:
-                            b_dt = now_dt
-
-                        # Если буст был отдан до или в момент предыдущей выплаты — он уже был использован
-                        if last_claim_dt and b_dt <= last_claim_dt:
-                            continue
-
-                        # Если с момента отдачи голоса прошло более 30 дней — награда СГОРЕЛА
-                        if (now_dt - b_dt) > timedelta(days=30):
-                            expired_boost_found = True
-                            continue
-
-                        # Найден свежий активный голос в пределах 30 дней
-                        valid_boost_found = True
-                        break
-
-                    if not valid_boost_found:
-                        if expired_boost_found:
-                            return JSONResponse({
-                                "success": False,
-                                "error": "Награда за голос сгорела (прошло более 30 дней с момента голосования). Пожалуйста, отдайте голос заново!"
-                            })
-                        return JSONResponse({
-                            "success": False,
-                            "error": "Активный голос не найден или за него уже была получена награда!"
-                        })
-
-                    check_passed = True
-                except Exception as e:
-                    logger.error(f"Boost check error for {user_id}: {e}")
-                    return JSONResponse({"success": False, "error": "Бот не может проверить голос."})
 
             else:
                 try:
@@ -25778,7 +25730,7 @@ async def claim_daily_task(
                 "error": f"Условие не выполнено! Проверьте наличие '{task.get('check_phrase')}' в {target}."
             })
             
-        # === 6. ГЛАВНАЯ ЛОГИКА ДНЕЙ ===
+        # === 6. ГЛАВНАЯ ЛОГИКА ДНЕЙ И НАГРАД ===
         next_day = 1
         streak_reset = False 
         reward = float(task.get("reward_amount", 0))
@@ -25800,10 +25752,10 @@ async def claim_daily_task(
         # Список параллельных задач на запись в базу
         save_db_tasks = []
 
-        # 🔥 НАГРАДА ЗА ГОЛОСОВАНИЕ (РАЗ В 30 ДНЕЙ): +10 МОНЕТ + КЕЙС ПЕРВООТКРЫВАТЕЛЬ
+        # 🔥 1. НАГРАДА ЗА ГОЛОСОВАНИЕ (РАЗ В 30 ДНЕЙ): +10 МОНЕТ + КЕЙС ПЕРВООТКРЫВАТЕЛЬ
         if task_key == "tg_vote":
             reward = 10.0
-            case_image_url = EXPLORER_CASE_IMG  # Твой keysikblin.png
+            case_image_url = EXPLORER_CASE_IMG
             unique_code = f"VOTE-{user_id}-{uuid.uuid4().hex[:4].upper()}"
             coupon_data = {
                 "code": unique_code,
@@ -25821,15 +25773,14 @@ async def claim_daily_task(
             }
             save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
             custom_message = "Голос учтён! Вам начислено +10.0 гринд-монет и выдан Кейс | Первооткрыватель!"
-            is_done = False  # 🔥 Не уходит в архив выполненных, висит в активных
+            is_done = False  # Не уходит в архив выполненных, остается на кулдауне 30 дней
             next_day = 1
 
         # 🔥 2. ЗОЛОТАЯ КНОПКА (7 ДЕНЬ) — ВЫБОР НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ
         elif is_golden_claim and not streak_reset:
-            reward_choice = data.get("reward_choice", "case")  # "case" или "coins"
+            reward_choice = data.get("reward_choice", "case")
 
             if reward_choice == "coins":
-                # Вариант 1: Игрок выбрал 10 монет
                 reward = 10.0
                 secret_code = None
                 case_image_url = None
@@ -25837,7 +25788,6 @@ async def claim_daily_task(
                 next_day = 1
                 is_done = False
             else:
-                # Вариант 2: Игрок выбрал кейс
                 target_case = "Кейс | TELEGRAM"
                 unique_code = f"DAY7-{user_id}-{uuid.uuid4().hex[:4].upper()}"
                 coupon_data = {
@@ -25856,7 +25806,6 @@ async def claim_daily_task(
                 }
                 save_db_tasks.append(supabase.post("/cs_codes", json=coupon_data))
 
-                # Достаем картинку кейса (с мгновенным in-memory кэшем)
                 if target_case in _CASE_IMAGE_CACHE:
                     case_image_url = _CASE_IMAGE_CACHE[target_case]
                 else:
@@ -25894,7 +25843,7 @@ async def claim_daily_task(
                 next_day = current_day_val + 1
             is_done = False if task.get("is_daily") else True 
 
-        # 7. Обновляем баланс (начисляем гринд-монеты только если reward > 0)
+        # 7. Обновляем баланс монет (если reward > 0)
         new_coins = None
         if float(reward) > 0:
             user_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}", "select": "coins"})
@@ -25903,7 +25852,7 @@ async def claim_daily_task(
             new_coins = round(current_coins + float(reward), 4)
             save_db_tasks.append(supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"coins": new_coins}))
 
-        # 8. Обновляем прогресс
+        # 8. Обновляем прогресс задания
         update_data = {
             "current_day": next_day,
             "last_claimed_at": now_dt.isoformat(),
@@ -25915,7 +25864,7 @@ async def claim_daily_task(
             json=update_data
         ))
 
-        # 🔥 ПИШЕМ СОБЫТИЕ В ИСТОРИЮ (ДОБАВЛЯЕМ В ПАРАЛЛЕЛЬНУЮ ПАЧКУ) 🔥
+        # 9. Запись события в историю
         if task_key == "tg_vote":
             event_title = "Голосование за канал"
         elif is_golden_claim:
@@ -25932,7 +25881,7 @@ async def claim_daily_task(
             coins_reward=reward if not (secret_code or custom_message and reward == 0) else 0
         ))
 
-        # ⚡ ПАРАЛЛЕЛЬНО ВЫПОЛНЯЕМ ВСЕ ОПЕРАЦИИ ЗАПИСИ ЗА 1 РАУНДТРИП
+        # Параллельное сохранение всех записей
         if save_db_tasks:
             await asyncio.gather(*save_db_tasks)
 
@@ -25952,6 +25901,7 @@ async def claim_daily_task(
     except Exception as e:
         logger.error(f"Global Error in claim_daily: {e}")
         return JSONResponse({"success": False, "error": f"Ошибка сервера: {str(e)}"})
+        
 @app.post("/api/v1/telegram/status")
 async def get_telegram_status(
     request: Request,
