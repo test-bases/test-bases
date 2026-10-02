@@ -1563,10 +1563,15 @@ let currentShopTab = 'skins';
                 const fastImg = formatSteamImg(item.image_url);
                 preloadAndCacheSkinImage(fastImg);
 
+                // 🔥 Форматируем цену: если меньше 10 ₽, показываем копейки (0.45 ₽), иначе округляем
+                const pRub = parseFloat(item.price_rub || 0);
+                const displayPriceRub = pRub < 10 ? pRub.toFixed(2) : pRub.toFixed(0);
+                const cleanImg = fastImg && !fastImg.includes('null') ? fastImg : STEAM_FALLBACK_IMG;
+
                 card.innerHTML = `
-                    <img src="${fastImg}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f'" style="width: 100%; height: 50px; object-fit: contain; margin-bottom: 4px;">
+                    <img src="${cleanImg}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;" style="width: 100%; height: 50px; object-fit: contain; margin-bottom: 4px;">
                     <div style="font-size: 9px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 3px; max-height: 22px; overflow: hidden;">${item.market_hash_name}</div>
-                    <div style="font-size: 9px; font-weight: 900; color: var(--accent-neon); margin-top: auto;">${parseFloat(item.price_rub).toFixed(0)} ₽</div>
+                    <div style="font-size: 9px; font-weight: 900; color: var(--accent-neon); margin-top: auto;">${displayPriceRub} ₽</div>
                 `;
                 container.appendChild(card);
             });
@@ -1580,7 +1585,8 @@ let currentShopTab = 'skins';
         document.getElementById('admin-skin-name-val').value = item.market_hash_name;
         document.getElementById('selected-skin-title').textContent = item.market_hash_name;
         document.getElementById('selected-skin-img').src = item.image_url;
-        document.getElementById('selected-skin-price-rub').textContent = `Цена Steam: ~${parseFloat(item.price_rub).toFixed(0)} ₽`;
+        const pSel = parseFloat(item.price_rub || 0);
+        document.getElementById('selected-skin-price-rub').textContent = `Цена Steam: ~${pSel < 10 ? pSel.toFixed(2) : pSel.toFixed(0)} ₽`;
         document.getElementById('selected-skin-box').style.display = 'flex';
 
         // Закрываем окно поиска и возвращаемся к добавлению
@@ -1697,6 +1703,9 @@ let currentShopTab = 'skins';
                 cost_coins: cost,
                 quantity: qty
             }, 'POST');
+
+            // 🔥 СБРАСЫВАЕМ КЭШ, ЧТОБЫ СКИН ПОЯВИЛСЯ СРАЗУ
+            localStorage.removeItem('cache_shop_skins');
 
             closeAddSkinModal();
             window.showSuccessModal(res.message || "Скин успешно добавлен!");
