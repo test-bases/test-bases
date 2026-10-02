@@ -3543,11 +3543,16 @@ window.closeFullscreenCard = function() {
             };
             const statusRu = statusMap[rawStatus] || rawStatus;
             
-           // ✅ СТАЛО
-let imageUrl = (isReplaced || isSwapped) ? item.replaced_image_url : item.image_url;
-if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
-    imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(displayName)}`;
-}
+           let rawImg = item.replaced_image_url || item.image_url;
+            let imageUrl = formatSteamImg(rawImg);
+
+            const modal = document.getElementById('skin-inspect-modal');
+            const img = document.getElementById('inspect-skin-img');
+            img.classList.remove('zoomed');
+            if (modal) modal.classList.remove('is-zoomed');
+
+            img.src = imageUrl;
+            img.onerror = () => { img.src = STEAM_FALLBACK_IMG; };
 
 let parsedBasePrice = parseFloat(String(item.price_rub || item.price || "0").replace(',', '.')) || 0;
 
@@ -3929,6 +3934,31 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             }, "ДА, ПРИШЕЛ", "rgba(255,255,255,0.15)", "#fff");
         }
 
+        // ⚡ Надежный CDN Steam через Cloudflare (как в Гринде)
+const STEAM_FALLBACK_IMG = 'https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThH_t26q5GHqPrxN7LEmyVQ7MEpiLuSrYmnjQO3-UdsZGHyd4_Bd1RvM1vV_Va5k-rm1pS8vc6fnXJluD5iuyG6cZ9l4w/180fx180f';
+
+function formatSteamImg(url) {
+    if (!url) return STEAM_FALLBACK_IMG;
+    let clean = String(url).trim();
+    if (!clean || clean === 'null' || clean === 'undefined') return STEAM_FALLBACK_IMG;
+
+    // Если передан только хэш картинки без домена
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+        if (clean.startsWith('//')) {
+            clean = 'https:' + clean;
+        } else {
+            clean = 'https://community.cloudflare.steamstatic.com/economy/image/' + clean;
+        }
+    }
+
+    // Заменяем заблокированный Akamai на рабочий Cloudflare
+    clean = clean.replace('steamcommunity-a.akamaihd.net', 'community.cloudflare.steamstatic.com')
+                 .replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com');
+    
+    clean = clean.replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '').replace(/\/+$/, '');
+    return clean + '/360fx360f';
+}
+
         // --- ГЛАВНЫЙ РЕНДЕР ИНВЕНТАРЯ ---
         function renderInventory(items, isSorting = false) {
             const container = document.getElementById('inventory-list-container');
@@ -4051,21 +4081,13 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
                 let cleanName = displayName;
                 if (displayName.includes('|')) cleanName = displayName.split('|').slice(1).join('|').trim();
                 
-                // 🔥 УМНАЯ ЗАГРУЗКА КАРТИНКИ (С авто-поиском новых скинов)
-                let imageUrl = (isReplaced || isSwapped) ? item.replaced_image_url : item.image_url;
-
-// Если картинки нет в базе (ни оригинальной, ни свапнутой) — тянем из Steam
-if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
-    imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(displayName)}`;
-    
-    // Перезаписываем в объекте на лету, чтобы картинка работала и при кликах на кнопки
-    if (isReplaced || isSwapped) item.replaced_image_url = imageUrl;
-    else item.image_url = imageUrl;
-}
+               // 🔥 Достаем картинку и форматируем под Cloudflare CDN
+                let rawImg = item.replaced_image_url || item.image_url;
+                let imageUrl = formatSteamImg(rawImg);
 
                 // 🔥 СОЗДАЕМ ТОТ САМЫЙ БЕЛЫЙ ЗНАЧОК РЕЛОАДА
                 let replacedBadgeHtml = '';
-                if (isReplaced || isSwapped) {
+                if ((isReplaced || isSwapped) && item.source !== 'grind_shop' && item.source !== 'grind.shop') {
                     replacedBadgeHtml = `
                         <div style="position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:#fff; display:flex; justify-content:center; align-items:center; z-index:20; font-size:10px; border: 1px solid var(--glass-border); box-shadow: 0 2px 8px rgba(0,0,0,0.6);" title="Скин был заменен">
                             <i class="fa-solid fa-rotate"></i>
@@ -4300,7 +4322,7 @@ if (!imageUrl || String(imageUrl).includes('null') || imageUrl === '') {
                     <div onclick="openSupportModal('${historyId}', event)" style="position:absolute; top:4px; left:4px; width:${supportSize}; height:${supportSize}; border-radius:50%; background:rgba(255,255,255,0.05); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text-color-muted); font-weight:900; display:flex; justify-content:center; align-items:center; z-index:20; font-size:${supportFont}; border: 1px solid var(--glass-border); cursor:pointer;">!</div>
 
                     <div style="position:absolute; inset:0; display:flex; justify-content:center; align-items:center; overflow:hidden; z-index:1; padding-bottom: 15px; cursor: zoom-in;" onclick="${!isArchived && !isFailed ? `openSkinInspect('${historyId}')` : ''}">
-                        <img src="${imageUrl}" style="${imageStyles}">
+                        <img src="${imageUrl}" style="${imageStyles}" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=STEAM_FALLBACK_IMG;">
                         ${centerOverlay}
                     </div>
 
