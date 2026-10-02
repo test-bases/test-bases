@@ -2123,8 +2123,8 @@ let currentShopTab = 'skins';
         } else if (isFinalDay) {
             btnContent = `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ ПРИЗ`;
         } else if (task.task_key === 'tg_vote') {
-            // Иконка открытого кейса
-            btnContent = `<i class="fa-solid fa-box-open" style="color: var(--accent-neon);"></i> ЗАБРАТЬ КЕЙС +10 <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px;"></i>`;
+            // Текст: ЗАБРАТЬ +10 🔥 ГРИНД-МОНЕТ И КЕЙС 📦
+            btnContent = `ЗАБРАТЬ +10 <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 10px; margin: 0 1px;"></i> ГРИНД-МОНЕТ И КЕЙС <i class="fa-solid fa-box-open" style="color: var(--accent-neon); font-size: 11px; margin-left: 2px;"></i>`;
         } else {
             const coinLabel = pluralize(task.reward_amount, ['ГРИНД-МОНЕТУ', 'ГРИНД-МОНЕТЫ', 'ГРИНД-МОНЕТ']);
             btnContent = `ЗАБРАТЬ +${task.reward_amount} <i class="fa-solid fa-fire" style="color: #ff3b30; font-size: 11px; margin: 0 2px; filter: drop-shadow(0 0 6px rgba(255,59,48,0.8));"></i> ${coinLabel}`;
@@ -2165,16 +2165,16 @@ let currentShopTab = 'skins';
                     ${streakHtml}
                 </div>
             </div>
-            <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
+            <button class="${activeClass}" id="btn-${task.task_key}" data-active-class="${activeClass}" data-original-html='${btnContent}' ${btnDisabled} style="${task.task_key === 'tg_vote' ? 'font-size: 10px; letter-spacing: 0.2px; white-space: nowrap;' : ''}" onclick="window.handleDailyClaim('${task.task_key}', '${task.action_url || ''}', ${isFinalDay})">${btnContent}</button>
         `;
 
-        // 🔥 КУЛДАУН: 30 дней для tg_vote (720 часов), 20 часов для остальных циклических
+        // 🔥 КУЛДАУН: 31 день для tg_vote (744 часа), 20 часов для остальных циклических
         if (task.last_claimed_at && !isFinalDay) {
             const timePassed = Date.now() - new Date(task.last_claimed_at).getTime();
             if (task.task_key === 'tg_vote') {
-                const cooldown30DaysMs = 30 * 24 * 60 * 60 * 1000;
-                if (timePassed < cooldown30DaysMs) {
-                    timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 30 * 24 });
+                const cooldown31DaysMs = 31 * 24 * 60 * 60 * 1000;
+                if (timePassed < cooldown31DaysMs) {
+                    timersToStart.push({ id: `btn-${task.task_key}`, time: task.last_claimed_at, hours: 31 * 24 });
                 }
             } else if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio')) {
                 const cooldown20HoursMs = 20 * 60 * 60 * 1000;
@@ -2292,7 +2292,7 @@ let currentShopTab = 'skins';
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Периодичность:</span>
-                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">Раз в 30 дней</span>
+                    <span style="color: var(--accent-neon); font-weight: 800; font-family: 'SF Mono', monospace;">Раз в 31 день</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                     <span>Условие:</span>
@@ -2493,8 +2493,8 @@ window.closeStreakCalcModal = function() {
     function handleTaskError(data, taskKey, actionUrl) {
         if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
         if (taskKey === 'tg_vote') {
-            // Если ошибка связана со сроком 30 дней — выводим нормальный текст, а не окно "Голос не найден"
-            if (data && data.error && (data.error.includes("30 дней") || data.error.includes("сгорела"))) {
+            // Проверяем ошибку кулдауна (31 день или 30 дней), чтобы не открывать ложный popup буста
+            if (data && data.error && (data.error.includes("31 день") || data.error.includes("30 дней") || data.error.includes("сгорела"))) {
                 if (tg.showAlert) tg.showAlert(data.error);
                 else window.customAlert(data.error);
             } else {
