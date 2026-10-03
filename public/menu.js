@@ -906,7 +906,6 @@ function updateShortcutStatuses(userData, allQuests) {
             } else { questStatus.textContent = "..."; }
         }
     }
-}
 
 // 🏷️ Проверка доступности: Гринд, Билет или TG-задания
 async function updateGrindBannerBadge() {
