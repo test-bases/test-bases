@@ -428,18 +428,21 @@
         }
 
         /* --- КОМПАКТНЫЕ СОБЫТИЯ С СОРТИРОВКОЙ --- */
-        .event-card {
+        .reward-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             padding: 10px 12px;
-            margin-bottom: 8px;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
+            gap: 6px;
             position: relative;
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
+            transition: transform 0.2s ease;
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
         .event-icon {
             width: 32px;
@@ -830,14 +833,17 @@ html body nav.floating-bottom-bar .comic-badge {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
-            padding: 10px 12px; /* Уменьшили отступы внутри карточки */
+            padding: 10px 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px; /* Было 10px, сделали элементы ближе друг к другу */
+            gap: 6px;
             position: relative;
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             transition: transform 0.2s ease;
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
 
         .reward-card.auto-used {
@@ -1710,7 +1716,9 @@ window.renderRewards = function(rewards, isSorting = false) {
         return dateB - dateA;
     });
 
-    // Отрисовка отсортированных карточек
+    // Отрисовка отсортированных карточек через DocumentFragment
+    const rewardsFragment = document.createDocumentFragment();
+
     itemsToRender.forEach(item => {
         const reward = item.data || item; 
         const isAutoUsed = String(reward.auto_is_used) === 'true';
@@ -1792,9 +1800,10 @@ window.renderRewards = function(rewards, isSorting = false) {
                 <button class="reward-delete-btn" onclick="window.deleteReward('${reward.id}', 'grant', this)"><i class="fa-solid fa-xmark"></i></button>
             `;
         }
-        listContainer.appendChild(card);
+        rewardsFragment.appendChild(card);
     });
-};
+
+    listContainer.appendChild(rewardsFragment);
 
 // Функция копирования
 window.copyPromocode = async function(code, id) {
@@ -3314,6 +3323,7 @@ window.closeFullscreenCard = function() {
             container.innerHTML = html;
 
             const cardsContainer = document.getElementById('events-cards-container');
+            const eventsFragment = document.createDocumentFragment();
 
             eventsToRender.forEach(event => {
                 let iconHtml = '<i class="fa-solid fa-bolt"></i>';
@@ -3352,9 +3362,10 @@ window.closeFullscreenCard = function() {
                     </div>
                     ${rewardHtml}
                 `;
-                cardsContainer.appendChild(card);
+                eventsFragment.appendChild(card);
             });
-        };
+
+            cardsContainer.appendChild(eventsFragment);
 
         // --- МОДАЛКА ПОДДЕРЖКИ ДЛЯ СОБЫТИЙ ---
         window.openEventSupport = function(eventId, title, dateFormatted, eventObj) {
@@ -3449,6 +3460,8 @@ window.closeFullscreenCard = function() {
             } catch(e) { return 0; }
         }
 
+        let activeCountdownIntervals = [];
+
         function initCountdown(elementId, updatedAtStr) {
             const historyId = elementId.replace('timer-', '');
             const timerEl = document.getElementById(elementId);
@@ -3463,24 +3476,25 @@ window.closeFullscreenCard = function() {
             const updateTime = new Date(dateStr).getTime();
             if (isNaN(updateTime)) { wrapperEl.innerHTML = "ОБРАБОТКА"; return; }
             
-            const expireTime = updateTime + (4 * 60 * 1000); // 4 минуты на принятие
+            const expireTime = updateTime + (4 * 60 * 1000);
             const getDistance = () => expireTime - new Date().getTime();
 
-            // Функция заморозки карточки
             const setCheckingState = () => {
                 wrapperEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin-fast"></i> ПРОВЕРКА...`;
                 if (actionBtn) {
-                    actionBtn.onclick = null; // Отключаем открытие меню
+                    actionBtn.onclick = null;
                     actionBtn.style.background = 'rgba(255,255,255,0.05)';
-                    actionBtn.style.animation = 'none'; // Убираем мигание
+                    actionBtn.style.animation = 'none';
                 }
                 const panel = document.getElementById(`action-panel-${historyId}`);
-                if (panel) panel.style.display = 'none'; // Жестко прячем меню, если было открыто
+                if (panel) panel.style.display = 'none';
             };
 
             if (getDistance() < 0) {
                 setCheckingState();
-                if (timerEl.dataset.intervalId) clearInterval(timerEl.dataset.intervalId);
+                if (timerEl.dataset.intervalId) {
+                    clearInterval(Number(timerEl.dataset.intervalId));
+                }
                 return;
             }
 
@@ -3488,8 +3502,10 @@ window.closeFullscreenCard = function() {
                 const distance = getDistance();
                 if (distance < 0) {
                     setCheckingState();
-                    clearInterval(timerEl.dataset.intervalId);
-                    checkTradeStatus(historyId, true); // Делаем контрольный чек
+                    if (timerEl.dataset.intervalId) {
+                        clearInterval(Number(timerEl.dataset.intervalId));
+                    }
+                    checkTradeStatus(historyId, true);
                     return;
                 }
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -3497,9 +3513,13 @@ window.closeFullscreenCard = function() {
                 timerEl.innerHTML = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
             };
 
-            if (timerEl.dataset.intervalId) clearInterval(timerEl.dataset.intervalId);
+            if (timerEl.dataset.intervalId) {
+                clearInterval(Number(timerEl.dataset.intervalId));
+            }
             updateTimer();
-            timerEl.dataset.intervalId = setInterval(updateTimer, 1000);
+            const ivId = setInterval(updateTimer, 1000);
+            timerEl.dataset.intervalId = ivId;
+            activeCountdownIntervals.push(ivId);
         }
 
         window.openSupportModal = function(historyId, event) {
@@ -4056,7 +4076,14 @@ function preloadImageAsync(url) {
                 sortSelect.parentElement.style.pointerEvents = itemsToRender.length > 0 ? 'auto' : 'none';
             }
 
+            // Очищаем старые таймеры, освобождая процессор смартфона
+            if (activeCountdownIntervals && activeCountdownIntervals.length > 0) {
+                activeCountdownIntervals.forEach(id => clearInterval(id));
+                activeCountdownIntervals = [];
+            }
+
             container.innerHTML = '';
+            const invFragment = document.createDocumentFragment();
 
             let availableSellCount = 0;
             let totalSellTickets = 0.0;
@@ -4387,8 +4414,10 @@ function preloadImageAsync(url) {
                     </div>
                     ` : ''}
                 `;
-                container.appendChild(el);
+                invFragment.appendChild(el);
             });
+
+            container.appendChild(invFragment);
 
             const sellAllBtn = document.getElementById('sell-all-btn');
             if (sellAllBtn) {
@@ -4648,36 +4677,6 @@ function preloadImageAsync(url) {
             }
         }
 
-        window.initiateReplacementConfirm = function(historyId, assetid, itemName) {
-            showCustomConfirmHTML(`Забрать "${itemName}"?`, async (closeConfirmWindow) => {
-                if (isUpdating) return;
-                isUpdating = true;     
-                
-                closeConfirmWindow(); 
-                closeReplacementModal();
-                document.getElementById('global-loader').classList.add('active');
-
-                try {
-                    const res = await apiRequest('/api/v1/user/inventory/confirm_replacement', 'POST', { history_id: historyId, assetid: assetid }, true);
-                    if (res && res.success) {
-                        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                        customAlert('Замена успешно выбрана!');
-                        await refreshInventoryList();
-                    } else {
-                        customAlert("❌ " + (res.message || "Ошибка замены"));
-                    }
-                } catch (e) {
-                    // 🔥 СТАЛО: Игнорируем Global Lock
-                    if (!['Activity Lock', 'Trust Lock', 'Global Lock'].includes(e.message)) {
-                        customAlert("Ошибка: " + e.message);
-                    }
-                } finally {
-                    document.getElementById('global-loader').classList.remove('active');
-                    isUpdating = false; 
-                }
-            }, "ЗАБРАТЬ", "rgba(255,255,255,0.15)", "#fff"); 
-        }
-
         window.openHistoryModal = async function(type) {
     if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     
@@ -4836,36 +4835,37 @@ window.initProfileShop = async function() {
             return;
         }
 
-        if (container) container.innerHTML = '';
-        
-        res.items.forEach(item => {
-            const fallbackImg = 'https://placehold.co/100x100/18181b/3f3f46?text=ITEM';
+        if (container) {
+            container.innerHTML = '';
+            let shopCardsHtml = '';
             
-            let btnHtml = '';
-            if (item.lock_reason === 'limit_reached') {
-                btnHtml = `<button class="shop-btn btn-locked"><i class="fa-solid fa-check"></i> ПОЛУЧЕНО</button>`;
-            } else if (item.stock === 0) {
-                btnHtml = `<button class="shop-btn btn-locked">РАЗОБРАЛИ</button>`;
-            } else if (item.is_locked) {
-                btnHtml = `<button class="shop-btn btn-locked"><i class="fa-solid fa-lock"></i> ${item.lock_reason}</button>`;
-            } else {
-                if (item.price === 0) {
-                    btnHtml = `<button class="shop-btn btn-claim" onclick="window.buyProfileShopItem(${item.id}, '${item.name}', 0)">ЗАБРАТЬ</button>`;
+            res.items.forEach(item => {
+                const fallbackImg = 'https://placehold.co/100x100/18181b/3f3f46?text=ITEM';
+                
+                let btnHtml = '';
+                if (item.lock_reason === 'limit_reached') {
+                    btnHtml = `<button class="shop-btn btn-locked"><i class="fa-solid fa-check"></i> ПОЛУЧЕНО</button>`;
+                } else if (item.stock === 0) {
+                    btnHtml = `<button class="shop-btn btn-locked">РАЗОБРАЛИ</button>`;
+                } else if (item.is_locked) {
+                    btnHtml = `<button class="shop-btn btn-locked"><i class="fa-solid fa-lock"></i> ${item.lock_reason}</button>`;
                 } else {
-                    btnHtml = `<button class="shop-btn btn-buy" onclick="window.buyProfileShopItem(${item.id}, '${item.name}', ${item.price})">ЗА ${item.price} <i class="fa-solid fa-ticket"></i></button>`;
+                    if (item.price === 0) {
+                        btnHtml = `<button class="shop-btn btn-claim" onclick="window.buyProfileShopItem(${item.id}, '${item.name}', 0)">ЗАБРАТЬ</button>`;
+                    } else {
+                        btnHtml = `<button class="shop-btn btn-buy" onclick="window.buyProfileShopItem(${item.id}, '${item.name}', ${item.price})">ЗА ${item.price} <i class="fa-solid fa-ticket"></i></button>`;
+                    }
                 }
-            }
 
-            let badgeHtml = '';
-            if (item.stock > 0) badgeHtml = `<div style="position:absolute; top:8px; left:8px; background:rgba(255,255,255,0.1); border-radius:6px; font-size:8px; padding:2px 6px; color:#fff; font-weight:800; border:1px solid var(--glass-border);">Остаток: ${item.stock}</div>`;
-            
-            let questBadge = '';
-            if (item.unlock_type === 'quest' && !item.is_locked) {
-                questBadge = `<div style="position:absolute; top:8px; right:8px; color:#34c759; font-size:12px;"><i class="fa-solid fa-circle-check"></i></div>`;
-            }
+                let badgeHtml = '';
+                if (item.stock > 0) badgeHtml = `<div style="position:absolute; top:8px; left:8px; background:rgba(255,255,255,0.1); border-radius:6px; font-size:8px; padding:2px 6px; color:#fff; font-weight:800; border:1px solid var(--glass-border);">Остаток: ${item.stock}</div>`;
+                
+                let questBadge = '';
+                if (item.unlock_type === 'quest' && !item.is_locked) {
+                    questBadge = `<div style="position:absolute; top:8px; right:8px; color:#34c759; font-size:12px;"><i class="fa-solid fa-circle-check"></i></div>`;
+                }
 
-            if (container) {
-                container.innerHTML += `
+                shopCardsHtml += `
                     <div class="shop-card">
                         ${badgeHtml}
                         ${questBadge}
@@ -4875,8 +4875,10 @@ window.initProfileShop = async function() {
                         ${btnHtml}
                     </div>
                 `;
-            }
-        });
+            });
+
+            container.innerHTML = shopCardsHtml;
+        }
         
     } catch (error) {
         if (error.message !== 'Activity Lock') {
@@ -4982,6 +4984,8 @@ if (swipeZone) {
         }
     }, { passive: true });
 
+    let ptrRaf = null;
+
     swipeZone.addEventListener('touchmove', function(event) {
         if (document.querySelector('.modal-overlay.visible') || !isPullingDown) return;
         
@@ -4990,31 +4994,32 @@ if (swipeZone) {
         let dy = currentTouchY - touchstartY;
         let dx = currentTouchX - touchstartX;
 
-        // Если движение вертикальное, тянем вниз и мы находимся наверху страницы
         if (Math.abs(dy) > Math.abs(dx) && dy > 0 && swipeZone.scrollTop <= 0) {
-            let pullDist = dy * 0.35; // Эффект сопротивления (резинка)
-            if (pullDist > 100) pullDist = 100 + (pullDist - 100) * 0.2; // Максимальное натяжение
+            let pullDist = dy * 0.35;
+            if (pullDist > 100) pullDist = 100 + (pullDist - 100) * 0.2;
 
-            swipeZone.style.transform = `translateY(${pullDist}px)`;
-            
-            if (ptrIndicator) {
-                // Иконка выезжает ровно наполовину от сдвига контента — так она будет висеть ровно посередине пустоты!
-                ptrIndicator.style.transform = `translateY(${pullDist * 0.5}px)`; 
-                ptrIndicator.style.opacity = Math.min(pullDist / ptrThreshold, 1);
-                
-                // Меняем текст и иконку, когда прошли порог
-                if (pullDist >= ptrThreshold) {
-                    ptrIcon.className = 'fa-solid fa-arrow-up';
-                    ptrIcon.style.color = '#ff3b30'; // Становится красным
-                    ptrText.innerText = 'Отпустите';
-                } else {
-                    ptrIcon.className = 'fa-solid fa-arrow-down';
-                    ptrIcon.style.color = 'var(--text-color-muted)';
-                    ptrText.innerText = 'Потяните вниз';
-                }
+            if (!ptrRaf) {
+                ptrRaf = requestAnimationFrame(() => {
+                    swipeZone.style.transform = `translateY(${pullDist}px)`;
+                    
+                    if (ptrIndicator) {
+                        ptrIndicator.style.transform = `translateY(${pullDist * 0.5}px)`; 
+                        ptrIndicator.style.opacity = Math.min(pullDist / ptrThreshold, 1);
+                        
+                        if (pullDist >= ptrThreshold) {
+                            ptrIcon.className = 'fa-solid fa-arrow-up';
+                            ptrIcon.style.color = '#ff3b30';
+                            ptrText.innerText = 'Отпустите';
+                        } else {
+                            ptrIcon.className = 'fa-solid fa-arrow-down';
+                            ptrIcon.style.color = 'var(--text-color-muted)';
+                            ptrText.innerText = 'Потяните вниз';
+                        }
+                    }
+                    ptrRaf = null;
+                });
             }
         } else {
-            // Если юзер начал листать список вниз — отменяем натяжение
             isPullingDown = false;
         }
     }, { passive: true });
