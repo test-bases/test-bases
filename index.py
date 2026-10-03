@@ -31132,7 +31132,7 @@ async def withdraw_inventory_item(
         history_params = {
             "id": f"eq.{req.history_id}",
             "user_id": f"eq.{user_id}",
-            "select": "id, status, updated_at, source, details, replaced_name, replaced_price, item:cs_items(name, price, rarity, condition, price_rub, market_hash_name)"
+            "select": "id, status, updated_at, source, details, case_name, replaced_name, replaced_price, item:cs_items(name, price, rarity, condition, price_rub, market_hash_name)"
         }
         
         # asyncio.gather выполнит все 3 задачи одновременно. 
@@ -31234,7 +31234,7 @@ async def withdraw_inventory_item(
             logging.error(f"[ANTI-SPAM] Ошибка проверки активных трейдов для {user_id}: {e}")
         # 👆🔥 КОНЕЦ НОВОГО БЛОКА 🔥👆
 
-        # ==========================================
+       # ==========================================
         # 🔥 АТОМАРНАЯ ПЛОМБА В БД ДО ВЫСТРЕЛА 🔥
         # ==========================================
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -31253,24 +31253,47 @@ async def withdraw_inventory_item(
                 raise HTTPException(status_code=400, detail="Этот предмет уже обрабатывается. Пожалуйста, подождите.")
 
         item_data = history_record.get('item') or {}
-        item_source = history_record.get('source', 'shop') 
-        item_name = history_record.get('replaced_name') or item_data.get('name', 'Неизвестный предмет')
+        if isinstance(item_data, list):
+            item_data = item_data[0] if len(item_data) > 0 else {}
+        elif not isinstance(item_data, dict):
+            item_data = {}
 
+        item_source = history_record.get('source', 'shop') 
+
+        # ==========================================
+        # 🛡️ БРОНЕБОЙНОЕ ИЗВЛЕЧЕНИЕ ИМЕНИ СКИНА
+        # ==========================================
         market_hash_name = history_record.get('replaced_name') or item_data.get('market_hash_name')
 
-        # 🔥 ВЫРУЧАЛОЧКА ДЛЯ GRIND_SHOP: если в cs_items нет имени, достаем чистое название из details или case_name
+        # Страховка: если case_name не был запрошен в select, достаем его напрямую
+        if not market_hash_name and not history_record.get('case_name'):
+            try:
+                extra_res = await supabase.get(
+                    "/cs_history", 
+                    params={"id": f"eq.{req.history_id}", "select": "case_name,details,replaced_name"}
+                )
+                if extra_res.status_code == 200 and extra_res.json():
+                    fresh_row = extra_res.json()[0]
+                    history_record.update(fresh_row)
+                    market_hash_name = fresh_row.get('replaced_name')
+            except Exception as e:
+                logging.error(f"[WITHDRAW] Ошибка дозапроса данных: {e}")
+
+        # Если имени всё ещё нет, достаем из case_name ("Магазин: ...") или details ("Выигрыш: ...")
         if not market_hash_name:
-            details_str = str(history_record.get('details') or '')
-            case_title = str(history_record.get('case_name') or '')
-            if "Выигрыш:" in details_str:
-                market_hash_name = details_str.split("Выигрыш:")[1].split("||")[0].strip()
-            elif case_title.startswith("Магазин: "):
+            case_title = str(history_record.get('case_name') or '').strip()
+            details_str = str(history_record.get('details') or '').strip()
+
+            if case_title.startswith("Магазин: "):
                 market_hash_name = case_title.replace("Магазин: ", "").strip()
             elif case_title.startswith("Гринд: "):
                 market_hash_name = case_title.replace("Гринд: ", "").strip()
+            elif "Выигрыш:" in details_str:
+                market_hash_name = details_str.split("Выигрыш:")[1].split("||")[0].strip()
 
-        if not item_name or item_name == 'Неизвестный предмет':
-            item_name = market_hash_name or 'Неизвестный предмет'
+        item_name = history_record.get('replaced_name') or item_data.get('name') or market_hash_name or 'Неизвестный предмет'
+        if not market_hash_name or market_hash_name == 'Неизвестный предмет':
+            market_hash_name = item_name
 
         # Извлекаем состояние (FN, MW, FT, WW, BS), если его не было
         item_condition = item_data.get('condition')
@@ -31295,7 +31318,7 @@ async def withdraw_inventory_item(
             logging.error(f"[PRICE ERROR] Ошибка парсинга цены для {req.history_id}: {e}")
             target_price_base = target_price_rub = 0.0
 
-        # 🔥 СПАСАТЕЛЬНЫЙ КРУГ: проверяем сначала склад, а затем market_cache!
+        # 🔥 СПАСАТЕЛЬНЫЙ КРУГ: проверяем сначала склад, затем market_cache
         if target_price_rub <= 0.0 and market_hash_name:
             logging.info(f"[WITHDRAW] Бюджет 0.0 руб. Тянем актуальную цену для '{market_hash_name}'...")
             try:
@@ -31324,14 +31347,14 @@ async def withdraw_inventory_item(
             except Exception as e:
                 logging.error(f"[WITHDRAW] Ошибка при запросе цены из кэша: {e}")
 
-        has_english_name = market_hash_name and not bool(re.search('[а-яА-Я]', market_hash_name))
         unique_market_id = f"wd_{req.history_id}_{int(time.time())}"
         item_details = str(history_record.get('details', ''))
         force_replacement = "FORCE_REPLACEMENT" in item_details
 
         delivery_res = {}
 
-        if has_english_name and not force_replacement:
+        # 🔥 ВЫЗЫВАЕМ ДОСТАВЩИКА ВСЕГДА, ЕСЛИ ЕСТЬ ИМЯ (у него внутри есть автопереводчик)
+        if market_hash_name and market_hash_name != 'Неизвестный предмет' and not force_replacement:
             # ==========================================
             # 📦 ВЫЗОВ КЛАДОВЩИКА (Тяжелый внешний запрос)
             # ==========================================
@@ -31372,7 +31395,7 @@ async def withdraw_inventory_item(
 
             # --- СЛУЧАЙ 1: Маркет ---
             if delivery_res.get("success") and delivery_res.get("message") == "Предмет куплен на Маркете и скоро будет отправлен!":
-                await deduct_from_pool(item_source, target_price_rub, supabase) # 🔥 ВСТАВЛЕНО СЮДА
+                await deduct_from_pool(item_source, target_price_rub, supabase)
                 return {"success": True, "message": "Предмет закуплен на Маркете! Следите за статусом в профиле."}
 
             # --- СЛУЧАЙ 2: Склад ---
@@ -31391,7 +31414,7 @@ async def withdraw_inventory_item(
                         "tradeofferid": str(trade_res.get("tradeofferid")),
                         "updated_at": now_iso 
                     })
-                    await deduct_from_pool(item_source, target_price_rub, supabase) # 🔥 ВСТАВЛЕНО СЮДА
+                    await deduct_from_pool(item_source, target_price_rub, supabase)
                     return {"success": True, "message": "Трейд отправлен! Подтвердите получение в Steam."}
                 else:
                     if trade_res.get("steam_timeout"):
