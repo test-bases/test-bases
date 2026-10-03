@@ -74,6 +74,9 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      transform: translateZ(0);
     }
 
     /* === ЕДИНАЯ КНОПКА === */
@@ -859,7 +862,7 @@
       <div class="segment-btn" onclick="switchMainTab('shop', this)">Магазин</div>
   </div>
 
-  <main id="main-scroll-area" style="height: calc(100vh - 60px); overflow-y: auto;">
+ <main id="main-scroll-area" style="height: calc(100vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;">
 
       <!-- ВКЛАДКА 1: ЗАДАНИЯ -->
       <div id="tab-tasks" class="tab-content active">
@@ -1553,17 +1556,15 @@ let currentShopTab = 'skins';
                 return;
             }
 
-            container.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'market-skin-card';
                 card.onclick = () => selectSkinFromPicker(item);
 
-                // Оптимизируем ссылку на картинку и кэшируем в память
                 const fastImg = formatSteamImg(item.image_url);
                 preloadAndCacheSkinImage(fastImg);
 
-                // 🔥 Форматируем цену: если меньше 10 ₽, показываем копейки (0.45 ₽), иначе округляем
                 const pRub = parseFloat(item.price_rub || 0);
                 const displayPriceRub = pRub < 10 ? pRub.toFixed(2) : pRub.toFixed(0);
                 const cleanImg = fastImg && !fastImg.includes('null') ? fastImg : STEAM_FALLBACK_IMG;
@@ -1573,8 +1574,10 @@ let currentShopTab = 'skins';
                     <div style="font-size: 9px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 3px; max-height: 22px; overflow: hidden;">${item.market_hash_name}</div>
                     <div style="font-size: 9px; font-weight: 900; color: var(--accent-neon); margin-top: auto;">${displayPriceRub} ₽</div>
                 `;
-                container.appendChild(card);
+                fragment.appendChild(card);
             });
+            container.innerHTML = '';
+            container.appendChild(fragment);
         } catch (e) {
             container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--danger-color); font-size:10px; padding:25px 0;">Ошибка поиска в базе</div>';
         }
@@ -1962,10 +1965,11 @@ let currentShopTab = 'skins';
 
         const streakSteps = document.getElementById('streak-steps-mini');
         if (streakSteps) {
-            streakSteps.innerHTML = '';
+            let streakDotsHtml = '';
             for (let i = 1; i <= 10; i++) {
-                streakSteps.innerHTML += `<div class="streak-dot ${i <= userState.streakDays ? 'filled' : ''}"></div>`;
+                streakDotsHtml += `<div class="streak-dot ${i <= userState.streakDays ? 'filled' : ''}"></div>`;
             }
+            streakSteps.innerHTML = streakDotsHtml;
         }
 
         const grindBtn = document.getElementById('grind-btn');
@@ -2211,20 +2215,26 @@ let currentShopTab = 'skins';
     }
 
     function renderTasksDOM(tasks, container) {
+        // Очищаем старые тикающие интервалы, чтобы не забивать процессор
+        Object.keys(cooldownIntervalsMap).forEach(key => {
+            clearInterval(cooldownIntervalsMap[key]);
+            delete cooldownIntervalsMap[key];
+        });
+
         container.innerHTML = '';
         const timersToStart = [];
+        const fragment = document.createDocumentFragment();
 
-        // tg_vote ВСЕГДА в активных (оно цикличное раз в 30 дней), не прячем в спойлер
         const activeTasks = tasks.filter(t => !t.is_completed || t.task_key === 'tg_vote');
         const completedTasks = tasks.filter(t => t.is_completed && t.task_key !== 'tg_vote');
 
-        // 1. Рендерим активные задачи
+        // 1. Пакетно добавляем активные задачи
         activeTasks.forEach(task => {
             const isFinalDay = task.is_daily && task.current_day === task.total_days;
-            container.appendChild(createTaskCard(task, isFinalDay, timersToStart));
+            fragment.appendChild(createTaskCard(task, isFinalDay, timersToStart));
         });
 
-        // 2. Выполненные задачи прячем под аккуратный спойлер
+        // 2. Выполненные задачи прячем под спойлер
         if (completedTasks.length > 0) {
             const spoiler = document.createElement('div');
             spoiler.className = 'completed-spoiler';
@@ -2247,15 +2257,19 @@ let currentShopTab = 'skins';
 
             const content = document.createElement('div');
             content.className = 'completed-spoiler-content';
+            const completedFragment = document.createDocumentFragment();
 
             completedTasks.forEach(task => {
-                content.appendChild(createTaskCard(task, false, timersToStart));
+                completedFragment.appendChild(createTaskCard(task, false, timersToStart));
             });
 
+            content.appendChild(completedFragment);
             spoiler.appendChild(header);
             spoiler.appendChild(content);
-            container.appendChild(spoiler);
+            fragment.appendChild(spoiler);
         }
+
+        container.appendChild(fragment);
 
         // Запуск таймеров
         timersToStart.forEach(data => startButtonCooldown(data.id, data.time, data.hours || 20));
@@ -2620,7 +2634,6 @@ window.closeStreakCalcModal = function() {
     function renderShopList() {
         const container = document.getElementById('shop-container');
         if (!container) return;
-        container.innerHTML = '';
 
         // Панель админа видна только на вкладке скинов
         const adminPanel = document.getElementById('admin-skin-panel');
@@ -2635,6 +2648,8 @@ window.closeStreakCalcModal = function() {
             container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-color-muted); padding:30px 10px; font-size:11px;">Нет доступных предложений</div>';
             return;
         }
+
+        const fragment = document.createDocumentFragment();
 
         items.forEach(item => {
             const div = document.createElement('div');
@@ -2675,8 +2690,11 @@ window.closeStreakCalcModal = function() {
                 <div class="shop-item-cost">Цена: <span style="color: #ff3b30; font-weight: 800;">${item.cost} <i class="fa-solid fa-fire" style="font-size: 9px;"></i> ${costWord}</span> ${extra}</div>
                 <div style="margin-top:auto; width:100%; padding-top:6px;">${btnHtml}</div>
             `;
-            container.appendChild(div);
+            fragment.appendChild(div);
         });
+
+        container.innerHTML = '';
+        container.appendChild(fragment);
     }
 
     window.switchShopSubTab = function(tab) {
@@ -3310,9 +3328,15 @@ window.closeSuccessModal = function() {
         const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
         if (!content || !icon) return;
 
-        let startY = 0, pulledDistance = 0, isPulling = false;
+        let startY = 0, pulledDistance = 0, isPulling = false, ptrRaf = null;
+
         content.addEventListener('touchstart', (e) => {
-            if (content.scrollTop <= 0) { startY = e.touches[0].clientY; isPulling = true; content.style.transition = 'none'; ptrContainer.style.transition = 'none'; }
+            if (content.scrollTop <= 0) { 
+                startY = e.touches[0].clientY; 
+                isPulling = true; 
+                content.style.transition = 'none'; 
+                ptrContainer.style.transition = 'none'; 
+            }
         }, { passive: true });
 
         content.addEventListener('touchmove', (e) => {
@@ -3321,22 +3345,33 @@ window.closeSuccessModal = function() {
             if (diff > 0 && content.scrollTop <= 0) {
                 if (e.cancelable) e.preventDefault();
                 pulledDistance = Math.min(Math.pow(diff, 0.85), 100);
-                content.style.transform = `translateY(${pulledDistance}px)`;
-                ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
-                icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
-                icon.style.color = pulledDistance > 60 ? "var(--accent-neon)" : "var(--text-color-muted)";
+
+                if (!ptrRaf) {
+                    ptrRaf = requestAnimationFrame(() => {
+                        content.style.transform = `translateY(${pulledDistance}px)`;
+                        ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
+                        icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
+                        icon.style.color = pulledDistance > 60 ? "var(--accent-neon)" : "var(--text-color-muted)";
+                        ptrRaf = null;
+                    });
+                }
             }
         }, { passive: false });
 
         content.addEventListener('touchend', () => {
             if (!isPulling) return;
             isPulling = false;
-            content.style.transition = 'transform 0.3s ease-out'; ptrContainer.style.transition = 'transform 0.3s ease-out';
-           if (pulledDistance > 60) {
-                content.style.transform = `translateY(60px)`; ptrContainer.style.transform = `translateY(60px)`;
-                icon.className = 'fa-solid fa-circle-notch'; icon.style.animation = 'spin-slow 1s linear infinite';
+            if (ptrRaf) { cancelAnimationFrame(ptrRaf); ptrRaf = null; }
 
-                // Запускаем бесшовную синхронизацию с предзагрузкой картинок
+            content.style.transition = 'transform 0.3s ease-out'; 
+            ptrContainer.style.transition = 'transform 0.3s ease-out';
+
+            if (pulledDistance > 60) {
+                content.style.transform = `translateY(60px)`; 
+                ptrContainer.style.transform = `translateY(60px)`;
+                icon.className = 'fa-solid fa-circle-notch'; 
+                icon.style.animation = 'spin-slow 1s linear infinite';
+
                 setTimeout(() => {
                     content.style.transform = 'translateY(0px)';
                     ptrContainer.style.transform = 'translateY(0px)';
@@ -3344,12 +3379,13 @@ window.closeSuccessModal = function() {
                     window.fullAppReloadWithPreload();
                 }, 300);
             } else {
-                content.style.transform = 'translateY(0px)'; ptrContainer.style.transform = 'translateY(0px)';
+                content.style.transform = 'translateY(0px)'; 
+                ptrContainer.style.transform = 'translateY(0px)';
                 icon.style.transform = 'rotate(0deg)';
             }
             pulledDistance = 0;
         });
-    } // 👈 ВОТ ЭТА СКОБКА БЫЛА ПРОПУЩЕНА
+    }
 
     // HAPTIC FEEDBACK
     document.body.addEventListener('click', (e) => {
