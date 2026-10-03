@@ -949,47 +949,42 @@ async function updateGrindBannerBadge() {
     // Б) Бесплатный билет доступен
     const isTicketAvailable = !lastTicket || (now - new Date(lastTicket).getTime() >= COOLDOWN_24H);
 
-    // В) Telegram-задания доступны к выполнению/сбору
-    let isTaskAvailable = false;
+    // В) Задания с ручной проверкой (теги био/фамилии, бусты) исключаем, 
+    // чтобы плашка не горела вечно у тех, кто не ставил теги в профиль.
+
+    // В) Умная проверка заданий: напоминаем ТОЛЬКО тем, кто УЖЕ в серии
+    // и у кого откатился кулдаун (20 часов для био/ника или 31 день для буста)
+    let isTaskReady = false;
     let cachedTasks = null;
     try {
         cachedTasks = JSON.parse(localStorage.getItem('cache_tg_tasks') || 'null');
     } catch (e) {}
 
-    // Если кэша задач ещё нет — подгружаем в фоне для актуальной проверки
-    const userId = getMyUserIdStr();
-    if (!cachedTasks && userId) {
-        try {
-            cachedTasks = await makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
-            if (Array.isArray(cachedTasks)) {
-                localStorage.setItem('cache_tg_tasks', JSON.stringify(cachedTasks));
-            }
-        } catch (e) {}
-    }
-
     if (Array.isArray(cachedTasks) && cachedTasks.length > 0) {
-        isTaskAvailable = cachedTasks.some(task => {
-            // Голосование (цикл 31 день)
+        isTaskReady = cachedTasks.some(task => {
+            // Проверяем только если юзер уже хотя бы раз забирал это задание
+            if (!task.last_claimed_at) return false;
+
+            const timePassed = now - new Date(task.last_claimed_at).getTime();
+
+            // Буст канала: прошло 31 день
             if (task.task_key === 'tg_vote') {
                 const cooldown31d = 31 * 24 * 60 * 60 * 1000;
-                return !task.last_claimed_at || (now - new Date(task.last_claimed_at).getTime() >= cooldown31d);
+                return timePassed >= cooldown31d;
             }
-            // Выполненные задачи не учитываем
-            if (task.is_completed) return false;
 
-            // Ежедневные стрики и ник/био (цикл 20 часов)
-            if (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') {
+            // Ежедневный стрик био/фамилии: серия не завершена и прошло 20 часов
+            if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio')) {
                 const cooldown20h = 20 * 60 * 60 * 1000;
-                return !task.last_claimed_at || (now - new Date(task.last_claimed_at).getTime() >= cooldown20h);
+                return timePassed >= cooldown20h;
             }
 
-            // Разовые еще не завершенные задания
-            return true;
+            return false;
         });
     }
 
-    // Если ХОТЯ БЫ ОДНО действие доступно — зажигаем плашку
-    if (isGrindAvailable || isTicketAvailable || isTaskAvailable) {
+    // Зажигаем плашку, если доступен Гринд, Билет ИЛИ очередной шаг начатого задания
+    if (isGrindAvailable || isTicketAvailable || isTaskReady) {
         slot.innerHTML = `
             <div style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 59, 48, 0.18)); border: 1px solid rgba(255, 215, 0, 0.45); padding: 3px 8px; border-radius: 6px; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);">
                 <i class="fa-solid fa-gift fa-shake" style="color: #ffd700; font-size: 10px;"></i>
