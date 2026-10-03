@@ -1089,6 +1089,15 @@
     </div>
 </div>
 
+  <!-- === ДИАЛОГОВОЕ ОКНО: БЕСПЛАТНЫЙ БИЛЕТ (БЕЗ ФИГУР) === -->
+<div id="ticket-success-modal" class="modal-overlay" onclick="if(event.target===this) closeTicketSuccessModal()">
+    <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.98); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 310px; padding: 22px 18px; text-align: center; border-radius: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.8px;">БИЛЕТ ПОЛУЧЕН</h3>
+        <p id="ticket-modal-text" style="margin: 0 0 20px 0; font-size: 12px; color: #b0b0b8; font-weight: 500; line-height: 1.45;">Бесплатный ежедневный билет успешно начислен на ваш баланс!</p>
+        <button class="premium-btn active-state" style="width: 100%; height: 44px; font-size: 12px; font-weight: 900; letter-spacing: 0.8px;" onclick="closeTicketSuccessModal()">ОТЛИЧНО</button>
+    </div>
+</div>
+
 <!-- === МОДАЛКА УСПЕХА === -->
 <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
     <div class="bottom-sheet" style="max-width: 330px; width: 100%; background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 10px; text-align: center;">
@@ -2046,8 +2055,7 @@ let currentShopTab = 'skins';
                 } catch(e) {}
 
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                if (tg.showAlert) tg.showAlert(res.message || 'Билет получен!');
-                else window.customAlert(res.message || 'Билет получен!');
+                window.openTicketSuccessModal(res.message || 'Бесплатный ежедневный билет успешно начислен на ваш баланс!');
                 updateUI();
             } else {
                 const err = await response.json().catch(() => ({}));
@@ -3483,6 +3491,19 @@ window.closeSuccessModal = function() {
     let currentTourStep = 0;
     let tourStepTimeout = null;
     let tourScrollRaf = null;
+
+    // Открытие и закрытие окна билета без фигур
+    window.openTicketSuccessModal = function(msg) {
+        const textEl = document.getElementById('ticket-modal-text');
+        if (textEl && msg) textEl.textContent = msg;
+        const modal = document.getElementById('ticket-success-modal');
+        if (modal) modal.classList.add('visible');
+    };
+
+    window.closeTicketSuccessModal = function() {
+        const modal = document.getElementById('ticket-success-modal');
+        if (modal) modal.classList.remove('visible');
+    };
 
     // Плавный контролируемый скролл с отменой предыдущих движений
     function smoothScrollTour(element, targetY, duration = 700) {
