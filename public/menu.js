@@ -629,6 +629,7 @@ async function refreshDataSilently() {
                 userData.challenge.target_value = hbData.challenge_target;
             }
             updateShortcutStatuses(userData, allQuests);
+            updateGrindBannerBadge();
             if (hbData.active_trade_status !== undefined) updateShopTile(hbData.active_trade_status);
             
             const giftContainer = document.getElementById('gift-container');
@@ -889,6 +890,116 @@ function updateShortcutStatuses(userData, allQuests) {
             chalStatus.textContent = "Нет активного"; chalFill.style.width = '0%';
         }
     }
+
+    const questStatus = document.getElementById('metro-quest-status');
+    const questFill = document.getElementById('metro-quest-fill');
+    if (questStatus && questFill) {
+        if (!userData.active_quest_id) {
+            questStatus.innerHTML = userData.is_stream_online ? '<i class="fa-brands fa-twitch"></i> Выбрать' : '<i class="fa-brands fa-telegram"></i> Выбрать';
+            questFill.style.width = '0%'; questStatus.classList.remove('metro-status-done'); questStatus.style.color='';
+        } else {
+            const quest = allQuests.find(q => q.id === userData.active_quest_id);
+            if (quest) {
+                const prog = userData.active_quest_progress || 0, target = quest.target_value || 1;
+                if (prog >= target) { questStatus.textContent = "ГОТОВО"; questStatus.classList.add('metro-status-done'); questFill.style.width = '100%'; }
+                else { questStatus.textContent = `${prog} / ${target}`; questStatus.classList.remove('metro-status-done'); questStatus.style.color=''; questFill.style.width = `${(prog/target)*100}%`; }
+            } else { questStatus.textContent = "..."; }
+        }
+    }
+}
+
+// 🏷️ Проверка доступности: Гринд, Билет или TG-задания
+async function updateGrindBannerBadge() {
+    const slot = document.getElementById('grind-reward-badge-slot');
+    if (!slot) return;
+
+    let lastGrind = null;
+    let lastTicket = null;
+
+    // 1. Проверяем кэш стейта юзера из events.html
+    try {
+        const uState = JSON.parse(localStorage.getItem('cache_user_state') || 'null');
+        if (uState) {
+            lastGrind = uState.lastGrindTime || uState.last_grind_at;
+            lastTicket = uState.lastFreeTicket || uState.last_free_ticket_claimed_at;
+        }
+    } catch (e) {}
+
+    // 2. Если пусто — берем из бутстрапа или глобального userData
+    if (!lastGrind) {
+        try {
+            const b = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
+            if (b && b.user) {
+                lastGrind = b.user.last_grind_at;
+                lastTicket = b.user.last_free_ticket_claimed_at;
+            }
+        } catch (e) {}
+    }
+    if (!lastGrind && typeof userData !== 'undefined') {
+        lastGrind = userData.last_grind_at;
+        lastTicket = userData.last_free_ticket_claimed_at;
+    }
+
+    const now = Date.now();
+    const COOLDOWN_24H = 24 * 60 * 60 * 1000;
+
+    // А) Гринд доступен
+    const isGrindAvailable = !lastGrind || (now - new Date(lastGrind).getTime() >= COOLDOWN_24H);
+
+    // Б) Бесплатный билет доступен
+    const isTicketAvailable = !lastTicket || (now - new Date(lastTicket).getTime() >= COOLDOWN_24H);
+
+    // В) Telegram-задания доступны к выполнению/сбору
+    let isTaskAvailable = false;
+    let cachedTasks = null;
+    try {
+        cachedTasks = JSON.parse(localStorage.getItem('cache_tg_tasks') || 'null');
+    } catch (e) {}
+
+    // Если кэша задач ещё нет — подгружаем в фоне для актуальной проверки
+    const userId = getMyUserIdStr();
+    if (!cachedTasks && userId) {
+        try {
+            cachedTasks = await makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
+            if (Array.isArray(cachedTasks)) {
+                localStorage.setItem('cache_tg_tasks', JSON.stringify(cachedTasks));
+            }
+        } catch (e) {}
+    }
+
+    if (Array.isArray(cachedTasks) && cachedTasks.length > 0) {
+        isTaskAvailable = cachedTasks.some(task => {
+            // Голосование (цикл 31 день)
+            if (task.task_key === 'tg_vote') {
+                const cooldown31d = 31 * 24 * 60 * 60 * 1000;
+                return !task.last_claimed_at || (now - new Date(task.last_claimed_at).getTime() >= cooldown31d);
+            }
+            // Выполненные задачи не учитываем
+            if (task.is_completed) return false;
+
+            // Ежедневные стрики и ник/био (цикл 20 часов)
+            if (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') {
+                const cooldown20h = 20 * 60 * 60 * 1000;
+                return !task.last_claimed_at || (now - new Date(task.last_claimed_at).getTime() >= cooldown20h);
+            }
+
+            // Разовые еще не завершенные задания
+            return true;
+        });
+    }
+
+    // Если ХОТЯ БЫ ОДНО действие доступно — зажигаем плашку
+    if (isGrindAvailable || isTicketAvailable || isTaskAvailable) {
+        slot.innerHTML = `
+            <div style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 59, 48, 0.18)); border: 1px solid rgba(255, 215, 0, 0.45); padding: 3px 8px; border-radius: 6px; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);">
+                <i class="fa-solid fa-gift fa-shake" style="color: #ffd700; font-size: 10px;"></i>
+                <span style="font-size: 9px; font-weight: 900; color: #ffd700; text-transform: uppercase; letter-spacing: 0.5px;">Доступна награда</span>
+            </div>
+        `;
+    } else {
+        slot.innerHTML = '';
+    }
+}
 
     const questStatus = document.getElementById('metro-quest-status');
     const questFill = document.getElementById('metro-quest-fill');
@@ -1847,6 +1958,7 @@ async function renderFullInterface(data) {
     }
 
     updateShortcutStatuses(userData, allQuests);
+    updateGrindBannerBadge();
     updateShopTile(userData.active_trade_status || 'none');
     // 🔥 МАГИЯ МАТРИЦЫ
     if (data.matrix_quest !== undefined) {
@@ -6388,7 +6500,15 @@ try {
     // 4. ФОНОВЫЕ ПРОЦЕССЫ
     clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => { if (!document.hidden) refreshDataSilently(); }, 60000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshDataSilently(); });
+    document.addEventListener("visibilitychange", () => { 
+        if (!document.hidden) {
+            refreshDataSilently();
+            updateGrindBannerBadge();
+        }
+    });
+    window.addEventListener("pageshow", () => {
+        updateGrindBannerBadge();
+    });
 
 } catch (e) { 
     console.error("Global init error", e); 
