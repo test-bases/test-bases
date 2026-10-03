@@ -4017,13 +4017,18 @@ function preloadImageAsync(url) {
     });
 }
         // --- ГЛАВНЫЙ РЕНДЕР ИНВЕНТАРЯ ---
+        // --- ГЛАВНЫЙ РЕНДЕР ИНВЕНТАРЯ С ПОРЦИОННОЙ ПОДГРУЗКОЙ ---
+        let currentInvItemsToRender = [];
+        let currentInvRenderedCount = 0;
+        const INV_BATCH_SIZE = 18; // Порция: первые 18 скинов (экран смартфона + запас)
+        let isInvChunkListenerAttached = false;
+
         function renderInventory(items, isSorting = false) {
             const container = document.getElementById('inventory-list-container');
             if(!container) return; 
 
             if (!isSorting) {
                 window.currentInventoryItems = items || [];
-                // 🔥 В фоне раскодируем только первый видимый экран (первые 15 штук), чтобы не забивать сеть
                 if (Array.isArray(items)) {
                     items.slice(0, 15).forEach(it => {
                         const u = it.replaced_image_url || it.image_url;
@@ -4032,21 +4037,6 @@ function preloadImageAsync(url) {
                 }
             }
             const itemsToRender = [...window.currentInventoryItems];
-
-            // Динамические переменные шрифтов в зависимости от Сетки
-            let fsAction = currentGridSize === '2' ? '12px' : '8px';
-            let fsChevron = currentGridSize === '2' ? '10px' : '7px';
-            let fsTitle = currentGridSize === '2' ? '11px' : '8.5px';
-            let fsPrice = currentGridSize === '2' ? '12px' : '9px';
-            let fsBtn = currentGridSize === '2' ? '11px' : '8px';
-            let fsOverlay = currentGridSize === '2' ? '13px' : '10px';
-            let fsExp = currentGridSize === '2' ? '10px' : '7px';
-            let supportSize = currentGridSize === '2' ? '24px' : '18px';
-            let supportFont = currentGridSize === '2' ? '14px' : '10px';
-            let closeBtnSize = currentGridSize === '2' ? '26px' : '20px';
-            let closeBtnIcon = currentGridSize === '2' ? '12px' : '8px';
-            let nameDisplayStyle = currentGridSize === '2' ? 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal;' : 'white-space: nowrap;';
-            let namePadding = currentGridSize === '2' ? '8px' : '24px';
 
             container.style.display = 'grid';
             container.style.gridTemplateColumns = `repeat(${currentGridSize}, 1fr)`;
@@ -4071,24 +4061,18 @@ function preloadImageAsync(url) {
                 sortSelect.style.border = '1px solid var(--glass-border)';
                 sortSelect.style.color = '#fff';
             }
-            // 🔥 ПОКАЗЫВАЕМ БЛОК СОРТИРОВКИ ОБРАТНО (ТОЛЬКО ЕСЛИ ЕСТЬ ПРЕДМЕТЫ)
             if (sortSelect && sortSelect.parentElement) {
                 sortSelect.parentElement.style.transition = 'opacity 0.3s ease';
                 sortSelect.parentElement.style.opacity = itemsToRender.length > 0 ? '1' : '0';
                 sortSelect.parentElement.style.pointerEvents = itemsToRender.length > 0 ? 'auto' : 'none';
             }
 
-            // Очищаем старые таймеры, освобождая процессор смартфона
             if (activeCountdownIntervals && activeCountdownIntervals.length > 0) {
                 activeCountdownIntervals.forEach(id => clearInterval(id));
                 activeCountdownIntervals = [];
             }
 
             container.innerHTML = '';
-            const invFragment = document.createDocumentFragment();
-
-            let availableSellCount = 0;
-            let totalSellTickets = 0.0;
 
             if (itemsToRender.length === 0) {
                 container.style.display = 'block';
@@ -4097,6 +4081,8 @@ function preloadImageAsync(url) {
                         <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 15px; opacity: 0.2; color: #fff;"></i>
                         <p style="font-size: 14px; color: var(--text-color-muted); font-weight: 600;">Инвентарь пуст</p>
                     </div>`;
+                const sellAllBtn = document.getElementById('sell-all-btn');
+                if (sellAllBtn) sellAllBtn.style.display = 'none';
                 return;
             }
 
@@ -4133,7 +4119,104 @@ function preloadImageAsync(url) {
                 return dateB - dateA;
             });
 
+            // ⚡ МГНОВЕННЫЙ РАСЧЕТ ИТОГА ДЛЯ «ПРОДАТЬ ВСЁ» ПО ВСЕМ СКИНАМ
+            let availableSellCount = 0;
+            let totalSellTickets = 0.0;
+            const nowMs = Date.now();
+            const amnestyTimestamp = new Date('2026-07-15T00:00:00+03:00').getTime();
+
             itemsToRender.forEach(item => {
+                const status = (item.status || 'available').toLowerCase();
+                const updateTimeMs = parseSafeDate(item.updated_at || item.created_at);
+                const source = item.source || 'shop';
+                let isExpired = false;
+
+                if (['available', 'pending', 'canceled', 'failed'].includes(status) && updateTimeMs > 0) {
+                    let baseLifeTimeMs = updateTimeMs < amnestyTimestamp 
+                        ? amnestyTimestamp + (14 * 24 * 60 * 60 * 1000) 
+                        : updateTimeMs + ((['raffle', 'auction', 'twitch'].includes(source) ? 3 : 14) * 24 * 60 * 60 * 1000);
+                    if (nowMs >= baseLifeTimeMs) isExpired = true;
+                }
+
+                if (!isExpired && ['available', 'pending', 'canceled'].includes(status)) {
+                    let strPrice = String(item.price_rub || item.price || "0").replace(',', '.');
+                    let strReplaced = String(item.replaced_price || "0").replace(',', '.');
+                    let pBase = parseFloat(strPrice) || 0;
+                    let pRepl = parseFloat(strReplaced) || 0;
+                    const rawPrice = ((item.is_replaced && !item.is_swapped) || item.is_swapped) && pRepl > 0 ? pRepl : pBase;
+                    availableSellCount++;
+                    totalSellTickets += parseFloat((rawPrice * 0.5).toFixed(2));
+                }
+            });
+
+            const sellAllBtn = document.getElementById('sell-all-btn');
+            if (sellAllBtn) {
+                if (availableSellCount > 0) {
+                    sellAllBtn.style.display = 'flex';
+                    sellAllBtn.style.alignItems = 'center';
+                    sellAllBtn.innerHTML = `ПРОДАТЬ ВСЁ <i class="fa-solid fa-ticket" style="color: #ffd700; margin-left: 6px;"></i>`;
+                    sellAllBtn.dataset.amount = totalSellTickets.toFixed(2);
+                    sellAllBtn.dataset.count = availableSellCount;
+                    sellAllBtn.style.background = 'rgba(255,255,255,0.05)';
+                    sellAllBtn.style.border = '1px solid var(--glass-border)';
+                    sellAllBtn.style.color = '#b0b0b0';
+                } else {
+                    sellAllBtn.style.display = 'none';
+                }
+            }
+
+            // ⚡ ИНИЦИАЛИЗАЦИЯ ПОРЦИЙ
+            currentInvItemsToRender = itemsToRender;
+            currentInvRenderedCount = 0;
+
+            // Отрисовываем первую пачку (18 шт.)
+            renderNextInventoryChunk();
+
+            // Подключаем слушатель скролла на контейнер
+            const contentArea = document.getElementById('content-area');
+            if (contentArea && !isInvChunkListenerAttached) {
+                isInvChunkListenerAttached = true;
+                contentArea.addEventListener('scroll', () => {
+                    const currentTab = sessionStorage.getItem('current_spa_tab') || 'inventory';
+                    if (currentTab !== 'inventory') return;
+                    if (currentInvRenderedCount >= currentInvItemsToRender.length) return;
+
+                    // Когда до конца списка осталось 300px — мгновенно рендерим следующую пачку
+                    if (contentArea.scrollTop + contentArea.clientHeight >= contentArea.scrollHeight - 300) {
+                        renderNextInventoryChunk();
+                    }
+                }, { passive: true });
+            }
+
+            startAutoPoller();
+        }
+
+        function renderNextInventoryChunk() {
+            const container = document.getElementById('inventory-list-container');
+            if (!container || currentInvRenderedCount >= currentInvItemsToRender.length) return;
+
+            const nextBatch = currentInvItemsToRender.slice(currentInvRenderedCount, currentInvRenderedCount + INV_BATCH_SIZE);
+            currentInvRenderedCount += nextBatch.length;
+
+            let fsAction = currentGridSize === '2' ? '12px' : '8px';
+            let fsChevron = currentGridSize === '2' ? '10px' : '7px';
+            let fsTitle = currentGridSize === '2' ? '11px' : '8.5px';
+            let fsPrice = currentGridSize === '2' ? '12px' : '9px';
+            let fsBtn = currentGridSize === '2' ? '11px' : '8px';
+            let fsOverlay = currentGridSize === '2' ? '13px' : '10px';
+            let fsExp = currentGridSize === '2' ? '10px' : '7px';
+            let supportSize = currentGridSize === '2' ? '24px' : '18px';
+            let supportFont = currentGridSize === '2' ? '14px' : '10px';
+            let closeBtnSize = currentGridSize === '2' ? '26px' : '20px';
+            let closeBtnIcon = currentGridSize === '2' ? '12px' : '8px';
+            let nameDisplayStyle = currentGridSize === '2' ? 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal;' : 'white-space: nowrap;';
+            let namePadding = currentGridSize === '2' ? '8px' : '24px';
+
+            const invFragment = document.createDocumentFragment();
+            const nowMs = Date.now();
+            const amnestyTimestamp = new Date('2026-07-15T00:00:00+03:00').getTime();
+
+            nextBatch.forEach(item => {
                 const status = (item.status || 'available').toLowerCase();
                 const historyId = item.id || item.history_id; 
 
@@ -4154,11 +4237,9 @@ function preloadImageAsync(url) {
                 let cleanName = displayName;
                 if (displayName.includes('|')) cleanName = displayName.split('|').slice(1).join('|').trim();
                 
-               // 🔥 Для миниатюр инвентаря грузим легкий размер 180px (в 4 раза быстрее!)
                 let rawImg = item.replaced_image_url || item.image_url;
                 let imageUrl = formatSteamImg(rawImg, '180fx180f');
 
-                // 🔥 СОЗДАЕМ ТОТ САМЫЙ БЕЛЫЙ ЗНАЧОК РЕЛОАДА
                 let replacedBadgeHtml = '';
                 if ((isReplaced || isSwapped) && item.source !== 'grind_shop' && item.source !== 'grind.shop') {
                     replacedBadgeHtml = `
@@ -4176,27 +4257,20 @@ function preloadImageAsync(url) {
                 const ticketVal = parseFloat((rawPrice * 0.5).toFixed(2));
                 const safeNameStr = displayName.replace(/'/g, "\\'");
 
-                // ==== 1. СНАЧАЛА ВЫЧИСЛЯЕМ ТАЙМЕРЫ И СТАТУС ОСПАРИВАНИЯ ====
                 let expirationHtml = '';
                 let isExpired = false;
                 let isDisputed = false; 
-                let isCompletelyExpired = false; // Защита от той самой ошибки
                 const updateTimeMs = parseSafeDate(item.updated_at || item.created_at);
-                const nowMs = Date.now();
 
                 if (['available', 'pending', 'canceled', 'failed'].includes(status)) {
                     const source = item.source || 'shop';
-                    const amnestyTimestamp = new Date('2026-07-15T00:00:00+03:00').getTime();
-                    
                     let baseLifeTimeMs = updateTimeMs < amnestyTimestamp 
                         ? amnestyTimestamp + (14 * 24 * 60 * 60 * 1000) 
                         : updateTimeMs + ((['raffle', 'auction', 'twitch'].includes(source) ? 3 : 14) * 24 * 60 * 60 * 1000);
-                    
                     let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
 
                     if (updateTimeMs > 0) {
                         if (nowMs < baseLifeTimeMs) {
-                            // ФАЗА 1: Живой скин (тикает таймер)
                             const timeLeftMs = baseLifeTimeMs - nowMs;
                             const days = Math.floor(timeLeftMs / (1000 * 60 * 60 * 24));
                             const hours = Math.floor((timeLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -4205,7 +4279,6 @@ function preloadImageAsync(url) {
                             if (days === 0 && hours === 0) timeStr = `${minutes}м`;
                             expirationHtml = `<span style="color: rgba(255,255,255,0.5);">Сгорит:</span> <span style="color: #ff3b30; font-weight: 900;">${timeStr}</span>`;
                         } else if (nowMs >= baseLifeTimeMs && nowMs < finalDeleteTimeMs) {
-                            // ФАЗА 2: Сгорел, Оспаривание (ТАЙМЕР НАД КНОПКОЙ ДЕЙСТВИЕ)
                             isExpired = true;
                             isDisputed = true;
                             const graceLeftMs = finalDeleteTimeMs - nowMs;
@@ -4213,55 +4286,37 @@ function preloadImageAsync(url) {
                             const hoursGrace = Math.floor((graceLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                             expirationHtml = `<span style="color: #ffcc00; font-weight: 900;">Оспаривание: ${daysGrace}д ${hoursGrace}ч</span>`;
                         } else {
-                            // ФАЗА 3: Время вышло полностью
                             isExpired = true;
-                            isCompletelyExpired = true;
                             expirationHtml = `<span style="color: #ff3b30; font-weight: 900;">СГОРЕЛ</span>`;
                         }
                     }
                 }
 
-                // Убрали 'failed', чтобы ошибочные скины не попадали в ПРОДАТЬ ВСЁ
-                if (!isExpired && ['available', 'pending', 'canceled'].includes(status)) {
-                    availableSellCount++;
-                    totalSellTickets += ticketVal;
-                }
-
-                // ==== 2. ТЕПЕРЬ СТИЛИСТИКА КАРТОЧКИ ====
-                let cardBgColor = 'rgba(25, 25, 28, 0.5)'; 
+                let cardBgColor = 'rgba(255, 255, 255, 0.05)'; 
                 let cardBorder = `1px solid var(--glass-border)`;
                 let cardShadow = `inset 0 0 20px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3)`;
-                
                 let isArchived = ['received', 'exchanged', 'exchanged_swap'].includes(status);
                 let isFailed = status === 'failed';
-                
-                // Блюрим всё, что в архиве, с ошибкой или сгорело (isExpired покрывает обе фазы сгорания)
                 let isGrayBlurred = isArchived || isFailed || isExpired; 
-                
                 let centerOverlay = '';
                 let overlayHtml = '';
                 
                 const isCancelAcked = localStorage.getItem(`ack_cancel_${historyId}`);
                 const isErrorStatus = ['failed', 'canceled', 'available'].includes(status);
                 const hasCustomError = isErrorStatus && item.details && item.details.includes('||');
-                
-                // Показываем оверлей только для отмен. Оспаривание больше не перебивает стили!
                 const shouldShowOverlay = (status === 'canceled' || (status === 'available' && hasCustomError)) && !isCancelAcked && !isExpired;
 
                 if (shouldShowOverlay) {
                     let titleText = "Трейд<br>отменен!";
                     let subText = "Попробуйте вывести еще раз";
-                    let titleColor = '#fff'; 
-
                     if (hasCustomError) {
                         const parts = item.details.split('||');
                         titleText = parts[0];
                         subText = parts[1];
                     }
-
                     overlayHtml = `
                         <div class="inv-overlay" id="blur-overlay-${historyId}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 12, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; border-radius: 12px; padding: 10px; box-sizing: border-box; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-                            <div style="color: ${titleColor}; font-size: 12px; font-weight: 900; text-transform: uppercase; line-height: 1.2; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">${titleText}</div>
+                            <div style="color: #fff; font-size: 12px; font-weight: 900; text-transform: uppercase; line-height: 1.2; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">${titleText}</div>
                             <div style="color: rgba(255,255,255,0.7); font-size: 9px; margin-bottom: 12px; line-height: 1.3; text-shadow: 0 1px 5px rgba(0,0,0,0.8);">${subText}</div>
                             <button style="background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: 0 4px 15px rgba(0,0,0,0.5); color: #fff; border-radius: 8px; font-size: 10px; font-weight: 800; padding: 8px 20px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s;" onclick="acknowledgeCancel(${historyId}, event)">Понятно</button>
                         </div>
@@ -4282,8 +4337,6 @@ function preloadImageAsync(url) {
                     imageStyles += ` opacity: 0.15; filter: blur(2px) grayscale(100%); transform: scale(1);`;
                     const lowerSkinName = `<div style="position:absolute; bottom: 8px; left: 0; width: 100%; text-align: center; font-size: ${fsTitle}; font-weight: 800; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; z-index: 6;">${cleanName}</div>`;
 
-                    cardBgColor = 'rgba(255, 255, 255, 0.05)';
-
                     if (status === 'received') {
                         centerOverlay = `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:${fsOverlay}; font-weight:900; color:#b0b0b0; text-shadow:0 2px 5px rgba(0,0,0,0.8); text-transform:uppercase; text-align:center; z-index:5; transform: translateY(-10px);">Выведен</div>` + lowerSkinName;
                     } else if (status === 'exchanged') {
@@ -4291,10 +4344,8 @@ function preloadImageAsync(url) {
                     } else if (status === 'exchanged_swap') {
                         centerOverlay = `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:${fsOverlay}; font-weight:900; color:#b0b0b0; text-shadow:0 2px 5px rgba(0,0,0,0.8); text-transform:uppercase; text-align:center; z-index:5; transform: translateY(-10px);">В свапе</div>` + lowerSkinName;
                     } else if (isFailed) {
-                        // Ошибка
                         centerOverlay = `<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:${fsOverlay}; font-weight:900; color:#ff453a; text-shadow:0 2px 5px rgba(0,0,0,0.8); text-transform:uppercase; text-align:center; z-index:5; line-height: 1.2; transform: translateY(-10px);">ОШИБКА<span style="font-size: 8px; color: rgba(255,255,255,0.6); margin-top: 4px; letter-spacing: 0; text-transform: none;">обратитесь к администратору</span></div>` + lowerSkinName;
                     } else if (isExpired) {
-                        // 🔥 ВРЕМЯ ВЫШЛО (С огоньком сверху, без названия скина)
                         centerOverlay = `
                             <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:${fsOverlay}; font-weight:900; color:#ff453a; text-shadow:0 2px 5px rgba(0,0,0,0.8); text-transform:uppercase; text-align:center; z-index:5; line-height: 1.2; transform: translateY(-5px);">
                                 <span style="font-size: 12px; margin-bottom: 2px;">🔥</span>
@@ -4306,7 +4357,6 @@ function preloadImageAsync(url) {
                     imageStyles += ` opacity: 0.5; filter: grayscale(50%); transform: scale(1);`;
                 }
 
-                // ==== 3. ЛОГИКА НИЖНЕЙ КНОПКИ ====
                 let bottomBtnText = '';
                 let bottomBtnAction = '';
                 let panelContent = '';
@@ -4315,11 +4365,9 @@ function preloadImageAsync(url) {
                 if (isArchived || isFailed) {
                     bottomBtnText = ''; 
                 } else if (isExpired) {
-                    // 🔥 Кнопка ДЕЙСТВИЕ для сгоревших скинов (а таймер нарисуется прямо над ней в HTML ниже)
                     bottomBtnText = ` <i class="fa-solid fa-chevron-up"></i> ДЕЙСТВИЕ <i class="fa-solid fa-chevron-up" style="font-size:${fsChevron}; margin-left:2px;"></i>`;
                     bottomBtnAction = `onclick="toggleActionPanel('${historyId}', true, event)"`;
                     bottomBtnStyle = 'background: rgba(0,0,0,0.6); border-top: 1px solid var(--glass-border); color: #fff;';
-                    
                     panelContent = `
                         <div style="font-size: ${currentGridSize === '3' ? '8px' : '10px'}; color: var(--text-color-muted); font-weight: 800; text-align: center; margin-bottom: 8px; line-height: 1.2;">
                             Время на вывод вышло,<br>предмет сгорел
@@ -4343,7 +4391,6 @@ function preloadImageAsync(url) {
                     bottomBtnText = `<span id="timer-wrapper-${historyId}">ЗАБРАТЬ <span id="${timerElementId}" style="margin-left:3px; color:#ffd700;">--:--</span></span> <i class="fa-solid fa-chevron-up" style="font-size:${fsChevron}; margin-left:2px;"></i>`;
                     bottomBtnStyle = 'background: rgba(255,255,255,0.1); color: #fff; border-top: 1px solid var(--glass-border); animation: pulse-opacity 1.5s infinite;';
                     bottomBtnAction = `id="bottom-btn-${historyId}" onclick="toggleActionPanel('${historyId}', true, event)"`;
-                    
                     panelContent = `
                         <div style="font-size: ${currentGridSize === '3' ? '7.5px' : '9px'}; color: #fff; font-weight: 800; margin-bottom: 4px; text-align: center; opacity: 0.8; line-height: 1.1;">ПРИМИТЕ ОФФЕР<br>В STEAM</div>
                         <button onclick="window.open('https://steamcommunity.com/my/tradeoffers/', '_blank'); toggleActionPanel('${historyId}', false, event);" style="box-sizing:border-box; background:rgba(42, 71, 94, 0.7); border:1px solid rgba(102, 192, 244, 0.4); color:#fff; border-radius:6px; font-size:${fsBtn}; font-weight:800; padding:4px; width:100%; margin-bottom:4px; line-height:1.3; transition:0.2s; backdrop-filter:blur(5px); box-shadow: 0 4px 15px rgba(27, 40, 56, 0.5);">
@@ -4355,7 +4402,6 @@ function preloadImageAsync(url) {
                     bottomBtnText = ` <i class="fa-solid fa-chevron-up"></i> ДЕЙСТВИЕ <i class="fa-solid fa-chevron-up" style="font-size:${fsChevron}; margin-left:2px;"></i>`;
                     bottomBtnAction = `onclick="toggleActionPanel('${historyId}', true, event)"`;
                     bottomBtnStyle = 'background: rgba(0,0,0,0.6); border-top: 1px solid var(--glass-border); color: #fff;';
-                    
                     panelContent = `
                         <button onclick="exchangeItem(${historyId}, ${ticketVal}); toggleActionPanel('${historyId}', false, event);" style="box-sizing:border-box; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:#b0b0b0; border-radius:6px; font-size:${fsBtn}; font-weight:800; padding:4px; width:100%; margin-bottom:4px; line-height:1.3; transition:0.2s; backdrop-filter:blur(5px);">
                             ПРОДАТЬ ЗА<br><span style="color:#fff;">${ticketVal}</span> <i class="fa-solid fa-ticket" style="color:#ffd700; opacity:0.9;"></i>
@@ -4371,26 +4417,21 @@ function preloadImageAsync(url) {
                 
                 el.innerHTML = `
                     ${overlayHtml}
-                    ${replacedBadgeHtml} <!-- 🔥 ВЫВОДИМ БЕЛЫЙ ЗНАЧОК РЕЛОАДА -->
-                    <!-- Выезжающее меню -->
+                    ${replacedBadgeHtml}
                     ${panelContent ? `
-<div id="action-panel-${historyId}" style="position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:${isDisputed ? 'rgba(0,0,0,0.98)' : 'rgba(0,0,0,0.85)'}; backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); z-index:40; opacity:0; pointer-events:none; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display:flex; flex-direction:column; justify-content:flex-end; padding:4px; box-sizing:border-box;">                        <div onclick="toggleActionPanel('${historyId}', false, event)" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1; cursor:pointer;"></div>
-                        
+                    <div id="action-panel-${historyId}" style="position:absolute; bottom:-100\%; left:0; width:100\%; height:100\%; background:${isDisputed ? 'rgba(0,0,0,0.98)' : 'rgba(0,0,0,0.85)'}; backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); z-index:40; opacity:0; pointer-events:none; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display:flex; flex-direction:column; justify-content:flex-end; padding:4px; box-sizing:border-box;">
+                        <div onclick="toggleActionPanel('${historyId}', false, event)" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1; cursor:pointer;"></div>
                         <div onclick="toggleActionPanel('${historyId}', false, event)" style="position:absolute; top:4px; right:4px; width:${closeBtnSize}; height:${closeBtnSize}; background:rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; z-index:10;">
                             <i class="fa-solid fa-xmark" style="color:var(--text-color-muted); font-size:${closeBtnIcon}; line-height:1; display:flex; margin-top:0.5px;"></i>
                         </div>
-                        
                         ${!isDisputed ? `
                         <div style="text-align:center; margin-bottom:${currentGridSize === '2' ? '22px' : '8px'}; padding:0 ${namePadding};">
                             <div style="font-size:${fsTitle}; font-weight:800; color:#fff; overflow:hidden; text-overflow:ellipsis; line-height:1.2; ${nameDisplayStyle}">
                                 ${cleanName}
                             </div>
-                        </div>
-                        ` : `<div style="height: 12px;"></div>`}
-                        
+                        </div>` : `<div style="height: 12px;"></div>`}
                         ${panelContent}
-                    </div>
-                    ` : ''}
+                    </div>` : ''}
 
                     <div onclick="openSupportModal('${historyId}', event)" style="position:absolute; top:4px; left:4px; width:${supportSize}; height:${supportSize}; border-radius:50%; background:rgba(255,255,255,0.05); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text-color-muted); font-weight:900; display:flex; justify-content:center; align-items:center; z-index:20; font-size:${supportFont}; border: 1px solid var(--glass-border); cursor:pointer;">!</div>
 
@@ -4400,47 +4441,22 @@ function preloadImageAsync(url) {
                     </div>
 
                     <div style="position:absolute; bottom: ${isArchived ? '8px' : (currentGridSize === '2' ? '42px' : '32px')}; left:4px; z-index:10; display:flex; flex-direction:column; gap:0; pointer-events:none;">
-                        <!-- 🔥 СКРЫВАЕМ ЦЕНУ У ОШИБОК (!isFailed) И СГОРЕВШИХ (!isExpired) -->
                         ${!isArchived && !isFailed && !isExpired ? `
                             <div style="background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border:1px solid var(--glass-border); padding: 2px 5px; border-radius: 4px; font-size:${fsPrice}; font-weight:900; color:#fff;">
                                 ${rawPrice} ₽
-                            </div>
-                        ` : ''}
+                            </div>` : ''}
                     </div>
                     
                     ${bottomBtnText ? `
                     <div ${bottomBtnAction} style="position:absolute; bottom:0; left:0; width:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); font-size:${fsAction}; font-weight:800; padding:2px 0; cursor:pointer; transition:0.2s; z-index:15; ${bottomBtnStyle}">
-                        <!-- 🔥 Выводим таймер оспаривания ровно над ДЕЙСТВИЕМ! (Убрано условие !isExpired) -->
                         ${expirationHtml ? `<div style="font-size:${fsExp}; margin-bottom:2px;">${expirationHtml}</div>` : ''}
                         <span style="display:flex; align-items:center; gap: 3px;">${bottomBtnText}</span>
-                    </div>
-                    ` : ''}
+                    </div>` : ''}
                 `;
                 invFragment.appendChild(el);
             });
 
             container.appendChild(invFragment);
-
-            const sellAllBtn = document.getElementById('sell-all-btn');
-            if (sellAllBtn) {
-                if (availableSellCount > 0) {
-                    sellAllBtn.style.display = 'flex';
-                    sellAllBtn.style.alignItems = 'center';
-                    
-                    // Вот новая строчка с надписью и желтым билетиком:
-                    sellAllBtn.innerHTML = `ПРОДАТЬ ВСЁ <i class="fa-solid fa-ticket" style="color: #ffd700; margin-left: 6px;"></i>`;
-                    
-                    sellAllBtn.dataset.amount = totalSellTickets.toFixed(2);
-                    sellAllBtn.dataset.count = availableSellCount;
-                    sellAllBtn.style.background = 'rgba(255,255,255,0.05)';
-                    sellAllBtn.style.border = '1px solid var(--glass-border)';
-                    sellAllBtn.style.color = '#b0b0b0';
-                } else {
-                    sellAllBtn.style.display = 'none';
-                }
-            }
-
-            startAutoPoller(); // Запускаем автоматический поллер после отрисовки
         }
 
         // --- ГЛОБАЛЬНЫЙ ПОЛЛЕР ДЛЯ АКТИВНЫХ ТРЕЙДОВ ---
