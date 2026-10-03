@@ -1804,6 +1804,7 @@ window.renderRewards = function(rewards, isSorting = false) {
     });
 
     listContainer.appendChild(rewardsFragment);
+};
 
 // Функция копирования
 window.copyPromocode = async function(code, id) {
@@ -3363,12 +3364,13 @@ window.closeFullscreenCard = function() {
                     ${rewardHtml}
                 `;
                 eventsFragment.appendChild(card);
-            });
+        });
 
-            cardsContainer.appendChild(eventsFragment);
+        cardsContainer.appendChild(eventsFragment);
+    };
 
-        // --- МОДАЛКА ПОДДЕРЖКИ ДЛЯ СОБЫТИЙ ---
-        window.openEventSupport = function(eventId, title, dateFormatted, eventObj) {
+    // --- МОДАЛКА ПОДДЕРЖКИ ДЛЯ СОБЫТИЙ ---
+    window.openEventSupport = function(eventId, title, dateFormatted, eventObj) {
             if (eventObj) eventObj.stopPropagation();
             if (typeof tg !== 'undefined' && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
