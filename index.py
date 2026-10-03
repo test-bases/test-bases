@@ -4691,7 +4691,10 @@ async def get_bootstrap_data(
                 "tickets": 0,
                 "balance": 0,
                 "trust_level": "gray",
-                "trust_score": 30
+                "trust_score": 30,
+                "last_grind_at": None,
+                "last_free_ticket_claimed_at": None,
+                "streak_days": 1
             },
             "menu": menu_content,
             "quests": [],
@@ -4750,7 +4753,7 @@ async def get_bootstrap_data(
         
         notifs_task = supabase.get("/in_app_notifications", params={"user_id": f"eq.{telegram_id}", "is_read": "is.false", "select": "id"})
         p2p_task = supabase.get("/p2p_trades", params={"user_id": f"eq.{telegram_id}", "order": "created_at.desc"})
-        balance_task = supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "bot_t_coins, tickets, last_new_year_gift_at"})
+        balance_task = supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "bot_t_coins, tickets, last_new_year_gift_at, last_grind_at, last_free_ticket_claimed_at, streak_days"})
         auctions_task = supabase.post("/rpc/get_public_auctions_for_user", json={"p_user_id": telegram_id})
         matrix_task = supabase.get("/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"})
         
@@ -4822,7 +4825,10 @@ async def get_bootstrap_data(
                 "challenge": None,
                 "event_participations": {},
                 "trust_level": "gray", 
-                "trust_score": 30        
+                "trust_score": 30,
+                "last_grind_at": None,
+                "last_free_ticket_claimed_at": None,
+                "streak_days": 1
             }
         else:
             if not user_data.get("trust_level"):
@@ -4897,6 +4903,13 @@ async def get_bootstrap_data(
             if b_data:
                 user_data["balance"] = b_data[0].get("bot_t_coins", 0) / 100.0
                 user_data["tickets"] = b_data[0].get("tickets", 0)
+                
+                # Записываем даты таймеров для мгновенной работы плашки на фронтенде
+                user_data["last_grind_at"] = b_data[0].get("last_grind_at") or user_data.get("last_grind_at")
+                user_data["last_free_ticket_claimed_at"] = b_data[0].get("last_free_ticket_claimed_at") or user_data.get("last_free_ticket_claimed_at")
+                if "streak_days" in b_data[0]:
+                    user_data["streak_days"] = b_data[0].get("streak_days", 1)
+
                 last_gift = b_data[0].get('last_new_year_gift_at')
                 if last_gift:
                     last_dt = datetime.fromisoformat(last_gift.replace('Z', '+00:00'))
