@@ -906,6 +906,7 @@ function updateShortcutStatuses(userData, allQuests) {
             } else { questStatus.textContent = "..."; }
         }
     }
+}
 
 // 🏷️ Проверка доступности: Гринд, Билет или TG-задания
 async function updateGrindBannerBadge() {
@@ -997,23 +998,6 @@ async function updateGrindBannerBadge() {
         `;
     } else {
         slot.innerHTML = '';
-    }
-}
-
-    const questStatus = document.getElementById('metro-quest-status');
-    const questFill = document.getElementById('metro-quest-fill');
-    if (questStatus && questFill) {
-        if (!userData.active_quest_id) {
-            questStatus.innerHTML = userData.is_stream_online ? '<i class="fa-brands fa-twitch"></i> Выбрать' : '<i class="fa-brands fa-telegram"></i> Выбрать';
-            questFill.style.width = '0%'; questStatus.classList.remove('metro-status-done'); questStatus.style.color='';
-        } else {
-            const quest = allQuests.find(q => q.id === userData.active_quest_id);
-            if (quest) {
-                const prog = userData.active_quest_progress || 0, target = quest.target_value || 1;
-                if (prog >= target) { questStatus.textContent = "ГОТОВО"; questStatus.classList.add('metro-status-done'); questFill.style.width = '100%'; }
-                else { questStatus.textContent = `${prog} / ${target}`; questStatus.classList.remove('metro-status-done'); questStatus.style.color=''; questFill.style.width = `${(prog/target)*100}%`; }
-            } else { questStatus.textContent = "..."; }
-        }
     }
 }
 
