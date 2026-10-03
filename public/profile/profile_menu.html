@@ -3599,8 +3599,6 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
                 
                 let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
                 
-                let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
-                
                 if (updateTimeMs > 0) {
                     if (Date.now() < baseLifeTimeMs) {
                         const timeLeftMs = baseLifeTimeMs - Date.now();
