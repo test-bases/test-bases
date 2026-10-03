@@ -3591,10 +3591,13 @@ const dateFormatted = (item.created_at || item.updated_at || item.date) ? new Da
             if (['available', 'pending', 'canceled'].includes(rawStatus)) {
                 const updateTimeMs = parseSafeDate(item.updated_at || item.created_at);
                 const amnestyTimestamp = new Date('2026-07-15T00:00:00+03:00').getTime();
+                const source = item.source || 'shop';
                 
                 let baseLifeTimeMs = updateTimeMs < amnestyTimestamp 
                         ? amnestyTimestamp + (14 * 24 * 60 * 60 * 1000) 
                         : updateTimeMs + ((['raffle', 'auction', 'twitch', 'grind_shop', 'grind.shop', 'grind'].includes(source) ? 3 : 14) * 24 * 60 * 60 * 1000);
+                
+                let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
                 
                 let finalDeleteTimeMs = baseLifeTimeMs + (7 * 24 * 60 * 60 * 1000);
                 
