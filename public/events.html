@@ -2026,6 +2026,21 @@ let currentShopTab = 'skins';
                 
                 userState.tickets = finalTickets;
                 userState.lastFreeTicket = new Date().toISOString();
+
+                // 💾 Фиксируем время сбора билета в кэш для главной страницы
+                try {
+                    localStorage.setItem('cache_user_state', JSON.stringify({ 
+                        ...userState, 
+                        grind_settings: grindSettings 
+                    }));
+                    const b = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (b && b.user) {
+                        b.user.tickets = userState.tickets;
+                        b.user.last_free_ticket_claimed_at = userState.lastFreeTicket;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(b));
+                    }
+                } catch(e) {}
+
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 if (tg.showAlert) tg.showAlert(res.message || 'Билет получен!');
                 else window.customAlert(res.message || 'Билет получен!');
