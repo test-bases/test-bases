@@ -381,6 +381,43 @@
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .status-pill:active {
+      transform: scale(0.93);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .status-tier-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+    .status-tier-card.active-tier {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.12);
+    }
+    .status-badge-current {
+      font-size: 7px;
+      font-weight: 900;
+      color: #000;
+      background: var(--accent-neon);
+      padding: 2px 6px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
    /* === НАВИГАЦИЯ В СТИЛЕ ПРОФИЛЯ (LIQUID GLASS + GLOW ПОЛОСКА) === */
@@ -842,10 +879,12 @@
         </button>
     </div>
 
-    <!-- Правая часть: подпись "СТАТУС:" и сам статус -->
-    <div style="display: flex; align-items: center; gap: 6px;">
+    <!-- Правая часть: подпись "СТАТУС:" и сам статус (кликабельно) -->
+    <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openStatusesModal()" title="Все статусы гринда">
         <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase; letter-spacing: 0.5px;">Статус:</span>
-        <div class="status-pill" id="user-status">Стандарт</div>
+        <div class="status-pill" id="user-status">
+            Стандарт <i class="fa-solid fa-chevron-right" style="font-size: 7px; opacity: 0.5;"></i>
+        </div>
     </div>
   </header>
 
@@ -1098,8 +1137,87 @@
     </div>
 </div>
 
-<!-- === МОДАЛКА УСПЕХА === -->
-<div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
+<!-- === МОДАЛКА СПИСКА ВСЕХ СТАТУСОВ ГРИНДА === -->
+  <div id="statuses-modal" class="modal-overlay" onclick="if(event.target===this) closeStatusesModal()">
+      <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 335px; max-height: 85vh; overflow-y: auto; padding: 18px 16px; text-align: left;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-shield-halved" style="color: var(--accent-neon); font-size: 15px;"></i>
+                  <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Статусы и Привилегии</h3>
+              </div>
+              <button class="tour-close-btn" onclick="closeStatusesModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <p style="font-size: 10px; color: #b0b0b8; margin: 0 0 12px 0; line-height: 1.35;">
+              Статус увеличивает ежедневную награду монет за стрик и количество бесплатных билетов:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px;">
+              
+              <!-- 1. СТАНДАРТ -->
+              <div id="tier-card-standard" class="status-tier-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                          <i class="fa-solid fa-user" style="color: var(--text-color-muted); font-size: 11px;"></i>
+                          <span style="font-size: 11px; font-weight: 800; color: #fff;">СТАНДАРТ</span>
+                      </div>
+                      <span id="tier-badge-standard" class="status-badge-current" style="display: none;">АКТИВЕН</span>
+                  </div>
+                  <div style="font-size: 9px; color: #a1a1aa; line-height: 1.4;">
+                      • Базовый сбор серии: <b style="color: #fff;">до +1.0 🔥</b> монет в день<br>
+                      • Ежедневный билет: <b style="color: #fff;">1 билет</b> каждые 24ч
+                  </div>
+                  <div style="font-size: 8px; color: var(--text-color-muted); font-style: italic;">
+                      Доступен всем игрокам по умолчанию
+                  </div>
+              </div>
+
+              <!-- 2. VIP БОНУС -->
+              <div id="tier-card-vip" class="status-tier-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                          <i class="fa-solid fa-crown" style="color: var(--accent-neon); font-size: 11px;"></i>
+                          <span style="font-size: 11px; font-weight: 800; color: var(--accent-neon);">VIP БОНУС</span>
+                      </div>
+                      <span id="tier-badge-vip" class="status-badge-current" style="display: none;">АКТИВЕН</span>
+                  </div>
+                  <div style="font-size: 9px; color: #a1a1aa; line-height: 1.4;">
+                      • Бонус к стрику: <b style="color: var(--accent-neon);">+0.2 🔥</b> монет ежедневно<br>
+                      • Ежедневный билет: <b style="color: var(--accent-neon);">+1 билет</b> (всего 2 билета/день)
+                  </div>
+                  <div style="font-size: 8px; color: #8e8e93;">
+                      🔑 <b style="color: #fff;">Условие:</b> Активируется по реферальной программе (действует 7 дней)
+                  </div>
+              </div>
+
+              <!-- 3. TWITCH VIP / SUB -->
+              <div id="tier-card-twitch" class="status-tier-card" style="border-left: 2px solid #a970ff;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                          <i class="fa-brands fa-twitch" style="color: #a970ff; font-size: 12px;"></i>
+                          <span style="font-size: 11px; font-weight: 800; color: #a970ff;">TWITCH VIP / SUB</span>
+                      </div>
+                      <span id="tier-badge-twitch" class="status-badge-current" style="display: none; background: #a970ff; color: #fff;">АКТИВЕН</span>
+                  </div>
+                  <div style="font-size: 9px; color: #a1a1aa; line-height: 1.4;">
+                      • Мощный буст стрика: <b style="color: #a970ff;">+<span id="modal-twitch-coin-boost">0.5</span> 🔥</b> монет<br>
+                      • Ежедневные билеты: <b style="color: #a970ff;">+<span id="modal-twitch-ticket-boost">5</span> билетов</b> (всего 6/день!)<br>
+                      • Фиолетовый значок отличия
+                  </div>
+                  <div style="font-size: 8px; color: #8e8e93;">
+                      🟣 <b style="color: #fff;">Условие:</b> Подписка (Sub) или значок VIP на канале стримера в Twitch
+                  </div>
+              </div>
+
+          </div>
+
+          <button class="premium-btn active-state" style="width: 100%;" onclick="closeStatusesModal()">ПОНЯТНО</button>
+      </div>
+  </div>
+
+  <!-- === МОДАЛКА УСПЕХА === -->
+  <div id="success-modal" class="modal-overlay" onclick="if(event.target===this) closeSuccessModal()">
     <div class="bottom-sheet" style="max-width: 330px; width: 100%; background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 10px; text-align: center;">
         
         <!-- Круглая зеленая иконка подарка -->
@@ -1954,12 +2072,13 @@ let currentShopTab = 'skins';
 
         const statusEl = document.getElementById('user-status');
         if (statusEl) {
+            const chevron = `<i class="fa-solid fa-chevron-right" style="font-size: 7px; opacity: 0.5; margin-left: 2px;"></i>`;
             if (userState.twitch_status === 'subscriber' || userState.twitch_status === 'vip') {
-                statusEl.innerHTML = `<span style="color:#a970ff;">Twitch ${userState.twitch_status === 'vip' ? 'VIP' : 'SUB'}</span>`;
+                statusEl.innerHTML = `<span style="color:#a970ff;">Twitch ${userState.twitch_status === 'vip' ? 'VIP' : 'SUB'}</span> ${chevron}`;
             } else if (isVipActive()) {
-                statusEl.innerHTML = `<span style="color:var(--accent-neon);">VIP Бонус</span>`;
+                statusEl.innerHTML = `<span style="color:var(--accent-neon);">VIP Бонус</span> ${chevron}`;
             } else {
-                statusEl.innerHTML = `<span style="color:var(--text-color-muted);">Стандарт</span>`;
+                statusEl.innerHTML = `<span style="color:var(--text-color-muted);">Стандарт</span> ${chevron}`;
             }
         }
 
@@ -2364,6 +2483,53 @@ let currentShopTab = 'skins';
 
     window.closeTgTaskInfoModal = function() {
         const modal = document.getElementById('tg-task-info-modal');
+        if (modal) modal.classList.remove('visible');
+    };
+
+    // ==========================================
+    // 🛡️ МОДАЛКА СТАТУСОВ ГРИНДА
+    // ==========================================
+    window.openStatusesModal = function() {
+        const modal = document.getElementById('statuses-modal');
+        if (!modal) return;
+
+        const twitchCoinBoostEl = document.getElementById('modal-twitch-coin-boost');
+        if (twitchCoinBoostEl) twitchCoinBoostEl.textContent = grindSettings.twitch_status_boost_coins || 0.5;
+
+        const twitchTicketBoostEl = document.getElementById('modal-twitch-ticket-boost');
+        if (twitchTicketBoostEl) twitchTicketBoostEl.textContent = grindSettings.twitch_status_free_tickets || 5;
+
+        const isTwitch = isTwitchBoostActive();
+        const isVip = !isTwitch && isVipActive();
+        const isStandard = !isTwitch && !isVip;
+
+        const cardStandard = document.getElementById('tier-card-standard');
+        const badgeStandard = document.getElementById('tier-badge-standard');
+        if (cardStandard && badgeStandard) {
+            cardStandard.classList.toggle('active-tier', isStandard);
+            badgeStandard.style.display = isStandard ? 'inline-block' : 'none';
+        }
+
+        const cardVip = document.getElementById('tier-card-vip');
+        const badgeVip = document.getElementById('tier-badge-vip');
+        if (cardVip && badgeVip) {
+            cardVip.classList.toggle('active-tier', isVip);
+            badgeVip.style.display = isVip ? 'inline-block' : 'none';
+        }
+
+        const cardTwitch = document.getElementById('tier-card-twitch');
+        const badgeTwitch = document.getElementById('tier-badge-twitch');
+        if (cardTwitch && badgeTwitch) {
+            cardTwitch.classList.toggle('active-tier', isTwitch);
+            badgeTwitch.style.display = isTwitch ? 'inline-block' : 'none';
+        }
+
+        modal.classList.add('visible');
+        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    };
+
+    window.closeStatusesModal = function() {
+        const modal = document.getElementById('statuses-modal');
         if (modal) modal.classList.remove('visible');
     };
 
