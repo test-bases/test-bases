@@ -703,6 +703,19 @@ function setupNewUI() {
                 if (section.id === targetId) section.classList.add('active');
                 else section.classList.remove('active');
             });
+
+            // Подсвечиваем нижний бар: если открыты Игры — светится кнопка "Игры", иначе "Главная"
+            const bGames = document.getElementById('nav-games-btn');
+            const bHome = document.querySelector('.nav-item[data-path="/"]');
+            if (bGames && bHome) {
+                if (targetId === 'view-games') {
+                    bGames.classList.add('active');
+                    bHome.classList.remove('active');
+                } else {
+                    bGames.classList.remove('active');
+                    bHome.classList.add('active');
+                }
+            }
             
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
 
@@ -713,7 +726,6 @@ function setupNewUI() {
             }
         });
     });
-}
 
 // ================================================================
 // СЛАЙДЕР (FADE-АНИМАЦИЯ КАК В РОЗЫГРЫШАХ)
