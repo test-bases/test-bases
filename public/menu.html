@@ -323,19 +323,59 @@
         </div>
 
         <div id="view-games" class="view-section">
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center;">
-                <div style="position: relative; margin-bottom: 20px;">
-                    <i class="fa-solid fa-gamepad fa-bounce" style="font-size: 64px; color: #ffd700; filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4)); --fa-animation-duration: 3s;"></i>
-                    <i class="fa-solid fa-screwdriver-wrench" style="position: absolute; bottom: -5px; right: -10px; font-size: 24px; color: #8e8e93; background: #141414; border-radius: 50%; padding: 4px;"></i>
+            <div class="games-grid">
+                
+                <!-- 1. АПГРЕЙД СКИНОВ -->
+                <div class="game-card game-upgrade" onclick="openGameRoute('/game_upgrade.html')">
+                    <div class="game-badge badge-gold">
+                        <i class="fa-solid fa-bolt"></i> HOT
+                    </div>
+                    
+                    <div class="game-icon-box glow-gold">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+
+                    <div class="game-info">
+                        <span class="game-title">Апгрейд</span>
+                        <span class="game-sub">Колесо удачи и умножение скинов</span>
+                    </div>
+
+                    <button class="game-play-btn btn-gold">
+                        ИГРАТЬ <i class="fa-solid fa-chevron-right" style="font-size: 8px;"></i>
+                    </button>
                 </div>
-                
-                <h2 style="color: #fff; font-size: 22px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Игры в разработке</h2>
-                
-                <p style="font-size: 13px; color: #8e8e93; line-height: 1.5; max-width: 280px; margin: 0 auto 25px auto;">
-                    Совсем скоро здесь появятся мини-игры, крафты и апгрейды скинов.<br><br>
-                    <span style="color: #ccc; font-weight: 600;">Копи монетки и билеты, они тебе понадобятся!</span>
-                </p>
-                
+
+                <!-- 2. СТРИМ-ИНТЕРАКТИВ И СБОР -->
+                <div class="game-card game-stream" onclick="openGameRoute('/event_page.html')">
+                    <div class="game-badge badge-twitch">
+                        <i class="fa-brands fa-twitch"></i> СТРИМ
+                    </div>
+                    
+                    <div class="game-icon-box glow-purple">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+
+                    <div class="game-info">
+                        <span class="game-title">Стрим-Игра</span>
+                        <span class="game-sub">Общий сбор очков и игра в чате</span>
+                    </div>
+
+                    <button class="game-play-btn btn-twitch">
+                        В ЭФИР <i class="fa-solid fa-chevron-right" style="font-size: 8px;"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- ПЛАШКА: СКОРО НОВЫЕ РЕЖИМЫ -->
+            <div class="games-soon-banner">
+                <div class="games-soon-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 11px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Новые режимы скоро</span>
+                    <span style="font-size: 9px; color: #8e8e93; font-weight: 500;">Краш, дуэли и контракты обмена уже в разработке</span>
+                </div>
             </div>
         </div>
         <div style="height: 250px; width: 100%; clear: both; pointer-events: none; flex-shrink: 0;"></div>
