@@ -1426,6 +1426,181 @@ body.browser-mode .shop-actions > * {
     }
 }
 
+/* ==========================================
+   СЕТКА ИГР (LIQUID GLASS СВЕЧЕНИЕ)
+========================================== */
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 5px 0 12px 0;
+}
+
+.game-card {
+    background: rgba(24, 24, 28, 0.7);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 16px 12px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+}
+.game-card:active {
+    transform: scale(0.96);
+}
+
+/* Карточка Апгрейда */
+.game-card.game-upgrade:active {
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.2);
+}
+
+/* Карточка Стрим-игры */
+.game-card.game-stream:active {
+    border-color: rgba(145, 70, 255, 0.4);
+    box-shadow: 0 0 25px rgba(145, 70, 255, 0.2);
+}
+
+/* Бейджи сверху */
+.game-badge {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    font-size: 7.5px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 3px 7px;
+    border-radius: 7px;
+    border: 1px solid;
+    text-transform: uppercase;
+}
+.badge-gold {
+    background: rgba(255, 215, 0, 0.12);
+    color: #ffd700;
+    border-color: rgba(255, 215, 0, 0.35);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+.badge-twitch {
+    background: rgba(145, 70, 255, 0.15);
+    color: #a970ff;
+    border-color: rgba(145, 70, 255, 0.35);
+    text-shadow: 0 0 8px rgba(145, 70, 255, 0.4);
+}
+
+/* Контейнеры иконок */
+.game-icon-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-top: 6px;
+    margin-bottom: 12px;
+    transition: transform 0.2s ease;
+}
+.glow-gold {
+    color: #ffd700;
+    box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.1);
+    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.45));
+}
+.glow-purple {
+    color: #a970ff;
+    box-shadow: inset 0 0 15px rgba(145, 70, 255, 0.15);
+    filter: drop-shadow(0 0 12px rgba(145, 70, 255, 0.5));
+}
+.game-card:active .game-icon-box {
+    transform: scale(1.1);
+}
+
+/* Инфо-блок */
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 14px;
+    width: 100%;
+}
+.game-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+}
+.game-sub {
+    font-size: 9px;
+    color: #8e8e93;
+    font-weight: 500;
+    line-height: 1.25;
+    min-height: 22px;
+}
+
+/* Кнопка запуска */
+.game-play-btn {
+    width: 100%;
+    padding: 8px 0;
+    border-radius: 11px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25);
+}
+.btn-twitch {
+    background: linear-gradient(135deg, #9146ff 0%, #6b21b6 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(145, 70, 255, 0.3);
+}
+
+/* Плашка «Скоро новые режимы» */
+.games-soon-banner {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+.games-soon-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #8e8e93;
+    flex-shrink: 0;
+}
+
 /* =========================================================
    КАСТОМНЫЙ СКРОЛЛБАР ДЛЯ WEB-ВЕРСИИ
 ========================================================= */
