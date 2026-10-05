@@ -662,6 +662,16 @@ async function refreshDataSilently() {
         console.error("Ошибка обновления данных в фоне:", e);
     }
 }
+
+// ================================================================
+// ПЕРЕХОД В ИГРЫ С ТАКТИЛЬНЫМ ОТКЛИКОМ
+// ================================================================
+window.openGameRoute = function(url) {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+    window.location.href = url;
+};
 // ================================================================
 // НОВЫЙ ИНТЕРФЕЙС (ПЕРЕКЛЮЧАТЕЛИ И МЕНЮ)
 // ================================================================
