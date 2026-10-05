@@ -23967,9 +23967,10 @@ async def buy_bott_item_proxy(
         else:
             target_lacky = 5
 
-        if is_event_case:
+        # 👇 ИСПРАВЛЕНИЕ: БЛОКИРУЕМ НАКОПЛЕНИЕ ГАРАНТА ДЛЯ КРАСНОГО ТРАСТА 👇
+        if is_event_case or current_trust == 'red':
             current_lacky = 0
-            db_lacky = last_lacky
+            db_lacky = last_lacky # Оставляем счетчик в БД без изменений
         else:
             current_lacky = last_lacky + 1
             # Сбрасываем счетчик, если он превысил наш динамический порог
