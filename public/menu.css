@@ -1479,18 +1479,15 @@ body.browser-mode .shop-actions > * {
     letter-spacing: 0.6px;
     padding: 3px 7px;
     border-radius: 6px;
-    border: 1px solid;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    background: rgba(255, 215, 0, 0.12);
+    color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
     text-transform: uppercase;
     line-height: 1;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-}
-.badge-gold {
-    background: rgba(255, 215, 0, 0.12);
-    color: #ffd700;
-    border-color: rgba(255, 215, 0, 0.35);
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
 }
 
 /* 2. БАННЕР В КРАЯ */
@@ -1574,7 +1571,7 @@ body.browser-mode .shop-actions > * {
     transform: scale(0.97);
 }
 .btn-gold {
-    background: linear-gradient(135deg, #ffd700 0%, #ff9500 100%);
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
     color: #000000;
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
 }
