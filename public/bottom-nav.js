@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <a href="/events" class="nav-item" data-path="events">
                 <i class="fa-solid fa-fire"></i><span>Гринд</span>
             </a>
-            <a href="/event_page.html" class="nav-item" data-path="event_page" id="nav-games-btn">
+            <a href="/?tab=games" class="nav-item" data-path="games" id="nav-games-btn">
     <div class="comic-badge">ИГРА<br>НАЧАЛАСЬ</div>
     <i class="fa-solid fa-gamepad"></i><span>Игры</span>
 </a>
@@ -235,6 +235,34 @@ document.addEventListener("DOMContentLoaded", () => {
             console.warn('Game status checker error:', e);
         }
     };
+    // ================================================================
+    // ПЕРЕКЛЮЧЕНИЕ НА ВКЛАДКУ «ИГРЫ» И «ГЛАВНАЯ» БЕЗ ПЕРЕЗАГРУЗКИ
+    // ================================================================
+    const isMainPage = ['/', '/menu', '/index'].includes(window.location.pathname.replace('.html', '')) || window.location.pathname === '';
+
+    const gamesNavBtn = document.getElementById('nav-games-btn');
+    if (gamesNavBtn) {
+        gamesNavBtn.addEventListener('click', (e) => {
+            if (isMainPage) {
+                e.preventDefault();
+                const gamesToggle = document.querySelector('.toggle-option[data-target="view-games"]');
+                if (gamesToggle) gamesToggle.click();
+            } else {
+                localStorage.setItem('force_open_games', 'true');
+            }
+        });
+    }
+
+    const homeNavBtn = document.querySelector('.nav-item[data-path="/"]');
+    if (homeNavBtn) {
+        homeNavBtn.addEventListener('click', (e) => {
+            if (isMainPage) {
+                e.preventDefault();
+                const dashToggle = document.querySelector('.toggle-option[data-target="view-dashboard"]');
+                if (dashToggle) dashToggle.click();
+            }
+        });
+    }
     
     checkGameStatus();
     setInterval(checkGameStatus, 10000);
