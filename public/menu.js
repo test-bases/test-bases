@@ -2666,6 +2666,50 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
     const needsTimer = !isFreeOpen && trustMultiplier > 1;
 
   // 🔥 Считаем макс. шаги до гаранта
+  // 🔥 МАКСИМАЛЬНО СЖАТОЕ И КРАСИВОЕ ОКНО ЦЕНЫ 🔥
+    let priceBlockHtml = '';
+    
+    if (isFreeOpen) {
+        priceBlockHtml = `
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 22px; font-weight: 900; color: #4ade80; text-transform: uppercase; text-shadow: 0 0 10px rgba(74, 222, 128, 0.4);">Бесплатно</div>
+                <div style="font-size: 9px; color: #aaa; text-transform: uppercase; margin-top: 2px;">Купон применен</div>
+            </div>
+        `;
+    } else if (score >= 30) { // <--- ИСПРАВЛЕНИЕ: Обычная цена для базового и высокого траста (>= 30)
+        priceBlockHtml = `
+            <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 24px; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.5);">
+                ${displayPrice} <span style="font-size: 18px;">${currencyIcon}</span>
+            </div>
+        `;
+    } else { // <--- ИСПРАВЛЕНИЕ: Красная табличка наценки только для траста < 30
+        priceBlockHtml = `
+            <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 14px; background: rgba(0,0,0,0.4); padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="text-align: right;">
+                    <div style="font-size: 18px; font-weight: 900; color: #ff3b30; display: flex; align-items: center; justify-content: flex-end; gap: 4px; text-shadow: 0 0 10px rgba(255,59,48,0.4);">
+                        ${displayPrice} <span style="font-size: 14px;">${currencyIcon}</span>
+                    </div>
+                    <div style="font-size: 9px; color: #aaa; font-weight: 700; text-transform: uppercase;">С наценкой</div>
+                </div>
+                <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1);"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 14px; font-weight: 800; color: #8e8e93; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                        ${basePrice} <span style="font-size: 10px;">${currencyIcon}</span>
+                    </div>
+                    <div style="font-size: 9px; color: #666; font-weight: 700; text-transform: uppercase;">БЕЗ НАЦЕНКИ</div>
+                </div>
+            </div>
+            
+            <div style="font-size: 10px; font-weight: 600; color: #ff9500; line-height: 1.3; margin-bottom: 16px; max-width: 250px; text-align: center;">
+                <i class="fa-solid fa-circle-exclamation"></i> Траст понижен. Подними его, чтобы убрать наценку и включить гарант. 
+                <b style="display: block; margin-top: 6px; color:#fff; text-decoration: underline; cursor:pointer;" onclick="openTrustModal()">Подробнее</b>
+            </div>
+        `;
+    }
+
+    const needsTimer = !isFreeOpen && trustMultiplier > 1;
+
+    // 🔥 Считаем макс. шаги до гаранта
     const trueBasePrice = currency === 'tickets' ? (price / 2) : price;
     let targetLacky = 5;
     if (trueBasePrice >= 250) targetLacky = 10;
@@ -2677,7 +2721,7 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
     if (!isFreeOpen) {
         let guaranteeContent = '';
         
-        if (trustMultiplier > 1) {
+        if (score < 30) { // <--- ИСПРАВЛЕНИЕ ГАРАНТА: Отключаем только если траст < 30
             guaranteeContent = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 0;">
                     <span style="font-size: 10px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Система гаранта</span>
