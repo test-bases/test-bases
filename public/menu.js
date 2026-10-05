@@ -4854,45 +4854,42 @@ if (isBrowserMode) {
 
         if (!isCached) updateLoading(100);
 
-       // =========================================================================
-// 👇 ЖЕЛЕЗОБЕТОННОЕ АВТО-ОТКРЫТИЕ МАГАЗИНА 👇
+       /// =========================================================================
+// 👇 АВТО-ОТКРЫТИЕ МАГАЗИНА И ИГР 👇
 // =========================================================================
 const tgParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
 const urlParam = new URLSearchParams(window.location.search).get('startapp'); 
+const queryTab = new URLSearchParams(window.location.search).get('tab');
 
-const needsShop = localStorage.getItem('force_open_shop') === 'true' || tgParam === 'cases' || urlParam === 'cases';
+const needsShop = localStorage.getItem('force_open_shop') === 'true' || tgParam === 'cases' || urlParam === 'cases' || queryTab === 'shop';
+const needsGames = localStorage.getItem('force_open_games') === 'true' || tgParam === 'games' || urlParam === 'games' || queryTab === 'games';
 
 if (needsShop) {
     localStorage.removeItem('force_open_shop');
-    
     let attempts = 0;
     const shopInterval = setInterval(() => {
         const shopTab = document.querySelector('.toggle-option[data-target="view-shop"]');
         if (shopTab) {
             clearInterval(shopInterval);
-            
-            // 1. Принудительно меняем активные вкладки
-            document.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
-            shopTab.classList.add('active');
-            
-            // 2. Скрываем главное меню, показываем магазин
-            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-            const targetView = document.getElementById('view-shop');
-            if (targetView) targetView.classList.add('active');
-            
-            // 3. Сдвигаем ползунок на вторую вкладку
-            const slider = document.querySelector('.toggle-slider');
-            if (slider) slider.style.transform = 'translateX(100%)';
-            
-            // 4. Загружаем сами кейсы
-            if (typeof loadCategory === 'function') loadCategory(2716312);
+            shopTab.click();
         }
         attempts++;
         if (attempts > 50) clearInterval(shopInterval);
     }, 100);
+} else if (needsGames) {
+    localStorage.removeItem('force_open_games');
+    let attempts = 0;
+    const gamesInterval = setInterval(() => {
+        const gamesTab = document.querySelector('.toggle-option[data-target="view-games"]');
+        if (gamesTab) {
+            clearInterval(gamesInterval);
+            gamesTab.click();
+        }
+        attempts++;
+        if (attempts > 50) clearInterval(gamesInterval);
+    }, 100);
 }
 // =========================================================================
-
         if (!isCached && dom.loaderOverlay) {
             setTimeout(() => { 
                 dom.loaderOverlay.style.opacity = '0';
