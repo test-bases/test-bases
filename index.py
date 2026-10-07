@@ -22595,14 +22595,32 @@ async def claim_grind_reward_endpoint(
         return result
 
     except httpx.HTTPStatusError as e:
+        raw_msg = ""
         try:
-            error_msg = e.response.json().get("message", e.response.text)
+            err_data = e.response.json()
+            raw_msg = err_data.get("message") or err_data.get("details") or e.response.text
         except Exception:
-            error_msg = e.response.text
-        raise HTTPException(status_code=400, detail=error_msg)
+            raw_msg = e.response.text
+
+        # 🌐 Словарь перевода ошибок из Supabase RPC в понятный русский текст
+        lower_msg = (raw_msg or "").lower()
+
+        if any(w in lower_msg for w in ["streak expired", "streak lost", "streak reset", "missed", "сгорел", "сброшен"]):
+            user_msg = "Ваша серия сгорела! Вы пропустили день, прогресс сброшен на День 1."
+        elif any(w in lower_msg for w in ["already claimed", "already collected", "cooldown", "too early", "уже забран"]):
+            user_msg = "Вы уже забрали сегодняшнюю награду! Дождитесь завершения таймера."
+        elif "banned" in lower_msg or "blocked" in lower_msg:
+            user_msg = "Ваш аккаунт временно заблокирован."
+        else:
+            # Если пришла неизвестная системная ошибка PostgREST
+            user_msg = raw_msg if raw_msg else "Не удалось собрать бонус гринда"
+
+        logging.warning(f"Grind claim business error for {telegram_id}: {raw_msg}")
+        raise HTTPException(status_code=400, detail=user_msg)
+
     except Exception as e:
-        logging.error(f"Grind claim error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logging.error(f"Grind claim unexpected error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Временная ошибка сервера. Попробуйте позже.")
         
 @app.post("/api/v1/user/grind/exchange")
 async def exchange_coins_endpoint(
