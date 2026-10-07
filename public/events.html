@@ -3249,19 +3249,23 @@ window.closeStreakCalcModal = function() {
     }
 
     // 🎨 Кастомное модальное окно в стиле Liquid Glass
+    // 🎨 Минималистичное окно: только темный блюр и чистый текст (1-в-1 как «Подробнее»)
     window.customAlert = function(text, title = 'Внимание', type = 'warning') {
         const oldAlert = document.getElementById('custom-app-alert');
         if (oldAlert) oldAlert.remove();
 
         const translatedText = formatErrorMessage(text);
 
-        // Если сгорел стрик — выводим специальную иконку огня
-        let iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-neon); font-size: 28px;"></i>';
+        let iconClass = 'fa-solid fa-triangle-exclamation';
+        let iconColor = 'var(--accent-neon)';
+
         if (translatedText.includes('серия сгорела') || translatedText.includes('прогресс сброшен')) {
             title = 'Серия сгорела';
-            iconHtml = '<i class="fa-solid fa-fire-flame-curved" style="color: #ff3b30; font-size: 32px; filter: drop-shadow(0 0 15px rgba(255,59,48,0.7));"></i>';
+            iconClass = 'fa-solid fa-fire';
+            iconColor = '#ff3b30';
         } else if (type === 'error') {
-            iconHtml = '<i class="fa-solid fa-circle-exclamation" style="color: var(--danger-color); font-size: 30px;"></i>';
+            iconClass = 'fa-solid fa-circle-exclamation';
+            iconColor = 'var(--danger-color)';
         }
 
         const overlay = document.createElement('div');
@@ -3270,13 +3274,24 @@ window.closeStreakCalcModal = function() {
         overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
         overlay.innerHTML = `
-            <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.98); border: 1px solid rgba(255, 255, 255, 0.14); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 22px 18px; text-align: center; border-radius: 22px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);">
-                <div style="margin-bottom: 12px; display: flex; justify-content: center; align-items: center;">
-                    ${iconHtml}
+            <div class="bottom-sheet" style="box-shadow: none; background: transparent; border: none; backdrop-filter: none; -webkit-backdrop-filter: none; max-width: 320px; padding: 20px 18px; text-align: left;">
+                
+                <!-- Шапка 1-в-1 как в «Подробнее» -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="${iconClass}" style="color: ${iconColor}; font-size: 15px;"></i>
+                        <h3 style="margin: 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">${title}</h3>
+                    </div>
+                    <button class="tour-close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.6px;">${title}</h3>
-                <p style="margin: 0 0 18px 0; font-size: 11px; color: #b0b0b8; font-weight: 500; line-height: 1.45; text-align: center;">${translatedText}</p>
-                <button class="premium-btn active-state" style="width: 100%; height: 42px; font-size: 11px; font-weight: 900; letter-spacing: 0.8px;" onclick="this.closest('.modal-overlay').remove()">ПОНЯТНО</button>
+
+                <!-- Чистый текст без подложек, рамок и плашек -->
+                <div style="font-size: 11px; color: #ffffff; line-height: 1.45; font-weight: 500; margin-bottom: 18px;">
+                    ${translatedText}
+                </div>
+
+                <!-- Кнопка «ПОНЯТНО» -->
+                <button class="premium-btn active-state" onclick="this.closest('.modal-overlay').remove()">ПОНЯТНО</button>
             </div>
         `;
         document.body.appendChild(overlay);
