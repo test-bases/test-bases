@@ -33,9 +33,7 @@
 
   <main id="main-content" class="main-content">
     
-    <div id="pull-to-refresh">
-      <i class="fa-solid fa-arrow-down"></i> 
-    </div>
+
 
     <!-- ================= 1. ВЕРХНИЙ БАР МАТРИЦЫ ================= -->
     <div id="matrix-quest-tracker" class="matrix-top-bar">
@@ -148,29 +146,45 @@
         </div>
       </div>
 
-      <!-- СПОЙЛЕР 2: КОНСТРУКТОР КОНТРАКТА (ПО ДЕФОЛТУ СКРЫТ) -->
-      <div class="cs-spoiler-card collapsed" id="spoiler-constructor">
-        <div class="spoiler-header" onclick="toggleSpoiler('spoiler-constructor')">
+     <!-- КАРТОЧКА НА ГЛАВНОМ ЭКРАНЕ (ОТКРЫВАЕТ ОКНО НАСТРОЙКИ) -->
+      <div class="cs-card constructor-trigger-card" onclick="openConstructorModal()">
+        <div class="card-head-row" style="margin-bottom: 0;">
           <div class="head-left">
             <div class="cs-icon-circle"><i class="fa-solid fa-sliders"></i></div>
             <div>
               <h2 class="card-title">КОНСТРУКТОР КОНТРАКТА</h2>
-              <p class="card-desc">Настрой активности под свой актив на неделю</p>
+              <p class="card-desc" id="constructor-card-summary">Нажми, чтобы настроить цели и сложность</p>
             </div>
           </div>
-          <div class="spoiler-right-meta">
-            <!-- Аккуратная подсказка -->
-            <div class="hint-handdrawn">
-              <span>Настрой под себя</span>
-              <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
-                <path d="M2 2C8 2 18 6 16 16M16 16L11 13M16 16L19 11" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
-          </div>
+          <button class="cs-gold-btn" style="padding: 7px 12px; font-size: 8.5px;" onclick="event.stopPropagation(); openConstructorModal()">
+            Настроить
+          </button>
         </div>
+      </div>
 
-        <div class="spoiler-body">
+      <!-- МОДАЛЬНОЕ ОКНО КОНСТРУКТОРА (БОЛЬШОЙ ТЕКСТ И СВОБОДНОЕ МЕСТО) -->
+      <div id="constructor-modal-overlay" class="cs-modal-backdrop hidden" onclick="if(event.target===this) closeConstructorModal()">
+        <div class="cs-modal-card constructor-modal-window">
+          
+          <div class="modal-header-line">
+            <div class="head-left">
+              <div class="cs-icon-circle"><i class="fa-solid fa-sliders"></i></div>
+              <h3 style="font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">КОНСТРУКТОР КОНТРАКТА</h3>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <!-- Стрелочка слева, надпись справа -->
+              <div class="hint-handdrawn">
+                <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+                  <path d="M2 14C8 14 16 10 18 2M18 2L13 5M18 2L20 8" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Настрой под себя</span>
+              </div>
+              <button class="modal-close-icon" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+
+          <p class="modal-info-text">Включай нужные активности и выбирай планку нагрузки на неделю:</p>
+
           <div class="constructor-rows-container">
             
             <!-- Слот 1: Twitch Чат -->
@@ -211,7 +225,7 @@
                 <div class="row-icon-box"><i class="fa-solid fa-play"></i></div>
                 <div class="row-info">
                   <span class="row-title">Просмотр стрима</span>
-                  <span class="row-subtitle">Время на трансляции</span>
+                  <span class="row-subtitle">Время на эфире</span>
                 </div>
               </div>
               <div class="row-chips-group">
@@ -303,7 +317,7 @@
 
           </div>
 
-          <!-- ФУТЕР КОНСТРУКТОРА -->
+          <!-- ФУТЕР ВНУТРИ МОДАЛКИ -->
           <div class="constructor-footer">
             <div class="summary-reward-box">
               <span class="summary-label">Итоговая награда</span>
@@ -317,6 +331,7 @@
               <i class="fa-solid fa-arrow-up-right-from-square"></i>
             </button>
           </div>
+
         </div>
       </div>
 
