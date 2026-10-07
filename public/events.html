@@ -3807,6 +3807,7 @@ window.closeSuccessModal = function() {
             img: "/static/grind_shop.png",
             tab: "shop",
             subTab: "skins",
+            noBlur: true, /* 🔥 Убирает затемнение и блюр, как на 3 шаге */
             highlightSelector: "#shop-container"
         },
         {
@@ -3931,14 +3932,18 @@ window.closeSuccessModal = function() {
                     return;
                 }
 
-                // Шаг с заданиями активности: плавный скролл вниз
-                if (step.highlightSelector.includes('tg-tasks-list')) {
+                // 🔥 Шаги 3 и 5 (Задания и Витрина скинов): одинаковый плавный спуск вниз
+                if (step.highlightSelector.includes('tg-tasks-list') || step.highlightSelector.includes('shop-container')) {
+                    // При переходе на вкладку магазина сбрасываем скролл наверх, чтобы анимация спуска красиво началась с самого начала
+                    if (step.highlightSelector.includes('shop-container')) {
+                        scrollArea.scrollTop = 0;
+                    }
                     const targetY = scrollArea.scrollHeight;
-                    smoothScrollTour(scrollArea, targetY, 700);
+                    smoothScrollTour(scrollArea, targetY, 850); /* Скорость чуть меньше (плавнее, чем 700) */
                     return;
                 }
 
-                // Остальные шаги (Магазин, Скины, Билеты): центрирование
+                // Остальные шаги: центрирование
                 const targetRect = target.getBoundingClientRect();
                 const scrollRect = scrollArea.getBoundingClientRect();
                 const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
