@@ -6,14 +6,14 @@ const dom = {
     loadingText: document.getElementById('loading-text'),
     loadingBarFill: document.getElementById('loading-bar-fill'),
     mainContent: document.getElementById('main-content'),
-    
+
     matrixTracker: document.getElementById('matrix-quest-tracker'),
     weeklyLimitCount: document.getElementById('weekly-limit-count'),
     challengeDescText: document.getElementById('challenge-desc-text'),
     challengeProgressFill: document.getElementById('challenge-progress-fill'),
     challengeNumbers: document.getElementById('challenge-numbers'),
     claimChallengeBtn: document.getElementById('claim-challenge-btn'),
-    
+
     constructorTotalReward: document.getElementById('constructor-total-reward'),
     activateContractBtn: document.getElementById('activate-contract-btn'),
 
@@ -21,6 +21,7 @@ const dom = {
     sectionManual: document.getElementById('section-manual-quests'),
 
     streakModal: document.getElementById('streak-modal-overlay'),
+    constructorModal: document.getElementById('constructor-modal-overlay'),
     promptOverlay: document.getElementById('custom-prompt-overlay'),
     promptTitle: document.getElementById('prompt-title'),
     promptInput: document.getElementById('prompt-input'),
@@ -95,7 +96,7 @@ window.customAlert = function(text, title = 'ВНИМАНИЕ') {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
     overlay.innerHTML = `
-        <div class="cs-modal-card">
+        <div class="cs-modal-card" style="border-color: rgba(255,215,0,0.5);">
             <div class="modal-header-line">
                 <h3 style="color:#FFD700;">${title}</h3>
                 <button class="modal-close-icon" onclick="this.closest('.cs-modal-backdrop').remove()"><i class="fa-solid fa-xmark"></i></button>
@@ -122,17 +123,17 @@ async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false)
             headers: { 'Content-Type': 'application/json' },
             signal: controller.signal 
         };
-        
+
         if (method !== 'GET') {
             options.body = JSON.stringify({ ...body, initData: window.Telegram?.WebApp?.initData || '' });
         }
-        
+
         const response = await fetch(url, options);
         clearTimeout(timeoutId);
 
         if (response.status === 429) throw new Error('Cooldown active'); 
         if (response.status === 204) return null;
-        
+
         const result = await response.json();
         if (!response.ok) throw new Error(result.detail || result.message || 'Ошибка сервера');
         return result;
@@ -160,7 +161,6 @@ window.toggleSpoiler = function(spoilerId) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
 
-    // Если раскрываем спойлер — плавно скроллим страницу к нему
     if (!isCollapsed) {
         setTimeout(() => {
             card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -169,8 +169,21 @@ window.toggleSpoiler = function(spoilerId) {
 };
 
 // ==========================================
-// 4. КОНСТРУКТОР КОНТРАКТА (ЧИПСЫ, ТУМБЛЕРЫ, ИТОГ)
+// 4. ДИАЛОГОВОЕ ОКНО КОНСТРУКТОРА
 // ==========================================
+
+window.openConstructorModal = function() {
+    const modal = document.getElementById('constructor-modal-overlay');
+    if (modal) modal.classList.remove('hidden');
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+};
+
+window.closeConstructorModal = function() {
+    const modal = document.getElementById('constructor-modal-overlay');
+    if (modal) modal.classList.add('hidden');
+};
 
 window.selectChip = function(key, index) {
     const config = constructorConfig[key];
@@ -258,8 +271,12 @@ window.submitConstructorContract = async function() {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
 
+    window.closeConstructorModal();
     window.customAlert("Недельный контракт принят к исполнению!", "УСПЕХ");
     if (dom.weeklyLimitCount) dom.weeklyLimitCount.textContent = "1 / 5";
+
+    const summary = document.getElementById('constructor-card-summary');
+    if (summary) summary.textContent = `Активно ${activeSlots.length} задач на неделю`;
 };
 
 // ==========================================
@@ -312,14 +329,19 @@ async function main() {
         if (bootstrapData) {
             userData = bootstrapData.user || {};
             allQuests = bootstrapData.quests || [];
-            
+
             if (bootstrapData.matrix_quest) {
                 const tg = bootstrapData.matrix_quest.tg_msg_current || 12;
                 const tw = bootstrapData.matrix_quest.twitch_msg_current || 48;
-                document.getElementById('matrix-tg-digits').textContent = `${tg} / 50`;
-                document.getElementById('matrix-twitch-digits').textContent = `${tw} / 200`;
-                document.getElementById('matrix-tg-fill').style.width = `${Math.min(100, (tg/50)*100)}%`;
-                document.getElementById('matrix-twitch-fill').style.width = `${Math.min(100, (tw/200)*100)}%`;
+                const tgDig = document.getElementById('matrix-tg-digits');
+                const twDig = document.getElementById('matrix-twitch-digits');
+                const tgFill = document.getElementById('matrix-tg-fill');
+                const twFill = document.getElementById('matrix-twitch-fill');
+
+                if (tgDig) tgDig.textContent = `${tg} / 50`;
+                if (twDig) twDig.textContent = `${tw} / 200`;
+                if (tgFill) tgFill.style.width = `${Math.min(100, (tg / 50) * 100)}%`;
+                if (twFill) twFill.style.width = `${Math.min(100, (tw / 200) * 100)}%`;
             }
         }
     } catch (e) {}
@@ -336,5 +358,4 @@ try {
     }
     main();
 } catch (e) {
-    if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
-}
+    if
