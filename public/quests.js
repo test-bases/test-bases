@@ -9,17 +9,7 @@ const dom = {
     
     challengeContainer: document.getElementById('challenge-container'),
     activeAutomaticQuestContainer: document.getElementById('active-automatic-quest-container'),
-    
-    // Блок интерактивного конструктора
     questBuilderCard: document.getElementById('quest-builder-card'),
-    builderStepLabel: document.getElementById('builder-step-label'),
-    builderQuestTitle: document.getElementById('builder-quest-title'),
-    builderQuestDesc: document.getElementById('builder-quest-desc'),
-    builderTargetBadge: document.getElementById('builder-target-badge'),
-    builderRewardText: document.getElementById('builder-reward-text'),
-    builderStartBtn: document.getElementById('builder-start-btn'),
-    slider: document.getElementById('quest-difficulty-slider'),
-    sliderTicks: document.getElementById('slider-ticks-container'),
 
     // Разделы
     sectionAuto: document.getElementById('section-auto-quests'),
@@ -41,10 +31,18 @@ let countdownIntervals = {};
 let allQuests = [];
 let userData = {};
 
-// Состояние конструктора активности
-let currentPlatformMode = 'twitch_chat'; // 'twitch_chat' | 'twitch_uptime' | 'telegram_chat'
-let filteredBuilderQuests = [];
-let selectedBuilderQuest = null;
+// Состояние мульти-слайдеров
+let multiQuestsData = {
+    twitch_chat: [],
+    twitch_uptime: [],
+    telegram_chat: []
+};
+
+let selectedCombo = {
+    twitch_chat: null,
+    twitch_uptime: null,
+    telegram_chat: null
+};
 
 // ==========================================
 // 2. УТИЛИТЫ И КАСТОМНЫЕ АЛЕРТЫ
@@ -176,143 +174,130 @@ function startCountdown(timerElement, expiresAt, intervalKey, onEndCallback) {
 }
 
 // ==========================================
-// 3. 🎛️ ИНТЕРАКТИВНЫЙ СЛАЙДЕР-КОНСТРУКТОР
+// 3. 🎛️ МУЛЬТИ-КОНСТРУКТОР 3 В 1 И КОМБО-ОЧЕРЕДЬ
 // ==========================================
-
-function getPrefixForMode(mode) {
-    if (mode === 'twitch_chat') return 'automatic_twitch_messages';
-    if (mode === 'twitch_uptime') return 'automatic_twitch_uptime';
-    if (mode === 'telegram_chat') return 'automatic_telegram';
-    return 'automatic_twitch';
-}
 
 function initQuestBuilder() {
     if (!dom.questBuilderCard) return;
 
-    // Если у пользователя уже запущен квест — скрываем конструктор
     if (userData.active_quest_id) {
         dom.questBuilderCard.classList.add('hidden');
-        if (dom.activeAutomaticQuestContainer) dom.activeAutomaticQuestContainer.classList.remove('hidden');
+        if (dom.activeAutomaticQuestContainer) {
+            dom.activeAutomaticQuestContainer.classList.remove('hidden');
+        }
         return;
     }
 
     dom.questBuilderCard.classList.remove('hidden');
-    if (dom.activeAutomaticQuestContainer) dom.activeAutomaticQuestContainer.classList.add('hidden');
-
-    const prefix = getPrefixForMode(currentPlatformMode);
-    
-    // Выбираем из базы квесты нужной категории
-    filteredBuilderQuests = allQuests
-        .filter(q => q.quest_type && q.quest_type.startsWith(prefix) && !q.is_completed)
-        .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
-
-    // Если точных нет, берем запасной список
-    if (filteredBuilderQuests.length === 0) {
-        filteredBuilderQuests = allQuests
-            .filter(q => q.quest_type && !q.quest_type.includes('manual') && !q.is_completed)
-            .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
+    if (dom.activeAutomaticQuestContainer) {
+        dom.activeAutomaticQuestContainer.classList.add('hidden');
     }
 
-    if (filteredBuilderQuests.length === 0) {
-        dom.builderQuestTitle.textContent = "Нет доступных заданий";
-        dom.builderQuestDesc.textContent = "Все задания этой категории выполнены!";
-        if (dom.slider) dom.slider.disabled = true;
-        if (dom.builderStartBtn) dom.builderStartBtn.disabled = true;
+    // Фильтруем квесты по категориям
+    multiQuestsData.twitch_chat = allQuests
+        .filter(q => q.quest_type && q.quest_type.includes('twitch_messages') && !q.is_completed)
+        .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
+
+    multiQuestsData.twitch_uptime = allQuests
+        .filter(q => q.quest_type && q.quest_type.includes('twitch_uptime') && !q.is_completed)
+        .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
+
+    multiQuestsData.telegram_chat = allQuests
+        .filter(q => q.quest_type && q.quest_type.includes('telegram') && !q.is_completed)
+        .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
+
+    // Настраиваем слайдеры
+    setupRowSlider('twitch_chat', 'slider-twitch-chat');
+    setupRowSlider('twitch_uptime', 'slider-twitch-uptime');
+    setupRowSlider('telegram_chat', 'slider-telegram-chat');
+
+    recalcTotalComboReward();
+}
+
+function setupRowSlider(type, elementId) {
+    const slider = document.getElementById(elementId);
+    const list = multiQuestsData[type];
+    if (!slider || !list || list.length === 0) {
+        if (slider) slider.disabled = true;
         return;
     }
 
-    if (dom.slider) {
-        dom.slider.disabled = false;
-        dom.slider.min = "0";
-        dom.slider.max = String(filteredBuilderQuests.length - 1);
-        dom.slider.step = "1";
-        
-        // По умолчанию ставим среднее деление
-        const defaultIndex = Math.floor((filteredBuilderQuests.length - 1) / 2);
-        dom.slider.value = String(defaultIndex);
-        updateBuilderUI(defaultIndex);
-    }
+    slider.disabled = false;
+    slider.min = "0";
+    slider.max = String(list.length - 1);
+    slider.step = "1";
+    const defIdx = Math.min(1, list.length - 1);
+    slider.value = String(defIdx);
+
+    updateMultiSlider(type, defIdx, false);
 }
 
-window.selectBuilderPlatform = function(mode) {
-    currentPlatformMode = mode;
-    document.querySelectorAll('.platform-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.type === mode);
-    });
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-    initQuestBuilder();
-};
-
-window.onQuestSliderChange = function(indexVal) {
+window.updateMultiSlider = function(type, indexVal, triggerHaptic = true) {
     const idx = parseInt(indexVal, 10);
-    updateBuilderUI(idx);
-    if (window.Telegram?.WebApp?.HapticFeedback) {
+    const list = multiQuestsData[type];
+    const quest = list[idx];
+    if (!quest) return;
+
+    selectedCombo[type] = quest;
+
+    let unit = "сообщ.";
+    if (type === 'twitch_uptime') unit = "мин.";
+
+    const targetEl = document.getElementById(`target-val-${type.replace('_', '-')}`);
+    const rewardEl = document.getElementById(`reward-val-${type.replace('_', '-')}`);
+
+    if (targetEl) targetEl.textContent = `${quest.target_value || 1} ${unit}`;
+    if (rewardEl) rewardEl.textContent = `+${quest.reward_amount || 1} 🎟️`;
+
+    if (triggerHaptic && window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
+
+    recalcTotalComboReward();
 };
 
-function updateBuilderUI(index) {
-    selectedBuilderQuest = filteredBuilderQuests[index];
-    if (!selectedBuilderQuest) return;
+function recalcTotalComboReward() {
+    let sum = 0;
+    Object.values(selectedCombo).forEach(q => {
+        if (q && q.reward_amount) sum += q.reward_amount;
+    });
 
-    // Текстовые метки уровней сложности
-    const levels = ['ЛАЙТ', 'МЕДИУМ', 'ХАРД', 'ХАРДКОР', 'УЛЬТРА'];
-    const levelName = levels[Math.min(index, levels.length - 1)] || 'ВЫЗОВ';
-    if (dom.builderStepLabel) dom.builderStepLabel.textContent = levelName;
-
-    if (dom.builderQuestTitle) dom.builderQuestTitle.textContent = selectedBuilderQuest.title || "Вызов дня";
-    if (dom.builderQuestDesc) dom.builderQuestDesc.textContent = selectedBuilderQuest.description || "Выполните цель для получения награды";
-
-    // Единицы измерения цели
-    let unit = "сообщ.";
-    if (selectedBuilderQuest.quest_type?.includes('uptime')) unit = "мин.";
-    if (dom.builderTargetBadge) dom.builderTargetBadge.textContent = `${selectedBuilderQuest.target_value || 1} ${unit}`;
-
-    // Награда
-    const rewardVal = selectedBuilderQuest.reward_amount || 1;
-    if (dom.builderRewardText) {
-        dom.builderRewardText.innerHTML = `+${rewardVal} Билета <i class="fa-solid fa-ticket" style="font-size:12px;"></i>`;
+    const totalEl = document.getElementById('total-combo-reward');
+    if (totalEl) {
+        totalEl.innerHTML = `+${sum} Билетов <i class="fa-solid fa-ticket" style="font-size: 11px;"></i>`;
     }
-
-    // Подписи под слайдером
-    if (dom.sliderTicks) {
-        if (filteredBuilderQuests.length <= 2) {
-            dom.sliderTicks.innerHTML = `<span>ЛАЙТ</span><span>ХАРД</span>`;
-        } else if (filteredBuilderQuests.length === 3) {
-            dom.sliderTicks.innerHTML = `<span>ЛАЙТ</span><span>МЕДИУМ</span><span>ХАРД</span>`;
-        } else {
-            dom.sliderTicks.innerHTML = `<span>ЛАЙТ</span><span>МЕДИУМ</span><span>ХАРД</span><span>УЛЬТРА</span>`;
-        }
-    }
-
-    if (dom.builderStartBtn) dom.builderStartBtn.disabled = false;
 }
 
-window.startCustomSelectedQuest = async function() {
-    if (!selectedBuilderQuest) return;
-    const btn = dom.builderStartBtn;
+// Запуск комбо без изменения структуры БД
+window.startComboContract = async function() {
+    const questsToQueue = Object.values(selectedCombo).filter(Boolean);
+    if (questsToQueue.length === 0) return;
+
+    const btn = document.getElementById('combo-start-btn');
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     }
 
+    const queueIds = questsToQueue.map(q => q.id);
+    const firstQuestId = queueIds.shift();
+    localStorage.setItem('user_quest_combo_queue', JSON.stringify(queueIds));
+
     try {
-        await makeApiRequest("/api/v1/quests/start", { quest_id: selectedBuilderQuest.id });
+        await makeApiRequest("/api/v1/quests/start", { quest_id: firstQuestId });
         localStorage.removeItem('quests_cache_v1');
         window.location.reload();
     } catch (e) {
-        window.customAlert(e.message || "Не удалось запустить задание");
+        window.customAlert(e.message || "Не удалось запустить комбо-контракт");
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = 'ПРИНЯТЬ';
+            btn.innerHTML = 'АКТИВИРОВАТЬ ВСЕ 3';
         }
     }
 };
 
 // ==========================================
-// 4. ПЕРЕКЛЮЧЕНИЕ ГЛАВНЫХ ВКЛАДОК
+// 4. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
 // ==========================================
 
 window.switchViewTab = function(tab) {
@@ -329,7 +314,7 @@ window.switchViewTab = function(tab) {
 };
 
 // ==========================================
-// 5. ТРЕКЕР «МАТРИЦА» И ЧЕЛЛЕНДЖИ
+// 5. ТРЕКЕР МАТРИЦЫ И ЧЕЛЛЕНДЖИ
 // ==========================================
 
 function renderMatrixTracker(matrixData, userData) {
@@ -430,7 +415,7 @@ function renderActiveAutomaticQuest(quest, userData) {
     const isCompleted = progress >= target;
     
     dom.activeAutomaticQuestContainer.innerHTML = `
-        <div class="quest-card builder-card" style="border-color: rgba(52, 199, 89, 0.4);">
+        <div class="quest-card" style="border-color: rgba(52, 199, 89, 0.4);">
             <div class="active-quest-indicator">ВЫПОЛНЯЕТСЯ</div>
             <div class="quest-title" style="margin-top: 8px;">${activeQuest.title}</div>
             <div class="quest-subtitle">${activeQuest.description}</div>
@@ -459,7 +444,7 @@ function renderManualQuests(questsData) {
 
     let quests = Array.isArray(questsData) ? questsData : (questsData?.quests || []);
     if (quests.length === 0) {
-        container.innerHTML = `<p style="text-align: center; font-size: 11px; color: var(--text-color-muted); padding:20px 0;">Нет заданий для проверки.</p>`;
+        container.innerHTML = `<p style="text-align: center; font-size: 11px; color: var(--text-color-muted); padding:20px 0;">Нет доступных заданий для проверки.</p>`;
         return;
     }
 
@@ -498,22 +483,22 @@ function renderManualQuests(questsData) {
 let currentQuestTourStep = 0;
 const questTourSteps = [
     {
-        title: "Конструктор вызова",
-        text: "Выбирай платформу и двигай <b>ползунок сложности</b>! Чем выше цель, тем больше билетов ты получаешь за один заход.",
+        title: "Комбо-контракт",
+        text: "Настраивай удобный объём активности на сегодня! Каждый ползунок регулирует нагрузку и суммирует итоговую награду билетов 🎟️.",
         img: "/static/grind_intro.png",
         targetSelector: "#quest-builder-card"
     },
     {
-        title: "Слайдер сложности",
-        text: "Настраивай удобный объем активности под свой вечер: <b>Лайт</b>, <b>Медиум</b> или <b>Хардкор</b> с повышенным кушем!",
+        title: "Проверка доверием",
+        text: "Сверху отображается шкала <b>Матрицы</b>: общайся в чате TG и на стримах Twitch, чтобы забрать секретный кейс!",
         img: "/static/grind_tasks.png",
-        targetSelector: ".slider-wrapper"
+        targetSelector: "#matrix-quest-tracker"
     },
     {
-        title: "Матрица активности",
-        text: "Не забывай про <b>Проверку доверием</b> сверху: общайся в чатах, закрывай цели и забирай секретный кейс!",
-        img: "/static/grind_tickets.png",
-        targetSelector: "#matrix-quest-tracker"
+        title: "Ручная проверка",
+        text: "Выполняй задания сообщества во второй вкладке, прикрепляй пруфы и получай монеты на баланс после одобрения модератором!",
+        img: "/static/grind_shop.png",
+        targetSelector: ".segment-control"
     }
 ];
 
@@ -597,7 +582,7 @@ function renderCurrentQuestTourStep() {
 }
 
 // ==========================================
-// 7. СТАРТ И СОБЫТИЯ
+// 7. СТАРТ И ОБРАБОТЧИКИ
 // ==========================================
 
 async function main() {
@@ -614,10 +599,10 @@ async function main() {
         const isTwitchLinked = !!(userData.twitch_id || userData.twitch_login);
         if (userData.challenge) renderChallenge(userData.challenge, !isTwitchLinked);
 
-        // Инициализируем наш новый конструктор со слайдером
+        // Инициализируем 3-в-1 мульти-конструктор
         initQuestBuilder();
 
-        // Проверяем, есть ли активный квест
+        // Проверяем, есть ли запущенный квест
         if (userData.active_quest_id) {
             renderActiveAutomaticQuest(allQuests.find(q => q.id === userData.active_quest_id), userData);
         }
@@ -634,23 +619,82 @@ async function main() {
     dom.mainContent.style.opacity = 1;
 }
 
+function initPullToRefresh() {
+    const content = document.getElementById('main-content');
+    const ptrContainer = document.getElementById('pull-to-refresh'); 
+    const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
+    if (!content || !ptrContainer || !icon) return;
+    let startY = 0, pulledDistance = 0, isPulling = false;
+
+    content.addEventListener('touchstart', (e) => {
+        if (content.scrollTop <= 0) { 
+            startY = e.touches[0].clientY; 
+            isPulling = true; 
+        } else { isPulling = false; }
+    }, { passive: true });
+
+    content.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        const diff = e.touches[0].clientY - startY;
+        if (diff > 0 && content.scrollTop <= 0) {
+            if (e.cancelable) e.preventDefault();
+            pulledDistance = Math.min(Math.pow(diff, 0.85), 100);
+            content.style.transform = `translateY(${pulledDistance}px)`;
+            ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
+            icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
+            icon.style.color = pulledDistance > 60 ? "var(--accent-neon)" : "var(--text-color-muted)";
+        }
+    }, { passive: false });
+
+    content.addEventListener('touchend', () => {
+        if (!isPulling) return;
+        isPulling = false;
+        content.style.transition = 'transform 0.3s ease-out';
+        ptrContainer.style.transition = 'transform 0.3s ease-out';
+        if (pulledDistance > 60) {
+            content.style.transform = `translateY(60px)`;
+            ptrContainer.style.transform = `translateY(60px)`;
+            icon.classList.add('fa-spin');
+            setTimeout(() => window.location.reload(), 400);
+        } else {
+            content.style.transform = 'translateY(0px)';
+            ptrContainer.style.transform = 'translateY(0px)';
+        }
+        pulledDistance = 0;
+    });
+}
+
 function setupEventListeners() {
     if (window.Telegram?.WebApp?.BackButton) {
         window.Telegram.WebApp.BackButton.show();
         window.Telegram.WebApp.BackButton.onClick(() => window.history.back());
     }
 
-    // Обработчик кнопок на странице
     document.body.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
 
-        // Забрать награду за квест
+        // Забрать награду за авто-квест
         if (target.dataset.questId) {
             target.disabled = true;
             try {
                 const res = await makeApiRequest('/api/v1/promocode', { quest_id: parseInt(target.dataset.questId, 10) });
-                window.customAlert(res.message || "Награда успешно начислена на ваш баланс!", "Успешно");
+                
+                // Проверяем очередь комбо-контракта
+                const rawQueue = localStorage.getItem('user_quest_combo_queue');
+                const queue = rawQueue ? JSON.parse(rawQueue) : [];
+
+                if (queue.length > 0) {
+                    const nextQuestId = queue.shift();
+                    localStorage.setItem('user_quest_combo_queue', JSON.stringify(queue));
+                    // Бесшовно запускаем следующий квест цепочки
+                    await makeApiRequest('/api/v1/quests/start', { quest_id: nextQuestId }, 'POST', true);
+                    window.customAlert("Награда получена! Следующий этап контракта активирован.", "Этап завершён");
+                } else {
+                    localStorage.removeItem('user_quest_combo_queue');
+                    window.customAlert(res.message || "Награда успешно начислена на ваш баланс!", "Успешно");
+                }
+
                 setTimeout(() => window.location.reload(), 1200);
             } catch (err) {
                 target.disabled = false;
@@ -662,16 +706,17 @@ function setupEventListeners() {
             target.disabled = true;
             try {
                 await makeApiRequest(`/api/v1/challenges/${target.dataset.challengeId}/claim`, {}, 'POST');
-                window.customAlert("Награда за челлендж получена!", "Успешно");
+                window.customAlert("Награда за стрим-челлендж получена!", "Успешно");
                 setTimeout(() => window.location.reload(), 1200);
             } catch (err) {
                 target.disabled = false;
             }
         }
 
-        // Отмена квеста
+        // Отмена активного квеста
         if (target.id === 'cancel-quest-btn') {
-            if (confirm("Отменить текущее задание?")) {
+            if (confirm("Отменить текущее задание? Очередь контракта также будет сброшена.")) {
+                localStorage.removeItem('user_quest_combo_queue');
                 await makeApiRequest('/api/v1/quests/cancel');
                 window.location.reload();
             }
@@ -707,6 +752,7 @@ try {
         window.Telegram.WebApp.expand();
     }
     setupEventListeners();
+    initPullToRefresh();
     main();
 } catch (e) {
     if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
