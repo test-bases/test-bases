@@ -43,7 +43,7 @@ const constructorConfig = {
             { target: 100, reward: 4, label: "100" }
         ],
         selectedIdx: 1,
-        enabled: false // по дефолту выключен
+        enabled: false
     },
     twitch_uptime: {
         title: "Просмотр стрима",
@@ -96,9 +96,9 @@ window.customAlert = function(text, title = 'ВНИМАНИЕ') {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
     overlay.innerHTML = `
-        <div class="cs-modal-card" style="border-color: rgba(255,215,0,0.5);">
+        <div class="cs-modal-card" style="border-color: var(--gold-primary); box-shadow: 0 10px 40px rgba(255,215,0,0.15);">
             <div class="modal-header-line">
-                <h3 style="color:#FFD700;">${title}</h3>
+                <h3 style="color:var(--gold-primary);">${title}</h3>
                 <button class="modal-close-icon" onclick="this.closest('.cs-modal-backdrop').remove()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <p class="modal-info-text" style="color:#fff;">${text}</p>
@@ -112,7 +112,6 @@ window.customAlert = function(text, title = 'ВНИМАНИЕ') {
     }
 };
 
-// Регистрируем makeApiRequest в window, чтобы top_nav.js его нашел!
 window.makeApiRequest = async function(url, body = {}, method = 'POST', isSilent = false) {
     if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.remove('hidden');
     try {
@@ -149,7 +148,7 @@ window.makeApiRequest = async function(url, body = {}, method = 'POST', isSilent
 };
 
 // ==========================================
-// 3. УПРАВЛЕНИЕ СПОЙЛЕРАМИ СО СКРОЛЛОМ
+// 3. УПРАВЛЕНИЕ СПОЙЛЕРАМИ (Для Серии)
 // ==========================================
 
 window.toggleSpoiler = function(spoilerId) {
@@ -165,7 +164,7 @@ window.toggleSpoiler = function(spoilerId) {
     if (!isCollapsed) {
         setTimeout(() => {
             card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 80);
+        }, 150);
     }
 };
 
@@ -277,7 +276,7 @@ window.submitConstructorContract = async function() {
     if (dom.weeklyLimitCount) dom.weeklyLimitCount.textContent = "1 / 5";
 
     const summary = document.getElementById('constructor-card-summary');
-    if (summary) summary.textContent = `Активно ${activeSlots.length} задач на неделю`;
+    if (summary) summary.textContent = `Активно задач: ${activeSlots.length}`;
 };
 
 // ==========================================
@@ -313,6 +312,7 @@ window.claimActiveStreamChallenge = function() {
     if (dom.claimChallengeBtn) {
         dom.claimChallengeBtn.textContent = "ГОТОВО";
         dom.claimChallengeBtn.disabled = true;
+        dom.claimChallengeBtn.classList.add('disabled');
     }
 };
 
