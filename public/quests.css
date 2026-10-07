@@ -38,13 +38,44 @@ html, body {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
-  padding: 4px 14px 120px 14px;
+  padding: 4px 14px 135px 14px; /* Безопасный отступ под нижнее меню */
   position: relative;
   z-index: 10;
   opacity: 0;
   transition: opacity 0.25s ease-in-out;
 }
 .main-content.visible { opacity: 1; }
+
+/* Призывной заголовок */
+.hero-cta-banner {
+  padding: 2px 2px 8px 2px;
+}
+.hero-cta-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+}
+.hero-cta-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--text-color-muted);
+  font-weight: 600;
+}
+.weekly-limit-pill {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: 'SF Mono', monospace;
+  font-weight: 800;
+}
 
 .page-title {
   font-size: 13px;
@@ -74,7 +105,7 @@ html, body {
 }
 
 /* ==========================================
-   🔘 УНИВЕРСАЛЬНЫЕ КНОПКИ
+   🔘 КНОПКИ И СТЕКЛО
    ========================================== */
 .premium-btn {
   width: 100%;
@@ -97,24 +128,14 @@ html, body {
   -webkit-backdrop-filter: blur(10px);
   box-sizing: border-box;
 }
-
 .premium-btn:active:not(:disabled) {
   transform: scale(0.97);
   background: rgba(255, 255, 255, 0.1);
 }
-
 .premium-btn.active-state {
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 215, 0, 0.35) !important;
   color: var(--accent-neon) !important;
-}
-
-.premium-btn:disabled {
-  background: rgba(0, 0, 0, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.03) !important;
-  color: var(--text-color-muted) !important;
-  cursor: not-allowed;
-  transform: none !important;
 }
 
 .glass-card {
@@ -123,7 +144,7 @@ html, body {
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 12px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--glass-shadow);
@@ -131,7 +152,6 @@ html, body {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
-  transform: translateZ(0);
 }
 
 .quest-card {
@@ -147,32 +167,13 @@ html, body {
   gap: 6px;
 }
 
-.quest-title {
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.25;
-  margin: 0;
-  color: #fff;
-}
-
-.quest-subtitle {
-  color: #a1a1aa;
-  font-size: 10px;
-  line-height: 1.3;
-  margin: 0;
-  font-weight: 500;
-}
-
-/* ==========================================
-   🎚️ НАВИГАЦИЯ (СЕГМЕНТ-КОНТРОЛ)
-   ========================================== */
+/* Навигация */
 .segment-control {
   display: flex;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0 4px;
   margin-bottom: 10px;
 }
-
 .segment-btn {
   flex: 1;
   text-align: center;
@@ -186,12 +187,10 @@ html, body {
   position: relative;
   transition: all 0.25s ease;
 }
-
 .segment-btn.active {
   color: #ffffff;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
-
 .segment-btn::after {
   content: '';
   position: absolute;
@@ -205,13 +204,12 @@ html, body {
   box-shadow: 0 -2px 8px rgba(255, 255, 255, 0.8);
   transition: transform 0.25s ease;
 }
-
 .segment-btn.active::after {
   transform: translateX(-50%) scaleX(1);
 }
 
 /* ==========================================
-   🎛️ МУЛЬТИ-КОНСТРУКТОР ПЛАНА (3 В 1)
+   🎛️ СЛОТЫ АКТИВНОСТЕЙ В КОНСТРУКТОРЕ
    ========================================== */
 .multi-builder-card {
   border-color: rgba(255, 255, 255, 0.09);
@@ -219,82 +217,131 @@ html, body {
   padding: 12px;
 }
 
-.builder-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.builder-intro {
+  font-size: 10px;
+  color: var(--text-color-muted);
+  line-height: 1.35;
   margin-bottom: 2px;
 }
 
-.builder-title-label {
+.activity-slot-card {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+.activity-slot-card.disabled-slot {
+  opacity: 0.35;
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.slot-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.slot-icon {
+  font-size: 13px;
+  color: #fff;
+}
+.slot-title {
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
+  color: #fff;
   text-transform: uppercase;
-  color: #fff;
-  letter-spacing: 0.6px;
 }
 
-.builder-level-pill {
-  font-size: 8px;
-  font-weight: 900;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 2px 6px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+/* Аккуратный тумблер iOS/Telegram */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+.toggle-switch input { display: none; }
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  transition: .25s;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #8e8e93;
+  border-radius: 50%;
+  transition: .25s;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(14px);
+  background-color: #ffffff;
 }
 
-.multi-slider-row {
+/* Степпер: [-] [значение] [+] */
+.stepper-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 7px 9px;
+}
+.stepper-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 26px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+.stepper-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.16);
+}
+.stepper-value {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'SF Mono', monospace;
+  text-align: center;
 }
 
-.row-info {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 76px;
-  flex-shrink: 0;
-}
-.row-icon {
-  font-size: 13px;
-  color: #fff;
-  opacity: 0.9;
-}
-.row-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-.row-title {
+.slot-reward-badge {
   font-size: 9px;
   font-weight: 800;
   color: #fff;
-  white-space: nowrap;
-}
-.row-target {
-  font-size: 8px;
-  font-weight: 600;
-  color: var(--text-color-muted);
-  font-family: 'SF Mono', monospace;
-  white-space: nowrap;
-  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 3px 6px;
+  min-width: 36px;
+  text-align: center;
 }
 
-.row-slider-box {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
-}
-
+/* Слайдер и быстрые плашки */
 .compact-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -304,93 +351,56 @@ html, body {
   background: rgba(255, 255, 255, 0.12);
   outline: none;
   cursor: pointer;
+  margin: 6px 0 4px 0;
+  touch-action: pan-y;
 }
-
 .compact-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #ffffff;
   border: 1.5px solid rgba(255, 215, 0, 0.6);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
   cursor: pointer;
-  transition: transform 0.1s ease;
-}
-.compact-slider::-webkit-slider-thumb:active {
-  transform: scale(1.15);
 }
 
-.row-reward-badge {
-  font-size: 9px;
-  font-weight: 800;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 7px;
-  padding: 3px 6px;
-  min-width: 38px;
+.quick-preset-pills {
+  display: flex;
+  gap: 5px;
+}
+.preset-pill {
+  flex: 1;
   text-align: center;
-  flex-shrink: 0;
-}
-
-/* ==========================================
-   👑 ИДЕАЛЬНАЯ СЕРИЯ (FLAWLESS STREAK)
-   ========================================== */
-.flawless-streak-box {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 215, 0, 0.18);
-  border-radius: 10px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 1px;
-}
-
-.flawless-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.flawless-track {
-  width: 100%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.flawless-fill {
-  height: 100%;
-  background: var(--accent-neon);
-  box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.flawless-footer {
-  display: flex;
-  justify-content: space-between;
   font-size: 8px;
+  font-weight: 700;
   color: var(--text-color-muted);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  padding: 3px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.preset-pill.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.multi-footer {
+.builder-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  margin-top: 1px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 2px;
 }
 
 .compact-action-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #fff;
   border-radius: 8px;
   padding: 8px 14px;
@@ -403,85 +413,133 @@ html, body {
 }
 .compact-action-btn:active {
   transform: scale(0.96);
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ==========================================
-   📊 ПРОГРЕСС И СТАТУСЫ
+   👑 ИДЕАЛЬНАЯ СЕРИЯ (ОТДЕЛЬНАЯ КАРТОЧКА)
    ========================================== */
-.progress-bar {
-  width: 100%;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  margin-top: 3px;
+.flawless-standalone-card {
+  cursor: pointer;
+  border-color: rgba(255, 215, 0, 0.2);
+  transition: background 0.2s ease;
 }
-.progress-fill {
+.flawless-standalone-card:active {
+  background: rgba(25, 25, 30, 0.85);
+}
+
+.flawless-badge {
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--accent-neon);
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: 'SF Mono', monospace;
+}
+
+.flawless-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.flawless-fill {
   height: 100%;
-  background: #ffffff;
-  border-radius: 10px;
+  background: var(--accent-neon);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+  border-radius: 2px;
   transition: width 0.3s ease;
 }
-.progress-content {
-  position: absolute;
-  inset: 0;
+
+/* Список вех в модалке */
+.milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.milestone-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 9px;
+}
+.milestone-item.active {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: rgba(255, 215, 0, 0.06);
+}
+.milestone-day {
+  font-weight: 800;
+  color: #fff;
+  font-family: 'SF Mono', monospace;
+}
+.milestone-reward {
+  color: #b0b0b8;
+  font-weight: 600;
+}
+
+/* ==========================================
+   📊 АКТИВНЫЙ КОНТРАКТ И СТРОКА ЗАДАЧ
+   ========================================= */
+.active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.active-task-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 2;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 7px 9px;
 }
-.progress-text {
-  font-weight: 800;
+.active-task-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.active-task-title {
   font-size: 9px;
+  font-weight: 800;
   color: #fff;
-  font-family: 'SF Mono', monospace;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
-
-.challenge-timer {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  text-align: center;
-  font-family: 'SF Mono', monospace;
-}
-
-.stream-status-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 7px;
-  font-weight: 900;
-  text-transform: uppercase;
-  padding: 2px 5px;
-  border-radius: 5px;
-}
-.stream-status-badge.online {
-  background: rgba(255, 59, 48, 0.15);
-  color: var(--danger-color);
-  border: 1px solid rgba(255, 59, 48, 0.3);
-}
-.stream-status-badge.offline {
-  background: rgba(255, 255, 255, 0.05);
+.active-task-progress {
+  font-size: 8px;
   color: var(--text-color-muted);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'SF Mono', monospace;
+  margin-top: 2px;
 }
-
-.active-quest-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 7px;
-  font-weight: 900;
-  padding: 2px 5px;
-  border-radius: 5px;
-  text-transform: uppercase;
-  color: #fff;
+.claim-single-btn {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.claim-single-btn.ready {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: var(--accent-neon);
+}
+.claim-single-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .cancel-quest-button {
@@ -494,7 +552,6 @@ html, body {
   font-size: 9px;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 4px;
 }
 
 /* ==========================================
@@ -508,7 +565,6 @@ html, body {
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
 }
-
 .quest-category-header {
   cursor: pointer;
   font-size: 10px;
@@ -533,14 +589,12 @@ html, body {
   transform: rotate(180deg);
   color: #fff;
 }
-
 .quest-category-body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
   padding: 0 8px 10px 8px;
 }
-
 .manual-quest-actions {
   display: flex;
   gap: 5px;
@@ -558,145 +612,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ==========================================
-   🎓 ОБУЧЕНИЕ И МОДАЛКИ
-   ========================================== */
-.tour-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 99990;
-}
-body.tour-mode .tour-backdrop { display: block; }
-
-body.tour-mode nav, body.tour-mode footer, body.tour-mode .bottom-nav {
-  position: fixed;
-  z-index: 99995 !important;
-}
-
-body.tour-mode .glass-card,
-body.tour-mode .segment-control {
-  opacity: 0.15;
-  filter: blur(4px);
-  -webkit-filter: blur(4px);
-}
-
-body.tour-mode .tour-target-active {
-  opacity: 1 !important;
-  filter: none !important;
-  -webkit-filter: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  background: rgba(18, 18, 20, 0.98) !important;
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.15) !important;
-  position: relative;
-  z-index: 99992 !important;
-}
-
-.tour-card {
-  position: fixed;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  max-width: 400px;
-  margin: 0 auto;
-  background: rgba(14, 14, 16, 0.85);
-  backdrop-filter: blur(35px);
-  -webkit-backdrop-filter: blur(35px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  padding: 14px;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.tour-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 10;
-}
-.tour-step-badge {
-  font-size: 8px;
-  font-weight: 800;
-  color: #000;
-  background: #ffffff;
-  padding: 2px 7px;
-  border-radius: 5px;
-  text-transform: uppercase;
-}
-.tour-close-btn {
-  background: none;
-  border: none;
-  color: var(--text-color-muted);
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.tour-levitate-stage {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: -80px;
-  margin-bottom: 2px;
-  height: 110px;
-  position: relative;
-  pointer-events: none;
-}
-.tour-levitate-stage::before {
-  content: '';
-  position: absolute;
-  width: 170px;
-  height: 110px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -48%);
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 45%, transparent 75%);
-  filter: blur(14px);
-  -webkit-filter: blur(14px);
-  z-index: 1;
-}
-
-.tour-img {
-  max-height: 160px;
-  max-width: 220px;
-  object-fit: contain;
-  position: relative;
-  z-index: 2;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.3) 85%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.3) 85%, transparent 100%);
-}
-
-.tour-card-body {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.tour-title {
-  font-size: 12px;
-  font-weight: 900;
-  color: #fff;
-  margin: 0;
-  text-transform: uppercase;
-}
-.tour-text {
-  font-size: 11px;
-  color: #b0b0b8;
-  line-height: 1.35;
-  margin: 0;
-}
-.tour-text b { color: #fff; }
-
-.tour-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 4px;
-}
-
+/* Модалки */
 .modal-overlay, .prompt-overlay {
   position: fixed;
   inset: 0;
@@ -716,7 +632,6 @@ body.tour-mode .tour-target-active {
   opacity: 1;
   pointer-events: auto;
 }
-
 .bottom-sheet {
   width: 100%;
   max-width: 320px;
