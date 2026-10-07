@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="/quests.css?v=20" />
+  <link rel="stylesheet" href="/quests.css?v=21" />
   
   <script src="/top_nav.js" defer></script>
 </head>
@@ -33,8 +33,6 @@
 
   <main id="main-content" class="main-content">
     
-
-
     <!-- ================= 1. ВЕРХНИЙ БАР МАТРИЦЫ ================= -->
     <div id="matrix-quest-tracker" class="matrix-top-bar">
       <div class="matrix-brand">
@@ -104,7 +102,7 @@
     <!-- ================= 4. РАЗДЕЛ: НЕДЕЛЬНЫЙ ПЛАН ================= -->
     <div id="section-weekly-plan">
       
-      <!-- СПОЙЛЕР 1: СТРИМ-ЧЕЛЛЕНДЖ (ПО ДЕФОЛТУ СКРЫТ) -->
+      <!-- СПОЙЛЕР 1: СТРИМ-ЧЕЛЛЕНДЖ -->
       <div class="cs-spoiler-card collapsed" id="spoiler-stream-challenge">
         <div class="spoiler-header" onclick="toggleSpoiler('spoiler-stream-challenge')">
           <div class="head-left">
@@ -146,7 +144,7 @@
         </div>
       </div>
 
-     <!-- КАРТОЧКА НА ГЛАВНОМ ЭКРАНЕ (ОТКРЫВАЕТ ОКНО НАСТРОЙКИ) -->
+      <!-- КАРТОЧКА-ТРИГГЕР: КОНСТРУКТОР -->
       <div class="cs-card constructor-trigger-card" onclick="openConstructorModal()">
         <div class="card-head-row" style="margin-bottom: 0;">
           <div class="head-left">
@@ -162,180 +160,7 @@
         </div>
       </div>
 
-      <!-- МОДАЛЬНОЕ ОКНО КОНСТРУКТОРА (БОЛЬШОЙ ТЕКСТ И СВОБОДНОЕ МЕСТО) -->
-      <div id="constructor-modal-overlay" class="cs-modal-backdrop hidden" onclick="if(event.target===this) closeConstructorModal()">
-        <div class="cs-modal-card constructor-modal-window">
-          
-          <div class="modal-header-line">
-            <div class="head-left">
-              <div class="cs-icon-circle"><i class="fa-solid fa-sliders"></i></div>
-              <h3 style="font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">КОНСТРУКТОР КОНТРАКТА</h3>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <!-- Стрелочка слева, надпись справа -->
-              <div class="hint-handdrawn">
-                <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-                  <path d="M2 14C8 14 16 10 18 2M18 2L13 5M18 2L20 8" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>Настрой под себя</span>
-              </div>
-              <button class="modal-close-icon" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-          </div>
-
-          <p class="modal-info-text">Включай нужные активности и выбирай планку нагрузки на неделю:</p>
-
-          <div class="constructor-rows-container">
-            
-            <!-- Слот 1: Twitch Чат -->
-            <div class="constructor-row row-disabled" id="row-twitch-chat">
-              <div class="row-meta">
-                <div class="row-icon-box"><i class="fa-brands fa-twitch"></i></div>
-                <div class="row-info">
-                  <span class="row-title">Twitch Чат</span>
-                  <span class="row-subtitle">Сообщений в чате</span>
-                </div>
-              </div>
-              <div class="row-chips-group">
-                <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
-                  <span class="chip-val">25</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-                </button>
-                <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
-                  <span class="chip-val">50</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-                </button>
-                <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
-                  <span class="chip-val">100</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +4</span>
-                </button>
-              </div>
-              <div class="row-toggle-wrap">
-                <label class="cs-switch">
-                  <input type="checkbox" id="toggle-twitch-chat" onchange="toggleConstructorRow('twitch_chat', this.checked)">
-                  <span class="switch-handle"></span>
-                </label>
-                <span class="toggle-status-text" id="status-twitch-chat">ВЫКЛ</span>
-              </div>
-            </div>
-
-            <!-- Слот 2: Просмотр стрима -->
-            <div class="constructor-row row-disabled" id="row-twitch-uptime">
-              <div class="row-meta">
-                <div class="row-icon-box"><i class="fa-solid fa-play"></i></div>
-                <div class="row-info">
-                  <span class="row-title">Просмотр стрима</span>
-                  <span class="row-subtitle">Время на эфире</span>
-                </div>
-              </div>
-              <div class="row-chips-group">
-                <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
-                  <span class="chip-val">30 мин.</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-                </button>
-                <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
-                  <span class="chip-val">60 мин.</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-                </button>
-                <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
-                  <span class="chip-val">120 мин.</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
-                </button>
-              </div>
-              <div class="row-toggle-wrap">
-                <label class="cs-switch">
-                  <input type="checkbox" id="toggle-twitch-uptime" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
-                  <span class="switch-handle"></span>
-                </label>
-                <span class="toggle-status-text" id="status-twitch-uptime">ВЫКЛ</span>
-              </div>
-            </div>
-
-            <!-- Слот 3: Telegram Чат -->
-            <div class="constructor-row row-disabled" id="row-telegram-chat">
-              <div class="row-meta">
-                <div class="row-icon-box"><i class="fa-brands fa-telegram"></i></div>
-                <div class="row-info">
-                  <span class="row-title">Telegram Чат</span>
-                  <span class="row-subtitle">Сообщений в чате</span>
-                </div>
-              </div>
-              <div class="row-chips-group">
-                <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
-                  <span class="chip-val">15</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-                </button>
-                <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
-                  <span class="chip-val">30</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-                </button>
-                <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
-                  <span class="chip-val">60</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +3</span>
-                </button>
-              </div>
-              <div class="row-toggle-wrap">
-                <label class="cs-switch">
-                  <input type="checkbox" id="toggle-telegram-chat" onchange="toggleConstructorRow('telegram_chat', this.checked)">
-                  <span class="switch-handle"></span>
-                </label>
-                <span class="toggle-status-text" id="status-telegram-chat">ВЫКЛ</span>
-              </div>
-            </div>
-
-            <!-- Слот 4: Персональный вызов -->
-            <div class="constructor-row row-disabled" id="row-personal-quest">
-              <div class="row-meta">
-                <div class="row-icon-box"><i class="fa-solid fa-crosshairs"></i></div>
-                <div class="row-info">
-                  <span class="row-title">Персональный</span>
-                  <span class="row-subtitle">Игровая цель</span>
-                </div>
-              </div>
-              <div class="row-chips-group">
-                <button class="target-chip" onclick="selectChip('personal_quest', 0)">
-                  <span class="chip-val">10 кейсов</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
-                </button>
-                <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
-                  <span class="chip-val">50 слов</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +6</span>
-                </button>
-                <button class="target-chip" onclick="selectChip('personal_quest', 2)">
-                  <span class="chip-val">3 друга</span>
-                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +8</span>
-                </button>
-              </div>
-              <div class="row-toggle-wrap">
-                <label class="cs-switch">
-                  <input type="checkbox" id="toggle-personal-quest" onchange="toggleConstructorRow('personal_quest', this.checked)">
-                  <span class="switch-handle"></span>
-                </label>
-                <span class="toggle-status-text" id="status-personal-quest">ВЫКЛ</span>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- ФУТЕР ВНУТРИ МОДАЛКИ -->
-          <div class="constructor-footer">
-            <div class="summary-reward-box">
-              <span class="summary-label">Итоговая награда</span>
-              <div class="summary-amount">
-                <i class="fa-solid fa-ticket gold-icon"></i>
-                <span id="constructor-total-reward">0</span>
-              </div>
-            </div>
-            <button id="activate-contract-btn" class="cs-action-accept-btn disabled" onclick="submitConstructorContract()">
-              <span>ПРИНЯТЬ ВЫЗОВ</span>
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- СПОЙЛЕР 3: ИДЕАЛЬНАЯ СЕРИЯ (ПО ДЕФОЛТУ СКРЫТ) -->
+      <!-- СПОЙЛЕР 3: ИДЕАЛЬНАЯ СЕРИЯ -->
       <div class="cs-spoiler-card collapsed" id="spoiler-streak">
         <div class="spoiler-header" onclick="toggleSpoiler('spoiler-streak')">
           <div class="head-left">
@@ -369,7 +194,6 @@
                 <span class="milestone-desc">Армейский скин / кейс</span>
               </div>
             </div>
-
             <div class="streak-item-box">
               <div class="item-img-preview weapon-restricted-preview"></div>
               <div class="item-meta">
@@ -377,7 +201,6 @@
                 <span class="milestone-desc">Запрещённый + 10 бил.</span>
               </div>
             </div>
-
             <div class="streak-item-box">
               <div class="item-img-preview weapon-classified-preview"></div>
               <div class="item-meta">
@@ -385,7 +208,6 @@
                 <span class="milestone-desc">Засекреченный скин</span>
               </div>
             </div>
-
             <div class="streak-item-box gold-border">
               <div class="item-img-preview knife-covert-preview"></div>
               <div class="item-meta">
@@ -412,6 +234,177 @@
   </main>
   
   <script src="/bottom-nav.js"></script>
+
+  <!-- ================= МОДАЛКА: КОНСТРУКТОР КОНТРАКТА ================= -->
+  <div id="constructor-modal-overlay" class="cs-modal-backdrop hidden" onclick="if(event.target===this) closeConstructorModal()">
+    <div class="cs-modal-card constructor-modal-window">
+      
+      <div class="modal-header-line">
+        <div class="head-left">
+          <div class="cs-icon-circle"><i class="fa-solid fa-sliders"></i></div>
+          <h3 style="font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">КОНСТРУКТОР</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Стрелочка слева, надпись справа -->
+          <div class="hint-handdrawn">
+            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+              <path d="M2 14C8 14 16 10 18 2M18 2L13 5M18 2L20 8" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Настрой под себя</span>
+          </div>
+          <button class="modal-close-icon" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <p class="modal-info-text">Включай нужные активности и выбирай планку нагрузки на неделю:</p>
+
+      <div class="constructor-rows-container">
+        <!-- Слот 1: Twitch Чат -->
+        <div class="constructor-row row-disabled" id="row-twitch-chat">
+          <div class="row-meta">
+            <div class="row-icon-box"><i class="fa-brands fa-twitch"></i></div>
+            <div class="row-info">
+              <span class="row-title">Twitch Чат</span>
+              <span class="row-subtitle">Сообщений в чате</span>
+            </div>
+          </div>
+          <div class="row-chips-group">
+            <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
+              <span class="chip-val">25</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+            </button>
+            <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
+              <span class="chip-val">50</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+            </button>
+            <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
+              <span class="chip-val">100</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +4</span>
+            </button>
+          </div>
+          <div class="row-toggle-wrap">
+            <label class="cs-switch">
+              <input type="checkbox" id="toggle-twitch-chat" onchange="toggleConstructorRow('twitch_chat', this.checked)">
+              <span class="switch-handle"></span>
+            </label>
+            <span class="toggle-status-text" id="status-twitch-chat">ВЫКЛ</span>
+          </div>
+        </div>
+
+        <!-- Слот 2: Просмотр стрима -->
+        <div class="constructor-row row-disabled" id="row-twitch-uptime">
+          <div class="row-meta">
+            <div class="row-icon-box"><i class="fa-solid fa-play"></i></div>
+            <div class="row-info">
+              <span class="row-title">Трансляция</span>
+              <span class="row-subtitle">Время просмотра</span>
+            </div>
+          </div>
+          <div class="row-chips-group">
+            <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
+              <span class="chip-val">30 мин.</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+            </button>
+            <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
+              <span class="chip-val">60 мин.</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+            </button>
+            <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
+              <span class="chip-val">120 мин.</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
+            </button>
+          </div>
+          <div class="row-toggle-wrap">
+            <label class="cs-switch">
+              <input type="checkbox" id="toggle-twitch-uptime" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
+              <span class="switch-handle"></span>
+            </label>
+            <span class="toggle-status-text" id="status-twitch-uptime">ВЫКЛ</span>
+          </div>
+        </div>
+
+        <!-- Слот 3: Telegram Чат -->
+        <div class="constructor-row row-disabled" id="row-telegram-chat">
+          <div class="row-meta">
+            <div class="row-icon-box"><i class="fa-brands fa-telegram"></i></div>
+            <div class="row-info">
+              <span class="row-title">Telegram Чат</span>
+              <span class="row-subtitle">Сообщений в чате</span>
+            </div>
+          </div>
+          <div class="row-chips-group">
+            <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
+              <span class="chip-val">15</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+            </button>
+            <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
+              <span class="chip-val">30</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+            </button>
+            <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
+              <span class="chip-val">60</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +3</span>
+            </button>
+          </div>
+          <div class="row-toggle-wrap">
+            <label class="cs-switch">
+              <input type="checkbox" id="toggle-telegram-chat" onchange="toggleConstructorRow('telegram_chat', this.checked)">
+              <span class="switch-handle"></span>
+            </label>
+            <span class="toggle-status-text" id="status-telegram-chat">ВЫКЛ</span>
+          </div>
+        </div>
+
+        <!-- Слот 4: Персональный вызов -->
+        <div class="constructor-row row-disabled" id="row-personal-quest">
+          <div class="row-meta">
+            <div class="row-icon-box"><i class="fa-solid fa-crosshairs"></i></div>
+            <div class="row-info">
+              <span class="row-title">Персональный</span>
+              <span class="row-subtitle">Игровая цель</span>
+            </div>
+          </div>
+          <div class="row-chips-group">
+            <button class="target-chip" onclick="selectChip('personal_quest', 0)">
+              <span class="chip-val">10 кейс</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
+            </button>
+            <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
+              <span class="chip-val">50 слов</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +6</span>
+            </button>
+            <button class="target-chip" onclick="selectChip('personal_quest', 2)">
+              <span class="chip-val">3 друга</span>
+              <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +8</span>
+            </button>
+          </div>
+          <div class="row-toggle-wrap">
+            <label class="cs-switch">
+              <input type="checkbox" id="toggle-personal-quest" onchange="toggleConstructorRow('personal_quest', this.checked)">
+              <span class="switch-handle"></span>
+            </label>
+            <span class="toggle-status-text" id="status-personal-quest">ВЫКЛ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ФУТЕР ВНУТРИ МОДАЛКИ -->
+      <div class="constructor-footer">
+        <div class="summary-reward-box">
+          <span class="summary-label">Итоговая награда</span>
+          <div class="summary-amount">
+            <i class="fa-solid fa-ticket gold-icon"></i>
+            <span id="constructor-total-reward">0</span>
+          </div>
+        </div>
+        <button id="activate-contract-btn" class="cs-action-accept-btn disabled" onclick="submitConstructorContract()">
+          <span>ПРИНЯТЬ ВЫЗОВ</span>
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- МОДАЛКА: ПОДРОБНЕЕ О СЕРИИ -->
   <div id="streak-modal-overlay" class="cs-modal-backdrop hidden" onclick="if(event.target===this) closeStreakModal()">
@@ -464,6 +457,6 @@
     </div>
   </div>
 
-  <script src="/quests.js?v=20" defer></script>
+  <script src="/quests.js?v=21" defer></script>
 </body>
 </html>
