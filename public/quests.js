@@ -112,7 +112,8 @@ window.customAlert = function(text, title = 'ВНИМАНИЕ') {
     }
 };
 
-async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false) {
+// Регистрируем makeApiRequest в window, чтобы top_nav.js его нашел!
+window.makeApiRequest = async function(url, body = {}, method = 'POST', isSilent = false) {
     if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.remove('hidden');
     try {
         const controller = new AbortController();
@@ -145,7 +146,7 @@ async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false)
     } finally {
         if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
     }
-}
+};
 
 // ==========================================
 // 3. УПРАВЛЕНИЕ СПОЙЛЕРАМИ СО СКРОЛЛОМ
@@ -325,7 +326,7 @@ async function main() {
     updateLoading(70);
 
     try {
-        let bootstrapData = window.bootstrapPromise ? await window.bootstrapPromise : await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
+        let bootstrapData = window.bootstrapPromise ? await window.bootstrapPromise : await window.makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
         if (bootstrapData) {
             userData = bootstrapData.user || {};
             allQuests = bootstrapData.quests || [];
@@ -358,4 +359,5 @@ try {
     }
     main();
 } catch (e) {
-    if
+    if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
+}
