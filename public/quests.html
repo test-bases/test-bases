@@ -103,31 +103,45 @@
         }
 
         /* ==========================================
-           3. ВЕРХНИЙ БАР (МАТРИЦА С ТЕМНЫМ БЛЮРОМ)
+           3. ВЕРХНИЙ БАР (МАТРИЦА - ТОЧНАЯ КОПИЯ СКРИНШОТА)
            ========================================== */
         .matrix-top-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: 30px; padding: 6px 10px; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: flex-start;
+            background: rgba(10, 10, 12, 0.85); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; padding: 6px 12px; margin-bottom: 12px;
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            box-shadow: 0 6px 24px rgba(0,0,0,0.6), inset 0 0 10px rgba(255,255,255,0.02); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 8px rgba(212,175,55,0.1); 
             width: 100%;
         }
-        .matrix-brand { display: flex; align-items: center; gap: 8px; margin-left: 4px; }
-        .matrix-icon { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--card-border-gold); display: flex; align-items: center; justify-content: center; color: var(--gold-primary); font-size: 11px; background: rgba(0,0,0,0.4); }
-        .matrix-titles { display: flex; flex-direction: column; }
+        .matrix-brand { 
+            display: flex; align-items: center; gap: 8px; 
+            padding-right: 12px; margin-right: 12px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1); /* Тонкий разделитель */
+        }
+        .matrix-icon { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            border: 1px solid rgba(212, 175, 55, 0.5); 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--gold-primary); font-size: 14px; 
+            background: rgba(0,0,0,0.5); 
+        }
+        .matrix-titles { display: flex; flex-direction: column; gap: 2px; }
         .m-title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; color: #fff;}
-        .m-sub { font-size: 10px; color: var(--text-dim); opacity: 0.9; } /* Увеличили */
+        .m-sub { font-size: 9px; color: var(--text-dim); opacity: 0.8; }
 
-        .matrix-stats { display: flex; align-items: center; gap: 6px; }
-        /* Темные капсулы для статы как на скрине */
-        .stat-block { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-icon { font-size: 12px; color: #fff; opacity: 0.9; }
-        .stat-info { display: flex; flex-direction: column; width: 45px; }
-        .stat-head { display: flex; justify-content: space-between; font-size: 8px; color: #fff; font-weight: 700; margin-bottom: 2px; }
-        .stat-val { color: #fff; font-family: monospace; font-weight: 800; }
-        .stat-track { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; width: 100%; overflow: hidden; }
-        .stat-fill { height: 100%; background: var(--gold-primary); border-radius: 2px; }
+        .matrix-stats { display: flex; align-items: center; gap: 14px; flex: 1; justify-content: space-around; }
+        .stat-block { display: flex; align-items: center; gap: 6px; }
+        .stat-icon-wrap {
+            width: 24px; height: 24px; border-radius: 50%; 
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .stat-icon { font-size: 10px; color: #fff; opacity: 0.9; }
+        .stat-info { display: flex; flex-direction: column; width: 65px; gap: 4px; }
+        .stat-head { display: flex; justify-content: space-between; font-size: 9px; color: #fff; font-weight: 500; }
+        .stat-val { font-family: monospace; font-weight: 800; opacity: 0.9; }
+        .stat-track { height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; width: 100%; overflow: hidden; }
+        .stat-fill { height: 100%; background: var(--gold-grad); border-radius: 2px; }
 
         /* ==========================================
            4. HERO СЕКЦИЯ (ШАПКА)
@@ -144,7 +158,7 @@
         .hero-content { width: 70%; position: relative; z-index: 10; }
         .hero-title { font-size: 16px; font-weight: 900; line-height: 1.15; margin: 0 0 6px 0; text-transform: uppercase; }
         .gold-text { background: var(--gold-grad-light); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;} /* Увеличили */
+        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;}
 
         .limit-pill { 
             position: absolute; top: 0; right: 0; z-index: 10;
@@ -199,7 +213,7 @@
         .fire-box { color: #FF9500; background: rgba(255,149,0,0.15); border-color: rgba(255,149,0,0.3); }
         .head-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
         .c-title { margin: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;} /* Увеличили */
+        .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
         /* ==========================================
            7. СТРИМ-ЧЕЛЛЕНДЖ (МИНИАТЮРНЫЙ КАК НА СКРИНШОТЕ)
@@ -214,7 +228,7 @@
         .pulse-dot { width: 5px; height: 5px; background: #FF9500; border-radius: 50%; box-shadow: 0 0 6px #FF9500; }
         .live-badge .dim { color: #fff; font-weight: 600; opacity: 0.9;}
 
-        /* Горизонтальный блок как на скрине */
+        /* Горизонтальный блок */
         .challenge-body-row {
             display: flex; flex-direction: row; gap: 8px; 
             padding: 0 12px 12px 12px; position: relative; z-index: 2;
@@ -373,7 +387,7 @@
         
         <main id="main-content" class="main-content">
             
-            <!-- 1. ТОП БАР (МАТРИЦА С ТЕМНЫМ БЛЮРОМ) -->
+            <!-- 1. ТОП БАР (МАТРИЦА - ТОЧНАЯ КОПИЯ СКРИНШОТА) -->
             <div class="matrix-top-bar">
                 <div class="matrix-brand">
                     <div class="matrix-icon"><i class="fa-solid fa-shapes"></i></div>
@@ -384,14 +398,14 @@
                 </div>
                 <div class="matrix-stats">
                     <div class="stat-block">
-                        <i class="fa-brands fa-telegram stat-icon"></i>
+                        <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
                         <div class="stat-info">
                             <div class="stat-head"><span>Telegram</span><span class="stat-val">12/50</span></div>
                             <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
                         </div>
                     </div>
                     <div class="stat-block">
-                        <i class="fa-brands fa-twitch stat-icon"></i>
+                        <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
                         <div class="stat-info">
                             <div class="stat-head"><span>Twitch</span><span class="stat-val">48/200</span></div>
                             <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
