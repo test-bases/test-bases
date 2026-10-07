@@ -6,7 +6,7 @@
   --card-bg: rgba(16, 16, 20, 0.78);
   --card-stroke: rgba(255, 255, 255, 0.08);
   --card-stroke-gold: rgba(212, 175, 55, 0.28);
-  
+
   --gold-primary: #FFD700;
   --gold-warm: #E6B800;
   --gold-dark: #A67C00;
@@ -52,6 +52,11 @@ html, body {
   transition: opacity 0.25s ease;
 }
 .main-content.visible { opacity: 1; }
+
+/* Стрелка над матрицей полностью скрыта */
+#pull-to-refresh {
+  display: none !important;
+}
 
 /* ================= 1. МАТРИЦА (ВЕРХНИЙ БАР) ================= */
 .matrix-top-bar {
@@ -275,7 +280,26 @@ html, body {
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* ================= 4. СПОЙЛЕР-КАРТОЧКИ (РАСКРЫТИЕ С ПЛАВНЫМ СКРОЛЛОМ) ================= */
+/* ================= 4. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА НА ГЛАВНОЙ ================= */
+.constructor-trigger-card {
+  border-color: var(--card-stroke-gold);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  background: var(--card-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--card-stroke-gold);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+}
+.constructor-trigger-card:active {
+  transform: scale(0.985);
+  background: rgba(22, 22, 28, 0.85);
+}
+
+/* ================= 5. СПОЙЛЕР-КАРТОЧКИ (РАСКРЫТИЕ СО СКРОЛЛОМ) ================= */
 .cs-spoiler-card {
   background: var(--card-bg);
   backdrop-filter: blur(28px);
@@ -371,35 +395,44 @@ html, body {
   padding-bottom: 0 !important;
 }
 
-/* Рукописная плашка с аккуратной стрелочкой */
+/* ================= 6. СТРЕЛОЧКА СЛЕВА, ТЕКСТ СПРАВА ================= */
 .hint-handdrawn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 8px;
-  font-weight: 700;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
   color: var(--gold-primary);
   font-style: italic;
+  letter-spacing: 0.2px;
+}
+.hint-handdrawn svg {
+  flex-shrink: 0;
 }
 
-/* ================= 5. КОНСТРУКТОР: СТРОКИ С ЖЕСТКОЙ ГРИД-СЕТКОЙ ================= */
+/* ================= 7. ДИАЛОГОВОЕ ОКНО КОНСТРУКТОРА (БОЛЬШОЙ ТЕКСТ) ================= */
+.constructor-modal-window {
+  max-width: 350px !important;
+  padding: 16px 14px !important;
+}
+
 .constructor-rows-container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   margin-top: 4px;
 }
 
 .constructor-row {
   display: grid;
-  /* Жёсткая сетка: Название (95px) | 3 Чипса (1fr) | Свитч (36px) */
+  /* Жёсткая пропорциональная сетка: Название (95px) | 3 Чипса (1fr) | Свитч (36px) */
   grid-template-columns: 95px 1fr 36px;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
-  padding: 7px 9px;
+  padding: 8px 10px;
   transition: opacity 0.2s ease, border-color 0.2s ease;
 }
 
@@ -433,7 +466,7 @@ html, body {
   overflow: hidden;
 }
 .row-title {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 800;
   color: #fff;
   white-space: nowrap;
@@ -441,7 +474,7 @@ html, body {
   overflow: hidden;
 }
 .row-subtitle {
-  font-size: 7px;
+  font-size: 7.5px;
   color: var(--text-dim);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -456,7 +489,7 @@ html, body {
   width: 100%;
 }
 .target-chip {
-  height: 34px;
+  height: 35px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
@@ -475,12 +508,12 @@ html, body {
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
 }
 .chip-val {
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 800;
   color: #fff;
 }
 .chip-sub {
-  font-size: 7px;
+  font-size: 7.5px;
   font-weight: 700;
   color: var(--gold-primary);
   display: flex;
@@ -543,8 +576,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 .summary-reward-box {
@@ -552,13 +585,13 @@ html, body {
   flex-direction: column;
 }
 .summary-label {
-  font-size: 7.5px;
+  font-size: 8px;
   color: var(--text-dim);
   text-transform: uppercase;
   font-weight: 700;
 }
 .summary-amount {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
   color: #fff;
   display: flex;
@@ -594,7 +627,7 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ================= 6. СТРИМ-ЧЕЛЛЕНДЖ ВНУТРИ СПОЙЛЕРА ================= */
+/* ================= 8. СТРИМ-ЧЕЛЛЕНДЖ ================= */
 .live-pill {
   display: flex;
   align-items: center;
@@ -695,7 +728,7 @@ html, body {
 }
 .cs-gold-btn:active { transform: scale(0.96); }
 
-/* ================= 7. ИДЕАЛЬНАЯ СЕРИЯ: 4 КАРТОЧКИ ================= */
+/* ================= 9. ИДЕАЛЬНАЯ СЕРИЯ ================= */
 .details-link-pill {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -760,144 +793,4 @@ html, body {
 .case-preview { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPasw8rsUFJ5KBFZv668FFU1nfbOIj8W7oWzkYLdlPOsMOmIk2lu5cB1g_zMu92giw23qEs4Zzr2INedJgU4YVCE_1W4xO_qjZ-975_Kn3Bl7ikmsH2MzkS3hAYMMLLo8Wvdvg/128fx128f"); }
 .weapon-restricted-preview { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09izh5-HnvD8J_WEwjsBvpMp3OyW84_32VLt_0VsMm_zLYeTewU8Y1vX_VG6x-u-h8C76M_XiSw03H9b7Ww/128fx128f"); }
 .weapon-classified-preview { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FABz7PLfYQJG6d2inL-GkvP9Jrafw2lU6ccp0rqV942s3wHsqhc_YGD2IdfDJ1c2YFzV-VG8x-7v18e6u56Yn3RhunU8pSGKUw-Wp0U/128fx128f"); }
-.knife-covert-preview { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf1f_BYQJB-ditq4yCkP_gfezcx29T68Al373D8Yj23Q2y80A-Nzv7ctTHegU6aVCC_FC3wOnu1pW0tJTNzCExunN352GdwULpwt1qEQ/128fx128f"); }
-
-.milestone-title {
-  font-size: 7.5px;
-  font-weight: 800;
-  color: #fff;
-}
-.milestone-title.gold { color: var(--gold-primary); }
-.milestone-desc {
-  font-size: 6px;
-  color: var(--text-dim);
-  line-height: 1.1;
-  margin-top: 1px;
-}
-
-/* ================= 8. МОДАЛКИ ================= */
-.cs-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-.cs-modal-card {
-  width: 100%;
-  max-width: 310px;
-  background: rgba(16, 16, 20, 0.98);
-  border: 1px solid var(--card-stroke-gold);
-  border-radius: 18px;
-  padding: 16px 14px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
-}
-.modal-header-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.modal-header-line h3 {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 900;
-}
-.modal-close-icon {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 14px;
-  cursor: pointer;
-}
-.modal-info-text {
-  font-size: 9px;
-  color: var(--text-dim-light);
-  line-height: 1.35;
-  margin: 0 0 10px 0;
-}
-.modal-milestones-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-.m-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.m-row.active {
-  border-color: rgba(255, 215, 0, 0.35);
-  background: rgba(255, 215, 0, 0.08);
-}
-.m-row.gold-tier {
-  border-color: var(--gold-primary);
-  color: var(--gold-primary);
-}
-.m-week { font-weight: 900; font-family: 'SF Mono', monospace; }
-.full-btn { width: 100%; }
-
-.cs-modal-input {
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: #fff;
-  font-size: 10px;
-  outline: none;
-  margin-bottom: 10px;
-}
-.modal-actions-grid {
-  display: flex;
-  gap: 6px;
-}
-.cs-secondary-btn {
-  flex: 1;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: var(--text-dim);
-  font-size: 9px;
-  font-weight: 800;
-  cursor: pointer;
-  text-transform: uppercase;
-}
-
-/* Лоадер */
-.loader-backdrop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 99999;
-}
-.cs-spinner {
-  width: 26px;
-  height: 26px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--gold-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { 100% { transform: rotate(360deg); } }
-.cs-loading-text { color: #fff; margin-top: 12px; font-weight: 900; font-size: 11px; }
-.cs-loading-bar { width: 110px; height: 2px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; margin-top: 7px; overflow: hidden; }
-.cs-loading-fill { width: 0%; height: 100%; background: var(--gold-primary); transition: width 0.3s; }
-
-.hidden { display: none !important; }
-.white-val { color: #fff; font-weight: 800; }
+.knife-covert-preview { background-image: url("
