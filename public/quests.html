@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Центр заданий | Premium</title>
+  <title>Задания | Premium</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -19,18 +19,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="/quests.css?v=4" />
+  <link rel="stylesheet" href="/quests.css?v=5" />
   
-  <!-- Верхний универсальный навбар -->
   <script src="/top_nav.js" defer></script>
 </head>
 <body>
   
-  <!-- Лоадер синхронизации -->
   <div id="loader-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; background: #000; z-index: 99999;">
     <div class="spinner"></div>
     <div id="loading-text" style="color: #fff; margin-top: 15px; font-weight: 800; font-size: 13px; letter-spacing: 0.5px;">0%</div>
-    <div style="width: 140px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 10px; overflow: hidden;">
+    <div style="width: 130px; height: 2.5px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 10px; overflow: hidden;">
         <div id="loading-bar-fill" style="width: 0%; height: 100%; background: #FFD700; transition: width 0.3s ease;"></div>
     </div>
   </div>
@@ -41,50 +39,49 @@
         <i class="fa-solid fa-arrow-down"></i> 
     </div>
 
-    <!-- 1. ТРЕКЕР МАТРИЦЫ (СИНЯЯ ПИЛЮЛЯ) -->
+    <!-- 1. ТРЕКЕР МАТРИЦЫ -->
     <div id="matrix-quest-tracker" style="margin-bottom: 6px; width: 100%;"></div>
 
-    <!-- 2. ШАПКА РАЗДЕЛА С КНОПКОЙ ОБУЧЕНИЯ -->
+    <!-- 2. ШАПКА -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px 0;">
-        <h2 class="page-title" style="margin: 0;">🎯 Центр заданий</h2>
-        <button class="tour-help-btn" onclick="startQuestTour()" title="Как это работает?">
+        <h2 class="page-title" style="margin: 0;">Центр заданий</h2>
+        <button class="tour-help-btn" onclick="startQuestTour()" title="Обучение">
             <i class="fa-solid fa-question"></i>
         </button>
     </div>
 
-    <!-- 3. СЕГМЕНТИРОВАННАЯ НАВИГАЦИЯ -->
+    <!-- 3. НАВИГАЦИЯ -->
     <div class="segment-control" style="margin-bottom: 12px;">
         <div class="segment-btn active" id="tab-btn-auto" onclick="switchViewTab('auto')">
-            <i class="fa-solid fa-bolt" style="margin-right: 4px;"></i> Ежедневный вызов
+            Ежедневный план
         </div>
         <div class="segment-btn" id="tab-btn-manual" onclick="switchViewTab('manual')">
-            <i class="fa-solid fa-list-check" style="margin-right: 4px;"></i> Ручная проверка
+            Ручная проверка
         </div>
     </div>
     
-    <!-- 4. СЕКЦИЯ 1: АВТОМАТИЧЕСКИЕ ЗАДАНИЯ И ВЫЗОВЫ -->
+    <!-- 4. СЕКЦИЯ 1: ПЛАН АКТИВНОСТИ -->
     <div id="section-auto-quests">
     
-        <!-- Стрим-челлендж (если онлайн) -->
+        <!-- Стрим-челлендж (если стрим онлайн) -->
         <div id="challenge-container"></div>
 
-        <!-- Активное задание (отображается, если контракт уже принят) -->
+        <!-- Активное задание (если уже выполняется) -->
         <div id="active-automatic-quest-container" class="hidden"></div>
 
-        <!-- 🎛️ МУЛЬТИ-КОНСТРУКТОР 3 В 1 -->
+        <!-- 🎛️ МУЛЬТИ-КОНСТРУКТОР СТРОГО В ЧЕРНО-БЕЛОМ СТИЛЕ -->
         <div id="quest-builder-card" class="glass-card multi-builder-card">
             
+            <!-- ШАПКА КАРТОЧКИ -->
             <div class="builder-header">
-                <span style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: 0.5px;">
-                    ⚡ Дневной комбо-контракт
-                </span>
-                <span class="builder-level-pill">КОМПЛЕКТ</span>
+                <span class="builder-title-label">План активности</span>
+                <span class="builder-level-pill">ВЫЗОВ</span>
             </div>
 
             <!-- СТРОКА 1: TWITCH ЧАТ -->
             <div class="multi-slider-row">
                 <div class="row-info">
-                    <i class="fa-brands fa-twitch" style="color: #a970ff;"></i>
+                    <i class="fa-brands fa-twitch row-icon"></i>
                     <div class="row-text">
                         <span class="row-title">Twitch Чат</span>
                         <span id="target-val-twitch-chat" class="row-target">50 сообщ.</span>
@@ -99,7 +96,7 @@
             <!-- СТРОКА 2: TWITCH ПРОСМОТР -->
             <div class="multi-slider-row">
                 <div class="row-info">
-                    <i class="fa-solid fa-tv" style="color: #ff2d55;"></i>
+                    <i class="fa-solid fa-tv row-icon"></i>
                     <div class="row-text">
                         <span class="row-title">Просмотр</span>
                         <span id="target-val-twitch-uptime" class="row-target">60 мин.</span>
@@ -114,7 +111,7 @@
             <!-- СТРОКА 3: TELEGRAM ЧАТ -->
             <div class="multi-slider-row">
                 <div class="row-info">
-                    <i class="fa-brands fa-telegram" style="color: #0a84ff;"></i>
+                    <i class="fa-brands fa-telegram row-icon"></i>
                     <div class="row-text">
                         <span class="row-title">Telegram</span>
                         <span id="target-val-telegram-chat" class="row-target">30 сообщ.</span>
@@ -126,16 +123,34 @@
                 <div id="reward-val-telegram-chat" class="row-reward-badge">+1 🎟️</div>
             </div>
 
+            <!-- 🔥 ЗАГЛУШКА: ИДЕАЛЬНАЯ СЕРИЯ (ДО 30 ДНЕЙ) -->
+            <div class="flawless-streak-box">
+                <div class="flawless-header">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <i class="fa-solid fa-crown" style="color: var(--accent-neon); font-size: 10px;"></i>
+                        <span style="font-size: 9px; font-weight: 800; color: #fff; text-transform: uppercase;">Идеальная серия</span>
+                    </div>
+                    <span id="flawless-streak-count" style="font-size: 9px; font-weight: 900; color: var(--accent-neon); font-family: 'SF Mono', monospace;">День 1 / 7</span>
+                </div>
+                <div class="flawless-track">
+                    <div id="flawless-fill-bar" class="flawless-fill" style="width: 14%;"></div>
+                </div>
+                <div class="flawless-footer">
+                    <span>Закрывай дни без сброса</span>
+                    <span style="color: #fff;"><i class="fa-solid fa-gift" style="color: var(--accent-neon); margin-right: 3px;"></i> Скин за серию</span>
+                </div>
+            </div>
+
             <!-- ИТОГОВАЯ ПАНЕЛЬ -->
             <div class="multi-footer">
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 8px; color: var(--text-color-muted); font-weight: 800; text-transform: uppercase;">Суммарный куш:</span>
-                    <span id="total-combo-reward" style="font-size: 15px; font-weight: 900; color: var(--accent-neon);">
-                        +6 Билетов <i class="fa-solid fa-ticket" style="font-size: 11px;"></i>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 8px; color: var(--text-color-muted); font-weight: 700; text-transform: uppercase;">Награда:</span>
+                    <span id="total-combo-reward" style="font-size: 13px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 4px;">
+                        +6 билетов <i class="fa-solid fa-ticket" style="color: var(--accent-neon); font-size: 11px;"></i>
                     </span>
                 </div>
-                <button id="combo-start-btn" class="premium-btn active-state" style="width: auto; padding: 10px 18px;" onclick="startComboContract()">
-                    АКТИВИРОВАТЬ ВСЕ 3
+                <button id="combo-start-btn" class="compact-action-btn" onclick="startComboContract()">
+                    ПРИНЯТЬ ВЫЗОВ
                 </button>
             </div>
 
@@ -149,24 +164,23 @@
             <div class="spinner" style="margin: 25px auto;"></div>
         </div>
         <span style="display: block; font-size: 10px; color: var(--text-color-muted); text-align: center; margin: 15px 0 20px 0;">
-            Статус проверки отображается в <span style="color: var(--accent-neon); font-weight: 700;">Профиле</span>
+            Статус проверки отображается в <span style="color: #fff; font-weight: 800;">Профиле</span>
         </span>
     </div>
 
   </main>
   
-  <!-- Нижняя панель навигации -->
   <script src="/bottom-nav.js"></script>
 
   <!-- МОДАЛКА ВВОДА ПРУФА (РУЧНОЙ КВЕСТ) -->
   <div id="custom-prompt-overlay" class="prompt-overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
     <div class="bottom-sheet" style="text-align: left;">
-        <h3 id="prompt-title" style="margin: 0 0 6px 0; font-size: 14px; font-weight: 900; color: #fff;">Отправка задания</h3>
-        <p style="font-size: 11px; color: var(--text-color-muted); margin: 0 0 14px 0;">Введите ссылку на скриншот или ваш ник для проверки модератором:</p>
-        <input type="text" id="prompt-input" placeholder="Ваш ник или ссылка..." style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 12px; color: #fff; font-size: 11px; outline: none; margin-bottom: 14px;">
+        <h3 id="prompt-title" style="margin: 0 0 6px 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase;">Отправка задания</h3>
+        <p style="font-size: 11px; color: var(--text-color-muted); margin: 0 0 12px 0;">Введите ссылку на скриншот или ник для проверки:</p>
+        <input type="text" id="prompt-input" placeholder="Ник или ссылка..." style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 9px 11px; color: #fff; font-size: 11px; outline: none; margin-bottom: 14px;">
         <div style="display: flex; gap: 8px;">
             <button id="prompt-cancel" class="premium-btn" style="flex:1;">Отмена</button>
-            <button id="prompt-confirm" class="premium-btn active-state" style="flex:1.3;">Отправить</button>
+            <button id="prompt-confirm" class="premium-btn active-state" style="flex:1.2;">Отправить</button>
         </div>
     </div>
   </div>
@@ -175,16 +189,16 @@
   <div id="schedule-modal-overlay" class="prompt-overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
     <div class="bottom-sheet">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase;">📅 Расписание стримов</h3>
+            <h3 style="margin: 0; font-size: 12px; font-weight: 900; color: #fff; text-transform: uppercase;">Расписание стримов</h3>
             <button id="schedule-modal-close-btn" class="tour-close-btn"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <img src="https://i.postimg.cc/NMw2ByPZ/raspisanie-strimov.jpg" loading="lazy" alt="Расписание" style="width: 100%; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.1);">
-        <button onclick="window.Telegram?.WebApp?.openLink('https://www.twitch.tv/hatelove_ttv')" class="premium-btn active-state" style="color: #fff;">
+        <img src="https://i.postimg.cc/NMw2ByPZ/raspisanie-strimov.jpg" loading="lazy" alt="Расписание" style="width: 100%; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.08);">
+        <button onclick="window.Telegram?.WebApp?.openLink('https://www.twitch.tv/hatelove_ttv')" class="premium-btn active-state">
             <i class="fa-brands fa-twitch"></i> Перейти на канал
         </button>
     </div>
   </div>
 
-  <script src="/quests.js?v=9" defer></script>
+  <script src="/quests.js?v=10" defer></script>
 </body>
 </html>
