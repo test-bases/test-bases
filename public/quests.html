@@ -19,13 +19,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="/quests.css?v=15" />
+  <link rel="stylesheet" href="/quests.css?v=20" />
   
   <script src="/top_nav.js" defer></script>
 </head>
 <body>
   
-  <!-- Загрузчик -->
   <div id="loader-overlay" class="loader-backdrop">
     <div class="cs-spinner"></div>
     <div id="loading-text" class="cs-loading-text">0%</div>
@@ -40,10 +39,34 @@
 
     <!-- ================= 1. ВЕРХНИЙ БАР МАТРИЦЫ ================= -->
     <div id="matrix-quest-tracker" class="matrix-top-bar">
-      <!-- Рендерится через JS 1в1 как в макете -->
+      <div class="matrix-brand">
+        <div class="matrix-icon-poly"><i class="fa-solid fa-shapes"></i></div>
+        <div class="matrix-brand-text">
+          <span class="matrix-name">МАТРИЦА <i class="fa-regular fa-circle-question info-icon"></i></span>
+          <span class="matrix-sub">Проверка доверием</span>
+        </div>
+      </div>
+      <div class="matrix-stat-group">
+        <div class="matrix-stat-item">
+          <i class="fa-brands fa-telegram"></i>
+          <div class="matrix-stat-data">
+            <span class="matrix-stat-label">Telegram</span>
+            <div class="matrix-mini-track"><div id="matrix-tg-fill" class="matrix-mini-fill" style="width: 24%;"></div></div>
+          </div>
+          <span id="matrix-tg-digits" class="matrix-stat-digits">12 / 50</span>
+        </div>
+        <div class="matrix-stat-item">
+          <i class="fa-brands fa-twitch"></i>
+          <div class="matrix-stat-data">
+            <span class="matrix-stat-label">Twitch</span>
+            <div class="matrix-mini-track"><div id="matrix-twitch-fill" class="matrix-mini-fill" style="width: 24%;"></div></div>
+          </div>
+          <span id="matrix-twitch-digits" class="matrix-stat-digits">48 / 200</span>
+        </div>
+      </div>
     </div>
 
-    <!-- ================= 2. HERO ШАПКА С ОПЕРАТИВНИКОМ ================= -->
+    <!-- ================= 2. HERO ШАПКА ================= -->
     <div class="hero-section">
       <div class="hero-content">
         <h1 class="hero-title">
@@ -65,7 +88,6 @@
         </div>
       </div>
       
-      <!-- Фоновый боец CS2 с золотым свечением -->
       <div class="hero-art-soldier"></div>
     </div>
 
@@ -84,269 +106,277 @@
     <!-- ================= 4. РАЗДЕЛ: НЕДЕЛЬНЫЙ ПЛАН ================= -->
     <div id="section-weekly-plan">
       
-      <!-- КАРТОЧКА: СТРИМ-ЧЕЛЛЕНДЖ -->
-      <div class="cs-card stream-challenge-card" id="challenge-card-wrapper">
-        <div class="twitch-watermark-3d"><i class="fa-brands fa-twitch"></i></div>
-        
-        <div class="card-head-row">
+      <!-- СПОЙЛЕР 1: СТРИМ-ЧЕЛЛЕНДЖ (ПО ДЕФОЛТУ СКРЫТ) -->
+      <div class="cs-spoiler-card collapsed" id="spoiler-stream-challenge">
+        <div class="spoiler-header" onclick="toggleSpoiler('spoiler-stream-challenge')">
           <div class="head-left">
             <div class="cs-icon-circle"><i class="fa-brands fa-twitch"></i></div>
             <div>
               <h2 class="card-title">СТРИМ-ЧЕЛЛЕНДЖ</h2>
-              <p class="card-desc">Выполни задание во время прямой трансляции и получи награду!</p>
+              <p class="card-desc">Выполни задание во время прямой трансляции</p>
             </div>
           </div>
-          <div class="live-pill" id="live-indicator-badge">
-            <span class="live-dot"></span> LIVE <span class="live-count"><i class="fa-regular fa-user"></i> 12.4K</span>
+          <div class="spoiler-right-meta">
+            <div class="live-pill" id="live-indicator-badge">
+              <span class="live-dot"></span> LIVE 12.4K
+            </div>
+            <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
           </div>
         </div>
 
-        <div class="challenge-body-row">
-          <div class="challenge-task-block">
-            <div class="challenge-task-header">
-              <i class="fa-solid fa-bullseye task-icon"></i>
-              <span id="challenge-desc-text" class="task-title">Проведи в чате 50 сообщений</span>
+        <div class="spoiler-body">
+          <div class="challenge-body-row">
+            <div class="challenge-task-block">
+              <div class="challenge-task-header">
+                <i class="fa-solid fa-bullseye task-icon"></i>
+                <span id="challenge-desc-text" class="task-title">Проведи в чате 50 сообщений</span>
+              </div>
+              <div class="cs-progress-track">
+                <div id="challenge-progress-fill" class="cs-progress-fill" style="width: 48%;"></div>
+              </div>
+              <div class="progress-numbers" id="challenge-numbers">24 / 50</div>
             </div>
-            <div class="cs-progress-track">
-              <div id="challenge-progress-fill" class="cs-progress-fill" style="width: 48%;"></div>
-            </div>
-            <div class="progress-numbers" id="challenge-numbers">24 / 50</div>
-          </div>
 
-          <div class="challenge-action-block">
-            <div class="reward-info">
-              <span class="reward-caption">Награда</span>
-              <span class="reward-val-highlight">+2 <i class="fa-solid fa-ticket"></i></span>
+            <div class="challenge-action-block">
+              <div class="reward-info">
+                <span class="reward-caption">Награда</span>
+                <span class="reward-val-highlight">+2 <i class="fa-solid fa-ticket"></i></span>
+              </div>
+              <button id="claim-challenge-btn" class="cs-gold-btn" onclick="claimActiveStreamChallenge()">Забрать</button>
             </div>
-            <button id="claim-challenge-btn" class="cs-gold-btn" onclick="claimActiveStreamChallenge()">Забрать</button>
           </div>
         </div>
       </div>
 
-      <!-- КАРТОЧКА: КОНСТРУКТОР КОНТРАКТА -->
-      <div class="cs-card contract-constructor-card">
-        
-        <div class="constructor-header">
+      <!-- СПОЙЛЕР 2: КОНСТРУКТОР КОНТРАКТА (ПО ДЕФОЛТУ СКРЫТ) -->
+      <div class="cs-spoiler-card collapsed" id="spoiler-constructor">
+        <div class="spoiler-header" onclick="toggleSpoiler('spoiler-constructor')">
           <div class="head-left">
-            <div class="cs-icon-circle"><i class="fa-solid fa-microchip"></i></div>
+            <div class="cs-icon-circle"><i class="fa-solid fa-sliders"></i></div>
             <div>
               <h2 class="card-title">КОНСТРУКТОР КОНТРАКТА</h2>
-              <p class="card-desc">Выбери нужные активности и настрой сложность.<br>Все слоты по умолчанию выключены.</p>
+              <p class="card-desc">Настрой активности под свой актив на неделю</p>
             </div>
           </div>
-          <!-- Рукописная стрелочка -->
-          <div class="handdrawn-hint">
-            <span>Настрой<br>под себя</span>
-            <svg class="curved-arrow" width="34" height="28" viewBox="0 0 34 28" fill="none">
-              <path d="M4 4C14 2 28 8 26 22M26 22L20 18M26 22L30 16" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="spoiler-right-meta">
+            <!-- Аккуратная подсказка -->
+            <div class="hint-handdrawn">
+              <span>Настрой под себя</span>
+              <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
+                <path d="M2 2C8 2 18 6 16 16M16 16L11 13M16 16L19 11" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
           </div>
         </div>
 
-        <!-- 4 СТРОКИ АКТИВНОСТЕЙ -->
-        <div class="constructor-rows-container">
-          
-          <!-- Слот 1: Twitch Чат -->
-          <div class="constructor-row" id="row-twitch-chat">
-            <div class="row-meta">
-              <div class="row-icon-box"><i class="fa-brands fa-twitch"></i></div>
-              <div class="row-info">
-                <span class="row-title">Twitch Чат</span>
-                <span class="row-subtitle">Сообщений в чате</span>
+        <div class="spoiler-body">
+          <div class="constructor-rows-container">
+            
+            <!-- Слот 1: Twitch Чат -->
+            <div class="constructor-row row-disabled" id="row-twitch-chat">
+              <div class="row-meta">
+                <div class="row-icon-box"><i class="fa-brands fa-twitch"></i></div>
+                <div class="row-info">
+                  <span class="row-title">Twitch Чат</span>
+                  <span class="row-subtitle">Сообщений в чате</span>
+                </div>
+              </div>
+              <div class="row-chips-group">
+                <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
+                  <span class="chip-val">25</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+                </button>
+                <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
+                  <span class="chip-val">50</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+                </button>
+                <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
+                  <span class="chip-val">100</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +4</span>
+                </button>
+              </div>
+              <div class="row-toggle-wrap">
+                <label class="cs-switch">
+                  <input type="checkbox" id="toggle-twitch-chat" onchange="toggleConstructorRow('twitch_chat', this.checked)">
+                  <span class="switch-handle"></span>
+                </label>
+                <span class="toggle-status-text" id="status-twitch-chat">ВЫКЛ</span>
               </div>
             </div>
-            <div class="row-chips-group">
-              <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
-                <span class="chip-val">25</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-              </button>
-              <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
-                <span class="chip-val">50</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-              </button>
-              <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
-                <span class="chip-val">100</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +4</span>
-              </button>
-            </div>
-            <div class="row-toggle-wrap">
-              <label class="cs-switch">
-                <input type="checkbox" id="toggle-twitch-chat" onchange="toggleConstructorRow('twitch_chat', this.checked)">
-                <span class="switch-handle"></span>
-              </label>
-              <span class="toggle-status-text" id="status-twitch-chat">ВЫКЛ</span>
-            </div>
-          </div>
 
-          <!-- Слот 2: Просмотр стрима -->
-          <div class="constructor-row" id="row-twitch-uptime">
-            <div class="row-meta">
-              <div class="row-icon-box"><i class="fa-solid fa-play"></i></div>
-              <div class="row-info">
-                <span class="row-title">Просмотр стрима</span>
-                <span class="row-subtitle">Время на трансляции</span>
+            <!-- Слот 2: Просмотр стрима -->
+            <div class="constructor-row row-disabled" id="row-twitch-uptime">
+              <div class="row-meta">
+                <div class="row-icon-box"><i class="fa-solid fa-play"></i></div>
+                <div class="row-info">
+                  <span class="row-title">Просмотр стрима</span>
+                  <span class="row-subtitle">Время на трансляции</span>
+                </div>
+              </div>
+              <div class="row-chips-group">
+                <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
+                  <span class="chip-val">30 мин.</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+                </button>
+                <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
+                  <span class="chip-val">60 мин.</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+                </button>
+                <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
+                  <span class="chip-val">120 мин.</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
+                </button>
+              </div>
+              <div class="row-toggle-wrap">
+                <label class="cs-switch">
+                  <input type="checkbox" id="toggle-twitch-uptime" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
+                  <span class="switch-handle"></span>
+                </label>
+                <span class="toggle-status-text" id="status-twitch-uptime">ВЫКЛ</span>
               </div>
             </div>
-            <div class="row-chips-group">
-              <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
-                <span class="chip-val">30 мин.</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-              </button>
-              <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
-                <span class="chip-val">60 мин.</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-              </button>
-              <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
-                <span class="chip-val">120 мин.</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
-              </button>
-            </div>
-            <div class="row-toggle-wrap">
-              <label class="cs-switch">
-                <input type="checkbox" id="toggle-twitch-uptime" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
-                <span class="switch-handle"></span>
-              </label>
-              <span class="toggle-status-text" id="status-twitch-uptime">ВЫКЛ</span>
-            </div>
-          </div>
 
-          <!-- Слот 3: Telegram Чат -->
-          <div class="constructor-row" id="row-telegram-chat">
-            <div class="row-meta">
-              <div class="row-icon-box"><i class="fa-brands fa-telegram"></i></div>
-              <div class="row-info">
-                <span class="row-title">Telegram Чат</span>
-                <span class="row-subtitle">Сообщений в чате бота/канала</span>
+            <!-- Слот 3: Telegram Чат -->
+            <div class="constructor-row row-disabled" id="row-telegram-chat">
+              <div class="row-meta">
+                <div class="row-icon-box"><i class="fa-brands fa-telegram"></i></div>
+                <div class="row-info">
+                  <span class="row-title">Telegram Чат</span>
+                  <span class="row-subtitle">Сообщений в чате</span>
+                </div>
+              </div>
+              <div class="row-chips-group">
+                <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
+                  <span class="chip-val">15</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
+                </button>
+                <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
+                  <span class="chip-val">30</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
+                </button>
+                <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
+                  <span class="chip-val">60</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +3</span>
+                </button>
+              </div>
+              <div class="row-toggle-wrap">
+                <label class="cs-switch">
+                  <input type="checkbox" id="toggle-telegram-chat" onchange="toggleConstructorRow('telegram_chat', this.checked)">
+                  <span class="switch-handle"></span>
+                </label>
+                <span class="toggle-status-text" id="status-telegram-chat">ВЫКЛ</span>
               </div>
             </div>
-            <div class="row-chips-group">
-              <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
-                <span class="chip-val">15</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +1</span>
-              </button>
-              <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
-                <span class="chip-val">30</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +2</span>
-              </button>
-              <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
-                <span class="chip-val">60</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +3</span>
-              </button>
-            </div>
-            <div class="row-toggle-wrap">
-              <label class="cs-switch">
-                <input type="checkbox" id="toggle-telegram-chat" onchange="toggleConstructorRow('telegram_chat', this.checked)">
-                <span class="switch-handle"></span>
-              </label>
-              <span class="toggle-status-text" id="status-telegram-chat">ВЫКЛ</span>
-            </div>
-          </div>
 
-          <!-- Слот 4: Персональный вызов -->
-          <div class="constructor-row" id="row-personal-quest">
-            <div class="row-meta">
-              <div class="row-icon-box"><i class="fa-solid fa-crosshairs"></i></div>
-              <div class="row-info">
-                <span class="row-title">Персональный вызов</span>
-                <span class="row-subtitle">Выполни игровую цель</span>
+            <!-- Слот 4: Персональный вызов -->
+            <div class="constructor-row row-disabled" id="row-personal-quest">
+              <div class="row-meta">
+                <div class="row-icon-box"><i class="fa-solid fa-crosshairs"></i></div>
+                <div class="row-info">
+                  <span class="row-title">Персональный</span>
+                  <span class="row-subtitle">Игровая цель</span>
+                </div>
+              </div>
+              <div class="row-chips-group">
+                <button class="target-chip" onclick="selectChip('personal_quest', 0)">
+                  <span class="chip-val">10 кейсов</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
+                </button>
+                <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
+                  <span class="chip-val">50 слов</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +6</span>
+                </button>
+                <button class="target-chip" onclick="selectChip('personal_quest', 2)">
+                  <span class="chip-val">3 друга</span>
+                  <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +8</span>
+                </button>
+              </div>
+              <div class="row-toggle-wrap">
+                <label class="cs-switch">
+                  <input type="checkbox" id="toggle-personal-quest" onchange="toggleConstructorRow('personal_quest', this.checked)">
+                  <span class="switch-handle"></span>
+                </label>
+                <span class="toggle-status-text" id="status-personal-quest">ВЫКЛ</span>
               </div>
             </div>
-            <div class="row-chips-group">
-              <button class="target-chip" onclick="selectChip('personal_quest', 0)">
-                <span class="chip-val">10 кейсов</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +5</span>
-              </button>
-              <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
-                <span class="chip-val">50 слов</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +6</span>
-              </button>
-              <button class="target-chip" onclick="selectChip('personal_quest', 2)">
-                <span class="chip-val">3 друга</span>
-                <span class="chip-sub"><i class="fa-solid fa-ticket"></i> +8</span>
-              </button>
-            </div>
-            <div class="row-toggle-wrap">
-              <label class="cs-switch">
-                <input type="checkbox" id="toggle-personal-quest" onchange="toggleConstructorRow('personal_quest', this.checked)">
-                <span class="switch-handle"></span>
-              </label>
-              <span class="toggle-status-text" id="status-personal-quest">ВЫКЛ</span>
-            </div>
+
           </div>
 
+          <!-- ФУТЕР КОНСТРУКТОРА -->
+          <div class="constructor-footer">
+            <div class="summary-reward-box">
+              <span class="summary-label">Итоговая награда</span>
+              <div class="summary-amount">
+                <i class="fa-solid fa-ticket gold-icon"></i>
+                <span id="constructor-total-reward">0</span>
+              </div>
+            </div>
+            <button id="activate-contract-btn" class="cs-action-accept-btn disabled" onclick="submitConstructorContract()">
+              <span>ПРИНЯТЬ ВЫЗОВ</span>
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </button>
+          </div>
         </div>
-
-        <!-- ФУТЕР КОНСТРУКТОРА -->
-        <div class="constructor-footer">
-          <div class="summary-reward-box">
-            <span class="summary-label">Итоговая награда</span>
-            <div class="summary-amount">
-              <i class="fa-solid fa-ticket gold-icon"></i>
-              <span id="constructor-total-reward">0</span>
-            </div>
-          </div>
-          <button id="activate-contract-btn" class="cs-action-accept-btn disabled" onclick="submitConstructorContract()">
-            <span>ПРИНЯТЬ ВЫЗОВ</span>
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-          </button>
-        </div>
-
       </div>
 
-      <!-- КАРТОЧКА: ИДЕАЛЬНАЯ СЕРИЯ -->
-      <div class="cs-card streak-card">
-        <div class="card-head-row">
+      <!-- СПОЙЛЕР 3: ИДЕАЛЬНАЯ СЕРИЯ (ПО ДЕФОЛТУ СКРЫТ) -->
+      <div class="cs-spoiler-card collapsed" id="spoiler-streak">
+        <div class="spoiler-header" onclick="toggleSpoiler('spoiler-streak')">
           <div class="head-left">
             <div class="cs-icon-circle fire-glow"><i class="fa-solid fa-fire"></i></div>
             <div>
               <h2 class="card-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
-              <p class="card-desc">Неделя без пропусков: <span id="streak-week-counter" class="white-val">1 / 4</span></p>
+              <p class="card-desc">Недели без пропусков: <span id="streak-week-counter" class="white-val">1 / 4</span></p>
             </div>
           </div>
-          <button class="details-link-pill" onclick="openStreakModal()">
-            <i class="fa-solid fa-gift"></i> Подробнее
-          </button>
+          <div class="spoiler-right-meta">
+            <button class="details-link-pill" onclick="event.stopPropagation(); openStreakModal()">
+              <i class="fa-solid fa-gift"></i> Подробнее
+            </button>
+            <i class="fa-solid fa-chevron-down spoiler-chevron"></i>
+          </div>
         </div>
 
-        <!-- 4 сегмента прогресса -->
-        <div class="streak-segments-bar">
-          <div class="streak-seg active"></div>
-          <div class="streak-seg"></div>
-          <div class="streak-seg"></div>
-          <div class="streak-seg"></div>
-        </div>
-
-        <!-- 4 мини-карточки со скинами CS2 -->
-        <div class="streak-rewards-grid">
-          <div class="streak-item-box active">
-            <div class="item-img-preview case-preview"></div>
-            <div class="item-meta">
-              <span class="milestone-title">1 неделя</span>
-              <span class="milestone-desc">Армейский скин / кейс</span>
-            </div>
+        <div class="spoiler-body">
+          <div class="streak-segments-bar">
+            <div class="streak-seg active"></div>
+            <div class="streak-seg"></div>
+            <div class="streak-seg"></div>
+            <div class="streak-seg"></div>
           </div>
 
-          <div class="streak-item-box">
-            <div class="item-img-preview weapon-restricted-preview"></div>
-            <div class="item-meta">
-              <span class="milestone-title">2 недели</span>
-              <span class="milestone-desc">Запрещённый скин + 10 билетов</span>
+          <div class="streak-rewards-grid">
+            <div class="streak-item-box active">
+              <div class="item-img-preview case-preview"></div>
+              <div class="item-meta">
+                <span class="milestone-title">1 неделя</span>
+                <span class="milestone-desc">Армейский скин / кейс</span>
+              </div>
             </div>
-          </div>
 
-          <div class="streak-item-box">
-            <div class="item-img-preview weapon-classified-preview"></div>
-            <div class="item-meta">
-              <span class="milestone-title">3 недели</span>
-              <span class="milestone-desc">Засекреченный скин CS2</span>
+            <div class="streak-item-box">
+              <div class="item-img-preview weapon-restricted-preview"></div>
+              <div class="item-meta">
+                <span class="milestone-title">2 недели</span>
+                <span class="milestone-desc">Запрещённый + 10 бил.</span>
+              </div>
             </div>
-          </div>
 
-          <div class="streak-item-box gold-border">
-            <div class="item-img-preview knife-covert-preview"></div>
-            <div class="item-meta">
-              <span class="milestone-title gold">4 недели</span>
-              <span class="milestone-desc">Тайный скин CS2</span>
+            <div class="streak-item-box">
+              <div class="item-img-preview weapon-classified-preview"></div>
+              <div class="item-meta">
+                <span class="milestone-title">3 недели</span>
+                <span class="milestone-desc">Засекреченный скин</span>
+              </div>
+            </div>
+
+            <div class="streak-item-box gold-border">
+              <div class="item-img-preview knife-covert-preview"></div>
+              <div class="item-meta">
+                <span class="milestone-title gold">4 недели</span>
+                <span class="milestone-desc">Тайный скин CS2</span>
+              </div>
             </div>
           </div>
         </div>
@@ -378,12 +408,12 @@
         </div>
         <button class="modal-close-icon" onclick="closeStreakModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <p class="modal-info-text">Выполняй недельные планы подряд без единого пропуска. Каждый этап гарантирует дроп скинов прямо в инвентарь бота:</p>
+      <p class="modal-info-text">Выполняй недельные планы подряд без пропусков. При достижении этапов гарантированно выдаются скины CS2:</p>
       
       <div class="modal-milestones-list">
         <div class="m-row active">
           <span class="m-week">НЕДЕЛЯ 1</span>
-          <span class="m-drop">Армейский скин / Фирменный кейс</span>
+          <span class="m-drop">Армейский скин / Кейс</span>
         </div>
         <div class="m-row">
           <span class="m-week">НЕДЕЛЯ 2</span>
@@ -391,11 +421,11 @@
         </div>
         <div class="m-row">
           <span class="m-week">НЕДЕЛЯ 3</span>
-          <span class="m-drop">Засекреченный скин оружия</span>
+          <span class="m-drop">Засекреченный скин CS2</span>
         </div>
         <div class="m-row gold-tier">
           <span class="m-week">НЕДЕЛЯ 4</span>
-          <span class="m-drop">⭐ Тайный скин или Золотой нож CS2</span>
+          <span class="m-drop">⭐ Тайный скин или Нож CS2</span>
         </div>
       </div>
 
@@ -410,15 +440,15 @@
         <h3 id="prompt-title">ОТПРАВКА НА ПРОВЕРКУ</h3>
         <button class="modal-close-icon" onclick="dom.promptOverlay.classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <p class="modal-info-text">Вставьте ссылку на скриншот (Imgur / Postimages / Я.Диск) или ваш ник:</p>
+      <p class="modal-info-text">Вставьте ссылку на скриншот (Imgur / Postimages / Я.Диск) или ник:</p>
       <input type="text" id="prompt-input" class="cs-modal-input" placeholder="https://... или ник">
       <div class="modal-actions-grid">
-        <button id="prompt-cancel" class="cs-secondary-btn">Отмена</button>
+        <button id="prompt-cancel" class="cs-secondary-btn" onclick="dom.promptOverlay.classList.add('hidden')">Отмена</button>
         <button id="prompt-confirm" class="cs-gold-btn">Отправить</button>
       </div>
     </div>
   </div>
 
-  <script src="/quests.js?v=15" defer></script>
+  <script src="/quests.js?v=20" defer></script>
 </body>
 </html>
