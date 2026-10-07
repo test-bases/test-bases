@@ -215,17 +215,23 @@
       pointer-events: none !important;
     }
 
-    /* 🔥 Активная карточка: принудительное отключение WebKit-фильтра + аппаратный рендер translateZ(0) */
+    /* Поднимаем шапку выше затемнения во время тура */
+    body.tour-mode .sub-header {
+      z-index: 9993 !important;
+    }
+
+    /* 🔥 Активная карточка и активный статус в шапке */
     body.tour-mode .glass-card.tour-target-active,
-    body.tour-mode #tg-tasks-list.tour-target-active .glass-card {
+    body.tour-mode #tg-tasks-list.tour-target-active .glass-card,
+    body.tour-mode .status-pill.tour-target-active {
       opacity: 1 !important;
       filter: none !important;
       -webkit-filter: none !important;
       transform: translateZ(0) !important;
       -webkit-transform: translateZ(0) !important;
-      border: 1px solid rgba(255, 255, 255, 0.7) !important;
+      border: 1px solid rgba(255, 215, 0, 0.8) !important;
       background: rgba(24, 24, 28, 0.95) !important;
-      box-shadow: 0 0 25px rgba(255, 255, 255, 0.35), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
       position: relative;
       z-index: 9995 !important;
       pointer-events: none !important;
@@ -3768,30 +3774,47 @@ window.closeSuccessModal = function() {
     const grindTourSteps = [
         {
             title: "Что такое Гринд?",
-            text: "<b>Гринд</b> — это твоя ежедневная серия. Заходи каждый день, забирай награду и получай <span class='fire'>гринд-монеты 🔥</span>. Чем больше дней подряд ты заходишь, тем жирнее бонус!",
+            text: "<b>Гринд</b> — это твоя ежедневная серия сбора. Заходи каждый день и получай <span class='fire'>гринд-монеты 🔥</span>. Чем длиннее непрерывная серия дней, тем выше ежедневная награда!",
             img: "/static/grind_intro.png",
             tab: "tasks",
             highlightSelector: "#tab-tasks .glass-card:first-child"
         },
         {
+            title: "Статусы и Привилегии",
+            text: "В шапке отображается твой <b>текущий статус</b>. Нажав на него, можно открыть список привилегий: статусы дают мощный буст <b>до +0.5 🔥 монет</b> к серии и <b>до +5 бесплатных билетов</b> ежедневно!",
+            img: "/static/grind_intro.png",
+            tab: "tasks",
+            highlightSelector: "#user-status"
+        },
+        {
             title: "Задания активности",
-            text: "Выполняй <b>задания активности</b>: ежедневные квесты, подписки, голосования и специальные испытания. За каждое выполненное задание ты сразу получаешь <span class='fire'>гринд-монеты 🔥</span>!",
+            text: "Выполняй <b>задания активности</b>: ежедневные квесты, никнейм, подписки и голосования. За каждое задание ты сразу получаешь монеты, а на 7 день серии — <span class='gold'>Суперприз</span>!",
             img: "/static/grind_tasks.png",
             tab: "tasks",
+            noBlur: true,
             highlightSelector: "#tg-tasks-list .glass-card:first-child, #tg-tasks-list"
         },
         {
             title: "Ежедневный Билет",
-            text: "Во вкладке <b>«Бесплатно»</b> тебя ждёт бесплатный билет каждые 24 часа. <span class='gold'>VIP-бонус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> дают сразу +5 билетов за раз!",
+            text: "Во вкладке <b>«Бесплатно»</b> забирай бесплатный билет каждые 24 часа. <span class='gold'>VIP-бонус</span> и <span style='color:#a970ff;'>Twitch-подписка</span> умножают награду и дают до 6 билетов в сутки!",
             img: "/static/grind_tickets.png",
             tab: "free",
             highlightSelector: "#tab-free .glass-card"
         },
         {
-            title: "Обменник и Магазин",
-            text: "Твои <span class='fire'>гринд-монеты 🔥</span> — это валюта для покупок! Меняй их на <span style='color:#00f2ea;'>Билеты</span> для аукционов и розыгрышей скинов или покупай <span class='gold'>основные монеты 🟡</span> для кейсов.",
+            title: "Витрина скинов CS2",
+            text: "Во вкладке <b>«Магазин» ➔ «Скины»</b> можно обменять накопленные гринд-монеты на реальные скины! Купленный предмет сразу попадает в инвентарь профиля, откуда его можно забрать в Steam.",
             img: "/static/grind_shop.png",
             tab: "shop",
+            subTab: "skins",
+            highlightSelector: "#shop-container"
+        },
+        {
+            title: "Билеты и Монеты",
+            text: "Твои <span class='fire'>гринд-монеты 🔥</span> универсальны: меняй их на <span style='color:#00f2ea;'>Билеты</span> для аукционов и розыгрышей скинов или на <span class='gold'>основные монеты 🟡</span> для открытия кейсов!",
+            img: "/static/grind_shop.png",
+            tab: "shop",
+            subTab: "tickets",
             highlightSelector: ".shop-balance-card"
         }
     ];
@@ -3846,7 +3869,7 @@ window.closeSuccessModal = function() {
     function renderCurrentTourStep() {
         const step = grindTourSteps[currentTourStep];
 
-        // 1. Программно переключаем нужную вкладку
+        // 1. Программно переключаем главную вкладку
         if (step.tab) {
             const tabBtnIndex = step.tab === 'tasks' ? 0 : (step.tab === 'free' ? 1 : 2);
             const tabButtons = document.querySelectorAll('.segment-control:not(#tab-shop .segment-control) .segment-btn');
@@ -3855,17 +3878,22 @@ window.closeSuccessModal = function() {
             }
         }
 
-        // 2. Снимаем старое выделение
+        // 2. Если указана подвкладка в магазине (скины / билеты) — активируем её
+        if (step.subTab && typeof window.switchShopSubTab === 'function') {
+            window.switchShopSubTab(step.subTab);
+        }
+
+        // 3. Снимаем старое выделение
         document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
 
-        // 🔥 НА 2 ЭТАПЕ (индекс 1): убираем блюр со всей страницы
-        if (currentTourStep === 1) {
+        // 4. Отключение блюра на тяжелых списках заданий (где noBlur: true)
+        if (step.noBlur) {
             document.body.classList.add('tour-no-blur');
         } else {
             document.body.classList.remove('tour-no-blur');
         }
 
-        // 3. Заполняем диалоговое окно
+        // 5. Заполняем карточку гида
         document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${grindTourSteps.length}`;
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').innerHTML = step.text;
@@ -3880,14 +3908,14 @@ window.closeSuccessModal = function() {
             stageEl.style.display = 'none';
         }
 
-        // 4. Кнопки «Назад» / «Далее»
+        // 6. Кнопки «Назад» / «Далее»
         const prevBtn = document.getElementById('tour-prev-btn');
         const nextBtn = document.getElementById('tour-next-btn');
 
         prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
         nextBtn.textContent = currentTourStep === grindTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-        // 5. Позиционирование с гарантированной отменой предыдущих очередей
+        // 7. Позиционирование и плавный скролл
         if (tourStepTimeout) clearTimeout(tourStepTimeout);
         if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
 
@@ -3897,20 +3925,20 @@ window.closeSuccessModal = function() {
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
 
-                // 1-й шаг: всегда гарантированно возвращаемся в самый верх
-                if (currentTourStep === 0) {
-                    smoothScrollTour(scrollArea, 0, 450);
+                // Шаги 1 и 2 (Серия и Статус в шапке): всегда прижаты к верху
+                if (currentTourStep <= 1 || step.highlightSelector.includes('user-status')) {
+                    smoothScrollTour(scrollArea, 0, 400);
                     return;
                 }
 
-                // 2-й шаг: плавный спуск до самого низа ко всем заданиям
-if (currentTourStep === 1) {
-    const targetY = scrollArea.scrollHeight;
-    smoothScrollTour(scrollArea, targetY, 750);
-    return;
-}
+                // Шаг с заданиями активности: плавный скролл вниз
+                if (step.highlightSelector.includes('tg-tasks-list')) {
+                    const targetY = scrollArea.scrollHeight;
+                    smoothScrollTour(scrollArea, targetY, 700);
+                    return;
+                }
 
-                // 3 и 4 шаги: плавное центрирование
+                // Остальные шаги (Магазин, Скины, Билеты): центрирование
                 const targetRect = target.getBoundingClientRect();
                 const scrollRect = scrollArea.getBoundingClientRect();
                 const currentPos = targetRect.top - scrollRect.top + scrollArea.scrollTop;
@@ -3919,7 +3947,7 @@ if (currentTourStep === 1) {
 
                 smoothScrollTour(scrollArea, targetY, 500);
             }
-        }, 120);
+        }, 140);
     }
 
   </script>
