@@ -1962,12 +1962,9 @@ let currentShopTab = 'skins';
                     showFloatText(grindBtn, `+${parseFloat(res.reward_claimed).toFixed(2)}`, 'var(--accent-neon)');
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 } catch (e) {
-                    if (tg.showAlert) tg.showAlert(e.message || "Ошибка получения бонуса");
-                    else window.customAlert(e.message || "Ошибка получения бонуса");
-                    
-                    // Обновляем UI по времени, чтобы заблокировать кнопку, если сработал кулдаун базы
-                    updateUI();
-                }
+    window.customAlert(e.message || "Ошибка получения бонуса");
+    updateUI();
+}
             });
         }
     });
@@ -2181,10 +2178,9 @@ let currentShopTab = 'skins';
                 throw new Error(err.detail || err.error || 'Ошибка получения билета');
             }
         } catch (e) { 
-            console.error(e);
-            if (tg.showAlert) tg.showAlert(e.message || 'Ошибка получения билета');
-            else window.customAlert(e.message || 'Ошибка получения билета');
-        }
+    console.error(e);
+    window.customAlert(e.message || 'Ошибка получения билета');
+}
     };
 
     // ==========================================
@@ -2703,26 +2699,22 @@ window.closeStreakCalcModal = function() {
     }
 
     function handleTaskError(data, taskKey, actionUrl) {
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        if (taskKey === 'tg_vote') {
-            // Проверяем ошибку кулдауна (31 день или 30 дней), чтобы не открывать ложный popup буста
-            if (data && data.error && (data.error.includes("31 день") || data.error.includes("30 дней") || data.error.includes("сгорела"))) {
-                if (tg.showAlert) tg.showAlert(data.error);
-                else window.customAlert(data.error);
-            } else {
-                injectBoostPopup(actionUrl);
-            }
-        } else if (data && data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
-            injectProfilePopup(taskKey === 'tg_surname' ? 'surname' : 'bio');
-        } else if (data && data.error && data.error.includes("не подписаны")) {
-            if (tg.showAlert) tg.showAlert("Вы не подписаны на канал!");
-            else window.customAlert("Вы не подписаны на канал!");
-            if (actionUrl) tg.openTelegramLink(actionUrl);
+    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+    if (taskKey === 'tg_vote') {
+        if (data && data.error && (data.error.includes("31 день") || data.error.includes("30 дней") || data.error.includes("сгорела"))) {
+            window.customAlert(data.error);
         } else {
-            if (tg.showAlert) tg.showAlert(data?.error || "Произошла ошибка");
-            else window.customAlert(data?.error || "Произошла ошибка");
+            injectBoostPopup(actionUrl);
         }
+    } else if (data && data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
+        injectProfilePopup(taskKey === 'tg_surname' ? 'surname' : 'bio');
+    } else if (data && data.error && data.error.includes("не подписаны")) {
+        window.customAlert("Вы не подписаны на канал!");
+        if (actionUrl) tg.openTelegramLink(actionUrl);
+    } else {
+        window.customAlert(data?.error || "Произошла ошибка");
     }
+}
 
     // ==========================================
     // 🛍️ МАГАЗИН
@@ -3003,10 +2995,8 @@ window.closeStreakCalcModal = function() {
         const ticketWord = pluralize(rewardTickets, ['билет', 'билета', 'билетов']);
 
         if (userState.coins < cost) {
-            const msg = `Недостаточно гринд-монет! Нужно: ${cost}`;
-            if (tg.showAlert) return tg.showAlert(msg);
-            return window.customAlert(msg);
-        }
+    return window.customAlert(`Недостаточно гринд-монет! Нужно: ${cost}`);
+}
 
         const doExchange = async () => {
             try {
@@ -3056,9 +3046,8 @@ window.closeStreakCalcModal = function() {
                     () => window.fullAppReloadWithPreload()
                 );
             } catch (e) {
-                if (tg.showAlert) tg.showAlert(e.message || 'Ошибка обмена');
-                else window.customAlert(e.message || 'Ошибка обмена');
-            }
+    window.customAlert(e.message || 'Ошибка обмена');
+}
         };
 
         const ticketVisual = `<i class="fa-solid fa-ticket" style="font-size: 68px; color: #00f2ea; filter: drop-shadow(0 0 20px rgba(0, 242, 234, 0.75));"></i>`;
@@ -3109,8 +3098,7 @@ window.closeStreakCalcModal = function() {
                     fetchShopItems();
                 }
             } catch (e) {
-                if (tg.showAlert) tg.showAlert(e.message || "Ошибка покупки");
-                else window.customAlert(e.message || "Ошибка покупки");
+                window.customAlert(e.message || "Ошибка покупки");
             }
         };
 
@@ -3216,17 +3204,86 @@ window.closeStreakCalcModal = function() {
         if (tabId === 'shop') renderShopList(); 
     };
 
-    window.customAlert = function(text) {
-        const overlay = document.createElement('div'); 
-        overlay.className = 'modal-overlay visible'; 
+    // 🌐 Словарь перевода и нормализации ошибок с бэкенда
+    function formatErrorMessage(msg) {
+        if (!msg || typeof msg !== 'string') return "Произошла непредвиденная ошибка";
+        const lower = msg.toLowerCase();
+
+        // Сгорание или сброс серии
+        if (
+            lower.includes('streak expired') || 
+            lower.includes('streak has expired') || 
+            lower.includes('streak was lost') || 
+            lower.includes('streak lost') || 
+            lower.includes('streak reset') || 
+            lower.includes('streak was reset') || 
+            lower.includes('missed') || 
+            lower.includes('сгорел') || 
+            lower.includes('сброшен')
+        ) {
+            return "Ваша ежедневная серия сгорела! Вы пропустили день, поэтому прогресс сброшен на День 1. Начните серию заново!";
+        }
+
+        // Кулдаун и повторный сбор
+        if (lower.includes('already claimed') || lower.includes('already collected') || lower.includes('уже забран') || lower.includes('уже получ')) {
+            return "Вы уже забрали сегодняшнюю награду! Возвращайтесь после окончания таймера.";
+        }
+        if (lower.includes('cooldown') || lower.includes('too early') || lower.includes('not ready') || lower.includes('рано')) {
+            return "Время сбора ещё не наступило. Дождитесь завершения кулдауна!";
+        }
+
+        // Авторизация и сессия
+        if (lower.includes('unauthorized') || lower.includes('invalid initdata') || lower.includes('forbidden')) {
+            return "Сессия устарела. Пожалуйста, перезапустите мини-приложение.";
+        }
+
+        // Сеть и сервер
+        if (lower.includes('failed to fetch') || lower.includes('network') || lower.includes('load failed')) {
+            return "Проблема со связью. Проверьте подключение к интернету.";
+        }
+        if (lower.includes('internal server error') || lower.includes('api error')) {
+            return "Временная ошибка сервера. Попробуйте через пару минут.";
+        }
+
+        return msg;
+    }
+
+    // 🎨 Кастомное модальное окно в стиле Liquid Glass
+    window.customAlert = function(text, title = 'Внимание', type = 'warning') {
+        const oldAlert = document.getElementById('custom-app-alert');
+        if (oldAlert) oldAlert.remove();
+
+        const translatedText = formatErrorMessage(text);
+
+        // Если сгорел стрик — выводим специальную иконку огня
+        let iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-neon); font-size: 28px;"></i>';
+        if (translatedText.includes('серия сгорела') || translatedText.includes('прогресс сброшен')) {
+            title = 'Серия сгорела';
+            iconHtml = '<i class="fa-solid fa-fire-flame-curved" style="color: #ff3b30; font-size: 32px; filter: drop-shadow(0 0 15px rgba(255,59,48,0.7));"></i>';
+        } else if (type === 'error') {
+            iconHtml = '<i class="fa-solid fa-circle-exclamation" style="color: var(--danger-color); font-size: 30px;"></i>';
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'custom-app-alert';
+        overlay.className = 'modal-overlay visible';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
         overlay.innerHTML = `
-            <div class="bottom-sheet">
-                <h3 style="margin: 0 0 10px; font-size: 14px; color: #fff;">Внимание</h3>
-                <p style="margin: 0 0 15px; font-size: 11px; color: var(--text-color-muted);">${text}</p>
-                <button class="premium-btn active-state" style="width:100%; color:#fff;" onclick="this.closest('.modal-overlay').remove()">OK</button>
+            <div class="bottom-sheet" style="background: rgba(14, 14, 18, 0.98); border: 1px solid rgba(255, 255, 255, 0.14); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 22px 18px; text-align: center; border-radius: 22px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);">
+                <div style="margin-bottom: 12px; display: flex; justify-content: center; align-items: center;">
+                    ${iconHtml}
+                </div>
+                <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.6px;">${title}</h3>
+                <p style="margin: 0 0 18px 0; font-size: 11px; color: #b0b0b8; font-weight: 500; line-height: 1.45; text-align: center;">${translatedText}</p>
+                <button class="premium-btn active-state" style="width: 100%; height: 42px; font-size: 11px; font-weight: 900; letter-spacing: 0.8px;" onclick="this.closest('.modal-overlay').remove()">ПОНЯТНО</button>
             </div>
         `;
         document.body.appendChild(overlay);
+
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
     };
 
    window.showBuyConfirm = function(line1, line2, onConfirm, visualContent = null) {
