@@ -32,7 +32,7 @@ let currentManualQuestId = null;
 let allQuests = [];
 let userData = {};
 
-// Состояние конструктора 1в1 как в макете
+// Конфигуратор строк конструктора
 const constructorConfig = {
     twitch_chat: {
         title: "Twitch Чат",
@@ -42,7 +42,7 @@ const constructorConfig = {
             { target: 100, reward: 4, label: "100" }
         ],
         selectedIdx: 1,
-        enabled: false // по умолчанию ВЫКЛ как в макете
+        enabled: false // по дефолту выключен
     },
     twitch_uptime: {
         title: "Просмотр стрима",
@@ -65,7 +65,7 @@ const constructorConfig = {
         enabled: false
     },
     personal_quest: {
-        title: "Персональный вызов",
+        title: "Персональный",
         options: [
             { target: 10, reward: 5, label: "10 кейсов" },
             { target: 50, reward: 6, label: "50 слов" },
@@ -95,7 +95,7 @@ window.customAlert = function(text, title = 'ВНИМАНИЕ') {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
     overlay.innerHTML = `
-        <div class="cs-modal-card" style="border-color: rgba(255,215,0,0.5);">
+        <div class="cs-modal-card">
             <div class="modal-header-line">
                 <h3 style="color:#FFD700;">${title}</h3>
                 <button class="modal-close-icon" onclick="this.closest('.cs-modal-backdrop').remove()"><i class="fa-solid fa-xmark"></i></button>
@@ -147,49 +147,29 @@ async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false)
 }
 
 // ==========================================
-// 3. РЕНДЕРИНГ МАТРИЦЫ 1В1
+// 3. УПРАВЛЕНИЕ СПОЙЛЕРАМИ СО СКРОЛЛОМ
 // ==========================================
 
-function renderMatrixBar(matrixData) {
-    if (!dom.matrixTracker) return;
+window.toggleSpoiler = function(spoilerId) {
+    const card = document.getElementById(spoilerId);
+    if (!card) return;
 
-    const tgDone = matrixData?.tg_msg_current || 12;
-    const twitchDone = matrixData?.twitch_msg_current || 48;
+    const isCollapsed = card.classList.toggle('collapsed');
 
-    const tgPercent = Math.min(100, Math.round((tgDone / 50) * 100));
-    const twitchPercent = Math.min(100, Math.round((twitchDone / 200) * 100));
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
 
-    dom.matrixTracker.innerHTML = `
-        <div class="matrix-brand">
-            <div class="matrix-icon-poly"><i class="fa-solid fa-shapes"></i></div>
-            <div class="matrix-brand-text">
-                <span class="matrix-name">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size:8px; opacity:0.6;"></i></span>
-                <span class="matrix-sub">Проверка доверием</span>
-            </div>
-        </div>
-        <div class="matrix-stat-group">
-            <div class="matrix-stat-item">
-                <i class="fa-brands fa-telegram"></i>
-                <div class="matrix-stat-data">
-                    <span class="matrix-stat-label">Telegram</span>
-                    <div class="matrix-mini-track"><div class="matrix-mini-fill" style="width: ${tgPercent}%;"></div></div>
-                </div>
-                <span class="matrix-stat-digits">${tgDone} / 50</span>
-            </div>
-            <div class="matrix-stat-item">
-                <i class="fa-brands fa-twitch"></i>
-                <div class="matrix-stat-data">
-                    <span class="matrix-stat-label">Twitch</span>
-                    <div class="matrix-mini-track"><div class="matrix-mini-fill" style="width: ${twitchPercent}%;"></div></div>
-                </div>
-                <span class="matrix-stat-digits">${twitchDone} / 200</span>
-            </div>
-        </div>
-    `;
-}
+    // Если раскрываем спойлер — плавно скроллим страницу к нему
+    if (!isCollapsed) {
+        setTimeout(() => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+    }
+};
 
 // ==========================================
-// 4. ЛОГИКА КОНСТРУКТОРА (ЧИПСЫ, СВИТЧИ, СУММА)
+// 4. КОНСТРУКТОР КОНТРАКТА (ЧИПСЫ, ТУМБЛЕРЫ, ИТОГ)
 // ==========================================
 
 window.selectChip = function(key, index) {
@@ -198,7 +178,6 @@ window.selectChip = function(key, index) {
 
     config.selectedIdx = index;
 
-    // Обновляем визуальный класс active
     const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
     if (rowEl) {
         const chips = rowEl.querySelectorAll('.target-chip');
@@ -270,7 +249,6 @@ window.submitConstructorContract = async function() {
         return;
     }
 
-    // Сохраняем в кэш активный контракт
     localStorage.setItem('cs2_weekly_contract', JSON.stringify({
         slots: activeSlots,
         date: new Date().toISOString()
@@ -285,7 +263,7 @@ window.submitConstructorContract = async function() {
 };
 
 // ==========================================
-// 5. МОДАЛКА СЕРИИ И НАВИГАЦИЯ
+// 5. МОДАЛКА СЕРИИ И ВКЛАДКИ
 // ==========================================
 
 window.openStreakModal = function() {
@@ -325,26 +303,24 @@ window.claimActiveStreamChallenge = function() {
 // ==========================================
 
 async function main() {
-    updateLoading(20);
-    
-    // Начальное состояние матрицы 1в1
-    renderMatrixBar({ tg_msg_current: 12, twitch_msg_current: 48 });
-
-    // Все слоты по умолчанию выключены, как в макете
-    Object.keys(constructorConfig).forEach(k => {
-        const row = document.getElementById(`row-${k.replace('_', '-')}`);
-        if (row) row.classList.add('row-disabled');
-    });
+    updateLoading(25);
     recalcConstructorTotal();
-
-    updateLoading(60);
+    updateLoading(70);
 
     try {
         let bootstrapData = window.bootstrapPromise ? await window.bootstrapPromise : await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
         if (bootstrapData) {
             userData = bootstrapData.user || {};
             allQuests = bootstrapData.quests || [];
-            if (bootstrapData.matrix_quest) renderMatrixBar(bootstrapData.matrix_quest);
+            
+            if (bootstrapData.matrix_quest) {
+                const tg = bootstrapData.matrix_quest.tg_msg_current || 12;
+                const tw = bootstrapData.matrix_quest.twitch_msg_current || 48;
+                document.getElementById('matrix-tg-digits').textContent = `${tg} / 50`;
+                document.getElementById('matrix-twitch-digits').textContent = `${tw} / 200`;
+                document.getElementById('matrix-tg-fill').style.width = `${Math.min(100, (tg/50)*100)}%`;
+                document.getElementById('matrix-twitch-fill').style.width = `${Math.min(100, (tw/200)*100)}%`;
+            }
         }
     } catch (e) {}
 
