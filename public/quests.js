@@ -79,7 +79,7 @@ window.customAlert = function(text, title = 'Внимание', type = 'warning'
 
     const translatedText = formatErrorMessage(text);
     let iconClass = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-triangle-exclamation';
-    let iconColor = type === 'error' ? 'var(--danger-color)' : 'var(--accent-neon)';
+    let iconColor = type === 'error' ? 'var(--danger-color)' : '#fff';
 
     const overlay = document.createElement('div');
     overlay.id = 'custom-app-alert';
@@ -87,18 +87,18 @@ window.customAlert = function(text, title = 'Внимание', type = 'warning'
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
     overlay.innerHTML = `
-        <div class="bottom-sheet" style="box-shadow: none; background: transparent; border: none; backdrop-filter: none; -webkit-backdrop-filter: none; max-width: 320px; padding: 20px 18px; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="${iconClass}" style="color: ${iconColor}; font-size: 15px;"></i>
-                    <h3 style="margin: 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase;">${title}</h3>
+        <div class="bottom-sheet" style="box-shadow: none; background: rgba(14, 14, 16, 0.98); border: 1px solid rgba(255,255,255,0.1); max-width: 310px; padding: 18px 16px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 7px;">
+                    <i class="${iconClass}" style="color: ${iconColor}; font-size: 13px;"></i>
+                    <h3 style="margin: 0; font-size: 12px; font-weight: 900; color: #fff; text-transform: uppercase;">${title}</h3>
                 </div>
                 <button class="tour-close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div style="font-size: 11px; color: #ffffff; line-height: 1.45; font-weight: 500; margin-bottom: 18px;">
+            <div style="font-size: 11px; color: #b0b0b8; line-height: 1.4; font-weight: 500; margin-bottom: 16px;">
                 ${translatedText}
             </div>
-            <button class="premium-btn active-state" onclick="this.closest('.modal-overlay').remove()">ПОНЯТНО</button>
+            <button class="compact-action-btn" style="width:100%;" onclick="this.closest('.modal-overlay').remove()">ПОНЯТНО</button>
         </div>
     `;
     document.body.appendChild(overlay);
@@ -174,7 +174,7 @@ function startCountdown(timerElement, expiresAt, intervalKey, onEndCallback) {
 }
 
 // ==========================================
-// 3. 🎛️ МУЛЬТИ-КОНСТРУКТОР 3 В 1 И КОМБО-ОЧЕРЕДЬ
+// 3. 🎛️ МУЛЬТИ-КОНСТРУКТОР ПЛАНА (3 В 1)
 // ==========================================
 
 function initQuestBuilder() {
@@ -193,7 +193,6 @@ function initQuestBuilder() {
         dom.activeAutomaticQuestContainer.classList.add('hidden');
     }
 
-    // Фильтруем квесты по категориям
     multiQuestsData.twitch_chat = allQuests
         .filter(q => q.quest_type && q.quest_type.includes('twitch_messages') && !q.is_completed)
         .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
@@ -206,12 +205,27 @@ function initQuestBuilder() {
         .filter(q => q.quest_type && q.quest_type.includes('telegram') && !q.is_completed)
         .sort((a, b) => (a.target_value || 0) - (b.target_value || 0));
 
-    // Настраиваем слайдеры
     setupRowSlider('twitch_chat', 'slider-twitch-chat');
     setupRowSlider('twitch_uptime', 'slider-twitch-uptime');
     setupRowSlider('telegram_chat', 'slider-telegram-chat');
 
+    // Обновляем заглушку идеальной серии (1/7 по умолчанию)
+    updateFlawlessStreakUI();
+
     recalcTotalComboReward();
+}
+
+function updateFlawlessStreakUI() {
+    const streakDay = userData.flawless_streak_days || 1;
+    const maxMilestone = 7;
+    const countEl = document.getElementById('flawless-streak-count');
+    const fillEl = document.getElementById('flawless-fill-bar');
+
+    if (countEl) countEl.textContent = `День ${streakDay} / ${maxMilestone}`;
+    if (fillEl) {
+        const pct = Math.min(100, Math.round((streakDay / maxMilestone) * 100));
+        fillEl.style.width = `${pct}%`;
+    }
 }
 
 function setupRowSlider(type, elementId) {
@@ -264,11 +278,11 @@ function recalcTotalComboReward() {
 
     const totalEl = document.getElementById('total-combo-reward');
     if (totalEl) {
-        totalEl.innerHTML = `+${sum} Билетов <i class="fa-solid fa-ticket" style="font-size: 11px;"></i>`;
+        totalEl.innerHTML = `+${sum} билетов <i class="fa-solid fa-ticket" style="color: var(--accent-neon); font-size: 11px;"></i>`;
     }
 }
 
-// Запуск комбо без изменения структуры БД
+// Запуск очереди плана без изменения БД
 window.startComboContract = async function() {
     const questsToQueue = Object.values(selectedCombo).filter(Boolean);
     if (questsToQueue.length === 0) return;
@@ -276,7 +290,7 @@ window.startComboContract = async function() {
     const btn = document.getElementById('combo-start-btn');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.innerHTML = '...';
     }
 
     const queueIds = questsToQueue.map(q => q.id);
@@ -288,10 +302,10 @@ window.startComboContract = async function() {
         localStorage.removeItem('quests_cache_v1');
         window.location.reload();
     } catch (e) {
-        window.customAlert(e.message || "Не удалось запустить комбо-контракт");
+        window.customAlert(e.message || "Не удалось запустить план");
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = 'АКТИВИРОВАТЬ ВСЕ 3';
+            btn.innerHTML = 'ПРИНЯТЬ ВЫЗОВ';
         }
     }
 };
@@ -333,18 +347,18 @@ function renderMatrixTracker(matrixData, userData) {
     const isReadyToClaim = tgDone >= 50 && twitchDone >= 200;
 
     container.innerHTML = `
-        <div class="glass-card" style="margin-bottom: 8px; padding: 10px 14px; flex-direction: row; justify-content: space-between; align-items: center;">
-            <div style="font-size: 11px; font-weight: 900; color: #fff; text-transform: uppercase;">
-                <i class="fa-solid fa-shield-halved" style="color: #2AABEE; margin-right: 5px;"></i> ПРОВЕРКА ДОВЕРИЕМ
+        <div class="glass-card" style="margin-bottom: 6px; padding: 9px 12px; flex-direction: row; justify-content: space-between; align-items: center;">
+            <div style="font-size: 10px; font-weight: 800; color: #fff; text-transform: uppercase;">
+                <i class="fa-solid fa-shield-halved" style="color: #fff; margin-right: 4px; opacity:0.8;"></i> Проверка доверием
             </div>
             ${isReadyToClaim ? `
-                <button onclick="claimMatrixReward()" class="premium-btn active-state" style="width:auto; padding:6px 12px; font-size:10px;">
+                <button onclick="claimMatrixReward()" class="compact-action-btn" style="padding:4px 10px;">
                     ЗАБРАТЬ ПРИЗ
                 </button>
             ` : `
-                <div style="display: flex; gap: 10px; font-size: 10px; font-weight: 800; font-family:'SF Mono', monospace;">
-                    <span style="color:${tgDone >= 50 ? 'var(--accent-green)' : 'var(--accent-neon)'};">TG: ${tgDone}/50</span>
-                    <span style="color:${twitchDone >= 200 ? 'var(--accent-green)' : 'var(--accent-neon)'};">TW: ${twitchDone}/200</span>
+                <div style="display: flex; gap: 8px; font-size: 9px; font-weight: 800; font-family:'SF Mono', monospace;">
+                    <span style="color:#fff;">TG: ${tgDone}/50</span>
+                    <span style="color:#fff;">TW: ${twitchDone}/200</span>
                 </div>
             `}
         </div>
@@ -355,7 +369,7 @@ function renderChallenge(challengeData, isGuest) {
     dom.challengeContainer.innerHTML = '';
     const isOnline = userData.is_stream_online === true;
     const streamBadgeHtml = isOnline 
-        ? `<div class="stream-status-badge online"><i class="fa-solid fa-circle" style="font-size:6px; margin-right:3px;"></i> LIVE</div>`
+        ? `<div class="stream-status-badge online">LIVE</div>`
         : `<div class="stream-status-badge offline">ОФФЛАЙН</div>`;
 
     if (isGuest) return;
@@ -364,9 +378,9 @@ function renderChallenge(challengeData, isGuest) {
         dom.challengeContainer.innerHTML = `
             <div class="quest-card">
                 ${streamBadgeHtml}
-                <div class="quest-title">Следующий стрим-челлендж</div>
+                <div class="quest-title">Стрим-челлендж</div>
                 <p class="quest-subtitle">Будет доступен после окончания кулдауна</p>
-                <div id="challenge-cooldown-timer" class="challenge-timer" style="margin-top: 6px;">...</div>
+                <div id="challenge-cooldown-timer" class="challenge-timer" style="margin-top: 4px;">...</div>
             </div>`;
         startCountdown(document.getElementById('challenge-cooldown-timer'), challengeData.cooldown_until, 'challenge_cooldown');
         return;
@@ -388,7 +402,7 @@ function renderChallenge(challengeData, isGuest) {
                 <div class="progress-fill" style="width: ${percent}%;"></div>
                 <div class="progress-content"><span class="progress-text">${currentProgress} / ${target}</span></div>
             </div>
-            <div style="margin-top:6px;">
+            <div style="margin-top:4px;">
                 <button id="claim-challenge-btn" data-challenge-id="${challenge.challenge_id}" class="premium-btn ${canClaim ? 'active-state' : ''}" ${!canClaim ? 'disabled' : ''}>
                     ${challenge.claimed_at ? 'ВЫПОЛНЕНО' : 'ЗАБРАТЬ ЧЕЛЛЕНДЖ'}
                 </button>
@@ -415,22 +429,22 @@ function renderActiveAutomaticQuest(quest, userData) {
     const isCompleted = progress >= target;
     
     dom.activeAutomaticQuestContainer.innerHTML = `
-        <div class="quest-card" style="border-color: rgba(52, 199, 89, 0.4);">
+        <div class="quest-card" style="border-color: rgba(255, 255, 255, 0.15);">
             <div class="active-quest-indicator">ВЫПОЛНЯЕТСЯ</div>
-            <div class="quest-title" style="margin-top: 8px;">${activeQuest.title}</div>
+            <div class="quest-title" style="margin-top: 4px;">${activeQuest.title}</div>
             <div class="quest-subtitle">${activeQuest.description}</div>
             <div class="progress-bar">
-                <div class="progress-fill" style="width: ${percent}%; background: linear-gradient(90deg, #34c759, #30d158);"></div>
+                <div class="progress-fill" style="width: ${percent}%;"></div>
                 <div class="progress-content"><span class="progress-text">${progress} / ${target}</span></div>
             </div>
-            <div style="margin-top:6px;">
+            <div style="margin-top:4px;">
                 ${isCompleted ? `
                     <button class="premium-btn active-state" data-quest-id="${activeQuest.id}">
                         ЗАБРАТЬ НАГРАДУ
                     </button>
                 ` : `
                     <button id="cancel-quest-btn" class="cancel-quest-button">
-                        Отменить задание
+                        Отменить текущий этап
                     </button>
                 `}
             </div>
@@ -460,10 +474,10 @@ function renderManualQuests(questsData) {
             <div class="quest-card" style="margin-bottom:0;">
                 <div class="quest-title">${escapeHTML(q.title)}</div>
                 <div class="quest-subtitle">${escapeHTML(q.description)}</div>
-                <div style="color:var(--accent-neon); font-size:11px; font-weight:800; margin:4px 0;">+${q.reward_amount} <i class="fa-solid fa-coins"></i></div>
+                <div style="color:#fff; font-size:10px; font-weight:800; margin:3px 0;">+${q.reward_amount} монет</div>
                 <div class="manual-quest-actions">
                     ${q.action_url ? `<a href="${escapeHTML(q.action_url)}" target="_blank" class="action-link-btn">Открыть</a>` : ''}
-                    <button class="premium-btn perform-quest-button" data-id="${q.id}" data-title="${escapeHTML(q.title)}" style="padding:6px 10px;">Отправить</button>
+                    <button class="compact-action-btn perform-quest-button" data-id="${q.id}" data-title="${escapeHTML(q.title)}" style="padding:6px 10px; flex:1;">Отправить</button>
                 </div>
             </div>
         `).join('');
@@ -478,27 +492,27 @@ function renderManualQuests(questsData) {
 }
 
 // ==========================================
-// 6. ОБУЧАЮЩИЙ ГИД (ТУР)
+// 6. ОБУЧАЮЩИЙ ГИД
 // ==========================================
 let currentQuestTourStep = 0;
 const questTourSteps = [
     {
-        title: "Комбо-контракт",
-        text: "Настраивай удобный объём активности на сегодня! Каждый ползунок регулирует нагрузку и суммирует итоговую награду билетов 🎟️.",
+        title: "План активности",
+        text: "Настраивай удобный объём задач на сегодня! Каждый ползунок регулирует нагрузку, а билеты автоматически суммируются в единую награду.",
         img: "/static/grind_intro.png",
         targetSelector: "#quest-builder-card"
     },
     {
-        title: "Проверка доверием",
-        text: "Сверху отображается шкала <b>Матрицы</b>: общайся в чате TG и на стримах Twitch, чтобы забрать секретный кейс!",
+        title: "Идеальная серия",
+        text: "Закрывай ежедневный план без пропусков на протяжении <b>5–7 дней</b> подряд, чтобы разблокировать гарантированный скин CS2!",
         img: "/static/grind_tasks.png",
-        targetSelector: "#matrix-quest-tracker"
+        targetSelector: ".flawless-streak-box"
     },
     {
-        title: "Ручная проверка",
-        text: "Выполняй задания сообщества во второй вкладке, прикрепляй пруфы и получай монеты на баланс после одобрения модератором!",
-        img: "/static/grind_shop.png",
-        targetSelector: ".segment-control"
+        title: "Проверка доверием",
+        text: "Вверху страницы отслеживается шкала Матрицы: общайся в чате TG и на стримах Twitch для получения секретного приза!",
+        img: "/static/grind_tickets.png",
+        targetSelector: "#matrix-quest-tracker"
     }
 ];
 
@@ -520,7 +534,7 @@ function injectTourMarkup() {
             </div>
             <div class="tour-actions">
                 <button class="premium-btn" id="tour-prev-btn" style="flex: 1;" onclick="prevQuestTourStep()">Назад</button>
-                <button class="premium-btn active-state" id="tour-next-btn" style="flex: 1.5;" onclick="nextQuestTourStep()">Далее</button>
+                <button class="compact-action-btn" id="tour-next-btn" style="flex: 1.4;" onclick="nextQuestTourStep()">Далее</button>
             </div>
         </div>
     `);
@@ -572,7 +586,7 @@ function renderCurrentQuestTourStep() {
     }
 
     document.getElementById('tour-prev-btn').style.visibility = currentQuestTourStep === 0 ? 'hidden' : 'visible';
-    document.getElementById('tour-next-btn').textContent = currentQuestTourStep === questTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
+    document.getElementById('tour-next-btn').textContent = currentQuestTourStep === questTourSteps.length - 1 ? 'ПОНЯТНО' : 'ДАЛЕЕ ➔';
 
     const target = document.querySelector(step.targetSelector);
     if (target) {
@@ -582,7 +596,7 @@ function renderCurrentQuestTourStep() {
 }
 
 // ==========================================
-// 7. СТАРТ И ОБРАБОТЧИКИ
+// 7. СТАРТ И СОБЫТИЯ
 // ==========================================
 
 async function main() {
@@ -599,10 +613,8 @@ async function main() {
         const isTwitchLinked = !!(userData.twitch_id || userData.twitch_login);
         if (userData.challenge) renderChallenge(userData.challenge, !isTwitchLinked);
 
-        // Инициализируем 3-в-1 мульти-конструктор
         initQuestBuilder();
 
-        // Проверяем, есть ли запущенный квест
         if (userData.active_quest_id) {
             renderActiveAutomaticQuest(allQuests.find(q => q.id === userData.active_quest_id), userData);
         }
@@ -642,7 +654,7 @@ function initPullToRefresh() {
             content.style.transform = `translateY(${pulledDistance}px)`;
             ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
             icon.style.transform = `rotate(${pulledDistance * 3}deg)`;
-            icon.style.color = pulledDistance > 60 ? "var(--accent-neon)" : "var(--text-color-muted)";
+            icon.style.color = "#fff";
         }
     }, { passive: false });
 
@@ -680,19 +692,17 @@ function setupEventListeners() {
             try {
                 const res = await makeApiRequest('/api/v1/promocode', { quest_id: parseInt(target.dataset.questId, 10) });
                 
-                // Проверяем очередь комбо-контракта
                 const rawQueue = localStorage.getItem('user_quest_combo_queue');
                 const queue = rawQueue ? JSON.parse(rawQueue) : [];
 
                 if (queue.length > 0) {
                     const nextQuestId = queue.shift();
                     localStorage.setItem('user_quest_combo_queue', JSON.stringify(queue));
-                    // Бесшовно запускаем следующий квест цепочки
                     await makeApiRequest('/api/v1/quests/start', { quest_id: nextQuestId }, 'POST', true);
-                    window.customAlert("Награда получена! Следующий этап контракта активирован.", "Этап завершён");
+                    window.customAlert("Этап закрыт! Следующая задача уже активирована.", "Успешно");
                 } else {
                     localStorage.removeItem('user_quest_combo_queue');
-                    window.customAlert(res.message || "Награда успешно начислена на ваш баланс!", "Успешно");
+                    window.customAlert(res.message || "Награда зачислена на баланс!", "Успешно");
                 }
 
                 setTimeout(() => window.location.reload(), 1200);
@@ -706,7 +716,7 @@ function setupEventListeners() {
             target.disabled = true;
             try {
                 await makeApiRequest(`/api/v1/challenges/${target.dataset.challengeId}/claim`, {}, 'POST');
-                window.customAlert("Награда за стрим-челлендж получена!", "Успешно");
+                window.customAlert("Награда за челлендж получена!", "Успешно");
                 setTimeout(() => window.location.reload(), 1200);
             } catch (err) {
                 target.disabled = false;
@@ -715,7 +725,7 @@ function setupEventListeners() {
 
         // Отмена активного квеста
         if (target.id === 'cancel-quest-btn') {
-            if (confirm("Отменить текущее задание? Очередь контракта также будет сброшена.")) {
+            if (confirm("Отменить текущее задание? Очередь задач будет сброшена.")) {
                 localStorage.removeItem('user_quest_combo_queue');
                 await makeApiRequest('/api/v1/quests/cancel');
                 window.location.reload();
@@ -737,7 +747,7 @@ function setupEventListeners() {
             if (!val) return;
             dom.promptOverlay.classList.add('hidden');
             await makeApiRequest(`/api/v1/quests/${currentQuestId}/submit`, { submittedData: val });
-            window.customAlert("Заявка успешно отправлена на проверку модератором!", "Принято");
+            window.customAlert("Заявка успешно отправлена на проверку!", "Принято");
         });
     }
 
@@ -748,8 +758,8 @@ function setupEventListeners() {
 
 try {
     if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
     }
     setupEventListeners();
     initPullToRefresh();
