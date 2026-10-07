@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="/quests.css?v=5" />
+  <link rel="stylesheet" href="/quests.css?v=6" />
   
   <script src="/top_nav.js" defer></script>
 </head>
@@ -39,121 +39,207 @@
         <i class="fa-solid fa-arrow-down"></i> 
     </div>
 
-    <!-- 1. ТРЕКЕР МАТРИЦЫ -->
-    <div id="matrix-quest-tracker" style="margin-bottom: 6px; width: 100%;"></div>
+    <!-- 1. ТРЕКЕР МАТРИЦЫ (СИНЯЯ ПИЛЮЛЯ) -->
+    <div id="matrix-quest-tracker" style="margin-bottom: 8px; width: 100%;"></div>
 
-    <!-- 2. ШАПКА -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px 0;">
-        <h2 class="page-title" style="margin: 0;">Центр заданий</h2>
-        <button class="tour-help-btn" onclick="startQuestTour()" title="Обучение">
-            <i class="fa-solid fa-question"></i>
-        </button>
+    <!-- 2. ГЛАВНЫЙ ПРИЗЫВНОЙ ЗАГОЛОВОК -->
+    <div class="hero-cta-banner">
+        <h1 class="hero-cta-title">ВЫБЕРИ САМ, КАКУЮ АКТИВНОСТЬ ГОТОВ ВЫПОЛНЯТЬ</h1>
+        <div class="hero-cta-meta">
+            <span>Недельный цикл • Сброс в вс.</span>
+            <span class="weekly-limit-pill" id="weekly-limit-badge">Лимит: 1 / 5</span>
+        </div>
     </div>
 
     <!-- 3. НАВИГАЦИЯ -->
     <div class="segment-control" style="margin-bottom: 12px;">
         <div class="segment-btn active" id="tab-btn-auto" onclick="switchViewTab('auto')">
-            Ежедневный план
+            Недельный контракт
         </div>
         <div class="segment-btn" id="tab-btn-manual" onclick="switchViewTab('manual')">
             Ручная проверка
         </div>
     </div>
     
-    <!-- 4. СЕКЦИЯ 1: ПЛАН АКТИВНОСТИ -->
+    <!-- 4. СЕКЦИЯ 1: КОНСТРУКТОР + АКТИВНЫЙ ТРЕКЕР -->
     <div id="section-auto-quests">
     
-        <!-- Стрим-челлендж (если стрим онлайн) -->
+        <!-- Стрим-челлендж (если онлайн) -->
         <div id="challenge-container"></div>
 
-        <!-- Активное задание (если уже выполняется) -->
-        <div id="active-automatic-quest-container" class="hidden"></div>
+        <!-- АКТИВНЫЙ КОНТРАКТ (отображается после запуска) -->
+        <div id="active-contract-dashboard" class="glass-card hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="active-dot"></span>
+                    <span style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff;">Контракт активен</span>
+                </div>
+                <span id="contract-weekly-timer" style="font-size: 9px; font-weight: 700; color: var(--accent-neon); font-family: 'SF Mono', monospace;">до вс. 23:59</span>
+            </div>
 
-        <!-- 🎛️ МУЛЬТИ-КОНСТРУКТОР СТРОГО В ЧЕРНО-БЕЛОМ СТИЛЕ -->
+            <!-- Список синхронных заданий -->
+            <div id="active-contract-tasks-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+            <!-- Кнопка отмены -->
+            <button id="cancel-contract-btn" class="cancel-quest-button" style="margin-top: 10px;" onclick="cancelActiveContract()">
+                Отменить контракт (15 билетов)
+            </button>
+        </div>
+
+        <!-- 🎛️ ИНТЕРАКТИВНЫЙ КОНСТРУКТОР НЕДЕЛЬНОЙ АКТИВНОСТИ -->
         <div id="quest-builder-card" class="glass-card multi-builder-card">
             
-            <!-- ШАПКА КАРТОЧКИ -->
-            <div class="builder-header">
-                <span class="builder-title-label">План активности</span>
-                <span class="builder-level-pill">ВЫЗОВ</span>
+            <div class="builder-intro">
+                <span>Включай только те задания, которые планируешь выполнять, и настраивай цель:</span>
             </div>
 
-            <!-- СТРОКА 1: TWITCH ЧАТ -->
-            <div class="multi-slider-row">
-                <div class="row-info">
-                    <i class="fa-brands fa-twitch row-icon"></i>
-                    <div class="row-text">
-                        <span class="row-title">Twitch Чат</span>
-                        <span id="target-val-twitch-chat" class="row-target">50 сообщ.</span>
+            <!-- СЛОТ 1: TWITCH ЧАТ -->
+            <div class="activity-slot-card" id="slot-card-twitch-chat">
+                <div class="slot-header">
+                    <div class="slot-left">
+                        <i class="fa-brands fa-twitch slot-icon"></i>
+                        <span class="slot-title">Сообщения на Twitch</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-twitch-chat" checked onchange="toggleSlot('twitch_chat', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="slot-controls" id="controls-twitch-chat">
+                    <div class="stepper-row">
+                        <button type="button" class="stepper-btn" onclick="stepSlot('twitch_chat', -1)"><i class="fa-solid fa-minus"></i></button>
+                        <span id="target-val-twitch-chat" class="stepper-value">50 сообщ.</span>
+                        <button type="button" class="stepper-btn" onclick="stepSlot('twitch_chat', 1)"><i class="fa-solid fa-plus"></i></button>
+                        <div id="reward-val-twitch-chat" class="slot-reward-badge">+2 🎟️</div>
+                    </div>
+                    <input type="range" class="compact-slider" id="slider-twitch-chat" min="0" max="2" step="1" value="1" oninput="onSlotSliderInput('twitch_chat', this.value)">
+                    <div class="quick-preset-pills">
+                        <span class="preset-pill" onclick="setSlotPreset('twitch_chat', 0)">25</span>
+                        <span class="preset-pill active" onclick="setSlotPreset('twitch_chat', 1)">50</span>
+                        <span class="preset-pill" onclick="setSlotPreset('twitch_chat', 2)">100</span>
                     </div>
                 </div>
-                <div class="row-slider-box">
-                    <input type="range" class="compact-slider" id="slider-twitch-chat" min="0" max="2" step="1" value="1" oninput="updateMultiSlider('twitch_chat', this.value)">
-                </div>
-                <div id="reward-val-twitch-chat" class="row-reward-badge">+2 🎟️</div>
             </div>
 
-            <!-- СТРОКА 2: TWITCH ПРОСМОТР -->
-            <div class="multi-slider-row">
-                <div class="row-info">
-                    <i class="fa-solid fa-tv row-icon"></i>
-                    <div class="row-text">
-                        <span class="row-title">Просмотр</span>
-                        <span id="target-val-twitch-uptime" class="row-target">60 мин.</span>
+            <!-- СЛОТ 2: ВРЕМЯ ПРОСМОТРА СТРИМА -->
+            <div class="activity-slot-card" id="slot-card-twitch-uptime">
+                <div class="slot-header">
+                    <div class="slot-left">
+                        <i class="fa-solid fa-tv slot-icon"></i>
+                        <span class="slot-title">Просмотр стрима</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-twitch-uptime" checked onchange="toggleSlot('twitch_uptime', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="slot-controls" id="controls-twitch-uptime">
+                    <div class="stepper-row">
+                        <button type="button" class="stepper-btn" onclick="stepSlot('twitch_uptime', -1)"><i class="fa-solid fa-minus"></i></button>
+                        <span id="target-val-twitch-uptime" class="stepper-value">60 мин.</span>
+                        <button type="button" class="stepper-btn" onclick="stepSlot('twitch_uptime', 1)"><i class="fa-solid fa-plus"></i></button>
+                        <div id="reward-val-twitch-uptime" class="slot-reward-badge">+3 🎟️</div>
+                    </div>
+                    <input type="range" class="compact-slider" id="slider-twitch-uptime" min="0" max="2" step="1" value="1" oninput="onSlotSliderInput('twitch_uptime', this.value)">
+                    <div class="quick-preset-pills">
+                        <span class="preset-pill" onclick="setSlotPreset('twitch_uptime', 0)">30 мин</span>
+                        <span class="preset-pill active" onclick="setSlotPreset('twitch_uptime', 1)">60 мин</span>
+                        <span class="preset-pill" onclick="setSlotPreset('twitch_uptime', 2)">120 мин</span>
                     </div>
                 </div>
-                <div class="row-slider-box">
-                    <input type="range" class="compact-slider" id="slider-twitch-uptime" min="0" max="2" step="1" value="1" oninput="updateMultiSlider('twitch_uptime', this.value)">
-                </div>
-                <div id="reward-val-twitch-uptime" class="row-reward-badge">+3 🎟️</div>
             </div>
 
-            <!-- СТРОКА 3: TELEGRAM ЧАТ -->
-            <div class="multi-slider-row">
-                <div class="row-info">
-                    <i class="fa-brands fa-telegram row-icon"></i>
-                    <div class="row-text">
-                        <span class="row-title">Telegram</span>
-                        <span id="target-val-telegram-chat" class="row-target">30 сообщ.</span>
+            <!-- СЛОТ 3: ЧАТ TELEGRAM -->
+            <div class="activity-slot-card" id="slot-card-telegram-chat">
+                <div class="slot-header">
+                    <div class="slot-left">
+                        <i class="fa-brands fa-telegram slot-icon"></i>
+                        <span class="slot-title">Чат Telegram</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-telegram-chat" checked onchange="toggleSlot('telegram_chat', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="slot-controls" id="controls-telegram-chat">
+                    <div class="stepper-row">
+                        <button type="button" class="stepper-btn" onclick="stepSlot('telegram_chat', -1)"><i class="fa-solid fa-minus"></i></button>
+                        <span id="target-val-telegram-chat" class="stepper-value">30 сообщ.</span>
+                        <button type="button" class="stepper-btn" onclick="stepSlot('telegram_chat', 1)"><i class="fa-solid fa-plus"></i></button>
+                        <div id="reward-val-telegram-chat" class="slot-reward-badge">+1 🎟️</div>
+                    </div>
+                    <input type="range" class="compact-slider" id="slider-telegram-chat" min="0" max="2" step="1" value="0" oninput="onSlotSliderInput('telegram_chat', this.value)">
+                    <div class="quick-preset-pills">
+                        <span class="preset-pill active" onclick="setSlotPreset('telegram_chat', 0)">15</span>
+                        <span class="preset-pill" onclick="setSlotPreset('telegram_chat', 1)">30</span>
+                        <span class="preset-pill" onclick="setSlotPreset('telegram_chat', 2)">60</span>
                     </div>
                 </div>
-                <div class="row-slider-box">
-                    <input type="range" class="compact-slider" id="slider-telegram-chat" min="0" max="2" step="1" value="0" oninput="updateMultiSlider('telegram_chat', this.value)">
-                </div>
-                <div id="reward-val-telegram-chat" class="row-reward-badge">+1 🎟️</div>
             </div>
 
-            <!-- 🔥 ЗАГЛУШКА: ИДЕАЛЬНАЯ СЕРИЯ (ДО 30 ДНЕЙ) -->
-            <div class="flawless-streak-box">
-                <div class="flawless-header">
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <i class="fa-solid fa-crown" style="color: var(--accent-neon); font-size: 10px;"></i>
-                        <span style="font-size: 9px; font-weight: 800; color: #fff; text-transform: uppercase;">Идеальная серия</span>
+            <!-- СЛОТ 4: ПЕРСОНАЛЬНЫЙ ВЫЗОВ -->
+            <div class="activity-slot-card" id="slot-card-personal-quest">
+                <div class="slot-header">
+                    <div class="slot-left">
+                        <i class="fa-solid fa-crosshairs slot-icon"></i>
+                        <span class="slot-title">Персональный вызов</span>
                     </div>
-                    <span id="flawless-streak-count" style="font-size: 9px; font-weight: 900; color: var(--accent-neon); font-family: 'SF Mono', monospace;">День 1 / 7</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-personal-quest" checked onchange="toggleSlot('personal_quest', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
-                <div class="flawless-track">
-                    <div id="flawless-fill-bar" class="flawless-fill" style="width: 14%;"></div>
-                </div>
-                <div class="flawless-footer">
-                    <span>Закрывай дни без сброса</span>
-                    <span style="color: #fff;"><i class="fa-solid fa-gift" style="color: var(--accent-neon); margin-right: 3px;"></i> Скин за серию</span>
+                
+                <div class="slot-controls" id="controls-personal-quest">
+                    <div class="stepper-row">
+                        <span id="personal-quest-title-label" class="stepper-value" style="flex:1; text-align:left; font-size:10px;">Открыть 10 кейсов</span>
+                        <div id="reward-val-personal-quest" class="slot-reward-badge">+5 🎟️</div>
+                    </div>
+                    <div class="quick-preset-pills" style="margin-top:6px;">
+                        <span class="preset-pill active" onclick="setPersonalQuestPreset(0)">10 Кейсов</span>
+                        <span class="preset-pill" onclick="setPersonalQuestPreset(1)">50 Слов</span>
+                        <span class="preset-pill" onclick="setPersonalQuestPreset(2)">3 Друга</span>
+                    </div>
                 </div>
             </div>
 
             <!-- ИТОГОВАЯ ПАНЕЛЬ -->
-            <div class="multi-footer">
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <span style="font-size: 8px; color: var(--text-color-muted); font-weight: 700; text-transform: uppercase;">Награда:</span>
-                    <span id="total-combo-reward" style="font-size: 13px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 4px;">
-                        +6 билетов <i class="fa-solid fa-ticket" style="color: var(--accent-neon); font-size: 11px;"></i>
+            <div class="builder-footer">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 8px; color: var(--text-color-muted); font-weight: 700; text-transform: uppercase;">Итоговая награда:</span>
+                    <span id="total-combo-reward" style="font-size: 14px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 4px;">
+                        +11 билетов <i class="fa-solid fa-ticket" style="color: var(--accent-neon); font-size: 11px;"></i>
                     </span>
                 </div>
-                <button id="combo-start-btn" class="compact-action-btn" onclick="startComboContract()">
-                    ПРИНЯТЬ ВЫЗОВ
+                <button id="combo-start-btn" class="compact-action-btn" onclick="startCustomContract()">
+                    АКТИВИРОВАТЬ
                 </button>
             </div>
 
+        </div>
+
+        <!-- 👑 ОТДЕЛЬНЫЙ БЛОК: ИДЕАЛЬНАЯ СЕРИЯ (ДИАЛОГОВОЕ ОКНО) -->
+        <div class="glass-card flawless-standalone-card" onclick="openStreakModal()">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-crown" style="color: var(--accent-neon); font-size: 14px;"></i>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff;">Идеальная серия</span>
+                        <span style="font-size: 9px; color: var(--text-color-muted);">Награда за дисциплину без сбросов</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="streak-summary-badge" class="flawless-badge">День 1 / 7</span>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 8px; color: var(--text-color-muted);"></i>
+                </div>
+            </div>
+            
+            <div class="flawless-track" style="margin-top: 6px;">
+                <div id="flawless-track-bar" class="flawless-fill" style="width: 14%;"></div>
+            </div>
         </div>
 
     </div> 
@@ -171,6 +257,46 @@
   </main>
   
   <script src="/bottom-nav.js"></script>
+
+  <!-- МОДАЛКА: ПОДРОБНОСТИ ИДЕАЛЬНОЙ СЕРИИ (ДО 30 ДНЕЙ) -->
+  <div id="streak-modal-overlay" class="modal-overlay" onclick="if(event.target===this) closeStreakModal()">
+    <div class="bottom-sheet" style="text-align: left; max-width: 320px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+                <i class="fa-solid fa-crown" style="color: var(--accent-neon); font-size: 13px;"></i>
+                <h3 style="margin: 0; font-size: 12px; font-weight: 900; color: #fff; text-transform: uppercase;">Идеальная серия</h3>
+            </div>
+            <button class="tour-close-btn" onclick="closeStreakModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <p style="font-size: 10px; color: #a1a1aa; line-height: 1.4; margin: 0 0 12px 0;">
+            Выполняй недельные контракты без пропусков. За удержание серии выдаются гарантированные скины:
+        </p>
+
+        <div class="milestones-list">
+            <div class="milestone-item active">
+                <span class="milestone-day">7 ДНЕЙ</span>
+                <span class="milestone-reward">Армейский скин CS2 / Кейс</span>
+            </div>
+            <div class="milestone-item">
+                <span class="milestone-day">14 ДНЕЙ</span>
+                <span class="milestone-reward">Запрещённый скин CS2 + 10 билетов</span>
+            </div>
+            <div class="milestone-item">
+                <span class="milestone-day">21 ДЕНЬ</span>
+                <span class="milestone-reward">Засекреченный скин CS2</span>
+            </div>
+            <div class="milestone-item">
+                <span class="milestone-day">30 ДНЕЙ</span>
+                <span class="milestone-reward" style="color: var(--accent-neon); font-weight: 800;">Тайный скин CS2 / Гарант</span>
+            </div>
+        </div>
+
+        <button class="compact-action-btn" style="width: 100%; margin-top: 14px;" onclick="closeStreakModal()">
+            ПОНЯТНО
+        </button>
+    </div>
+  </div>
 
   <!-- МОДАЛКА ВВОДА ПРУФА (РУЧНОЙ КВЕСТ) -->
   <div id="custom-prompt-overlay" class="prompt-overlay hidden" onclick="if(event.target===this) this.classList.add('hidden')">
@@ -199,6 +325,6 @@
     </div>
   </div>
 
-  <script src="/quests.js?v=10" defer></script>
+  <script src="/quests.js?v=11" defer></script>
 </body>
 </html>
