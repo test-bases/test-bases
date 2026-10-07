@@ -1,355 +1,885 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Матрица активности CS2</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="/quests.css?v=23" />
+    <meta charset="UTF-8">
+    <title>Премиальная Матрица CS2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Шрифты и Иконки -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        /* ==========================================
+           1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС (ИДЕАЛЬНЫЕ ГРАНИЦЫ)
+           ========================================== */
+        :root {
+            --bg-deep: #09090b;
+            --card-bg: rgba(20, 20, 24, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-border-gold: rgba(212, 175, 55, 0.35);
+            
+            --gold-primary: #FFD700;
+            --gold-grad: linear-gradient(180deg, #F9D877 0%, #C49A29 100%);
+            --gold-grad-light: linear-gradient(180deg, #FFFFFF 0%, #FFD700 100%);
+
+            --text-main: #FFFFFF;
+            --text-dim: #A1A1AA;
+            --text-dark: #18181B;
+
+            --radius-xl: 20px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+        }
+
+        *, *::before, *::after { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%;
+            background-color: var(--bg-deep);
+            font-family: 'Inter', sans-serif; 
+            color: var(--text-main);
+            overflow-x: hidden; /* Строгий запрет горизонтального скролла */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+
+        /* ==========================================
+           2. МОБИЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16)
+           ========================================== */
+        .mobile-wrapper {
+            width: 100%;
+            max-width: 430px; /* Идеальная ширина iPhone Pro Max */
+            min-height: 100vh;
+            margin: 0 auto;
+            position: relative;
+            background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1), transparent 40%);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            padding: 16px 14px 120px 14px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0; 
+            transition: opacity 0.4s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ==========================================
+           3. ВЕРХНИЙ БАР (МАТРИЦА)
+           ========================================== */
+        .matrix-top-bar {
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border-gold);
+            border-radius: 40px; 
+            padding: 8px 14px; 
+            margin-bottom: 20px;
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            width: 100%;
+        }
+        .matrix-brand { display: flex; align-items: center; gap: 10px; }
+        .matrix-icon { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold-primary); display: flex; align-items: center; justify-content: center; color: var(--gold-primary); font-size: 14px; }
+        .matrix-titles { display: flex; flex-direction: column; }
+        .m-title { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+        .m-sub { font-size: 10px; color: var(--text-dim); }
+
+        .matrix-stats { display: flex; align-items: center; gap: 12px; }
+        .stat-block { display: flex; align-items: center; gap: 6px; }
+        .stat-icon { font-size: 16px; color: #fff; opacity: 0.9; }
+        .stat-info { display: flex; flex-direction: column; width: 60px; }
+        .stat-head { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); font-weight: 700; margin-bottom: 3px; }
+        .stat-val { color: #fff; font-family: monospace; font-weight: 800; }
+        .stat-track { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; width: 100%; overflow: hidden; }
+        .stat-fill { height: 100%; background: var(--gold-primary); border-radius: 2px; }
+
+        /* ==========================================
+           4. HERO СЕКЦИЯ (ШАПКА И ОПЕРАТИВНИК)
+           ========================================== */
+        .hero-section { 
+            position: relative; 
+            min-height: 130px; 
+            margin-bottom: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            width: 100%;
+        }
+        .hero-content { width: 65%; position: relative; z-index: 10; }
+        .hero-title { font-size: 19px; font-weight: 900; line-height: 1.15; margin: 0 0 10px 0; text-transform: uppercase; }
+        .gold-text { background: var(--gold-grad-light); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; }
+
+        .limit-pill { 
+            position: absolute; 
+            top: 0; 
+            right: 0; 
+            z-index: 10;
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border-gold);
+            border-radius: 12px; 
+            padding: 6px 10px; 
+            backdrop-filter: blur(15px);
+        }
+        .limit-pill i { color: var(--gold-primary); font-size: 16px; transform: rotate(-15deg); }
+        .limit-texts { display: flex; flex-direction: column; }
+        .limit-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+        .limit-val { font-size: 13px; font-weight: 900; font-family: monospace; }
+
+        .hero-soldier {
+            position: absolute; 
+            right: -10px; /* Чуть сдвигаем чтобы не рвал экран */
+            top: -20px;
+            width: 200px; 
+            height: 180px;
+            background-size: contain; 
+            background-position: center right; 
+            background-repeat: no-repeat;
+            z-index: 1; 
+            pointer-events: none;
+            filter: drop-shadow(0 0 20px rgba(212,175,55,0.2));
+            -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%);
+        }
+
+        /* ==========================================
+           5. ТАБЫ (ВКЛАДКИ)
+           ========================================== */
+        .cs-tabs { 
+            display: flex; 
+            gap: 6px; 
+            background: rgba(255,255,255,0.03); 
+            border: 1px solid var(--card-border); 
+            border-radius: 30px; 
+            padding: 5px; 
+            margin-bottom: 20px; 
+            width: 100%;
+        }
+        .cs-tab-btn {
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px;
+            background: transparent; 
+            border: 1px solid transparent; 
+            border-radius: 24px;
+            padding: 12px 10px; 
+            font-size: 12px; 
+            font-weight: 700; 
+            color: var(--text-dim); 
+            cursor: pointer; 
+            transition: 0.3s;
+        }
+        .cs-tab-btn.active { 
+            background: var(--card-border-gold); 
+            border-color: var(--gold-primary); 
+            color: #fff; 
+            box-shadow: inset 0 0 15px rgba(255,215,0,0.1); 
+        }
+
+        /* ==========================================
+           6. КАРТОЧКИ (ПРЕМИАЛЬНЫЙ СТИЛЬ)
+           ========================================== */
+        .premium-card {
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-xl); 
+            margin-bottom: 14px;
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px);
+            position: relative; 
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            width: 100%;
+        }
+
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 16px; 
+            border-bottom: 1px solid var(--card-border); 
+            position: relative;
+            z-index: 2;
+        }
+        .card-header.borderless { border-bottom: none; }
+        .head-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+        .icon-box { 
+            width: 38px; height: 38px; flex-shrink: 0;
+            border-radius: 10px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 16px; color: #fff; 
+        }
+        .fire-box { color: #FF9500; background: rgba(255,149,0,0.1); border-color: rgba(255,149,0,0.3); }
+        .head-titles { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .c-title { margin: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.3; }
+
+        /* ==========================================
+           7. СТРИМ-ЧЕЛЛЕНДЖ
+           ========================================== */
+        .challenge-card { border-color: var(--card-border-gold); }
+        .watermark-icon { 
+            position: absolute; right: -15px; top: -10px; 
+            font-size: 140px; color: #fff; opacity: 0.02; 
+            pointer-events: none; z-index: 0; 
+        }
+        .live-badge { 
+            display: flex; align-items: center; gap: 6px; 
+            background: rgba(0,0,0,0.6); padding: 6px 10px; 
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); 
+            font-size: 9px; font-weight: 800; z-index: 2; flex-shrink: 0;
+        }
+        .pulse-dot { width: 6px; height: 6px; background: #FF9500; border-radius: 50%; box-shadow: 0 0 8px #FF9500; }
+        .live-badge .dim { color: var(--text-dim); font-weight: 600; }
+
+        .challenge-body { 
+            display: flex; flex-direction: column; gap: 12px; 
+            padding: 16px; position: relative; z-index: 2; 
+        }
+        .task-area { 
+            display: flex; align-items: center; gap: 12px; 
+            background: rgba(0,0,0,0.4); padding: 12px; 
+            border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.05); 
+        }
+        .task-icon { font-size: 20px; opacity: 0.8; flex-shrink: 0; }
+        .task-progress-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        .task-name { font-size: 12px; font-weight: 700; }
+        .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;}
+        .progress-fill { height: 100%; background: var(--gold-grad); border-radius: 3px; box-shadow: 0 0 10px rgba(212,175,55,0.5); }
+        .task-numbers { font-size: 11px; font-weight: 800; font-family: monospace; color: var(--text-dim); flex-shrink: 0;}
+
+        .reward-area { display: flex; align-items: center; justify-content: space-between; }
+        .reward-texts { display: flex; align-items: center; gap: 8px; }
+        .r-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+        .r-val { font-size: 16px; font-weight: 900; color: var(--gold-primary); display: flex; align-items: center; gap: 4px; }
+
+        .cs-gold-btn {
+            background: var(--gold-grad); border: none; color: var(--text-dark);
+            border-radius: var(--radius-md); padding: 10px 20px; font-size: 12px; font-weight: 900;
+            text-transform: uppercase; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+            display: flex; align-items: center; gap: 6px; justify-content: center;
+        }
+        .cs-gold-btn:active { transform: scale(0.96); }
+        .cs-gold-btn.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+
+        /* ==========================================
+           8. ТРИГГЕР КОНСТРУКТОРА (СТРЕЛКА)
+           ========================================== */
+        .trigger-card { cursor: pointer; transition: 0.2s; display: flex; align-items: center;}
+        .trigger-card:active { transform: scale(0.98); background: rgba(26,26,32,0.9); }
+        .trigger-card .card-header { flex: 1; padding-right: 100px; } /* Место под стрелку */
+        .handdrawn-arrow {
+            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            display: flex; align-items: center; gap: 6px;
+            color: var(--gold-primary); font-family: cursive; font-size: 11px; font-weight: 600; text-align: right;
+            opacity: 0.9;
+        }
+
+        /* ==========================================
+           9. ИДЕАЛЬНАЯ СЕРИЯ (АККУРАТНАЯ СЕТКА)
+           ========================================== */
+        .ghost-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; color: #fff; font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .streak-body { padding: 0 16px 16px 16px; }
+        .streak-segments { display: flex; gap: 4px; margin-bottom: 12px; }
+        .seg { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .seg.active { background: var(--gold-primary); box-shadow: 0 0 8px rgba(255,215,0,0.4); }
+
+        /* Сетка подогнана под мобилку - ничего не вылезает */
+        .streak-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 6px; 
+            width: 100%;
+        }
+        .s-item {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+            padding: 10px 4px; display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .s-item.active { background: rgba(212,175,55,0.08); border-color: rgba(212,175,55,0.4); }
+        .s-item.gold-tier { border-color: var(--gold-primary); }
+        .s-img { width: 40px; height: 30px; background-size: contain; background-position: center; background-repeat: no-repeat; margin-bottom: 6px; }
+        
+        .case-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPasw8rsUFJ5KBFZv668FFU1nfbOIj8W7oWzkYLdlPOsMOmIk2lu5cB1g_zMu92giw23qEs4Zzr2INedJgU4YVCE_1W4xO_qjZ-975_Kn3Bl7ikmsH2MzkS3hAYMMLLo8Wvdvg/128fx128f"); }
+        .wp-img-1 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09izh5-HnvD8J_WEwjsBvpMp3OyW84_32VLt_0VsMm_zLYeTewU8Y1vX_VG6x-u-h8C76M_XiSw03H9b7Ww/128fx128f"); }
+        .wp-img-2 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FABz7PLfYQJG6d2inL-GkvP9Jrafw2lU6ccp0rqV942s3wHsqhc_YGD2IdfDJ1c2YFzV-VG8x-7v18e6u56Yn3RhunU8pSGKUw-Wp0U/128fx128f"); }
+        .knife-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf1f_BYQJB-ditq4yCkP_gfezcx29T68Al373D8Yj23Q2y80A-Nzv7ctTHegU6aVCC_FC3wOnu1pW0tJTNzCExunN352GdwULpwt1qEQ/128fx128f"); }
+        
+        .s-item b { font-size: 9px; margin-bottom: 2px; }
+        .s-item span { font-size: 8px; color: var(--text-dim); line-height: 1.2; word-wrap: break-word;}
+
+        /* ==========================================
+           10. МОДАЛКА КОНСТРУКТОРА (ИДЕАЛЬНО ДЛЯ МОБИЛОК)
+           ========================================== */
+        .cs-modal-backdrop { 
+            position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); 
+            z-index: 99999; display: flex; align-items: center; justify-content: center; 
+            padding: 16px; 
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .cs-modal-backdrop.show { opacity: 1; pointer-events: auto; }
+        
+        .cs-modal-card.large-modal { 
+            width: 100%; max-width: 400px; 
+            background: #121216; border: 1px solid var(--card-border-gold); 
+            border-radius: var(--radius-xl); box-shadow: 0 10px 50px rgba(0,0,0,0.8); 
+            display: flex; flex-direction: column; max-height: 90vh;
+        }
+
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--card-border); }
+        .modal-head h2 { margin: 0; font-size: 15px; font-weight: 900; }
+        .close-btn { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; transition: 0.2s; padding: 0;}
+        .close-btn:active { color: #fff; transform: scale(0.9); }
+
+        .constructor-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; }
+
+        .c-row { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 14px; transition: 0.3s; }
+        .c-row.row-disabled { opacity: 0.45; }
+        .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .c-info-block { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;}
+        .c-icon { width: 38px; height: 38px; flex-shrink: 0; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .c-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden;}
+        .c-titles b { font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;}
+        .c-titles span { font-size: 10px; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;}
+
+        .c-toggle-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;}
+        .ios-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .ios-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #fff; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold-primary); }
+        input:checked + .slider:before { transform: translateX(18px); background-color: #000; }
+        .toggle-lbl { font-size: 9px; font-weight: 800; color: var(--text-dim); }
+
+        .chips-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .target-chip { 
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: var(--radius-md); padding: 10px 0; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
+            cursor: pointer; transition: 0.2s; color: #fff; 
+        }
+        .target-chip:active { transform: scale(0.96); }
+        .target-chip.active { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.6); box-shadow: inset 0 0 15px rgba(212,175,55,0.1); }
+        .target-chip .val { font-size: 12px; font-weight: 800; text-align: center; line-height: 1.1;}
+        .target-chip .rew { font-size: 10px; font-weight: 700; color: var(--gold-primary); display: flex; align-items: center; gap: 3px; }
+
+        .modal-footer { padding: 16px 20px; border-top: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
+        .sum-box { display: flex; flex-direction: column; gap: 4px; }
+        .sum-box span { font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+        .sum-val { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+
+        .hidden { display: none !important; }
+
+        /* Лоадер */
+        .loader-backdrop { position: fixed; inset: 0; background: var(--bg-deep); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;}
+        .cs-spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .cs-loading-text { font-size: 12px; font-weight: 800; margin-top: 12px; }
+        .cs-loading-bar { width: 130px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+        .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+    </style>
 </head>
 <body>
-  
-  <!-- Загрузочный экран -->
-  <div id="loader-overlay" class="loader-backdrop">
-    <div class="cs-spinner"></div>
-    <div id="loading-text" class="cs-loading-text">0%</div>
-    <div class="cs-loading-bar"><div id="loading-bar-fill" class="cs-loading-fill"></div></div>
-  </div>
 
-  <main id="main-content" class="main-content">
-    
-    <!-- ================= 1. ТОП БАР (МАТРИЦА) ================= -->
-    <div class="matrix-top-bar">
-      <div class="matrix-brand">
-        <div class="matrix-icon"><i class="fa-solid fa-shapes"></i></div>
-        <div class="matrix-titles">
-          <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-info"></i></span>
-          <span class="m-sub">Проверка доверием</span>
-        </div>
-      </div>
-      <div class="matrix-stats">
-        <div class="stat-block">
-          <i class="fa-brands fa-telegram stat-icon"></i>
-          <div class="stat-info">
-            <div class="stat-head"><span>Telegram</span><span class="stat-val">12 / 50</span></div>
-            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
-          </div>
-        </div>
-        <div class="stat-block">
-          <i class="fa-brands fa-twitch stat-icon"></i>
-          <div class="stat-info">
-            <div class="stat-head"><span>Twitch</span><span class="stat-val">48 / 200</span></div>
-            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
-          </div>
-        </div>
-      </div>
+    <!-- Загрузочный экран -->
+    <div id="loader-overlay" class="loader-backdrop">
+        <div class="cs-spinner"></div>
+        <div id="loading-text" class="cs-loading-text">0%</div>
+        <div class="cs-loading-bar"><div id="loading-bar-fill" class="cs-loading-fill"></div></div>
     </div>
 
-    <!-- ================= 2. HERO ШАПКА ================= -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <h1 class="hero-title">
-          ВЫБЕРИ САМ, КАКУЮ<br>
-          <span class="gold-text">АКТИВНОСТЬ ГОТОВ</span><br>
-          ВЫПОЛНЯТЬ
-        </h1>
-        <div class="hero-meta">
-          <i class="fa-regular fa-calendar-days"></i>
-          <span>Недельный цикл • Сброс в воскресенье</span>
+    <!-- ГЛАВНЫЙ ОГРАНИЧИТЕЛЬНЫЙ КОНТЕЙНЕР (ШИРИНА ТЕЛЕФОНА) -->
+    <div class="mobile-wrapper">
+        <main id="main-content" class="main-content">
+            
+            <!-- 1. ТОП БАР (МАТРИЦА) -->
+            <div class="matrix-top-bar">
+                <div class="matrix-brand">
+                    <div class="matrix-icon"><i class="fa-solid fa-shapes"></i></div>
+                    <div class="matrix-titles">
+                        <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size: 11px; opacity: 0.7;"></i></span>
+                        <span class="m-sub">Проверка доверием</span>
+                    </div>
+                </div>
+                <div class="matrix-stats">
+                    <div class="stat-block">
+                        <i class="fa-brands fa-telegram stat-icon"></i>
+                        <div class="stat-info">
+                            <div class="stat-head"><span>Telegram</span><span class="stat-val">12/50</span></div>
+                            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="stat-block">
+                        <i class="fa-brands fa-twitch stat-icon"></i>
+                        <div class="stat-info">
+                            <div class="stat-head"><span>Twitch</span><span class="stat-val">48/200</span></div>
+                            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. HERO ШАПКА -->
+            <div class="hero-section">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        ВЫБЕРИ САМ, КАКУЮ<br>
+                        <span class="gold-text">АКТИВНОСТЬ ГОТОВ</span><br>
+                        ВЫПОЛНЯТЬ
+                    </h1>
+                    <div class="hero-meta">
+                        <i class="fa-regular fa-calendar-days" style="color: var(--gold-primary);"></i>
+                        <span>Недельный цикл • Сброс в вс</span>
+                    </div>
+                </div>
+                
+                <div class="limit-pill">
+                    <i class="fa-solid fa-ticket"></i>
+                    <div class="limit-texts">
+                        <span class="limit-lbl">Лимит:</span>
+                        <span id="weekly-limit-count" class="limit-val">0 / 5</span>
+                    </div>
+                </div>
+                
+                <!-- ОПЕРАТИВНИК -->
+                <div class="hero-soldier" style="background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp');"></div>
+            </div>
+
+            <!-- 3. ТАБЫ -->
+            <div class="cs-tabs">
+                <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
+                    <i class="fa-regular fa-calendar-check"></i> План
+                </button>
+                <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
+                    <i class="fa-solid fa-bolt"></i> Проверка
+                </button>
+            </div>
+
+            <div id="section-weekly-plan">
+                
+                <!-- 4. СТРИМ-ЧЕЛЛЕНДЖ -->
+                <div class="premium-card challenge-card">
+                    <i class="fa-brands fa-twitch watermark-icon"></i>
+                    
+                    <div class="card-header">
+                        <div class="head-left">
+                            <div class="icon-box"><i class="fa-brands fa-twitch"></i></div>
+                            <div class="head-titles">
+                                <h2 class="c-title">СТРИМ-ЧЕЛЛЕНДЖ</h2>
+                                <p class="c-desc">Выполни задание на трансляции</p>
+                            </div>
+                        </div>
+                        <div class="live-badge"><span class="pulse-dot"></span> LIVE <span class="dim">12.4K</span></div>
+                    </div>
+
+                    <div class="challenge-body">
+                        <div class="task-area">
+                            <div class="task-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                            <div class="task-progress-wrap">
+                                <span class="task-name">Проведи в чате 50 сообщений</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 48%;"></div>
+                                </div>
+                            </div>
+                            <span class="task-numbers">24 / 50</span>
+                        </div>
+                        
+                        <div class="reward-area">
+                            <div class="reward-texts">
+                                <span class="r-lbl">Награда</span>
+                                <span class="r-val">+2 <i class="fa-solid fa-ticket"></i></span>
+                            </div>
+                            <button id="claim-challenge-btn" class="cs-gold-btn" onclick="claimActiveStreamChallenge()">Забрать</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
+                <div class="premium-card trigger-card" onclick="openConstructorModal()">
+                    <div class="card-header borderless">
+                        <div class="head-left">
+                            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <div class="head-titles">
+                                <h2 class="c-title">КОНСТРУКТОР КОНТРАКТА</h2>
+                                <p class="c-desc">Настрой сложность. Слоты выкл.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="handdrawn-arrow">
+                        <span>Настрой<br>под себя</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
+                <div class="premium-card streak-card">
+                    <div class="card-header borderless">
+                        <div class="head-left">
+                            <div class="icon-box fire-box"><i class="fa-solid fa-fire"></i></div>
+                            <div class="head-titles">
+                                <h2 class="c-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
+                                <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;">1 / 4</span></p>
+                            </div>
+                        </div>
+                        <button class="ghost-btn" onclick="customAlert('Серия обновляется каждую неделю. Не пропускай!', 'О СЕРИИ')"><i class="fa-solid fa-gift"></i> Инфо</button>
+                    </div>
+
+                    <div class="streak-body">
+                        <div class="streak-segments">
+                            <div class="seg active"></div>
+                            <div class="seg"></div>
+                            <div class="seg"></div>
+                            <div class="seg"></div>
+                        </div>
+
+                        <div class="streak-grid">
+                            <div class="s-item active">
+                                <div class="s-img case-img"></div>
+                                <b>1 неделя</b>
+                                <span>Армейский<br>или кейс</span>
+                            </div>
+                            <div class="s-item">
+                                <div class="s-img wp-img-1"></div>
+                                <b>2 недели</b>
+                                <span>Запрещ.<br>+10 бил.</span>
+                            </div>
+                            <div class="s-item">
+                                <div class="s-img wp-img-2"></div>
+                                <b>3 недели</b>
+                                <span>Засекреч.<br>скин</span>
+                            </div>
+                            <div class="s-item gold-tier">
+                                <div class="s-img knife-img"></div>
+                                <b class="gold-text">4 недели</b>
+                                <span>Тайный<br>или нож</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- РУЧНАЯ ПРОВЕРКА -->
+            <div id="section-manual-quests" class="hidden">
+                <div style="text-align: center; color: var(--text-dim); margin-top: 40px; font-size: 13px;">
+                    <i class="fa-solid fa-bolt" style="font-size: 28px; margin-bottom: 12px; opacity: 0.5;"></i><br>
+                    Ручные квесты загружаются...
+                </div>
+            </div>
+        </main>
+    </div> <!-- Конец .mobile-wrapper -->
+
+    <!-- ================= 7. МОДАЛКА: КОНСТРУКТОР ================= -->
+    <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
+        <div class="cs-modal-card large-modal">
+            
+            <div class="modal-head">
+                <h2>КОНСТРУКТОР КОНТРАКТА</h2>
+                <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="constructor-list">
+                
+                <!-- СЛОТ 1 -->
+                <div class="c-row row-disabled" id="row-twitch-chat">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
+                            <div class="c-titles">
+                                <b>Twitch Чат</b>
+                                <span>Сообщений в чате</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('twitch_chat', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-twitch-chat">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
+                            <span class="val">25</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
+                        </button>
+                        <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
+                            <span class="val">50</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
+                        </button>
+                        <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
+                            <span class="val">100</span><span class="rew"><i class="fa-solid fa-ticket"></i> +4</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 2 -->
+                <div class="c-row row-disabled" id="row-twitch-uptime">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-solid fa-play"></i></div>
+                            <div class="c-titles">
+                                <b>Стрим</b>
+                                <span>Время просмотра</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-twitch-uptime">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
+                            <span class="val">30 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
+                        </button>
+                        <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
+                            <span class="val">60 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
+                        </button>
+                        <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
+                            <span class="val">120 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 3 -->
+                <div class="c-row row-disabled" id="row-telegram-chat">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
+                            <div class="c-titles">
+                                <b>Telegram Чат</b>
+                                <span>Сообщений в чате</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('telegram_chat', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-telegram-chat">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
+                            <span class="val">15</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
+                        </button>
+                        <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
+                            <span class="val">30</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
+                        </button>
+                        <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
+                            <span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 4 -->
+                <div class="c-row row-disabled" id="row-personal-quest">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                            <div class="c-titles">
+                                <b>Персональный</b>
+                                <span>Игровая цель</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('personal_quest', 0)">
+                            <span class="val">10 кейс</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
+                        </button>
+                        <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
+                            <span class="val">50 слов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +6</span>
+                        </button>
+                        <button class="target-chip" onclick="selectChip('personal_quest', 2)">
+                            <span class="val">3 друга</span><span class="rew"><i class="fa-solid fa-ticket"></i> +8</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="sum-box">
+                    <span>Итоговая награда</span>
+                    <div class="sum-val"><i class="fa-solid fa-ticket" style="color:var(--gold-primary);"></i> <span id="constructor-total-reward">0</span></div>
+                </div>
+                <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+            </div>
         </div>
-      </div>
-      
-      <div class="limit-pill">
-        <i class="fa-solid fa-ticket"></i>
-        <div class="limit-texts">
-          <span class="limit-lbl">Лимит:</span>
-          <span id="weekly-limit-count" class="limit-val">0 / 5</span>
-        </div>
-      </div>
-      
-      <!-- Путь к картинке точно по вашему требованию -->
-      <div class="hero-soldier" style="background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp');"></div>
     </div>
 
-    <!-- ================= 3. ТАБЫ ================= -->
-    <div class="cs-tabs">
-      <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
-        <i class="fa-regular fa-calendar-check"></i> Недельный план
-      </button>
-      <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
-        <i class="fa-solid fa-bolt"></i> Ручная проверка
-      </button>
-    </div>
+    <!-- ================= JS ЛОГИКА ================= -->
+    <script>
+        const dom = {
+            loaderOverlay: document.getElementById('loader-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            loadingBarFill: document.getElementById('loading-bar-fill'),
+            mainContent: document.getElementById('main-content'),
+            constructorTotalReward: document.getElementById('constructor-total-reward'),
+            activateContractBtn: document.getElementById('activate-contract-btn'),
+            sectionWeekly: document.getElementById('section-weekly-plan'),
+            sectionManual: document.getElementById('section-manual-quests'),
+        };
 
-    <div id="section-weekly-plan">
-      
-      <!-- ================= 4. СТРИМ-ЧЕЛЛЕНДЖ ================= -->
-      <div class="premium-card challenge-card">
-        <i class="fa-brands fa-twitch watermark-icon"></i>
-        
-        <div class="card-header">
-          <div class="head-left">
-            <div class="icon-box"><i class="fa-brands fa-twitch"></i></div>
-            <div class="head-titles">
-              <h2 class="c-title">СТРИМ-ЧЕЛЛЕНДЖ</h2>
-              <p class="c-desc">Выполни задание во время прямой трансляции<br>и получи награду!</p>
-            </div>
-          </div>
-          <div class="live-badge"><span class="pulse-dot"></span> LIVE <span class="dim">12.4K</span></div>
-        </div>
+        const constructorConfig = {
+            twitch_chat: { rewardOptions: [1, 2, 4], selectedIdx: 1, enabled: false },
+            twitch_uptime: { rewardOptions: [1, 2, 5], selectedIdx: 1, enabled: false },
+            telegram_chat: { rewardOptions: [1, 2, 3], selectedIdx: 1, enabled: false },
+            personal_quest: { rewardOptions: [5, 6, 8], selectedIdx: 1, enabled: false }
+        };
 
-        <div class="challenge-body">
-          <div class="task-area">
-            <div class="task-icon"><i class="fa-solid fa-crosshairs"></i></div>
-            <div class="task-progress-wrap">
-              <span class="task-name">Проведи в чате 50 сообщений</span>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 48%;"></div>
-              </div>
-            </div>
-            <span class="task-numbers">24 / 50</span>
-          </div>
-          
-          <div class="reward-area">
-            <div class="reward-texts">
-              <span class="r-lbl">Награда</span>
-              <span class="r-val">+2 <i class="fa-solid fa-ticket"></i></span>
-            </div>
-            <button id="claim-challenge-btn" class="cs-gold-btn" onclick="claimActiveStreamChallenge()">Забрать</button>
-          </div>
-        </div>
-      </div>
+        function updateLoading(percent) {
+            if (dom.loadingText) dom.loadingText.textContent = Math.floor(percent) + '%';
+            if (dom.loadingBarFill) dom.loadingBarFill.style.width = Math.floor(percent) + '%';
+        }
 
-      <!-- ================= 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА ================= -->
-      <div class="premium-card trigger-card" onclick="openConstructorModal()">
-        <div class="card-header borderless">
-          <div class="head-left">
-            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
-            <div class="head-titles">
-              <h2 class="c-title">КОНСТРУКТОР КОНТРАКТА</h2>
-              <p class="c-desc">Выбери нужные активности и настрой сложность.<br>Все слоты по умолчанию выключены.</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Рукописная стрелка -->
-        <div class="handdrawn-arrow">
-          <span>Настрой<br>под себя</span>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-      </div>
+        window.customAlert = function(text, title = 'ВНИМАНИЕ') {
+            const old = document.getElementById('custom-cs-alert');
+            if (old) old.remove();
 
-      <!-- ================= 6. ИДЕАЛЬНАЯ СЕРИЯ ================= -->
-      <div class="premium-card streak-card">
-        <div class="card-header borderless">
-          <div class="head-left">
-            <div class="icon-box fire-box"><i class="fa-solid fa-fire"></i></div>
-            <div class="head-titles">
-              <h2 class="c-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
-              <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;">1 / 4</span></p>
-            </div>
-          </div>
-          <button class="ghost-btn" onclick="openStreakModal()"><i class="fa-solid fa-gift"></i> Подробнее</button>
-        </div>
+            const overlay = document.createElement('div');
+            overlay.id = 'custom-cs-alert';
+            overlay.className = 'cs-modal-backdrop show';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            overlay.innerHTML = `
+                <div class="cs-modal-card large-modal" style="text-align: center; padding: 24px; max-width: 320px; align-items: center;">
+                    <h3 style="color:var(--gold-primary); margin-top: 0; font-size: 16px;">${title}</h3>
+                    <p style="color:#A1A1AA; font-size: 13px; margin-bottom: 20px;">${text}</p>
+                    <button class="cs-gold-btn" style="width: 100%;" onclick="this.closest('.cs-modal-backdrop').remove()">ОТЛИЧНО</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        };
 
-        <div class="streak-body">
-          <div class="streak-segments">
-            <div class="seg active"></div>
-            <div class="seg"></div>
-            <div class="seg"></div>
-            <div class="seg"></div>
-          </div>
+        window.switchMainTab = function(tab) {
+            const isWeekly = tab === 'weekly';
+            document.getElementById('tab-btn-weekly')?.classList.toggle('active', isWeekly);
+            document.getElementById('tab-btn-manual')?.classList.toggle('active', !isWeekly);
+            dom.sectionWeekly?.classList.toggle('hidden', !isWeekly);
+            dom.sectionManual?.classList.toggle('hidden', isWeekly);
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
 
-          <div class="streak-grid">
-            <div class="s-item active">
-              <div class="s-img case-img"></div>
-              <b>1 неделя</b>
-              <span>Армейский скин / кейс</span>
-            </div>
-            <div class="s-item">
-              <div class="s-img wp-img-1"></div>
-              <b>2 недели</b>
-              <span>Запрещённый скин<br>+ 10 билетов</span>
-            </div>
-            <div class="s-item">
-              <div class="s-img wp-img-2"></div>
-              <b>3 недели</b>
-              <span>Засекреченный скин<br>CS2</span>
-            </div>
-            <div class="s-item gold-tier">
-              <div class="s-img knife-img"></div>
-              <b class="gold-text">4 недели</b>
-              <span>Тайный скин<br>CS2</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        window.claimActiveStreamChallenge = function() {
+            window.customAlert("Награда +2 билета зачислена на ваш баланс!", "ЧЕЛЛЕНДЖ ВЫПОЛНЕН");
+            const btn = document.getElementById('claim-challenge-btn');
+            if (btn) { btn.textContent = "ЗАБРАНО"; btn.classList.add('disabled'); }
+        };
 
-    </div>
+        window.openConstructorModal = function() {
+            document.getElementById('constructor-modal-overlay')?.classList.add('show');
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
 
-    <!-- РУЧНАЯ ПРОВЕРКА -->
-    <div id="section-manual-quests" class="hidden">
-      <div style="text-align: center; color: var(--text-dim); margin-top: 40px; font-size: 14px;">
-        <i class="fa-solid fa-bolt" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i><br>
-        Ручные квесты загружаются...
-      </div>
-    </div>
-  </main>
+        window.closeConstructorModal = function() {
+            document.getElementById('constructor-modal-overlay')?.classList.remove('show');
+        };
 
-  <!-- ================= 7. МОДАЛКА: КОНСТРУКТОР (В ДИАЛОГОВОМ ОКНЕ) ================= -->
-  <div id="constructor-modal-overlay" class="cs-modal-backdrop hidden" onclick="if(event.target===this) closeConstructorModal()">
-    <div class="cs-modal-card large-modal">
-      
-      <div class="modal-head">
-        <h2>КОНСТРУКТОР КОНТРАКТА</h2>
-        <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+        window.selectChip = function(key, index) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.selectedIdx = index;
+            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+            if (rowEl) {
+                const chips = rowEl.querySelectorAll('.target-chip');
+                chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
 
-      <div class="constructor-list">
-        
-        <!-- СЛОТ 1 -->
-        <div class="c-row row-disabled" id="row-twitch-chat">
-          <div class="c-row-top">
-            <div class="c-info-block">
-              <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
-              <div class="c-titles">
-                <b>Twitch Чат</b>
-                <span>Сообщений в чате</span>
-              </div>
-            </div>
-            <div class="c-toggle-block">
-              <label class="ios-switch">
-                <input type="checkbox" onchange="toggleConstructorRow('twitch_chat', this.checked)">
-                <span class="slider"></span>
-              </label>
-              <span class="toggle-lbl" id="status-twitch-chat">ВЫКЛ</span>
-            </div>
-          </div>
-          <div class="c-row-bottom chips-3">
-            <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
-              <span class="val">25</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-            </button>
-            <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
-              <span class="val">50</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-            </button>
-            <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
-              <span class="val">100</span><span class="rew"><i class="fa-solid fa-ticket"></i> +4</span>
-            </button>
-          </div>
-        </div>
+        window.toggleConstructorRow = function(key, isEnabled) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.enabled = isEnabled;
+            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+            const statusText = document.getElementById(`status-${key.replace('_', '-')}`);
+            if (rowEl) rowEl.classList.toggle('row-disabled', !isEnabled);
+            if (statusText) {
+                statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
+                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'var(--text-dim)';
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
 
-        <!-- СЛОТ 2 -->
-        <div class="c-row row-disabled" id="row-twitch-uptime">
-          <div class="c-row-top">
-            <div class="c-info-block">
-              <div class="c-icon"><i class="fa-solid fa-play"></i></div>
-              <div class="c-titles">
-                <b>Просмотр стрима</b>
-                <span>Время на трансляции</span>
-              </div>
-            </div>
-            <div class="c-toggle-block">
-              <label class="ios-switch">
-                <input type="checkbox" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
-                <span class="slider"></span>
-              </label>
-              <span class="toggle-lbl" id="status-twitch-uptime">ВЫКЛ</span>
-            </div>
-          </div>
-          <div class="c-row-bottom chips-3">
-            <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
-              <span class="val">30 мин.</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-            </button>
-            <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
-              <span class="val">60 мин.</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-            </button>
-            <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
-              <span class="val">120 мин.</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
-            </button>
-          </div>
-        </div>
+        function recalcConstructorTotal() {
+            let total = 0; let anyEnabled = false;
+            Object.values(constructorConfig).forEach(slot => {
+                if (slot.enabled) {
+                    anyEnabled = true;
+                    total += slot.rewardOptions[slot.selectedIdx];
+                }
+            });
+            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
+            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
+        }
 
-        <!-- СЛОТ 3 -->
-        <div class="c-row row-disabled" id="row-telegram-chat">
-          <div class="c-row-top">
-            <div class="c-info-block">
-              <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
-              <div class="c-titles">
-                <b>Telegram Чат</b>
-                <span>Сообщений в чате</span>
-              </div>
-            </div>
-            <div class="c-toggle-block">
-              <label class="ios-switch">
-                <input type="checkbox" onchange="toggleConstructorRow('telegram_chat', this.checked)">
-                <span class="slider"></span>
-              </label>
-              <span class="toggle-lbl" id="status-telegram-chat">ВЫКЛ</span>
-            </div>
-          </div>
-          <div class="c-row-bottom chips-3">
-            <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
-              <span class="val">15</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-            </button>
-            <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
-              <span class="val">30</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-            </button>
-            <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
-              <span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span>
-            </button>
-          </div>
-        </div>
+        window.submitConstructorContract = function() {
+            let activeSlots = 0;
+            Object.values(constructorConfig).forEach(s => { if(s.enabled) activeSlots++; });
+            if (activeSlots === 0) return;
 
-        <!-- СЛОТ 4 -->
-        <div class="c-row row-disabled" id="row-personal-quest">
-          <div class="c-row-top">
-            <div class="c-info-block">
-              <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
-              <div class="c-titles">
-                <b>Персональный вызов</b>
-                <span>Выполни игровую цель</span>
-              </div>
-            </div>
-            <div class="c-toggle-block">
-              <label class="ios-switch">
-                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
-                <span class="slider"></span>
-              </label>
-              <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
-            </div>
-          </div>
-          <div class="c-row-bottom chips-3">
-            <button class="target-chip" onclick="selectChip('personal_quest', 0)">
-              <span class="val">10 кейсов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
-            </button>
-            <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
-              <span class="val">50 слов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +6</span>
-            </button>
-            <button class="target-chip" onclick="selectChip('personal_quest', 2)">
-              <span class="val">3 друга</span><span class="rew"><i class="fa-solid fa-ticket"></i> +8</span>
-            </button>
-          </div>
-        </div>
-      </div>
+            window.closeConstructorModal();
+            window.customAlert("Сложный недельный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
+            const countEl = document.getElementById('weekly-limit-count');
+            if (countEl) countEl.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        };
 
-      <div class="modal-footer">
-        <div class="sum-box">
-          <span>Итоговая награда</span>
-          <div class="sum-val"><i class="fa-solid fa-ticket" style="color:var(--gold-primary);"></i> <span id="constructor-total-reward">0</span></div>
-        </div>
-        <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ ВЫЗОВ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-      </div>
-    </div>
-  </div>
-
-  <script src="/quests.js?v=23" defer></script>
+        // Запуск
+        updateLoading(30);
+        setTimeout(() => { updateLoading(70); recalcConstructorTotal(); }, 200);
+        setTimeout(() => {
+            updateLoading(100);
+            if (dom.loaderOverlay) {
+                dom.loaderOverlay.style.opacity = 0;
+                setTimeout(() => dom.loaderOverlay.classList.add('hidden'), 300);
+            }
+            dom.mainContent.style.opacity = 1;
+            if (window.Telegram?.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+        }, 600);
+    </script>
 </body>
 </html>
