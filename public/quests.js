@@ -10,8 +10,6 @@ const dom = {
     
     // Элементы квестов
     challengeContainer: document.getElementById('challenge-container'),
-    telegramStaticList: document.getElementById('telegram-static-quests'), // Контейнер Telegram (скрытый блок)
-    tgTasksList: document.getElementById('tg-tasks-list'), // Список внутри него (куда рендерим)
     activeAutomaticQuestContainer: document.getElementById('active-automatic-quest-container'),
     questChooseBtn: document.getElementById("quest-choose-btn"),
     questChooseContainer: document.getElementById("quest-choose-container"),
@@ -49,8 +47,6 @@ let countdownIntervals = {};
 let allQuests = [];
 let userData = {};
 let questsForRoulette = [];
-let telegramTasksCache = null;
-let activeProfileCheck = null;
 
 // ==========================================
 // 2. УТИЛИТЫ И API (Глобальные)
@@ -172,20 +168,15 @@ function startCountdown(timerElement, expiresAt, intervalKey, onEndCallback) {
 
 // === УПРАВЛЕНИЕ КРАСИВЫМ ОКНОМ ===
 function openUniversalModal(title, contentHTML = '') {
-    // 1. Ставим заголовок
     dom.modalTitle.textContent = title;
     
-    // 2. Очищаем и заполняем контент (если передан HTML строкой)
-    // Если мы будем заполнять элементами через appendChild, contentHTML можно не передавать
     if (contentHTML) {
         dom.modalContainer.innerHTML = contentHTML;
     } else {
         dom.modalContainer.innerHTML = '';
     }
 
-    // 3. Показываем окно
     dom.modalOverlay.classList.remove('hidden');
-    // Небольшая задержка для CSS анимации (чтобы класс active сработал после remove hidden)
     requestAnimationFrame(() => {
         dom.modalOverlay.classList.add('active');
     });
@@ -195,12 +186,11 @@ function closeUniversalModal() {
     dom.modalOverlay.classList.remove('active');
     setTimeout(() => {
         dom.modalOverlay.classList.add('hidden');
-        dom.modalContainer.innerHTML = ''; // Очистка памяти
+        dom.modalContainer.innerHTML = '';
         dom.modalContainer.classList.remove('grid-mode');
-    }, 300); // Ждем окончания анимации CSS (0.3s)
+    }, 300);
 }
 
-// Слушатель закрытия (добавь это в setupEventListeners или просто внизу)
 if (dom.modalCloseBtn) {
     dom.modalCloseBtn.addEventListener('click', closeUniversalModal);
 }
@@ -284,604 +274,6 @@ function renderMatrixTracker(matrixData, userData) {
     `;
 }
 
-// ==========================================
-// 3. TELEGRAM ЗАДАНИЯ И ЛОГИКА (НОВОЕ)
-// ==========================================
-
-// Хранилище для интервалов таймеров, чтобы не плодить их
-let cooldownIntervalsMap = {};
-
-// Функция запуска таймера на кнопке
-function startButtonCooldown(btnId, lastClaimedIso, cooldownHours = 20) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-
-    // Очищаем старый таймер, если был
-    if (cooldownIntervalsMap[btnId]) clearInterval(cooldownIntervalsMap[btnId]);
-
-    const lastClaimTime = new Date(lastClaimedIso).getTime();
-    const cooldownMs = cooldownHours * 60 * 60 * 1000;
-    const targetTime = lastClaimTime + cooldownMs;
-
-    const updateTimer = () => {
-        const now = new Date().getTime();
-        const diff = targetTime - now;
-
-        if (diff <= 0) {
-            // Время вышло — активируем кнопку
-            clearInterval(cooldownIntervalsMap[btnId]);
-            btn.disabled = false;
-            btn.style.background = ''; // Возвращаем родной цвет
-            btn.style.opacity = '1';
-            // Возвращаем текст "Забрать" (можно усложнить, но пока так)
-            // Чтобы текст вернулся корректным, лучше просто перезагрузить список или оставить "Доступно"
-            btn.innerHTML = 'Забрать'; 
-            return;
-        }
-
-        // Форматируем время ЧЧ:ММ:СС
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        // Делаем кнопку серой
-        btn.disabled = true;
-        btn.style.background = '#444'; // Серый фон
-        btn.style.color = '#aaa';      // Серый текст
-        btn.innerHTML = `<i class="fa-regular fa-clock"></i> ${timeStr}`;
-    };
-
-    updateTimer(); // Запуск сразу
-    cooldownIntervalsMap[btnId] = setInterval(updateTimer, 1000);
-}
-
-async function loadTelegramTasks() {
-    const container = document.getElementById('tg-tasks-list');
-    if (!container) return;
-
-    container.innerHTML = '<div style="text-align:center; padding:10px; color:#666;">Загрузка...</div>';
-    
-    const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
-    if (!userId) {
-        container.innerHTML = '<div style="text-align:center; padding:10px; color:red;">Ошибка: User ID не найден</div>';
-        return;
-    }
-
-    try {
-        // === ИСПРАВЛЕНИЕ: Используем let вместо const, чтобы можно было исправить данные ===
-        let tasks = await makeApiRequest(`/api/v1/telegram/tasks?user_id=${userId}`, {}, 'GET', true);
-        
-        // === ИСПРАВЛЕНИЕ: Защита от краша tasks.filter ===
-        // Если сервер вернул null, undefined или объект ошибки — делаем пустой массив
-        if (!Array.isArray(tasks)) {
-            console.warn("loadTelegramTasks: API вернул не массив, сбрасываем в []", tasks);
-            tasks = [];
-        }
-
-        // === ВАЖНОЕ ДОБАВЛЕНИЕ ДЛЯ АВТО-ОБНОВЛЕНИЯ ===
-        telegramTasksCache = tasks; 
-        // ==============================================
-
-        container.innerHTML = ''; 
-
-        if (tasks.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:10px;">Заданий пока нет</div>';
-            return;
-        }
-
-        // 1. Разделяем задачи
-        const activeTasks = tasks.filter(t => !t.is_completed);
-        const completedTasks = tasks.filter(t => t.is_completed);
-
-        // !!! ВАЖНО: Список для отложенного запуска таймеров !!!
-        const timersToStart = [];
-
-        // Функция создания HTML
-        const createTaskElement = (task) => {
-            const el = document.createElement('div');
-            el.className = `tg-task-item ${task.is_completed ? 'completed' : ''}`;
-            
-            if (task.is_completed) {
-                el.style.opacity = '0.6';
-                el.style.filter = 'grayscale(1)';
-            }
-            
-            let iconClass = 'fa-solid fa-star';
-            if (task.task_key === 'tg_surname') iconClass = 'fa-solid fa-signature';
-            if (task.task_key === 'tg_bio') iconClass = 'fa-solid fa-link';
-            if (task.task_key === 'tg_sub') iconClass = 'fa-brands fa-telegram';
-            if (task.task_key === 'tg_vote') iconClass = 'fa-solid fa-rocket';
-
-            let rightColHtml = '';
-            let bottomHtml = '';
-
-            if (task.is_completed) {
-                rightColHtml = `<div class="tg-completed-icon"><i class="fa-solid fa-check"></i></div>`;
-            } else {
-                const rewardHtml = `
-                    <div class="btn-reward-badge">
-                        <span>+${task.reward_amount}</span>
-                        <i class="fa-solid fa-ticket btn-ticket-icon"></i>
-                    </div>
-                `;
-                const btnDataAttr = `data-reward="${task.reward_amount}"`;
-
-                // --- 🔥 ЛОГИКА 7 ДНЯ (ЗОЛОТАЯ КНОПКА) 🔥 ---
-                const isFinalDay = task.is_daily && task.current_day === task.total_days;
-                let btnStyle = '';
-                let btnContent = `ЗАБРАТЬ ${rewardHtml}`;
-                
-                if (isFinalDay) {
-                    btnStyle = 'background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); font-weight: 800;';
-                    // Меняем текст на "ЗАБРАТЬ ПРИЗ" и убираем стандартный бейдж с +билетами
-                    btnContent = `<i class="fa-solid fa-gift" style="margin-right:5px;"></i> ЗАБРАТЬ ПРИЗ`; 
-                }
-                // ----------------------------------------
-
-                if (task.is_daily || task.task_key === 'tg_sub' || task.task_key === 'tg_vote' || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') {
-                    let actionLinkHtml = '';
-                    if ((task.task_key === 'tg_sub' || task.task_key === 'tg_vote') && task.action_url) {
-                        const linkText = task.task_key === 'tg_vote' ? 'Проголосовать' : 'Открыть канал';
-                        actionLinkHtml = `<div style="font-size:9px; color:#0088cc; margin-bottom:4px; text-align:right; cursor:pointer;" onclick="Telegram.WebApp.openTelegramLink('${task.action_url}')">${linkText} <i class="fa-solid fa-arrow-up-right-from-square"></i></div>`;
-                    }
-
-                    rightColHtml = `
-                        ${actionLinkHtml}
-                        <button class="tg-premium-btn" id="btn-${task.task_key}" ${btnDataAttr} style="${btnStyle}" onclick="handleDailyClaim('${task.task_key}', ${userId}, '${task.action_url || ''}')">
-                            ${btnContent}
-                        </button>
-                    `;
-                    
-                    if (task.is_daily) {
-                        let segmentsHtml = '';
-                        for (let i = 1; i <= task.total_days; i++) {
-                            const isFilled = i <= task.current_day ? 'filled' : '';
-                            segmentsHtml += `<div class="tg-progress-segment ${isFilled}" id="seg-${task.task_key}-${i}"></div>`;
-                        }
-                        bottomHtml = `
-                            <div class="tg-progress-track" style="margin-top:8px;">
-                                ${segmentsHtml}
-                            </div>
-                            <div class="tg-counter-text" id="prog-text-${task.task_key}">
-                                День ${task.current_day}/${task.total_days}
-                            </div>
-                        `;
-                    }
-                } else {
-                    rightColHtml = `
-                        <button class="tg-premium-btn" id="btn-${task.task_key}" ${btnDataAttr} onclick="handleTgTaskClick('${task.task_key}', '${task.action_url}')">
-                            ЗАБРАТЬ ${rewardHtml}
-                        </button>
-                    `;
-                }
-            }
-
-            el.innerHTML = `
-                <div class="tg-task-header">
-                    <div class="tg-left-col">
-                        <div class="tg-icon-box"><i class="${iconClass}"></i></div>
-                        <div class="tg-text-col">
-                            <span class="tg-title">${task.title}</span>
-                            <span class="tg-subtitle">
-                                ${(task.description || '').replace(/(@[a-zA-Z0-9_]+)/g, '<span class="tg-code-phrase">$1</span>')}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="tg-right-col">
-                        ${rightColHtml}
-                    </div>
-                </div>
-                ${bottomHtml}
-            `;
-
-            // !!! ИСПРАВЛЕНИЕ: БЛОКИРУЕМ ТАЙМЕР, ЕСЛИ ЭТО 7 ДЕНЬ !!!
-            const isFinalDay = task.is_daily && task.current_day === task.total_days;
-
-            if ((task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio') && task.last_claimed_at && !task.is_completed && !isFinalDay) {
-                const last = new Date(task.last_claimed_at).getTime();
-                const now = new Date().getTime();
-                const diff = now - last;
-                const cooldownMs = 20 * 60 * 60 * 1000; // 20 часов
-                
-                if (diff < cooldownMs) {
-                    timersToStart.push({
-                        id: `btn-${task.task_key}`,
-                        time: task.last_claimed_at
-                    });
-                }
-            }
-            return el;
-        };
-
-        // 2. Рендерим АКТИВНЫЕ задачи (они добавляются в DOM)
-        activeTasks.forEach(task => {
-            container.appendChild(createTaskElement(task));
-        });
-
-        // 3. Рендерим ВЫПОЛНЕННЫЕ
-        if (completedTasks.length > 0) {
-            const detailsEl = document.createElement('details');
-            detailsEl.style.cssText = `width: 100%; margin-top: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05);`;
-            detailsEl.open = false;
-
-            const summaryEl = document.createElement('summary');
-            summaryEl.style.cssText = `padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #8e8e93; font-weight: 600; font-size: 13px; list-style: none; user-select: none;`;
-            summaryEl.innerHTML = `<span>Показать выполненные (${completedTasks.length})</span> <i class="fa-solid fa-chevron-down" style="margin-left: 8px; transition: transform 0.3s;"></i>`;
-
-            const innerList = document.createElement('div');
-            innerList.style.cssText = `display: flex; flex-direction: column; gap: 4px; padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0, 0, 0, 0.1);`;
-
-            completedTasks.forEach(task => {
-                innerList.appendChild(createTaskElement(task));
-            });
-
-            detailsEl.appendChild(summaryEl);
-            detailsEl.appendChild(innerList);
-            container.appendChild(detailsEl);
-
-            summaryEl.addEventListener('click', () => {
-                const icon = summaryEl.querySelector('i');
-                setTimeout(() => {
-                    if(detailsEl.open) icon.style.transform = 'rotate(180deg)';
-                    else icon.style.transform = 'rotate(0deg)';
-                }, 10);
-            });
-        }
-
-        // !!! ГЛАВНОЕ ИСПРАВЛЕНИЕ !!!
-        // Запускаем таймеры ТОЛЬКО ТЕПЕРЬ, когда все кнопки точно есть на странице
-        timersToStart.forEach(data => {
-            if (typeof startButtonCooldown === 'function') {
-                startButtonCooldown(data.id, data.time);
-            }
-        });
-
-    } catch (e) { 
-        console.error("Ошибка в loadTelegramTasks:", e); 
-    }
-}
-
-// === ОБНОВЛЕНИЕ КЭША ЧТОБЫ НЕ СКАКАЛ БАЛАНС ===
-function updateCacheAfterClaim() {
-    try {
-        // Берем текущий слепок из памяти
-        const cachedRaw = localStorage.getItem('quests_cache_v1');
-        if (cachedRaw && userData) {
-            const cache = JSON.parse(cachedRaw);
-            // Обновляем в нем данные пользователя (билеты и т.д.)
-            // Важно: мы сохраняем весь объект userData, так как мы его уже обновили в handleDailyClaim
-            cache.user = userData; 
-            
-            // Если нужно, обновляем и квесты (чтобы галочки не пропадали при релоаде до сети)
-            if (typeof allQuests !== 'undefined') {
-                cache.quests = allQuests;
-            }
-            
-            // Записываем обратно
-            localStorage.setItem('quests_cache_v1', JSON.stringify(cache));
-        }
-    } catch (e) {
-        console.error("Ошибка сохранения кэша:", e);
-    }
-}
-// Замени старую функцию handleDailyClaim на эту:
-async function handleDailyClaim(taskKey, userId, actionUrl) {
-    const btn = document.getElementById(`btn-${taskKey}`);
-    const rewardAmount = btn ? btn.getAttribute('data-reward') : '';
-    const originalStyle = btn ? btn.getAttribute('style') : '';
-    
-    const restoreBtnHtml = `
-        ЗАБРАТЬ 
-        <div class="btn-reward-badge">
-            <span>+${rewardAmount}</span>
-            <i class="fa-solid fa-ticket btn-ticket-icon"></i>
-        </div>
-    `;
-
-    if(btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-    }
-
-    try {
-        const data = await makeApiRequest('/api/v1/telegram/claim_daily', { 
-            user_id: userId, 
-            task_key: taskKey 
-        });
-        
-        if (data && data.success) {
-            
-            // Секретный код
-            if (data.secret_code) {
-                if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                const popup = document.getElementById('secret-reward-popup');
-                const goProfileBtn = document.getElementById('go-to-profile-btn');
-                const closeBtn = document.getElementById('close-secret-popup-btn');
-                
-                if (popup) {
-                    popup.classList.add('visible');
-                    goProfileBtn.onclick = () => { window.location.href = 'profile.html'; };
-                    closeBtn.onclick = () => { popup.classList.remove('visible'); window.location.reload(); };
-                } else {
-                    Telegram.WebApp.showAlert("Код получен! Он в профиле.");
-                    window.location.reload();
-                }
-                return;
-            }
-
-            // Сгорание серии
-            if (data.streak_reset) {
-                const stats = document.getElementById('ticketStats');
-                // if(stats) stats.innerText = parseInt(stats.innerText || '0') + data.reward;
-                // 🔥 Обновляем глобальные данные
-                // if(userData) userData.tickets = (userData.tickets || 0) + data.reward;
-                
-                // 🔥 ФИКС БАЛАНСА: Сохраняем в память телефона сразу
-                // if (typeof updateCacheAfterClaim === 'function') updateCacheAfterClaim();
-
-                if (telegramTasksCache) {
-                    const task = telegramTasksCache.find(t => t.task_key === taskKey);
-                    if (task) {
-                        task.current_day = data.day;
-                        task.total_days = data.total_days;
-                        task.is_completed = data.is_completed;
-                        task.last_claimed_at = new Date().toISOString();
-                    }
-                }
-                const container = dom.modalContainer;
-                if (container && telegramTasksCache) renderTelegramGrid(telegramTasksCache, container);
-
-                injectBurnedPopup(data.reward);
-                return; 
-            }
-
-            // === 🔥 ОБЫЧНЫЙ УСПЕХ 🔥 ===
-            
-            const earned = data.reward || 0;
-
-            // 1. Обновляем DOM (визуал)
-            const stats = document.getElementById('ticketStats');
-            if(stats) stats.innerText = parseInt(stats.innerText || '0') + earned;
-
-            // 2. 🔥 ВАЖНО: Обновляем глобальную переменную userData
-            // Это предотвратит "откат" цифр при следующем фоновом обновлении
-            if (userData) {
-                userData.tickets = (userData.tickets || 0) + earned;
-            }
-
-            // 🔥 ФИКС БАЛАНСА: Сохраняем новое состояние в LocalStorage
-            // Теперь при перезагрузке скрипт сразу увидит новые билеты
-            if (typeof updateCacheAfterClaim === 'function') updateCacheAfterClaim();
-
-            // 3. Обновляем кэш задач
-            if (telegramTasksCache) {
-                const task = telegramTasksCache.find(t => t.task_key === taskKey);
-                if (task) {
-                    task.current_day = data.day;
-                    task.total_days = data.total_days;
-                    task.is_completed = data.is_completed;
-                    task.last_claimed_at = new Date().toISOString();
-                }
-            }
-
-            // 4. Перерисовываем сетку (чтобы кнопка стала серой/зеленой сразу)
-            const container = dom.modalContainer;
-            if (container && telegramTasksCache) {
-                renderTelegramGrid(telegramTasksCache, container);
-            }
-            
-            // 5. Показываем окно (теперь оно ПЕРЕЗАГРУЖАЕТ страницу при закрытии)
-            // 🔥 ИЗМЕНЕНИЕ ЗДЕСЬ: добавлен true третьим параметром
-            injectRewardPopup(earned, data.message || "Задание выполнено!", true);
-
-        } else if (data) {
-            // Ошибки
-            if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-            
-            if (taskKey === 'tg_vote') {
-                injectBoostPopup(actionUrl);
-            }
-            else if (data.error && (data.error.includes("Условие не выполнено") || data.error.includes("Тег"))) {
-                if (taskKey === 'tg_surname') injectProfilePopup('surname');
-                else if (taskKey === 'tg_bio') injectProfilePopup('bio');
-                else Telegram.WebApp.showAlert(data.error);
-            }
-            else if (data.error && data.error.includes("не подписаны")) {
-                 Telegram.WebApp.showAlert("Вы не подписаны на канал!");
-            }
-            else {
-                Telegram.WebApp.showAlert(data.error || "Произошла ошибка");
-            }
-            
-            if(btn) {
-                btn.disabled = false;
-                btn.innerHTML = restoreBtnHtml; 
-                if (originalStyle) btn.setAttribute('style', originalStyle);
-            }
-        }
-    } catch (e) {
-        console.error(e);
-        if(btn) {
-            btn.disabled = false;
-            btn.innerHTML = restoreBtnHtml || "Ошибка"; 
-            if (originalStyle) btn.setAttribute('style', originalStyle);
-        }
-    }
-}
-
-// Глобальная функция для ОБЫЧНЫХ квестов
-function handleTgTaskClick(key, url) {
-    if (key === 'tg_vote') {
-        injectBoostPopup(url);
-    } else if (key === 'tg_sub') {
-        Telegram.WebApp.openTelegramLink(url);
-        setTimeout(() => { if(window.updateTelegramStatus) window.updateTelegramStatus(); }, 2000);
-    }
-}
-
-// ==========================================
-// 4. ПОПАПЫ И UI (Глобальные)
-// ==========================================
-
-function injectBurnedPopup(reward) {
-    const existing = document.getElementById('burnedPopup');
-    if (existing) existing.remove();
-
-    const popupHtml = `
-    <div id="burnedPopup" class="popup-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-      <div class="popup-content" style="background: #1c1c1e; color: #fff; padding: 25px; border-radius: 16px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,59,48,0.3);">
-        <div style="font-size: 40px; margin-bottom: 10px;">🔥</div>
-        <h3 style="margin-top: 0; color: #ff3b30; font-size: 20px; margin-bottom: 10px;">Серия прервана!</h3>
-        
-        <p style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 20px;">
-            Вы пропустили день.<br>
-            Ваш прогресс сброшен до <b>Дня 1</b>. Не пропускайте дни, чтобы забрать главную награду!
-        </p>
-        <button id="closeBurnedPopup" style="width: 100%; background: #2c2c2e; color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer;">Понятно</button>
-      </div>
-    </div>`;
-
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-    if(window.Telegram && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-    
-    document.getElementById('closeBurnedPopup').addEventListener('click', () => {
-        document.getElementById('burnedPopup').remove();
-        // Перезагружаем страницу, чтобы обновить дни
-        window.location.reload();
-    });
-}
-
-function injectBoostPopup(customUrl) {
-    const urlToUse = customUrl || 'https://t.me/boost/hatelove_ttv';
-    const existing = document.getElementById('boostPopup');
-    if (existing) existing.remove();
-
-    const popupHtml = `
-    <div id="boostPopup" class="popup-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-      <div class="popup-content" style="background: #1c1c1e; color: #fff; padding: 25px; border-radius: 16px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;">
-        <h3 style="margin-top: 0; color: #ff4757; font-size: 20px; margin-bottom: 10px;">⚠️ Внимание!</h3>
-        <p style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 20px;">Голосование за канал необходимо для получения бонусов.</p>
-        <button id="goToBoostBtn" style="width: 100%; background: #0088cc; color: white; border: none; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-           <i class="fa-solid fa-rocket"></i> Проголосовать
-        </button>
-        <button id="closePopupBtn" style="width: 100%; background: transparent; border: none; color: #8e8e93; padding: 10px; cursor: pointer; font-size: 15px;">Закрыть</button>
-      </div>
-    </div>`;
-
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-    document.getElementById('goToBoostBtn').addEventListener('click', () => {
-        const popup = document.getElementById('boostPopup');
-        if (popup) popup.remove();
-        Telegram.WebApp.openTelegramLink(urlToUse);
-    });
-    document.getElementById('closePopupBtn').addEventListener('click', () => {
-        const popup = document.getElementById('boostPopup');
-        if (popup) popup.remove();
-    });
-}
-
-function injectProfilePopup(type) {
-    // === 1. ЗАПОМИНАЕМ ТИП ПРОВЕРКИ ДЛЯ АВТО-ОБНОВЛЕНИЯ ===
-    activeProfileCheck = type; 
-
-    const existing = document.getElementById('profilePopup');
-    if (existing) existing.remove();
-
-    let titleText = '';
-    let bodyHTML = ''; 
-    const tgColor = '#0088cc'; 
-    const tgBg = 'rgba(0, 136, 204, 0.15)'; 
-
-    // === БЛОК ФАМИЛИИ ===
-    if (type === 'surname') {
-        titleText = '❌ Ник бота не найден';
-        const botNick = '@HATElavka_bot';
-        
-        bodyHTML = `
-            <div style="margin-bottom: 12px; font-size: 11px; color: #ccc;">Скопируйте ник и вставьте в поле <b>"Фамилия"</b>:</div>
-            <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); align-items: center;">
-                <input id="popupRefInput" type="text" readonly value="${botNick}" style="flex-grow: 1; background: transparent; border: none; color: ${tgColor}; font-weight: 600; font-size: 11px; outline: none; width: 100%;">
-                <button id="popupCopyBtn" style="background: ${tgColor}; border: none; border-radius: 8px; color: #fff; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                    <i class="fa-regular fa-copy"></i>
-                </button>
-            </div>
-        `;
-        
-        setTimeout(() => {
-            const copyBtn = document.getElementById('popupCopyBtn');
-            if(copyBtn) copyBtn.addEventListener('click', function() {
-                navigator.clipboard.writeText(botNick).then(() => {
-                     if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                     this.innerHTML = '<i class="fa-solid fa-check"></i>';
-                     setTimeout(() => this.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
-                });
-            });
-        }, 100);
-
-    // === БЛОК БИО (ССЫЛКА) ===
-    } else {
-        titleText = '❌ Ссылка не найдена';
-        let refPayload = userData.telegram_id;
-        if (userData && userData.bott_ref_id) refPayload = `r_${userData.bott_ref_id}`;
-        else if (userData && userData.bott_internal_id) refPayload = `r_${userData.bott_internal_id}`;
-        
-        const fullRefLink = `https://t.me/HATElavka_bot/app?startapp=${refPayload}`;
-        const displayRefLink = fullRefLink.replace('https://', '');
-
-        bodyHTML = `
-            <div style="margin-bottom: 12px; font-size: 11px; color: #ccc;">Скопируйте ссылку и вставьте в раздел <b>"О себе" (Bio)</b>:</div>
-            <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); align-items: center;">
-                <input id="popupRefInput" type="text" readonly value="${displayRefLink}" style="flex-grow: 1; background: transparent; border: none; color: ${tgColor}; font-weight: 600; font-size: 11px; outline: none; width: 100%;">
-                <button id="popupCopyBtn" style="background: ${tgColor}; border: none; border-radius: 8px; color: #fff; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                    <i class="fa-regular fa-copy"></i>
-                </button>
-            </div>
-        `;
-
-        setTimeout(() => {
-            const copyBtn = document.getElementById('popupCopyBtn');
-            if(copyBtn) copyBtn.addEventListener('click', function() {
-                navigator.clipboard.writeText(fullRefLink).then(() => {
-                     if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                     this.innerHTML = '<i class="fa-solid fa-check"></i>';
-                     setTimeout(() => this.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
-                });
-            });
-        }, 100);
-    }
-
-    // Вместо сломанной кнопки делаем красивый блок с инструкцией
-    const instructionHtml = `
-        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; font-size: 13px; color: #aaa; margin-bottom: 15px; text-align: left; line-height: 1.4; border: 1px dashed #444;">
-            <i class="fa-solid fa-circle-info" style="color: ${tgColor}; margin-right: 5px;"></i>
-            Перейдите в <b>Настройки</b> → <b>Изменить профиль</b> и вставьте скопированный текст в нужное поле.
-        </div>
-    `;
-
-    const popupHtml = `
-    <div id="profilePopup" class="popup-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-      <div class="popup-content" style="background: #1c1c1e; color: #fff; padding: 24px; border-radius: 16px; text-align: center; width: 85%; max-width: 340px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;">
-        <h3 style="margin-top: 0; color: #ff4757; font-size: 20px; margin-bottom: 16px; font-weight: 700;">${titleText}</h3>
-        <div style="font-size: 15px; line-height: 1.5; color: #ddd; margin-bottom: 24px; width: 100%;">${bodyHTML}</div>
-        
-        ${instructionHtml}
-
-        <button id="closeProfilePopupBtn" style="width: 100%; background: transparent; border: none; color: #8e8e93; padding: 10px; cursor: pointer; font-size: 15px;">Закрыть</button>
-      </div>
-    </div>`;
-
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-    
-    // Обработчик остался только для кнопки "Закрыть", так как кнопка перехода удалена
-    document.getElementById('closeProfilePopupBtn').addEventListener('click', () => {
-        document.getElementById('profilePopup').remove();
-        // === 2. СБРАСЫВАЕМ ТИП ПРОВЕРКИ ===
-        activeProfileCheck = null; 
-    });
-}
-
 // === КРАСИВОЕ ОКНО НАГРАДЫ (С ПЕРЕЗАГРУЗКОЙ) ===
 function injectRewardPopup(amount, text = "Задание выполнено!", reloadOnClose = false) {
     const existing = document.getElementById('rewardPopup');
@@ -889,22 +281,8 @@ function injectRewardPopup(amount, text = "Задание выполнено!", 
 
     let topIcon = '<i class="fa-solid fa-ticket"></i>';
     let rewardBlock = '';
-    let headerContent = '';
+    let headerContent = `<h3 style="margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 0.5px; line-height: 1.2;">${text}</h3>`;
 
-    // 🔥 ИНДИВИДУАЛЬНЫЙ ДИЗАЙН ДЛЯ ТЕЛЕГРАМ-КЕЙСА (с уменьшенным межстрочным интервалом) 🔥
-    if (text.includes("Успешная серия!")) {
-        headerContent = `
-            <div style="font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Успешная серия!</div>
-            <div style="font-size: 15px; font-weight: 700; color: #FFD700; line-height: 1.15;">Вам выдан бесплатный<br>Кейс | TELEGRAM</div>
-            <div style="height: 8px;"></div> <!-- Уменьшенный отступ вместо 20px -->
-            <div style="font-size: 11px; color: #8e8e93; font-weight: 500;">Он уже ждёт в разделе Кейсы!</div>
-        `;
-    } else {
-        // Стандартный заголовок
-        headerContent = `<h3 style="margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 0.5px; line-height: 1.2;">${text}</h3>`;
-    }
-
-    // УМНАЯ ЛОГИКА: Рисуем блок с билетами ТОЛЬКО если их больше нуля
     if (amount > 0) {
         rewardBlock = `
             <p style="margin: 0 0 24px; color: #8e8e93; font-size: 14px; font-weight: 500;">Награда зачислена на баланс</p>
@@ -921,8 +299,7 @@ function injectRewardPopup(amount, text = "Задание выполнено!", 
             </div>
         `;
     } else {
-        topIcon = '<i class="fa-solid fa-gift"></i>'; // Меняем билетик на подарок
-        // Оставляем аккуратный отступ из старого кода
+        topIcon = '<i class="fa-solid fa-gift"></i>';
         rewardBlock = `<div style="margin-bottom: 24px;"></div>`; 
     }
 
@@ -962,7 +339,7 @@ function injectRewardPopup(amount, text = "Задание выполнено!", 
             font-size: 16px; 
             cursor: pointer; 
             box-shadow: 0 8px 20px rgba(0, 136, 204, 0.3); 
-            transition: transform 0.1s, box-shadow 0.1s;
+            transition: transform 0.1s, box-shadow 0.1s; 
             text-transform: uppercase;
             letter-spacing: 1px;
         ">
@@ -998,8 +375,9 @@ function injectRewardPopup(amount, text = "Задание выполнено!", 
         }, 200);
     });
 }
+
 // ==========================================
-// 5. РЕНДЕРИНГ
+// 3. РЕНДЕРИНГ
 // ==========================================
 
 function createTwitchNoticeHtml() {
@@ -1076,18 +454,16 @@ function renderChallenge(challengeData, isGuest) {
     const percent = target > 0 ? Math.min(100, (currentProgress / target) * 100) : 0;
     const canClaim = currentProgress >= target && !challenge.claimed_at;
     const isCompleted = currentProgress >= target;
-    // === ФИКС НАЧАЛО: Логика кнопки ===
+    
     let claimButtonHtml = '';
 
     if (challenge.claimed_at) {
-        // Если награда уже получена — показываем заглушку, которую НЕЛЬЗЯ нажать
         claimButtonHtml = `
             <button class="claim-reward-button" disabled style="background: #2c2c2e; color: #666; cursor: default; box-shadow: none; border: 1px solid rgba(255,255,255,0.05);">
                 <i class="fa-solid fa-check"></i> <span>Выполнено</span>
             </button>
         `;
     } else {
-        // Если еще не забрали — показываем обычную кнопку
         claimButtonHtml = `
             <button id="claim-challenge-btn" data-challenge-id="${challenge.challenge_id}" class="claim-reward-button" ${!canClaim ? 'disabled' : ''}>
                 <i class="fa-solid fa-gift"></i> <span>Забрать награду</span>
@@ -1102,7 +478,6 @@ function renderChallenge(challengeData, isGuest) {
     }
     const isTwitchChallenge = challenge.condition_type && challenge.condition_type.includes('twitch');
     const twitchNotice = isTwitchChallenge ? createTwitchNoticeHtml() : '';
-    const claimButton = `<button id="claim-challenge-btn" data-challenge-id="${challenge.challenge_id}" class="claim-reward-button" ${!canClaim ? 'disabled' : ''}><i class="fa-solid fa-gift"></i> <span>Забрать награду</span></button>`;
     let progressTextContent = `${currentProgress} / ${target}`;
     const conditionType = challenge.condition_type || '';
     if (conditionType.includes('twitch_uptime')) {
@@ -1133,6 +508,7 @@ function renderChallenge(challengeData, isGuest) {
         startCountdown(document.getElementById('challenge-timer'), challenge.expires_at, 'challenge');
     }
 }
+
 function renderActiveAutomaticQuest(quest, userData) {
     dom.activeAutomaticQuestContainer.innerHTML = '';
     if (!quest || !userData || !userData.active_quest_id) return;
@@ -1157,7 +533,6 @@ function renderActiveAutomaticQuest(quest, userData) {
         let cancelBtnDisabled = false;
         let cooldownEndTime = null;
         
-        // Проверка кулдауна бесплатной отмены (24 часа)
         if (lastCancel) {
             const lastCancelDate = new Date(lastCancel);
             const now = new Date();
@@ -1168,17 +543,11 @@ function renderActiveAutomaticQuest(quest, userData) {
             }
         }
 
-        // Основная кнопка (Бесплатная)
         const freeCancelBtn = `<button id="cancel-quest-btn" class="cancel-quest-button" ${cancelBtnDisabled ? 'disabled' : ''}>Отменить бесплатно</button>`;
         
-        // Кнопка платной отмены (Появляется ТОЛЬКО если бесплатная недоступна)
         let paidCancelBtn = '';
         if (cancelBtnDisabled) {
-            // 🔥 ЦЕНА ОТМЕНЫ (5, 10, 15...)
-            // В идеале сервер должен присылать userData.next_cancel_cost. 
-            // Пока поставим заглушку 5, если данных нет.
             const cost = userData.next_cancel_cost || 5; 
-            
             paidCancelBtn = `
                 <button id="paid-cancel-quest-btn" data-cost="${cost}" class="cancel-quest-button" style="margin-top: 10px; background: rgba(255, 165, 0, 0.15); border: 1px solid rgba(255, 165, 0, 0.4); color: #ffae00;">
                     <i class="fa-solid fa-ticket"></i> Отменить за ${cost} билетов
@@ -1186,7 +555,6 @@ function renderActiveAutomaticQuest(quest, userData) {
             `;
         }
 
-        // Собираем кнопки в контейнер
         buttonHtml = `
             <div style="display: flex; flex-direction: column; width: 100%;">
                 ${freeCancelBtn}
@@ -1194,16 +562,14 @@ function renderActiveAutomaticQuest(quest, userData) {
             </div>
         `;
 
-        // Запуск таймера для бесплатной кнопки
         if (cancelBtnDisabled) {
             setTimeout(() => {
                 const btn = document.getElementById('cancel-quest-btn');
-                const paidBtn = document.getElementById('paid-cancel-quest-btn'); // Ссылка на платную кнопку
+                const paidBtn = document.getElementById('paid-cancel-quest-btn');
                 if (btn) {
                      startCountdown(btn, cooldownEndTime, 'quest_cancel', () => {
                         btn.disabled = false;
                         btn.textContent = 'Отменить бесплатно';
-                        // Если бесплатная стала доступна, платную можно скрыть
                         if(paidBtn) paidBtn.style.display = 'none'; 
                     });
                 }
@@ -1284,7 +650,6 @@ function renderManualQuests(questsData) {
                 : '';
             const submitButtonText = (quest.action_url && quest.action_url !== "") ? 'Отправить' : 'Выполнить';
             
-            // Здесь монетка 🟡 уже стоит (из прошлого шага)
             return `
                 <div class="quest-card" style="display: flex; flex-direction: column;">
                     <div style="flex-grow: 1;">
@@ -1301,8 +666,6 @@ function renderManualQuests(questsData) {
             `;
         }).join('');
 
-        // !!! ИЗМЕНЕНИЕ ЗДЕСЬ: Убрали атрибут 'open' из тега <details> !!!
-        // Теперь списки будут свернуты по умолчанию.
         const accordionHtml = `
             <details class="quest-category-accordion">
                 <summary class="quest-category-header">${escapeHTML(categoryName)}</summary>
@@ -1316,7 +679,7 @@ function renderManualQuests(questsData) {
 }
 
 // ==========================================
-// 6. ОСНОВНАЯ ЛОГИКА
+// 4. ОСНОВНАЯ ЛОГИКА
 // ==========================================
 
 async function refreshDataSilently() {
@@ -1330,7 +693,6 @@ async function refreshDataSilently() {
                 if (ticketEl) ticketEl.textContent = hbData.tickets;
             }
             
-            // Обновление активного квеста
             if (hbData.quest_id) {
                 userData.active_quest_id = hbData.quest_id;
                 userData.active_quest_progress = hbData.quest_progress;
@@ -1363,7 +725,6 @@ async function refreshDataSilently() {
                 }
             }
 
-            // Обновление челленджа
             if (hbData.has_active_challenge) {
                 if (!userData.challenge) userData.challenge = {};
                 userData.challenge.progress_value = hbData.challenge_progress;
@@ -1436,7 +797,6 @@ async function startChallengeRoulette() {
             inner.style.transform = `translateY(-${centeredPosition}px)`;
             setTimeout(() => {
                 overlay.remove();
-                // 🔥 ФИКС 1: Чистим кэш и перезагружаем для отображения активного челленджа
                 localStorage.removeItem('quests_cache_v1');
                 window.location.reload();
             }, 7000);
@@ -1448,39 +808,30 @@ async function startChallengeRoulette() {
 }
 
 async function openQuestSelectionModal() {
-    // 1. Определяем платформу (Twitch или Telegram) на основе текущей вкладки
     const currentTheme = document.body.getAttribute('data-theme');
     const isTelegram = currentTheme === 'telegram';
     const filterPrefix = isTelegram ? 'automatic_telegram' : 'automatic_twitch';
 
-    // 2. 🔥 Сначала фильтруем квесты (ДО открытия окна)
     const quests = allQuests
         .filter(q => q.quest_type && q.quest_type.startsWith(filterPrefix) && !q.is_completed)
-        // Сортировка: от большей награды к меньшей
         .sort((a, b) => (b.reward_amount || 0) - (a.reward_amount || 0));
 
-    // 3. 🔥 ПРОВЕРКА: Если квестов нет — просто выходим
     if (!quests || quests.length === 0) {
         console.log(`📭 Нет доступных квестов (${filterPrefix}). Меню не открываем.`);
-        // Мы уже переключили вкладку в функции main, поэтому пользователь 
-        // просто увидит страницу без всплывающего окна.
         return; 
     }
 
-    // 4. Если квесты ЕСТЬ — настраиваем цвета и заголовки
     const modalTitle = isTelegram ? 'Telegram Испытания' : 'Twitch Испытания';
     const accentColor = isTelegram ? '#0088cc' : '#9146ff';
     const bgIconColor = isTelegram ? 'rgba(0, 136, 204, 0.2)' : 'rgba(145, 70, 255, 0.2)';
     const iconClass = isTelegram ? 'fa-brands fa-telegram' : 'fa-brands fa-twitch';
 
-    // 5. Открываем окно только теперь
     openUniversalModal(modalTitle);
     
     const container = dom.modalContainer;
     container.classList.add('grid-mode'); 
     container.innerHTML = ''; 
     
-    // 6. Рендерим карточки
     quests.forEach((quest, index) => {
         const el = document.createElement('div');
         el.className = `tg-grid-card anim-card anim-delay-${index % 8}`;
@@ -1510,7 +861,6 @@ async function openQuestSelectionModal() {
                 await makeApiRequest("/api/v1/quests/start", { quest_id: quest.id });
                 closeUniversalModal();
                 
-                // Чистим кэш и перезагружаем страницу, чтобы сразу показать активный квест
                 localStorage.removeItem('quests_cache_v1');
                 window.location.reload(); 
             } catch(e) {
@@ -1521,94 +871,6 @@ async function openQuestSelectionModal() {
         });
         
         container.appendChild(el);
-    });
-}
-
-// === ФУНКЦИЯ ОТРИСОВКИ СЕТКИ (ИЗ КЭША) ===
-function renderTelegramGrid(tasks, container) {
-    container.innerHTML = ''; 
-    
-    // Сортировка: Сначала активные, выполненные вниз
-    tasks.sort((a, b) => (a.is_completed === b.is_completed) ? 0 : a.is_completed ? 1 : -1);
-
-    tasks.forEach((task, index) => {
-        const el = document.createElement('div');
-        // Добавляем anim-card только если карточки еще не было в DOM (опционально)
-        // Но для красоты оставим анимацию всегда
-        el.className = `tg-grid-card ${task.is_completed ? 'completed' : ''} anim-card anim-delay-${index % 8}`;
-        
-        let iconClass = 'fa-solid fa-star';
-        let iconTypeClass = ''; 
-        
-        if (task.task_key === 'tg_surname') { iconClass = 'fa-solid fa-signature'; iconTypeClass = 'telegram'; }
-        if (task.task_key === 'tg_bio') { iconClass = 'fa-solid fa-link'; iconTypeClass = 'telegram'; }
-        if (task.task_key === 'tg_sub') { iconClass = 'fa-brands fa-telegram'; iconTypeClass = 'telegram'; }
-        if (task.task_key === 'tg_vote') { iconClass = 'fa-solid fa-rocket'; iconTypeClass = 'rocket'; }
-        
-        if (task.is_completed) {
-            iconClass = 'fa-solid fa-check';
-            iconTypeClass = 'check';
-        }
-
-        let buttonHtml = '';
-        let progressHtml = '';
-        const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
-
-        if (task.is_completed) {
-            buttonHtml = `<button class="tg-grid-btn" disabled>Готово</button>`;
-        } else {
-            if (task.is_daily || task.task_key === 'tg_sub' || task.task_key === 'tg_vote') {
-                const rewardText = task.is_daily ? `~${Math.round(task.reward_amount / task.total_days)}` : task.reward_amount;
-                let onClickAction = `handleDailyClaim('${task.task_key}', ${userId}, '${task.action_url || ''}')`;
-                
-                buttonHtml = `
-                    <button class="tg-grid-btn" id="btn-${task.task_key}" onclick="${onClickAction}">
-                        Забрать (+${rewardText} <i class="fa-solid fa-coins"></i>)
-                    </button>
-                `;
-
-                if (task.is_daily) {
-                    let segments = '';
-                    for (let i = 1; i <= task.total_days; i++) {
-                        const filled = i <= task.current_day ? 'filled' : '';
-                        segments += `<div class="tg-grid-segment ${filled}" id="seg-${task.task_key}-${i}"></div>`;
-                    }
-                    progressHtml = `<div class="tg-grid-progress">${segments}</div>`;
-                }
-            } else {
-                buttonHtml = `
-                    <button class="tg-grid-btn" id="btn-${task.task_key}" onclick="handleTgTaskClick('${task.task_key}', '${task.action_url}')">
-                        +${task.reward_amount} <i class="fa-solid fa-coins"></i>
-                    </button>
-                `;
-            }
-        }
-        
-        let iconOnClick = '';
-        if (task.action_url && !task.is_completed) {
-            iconOnClick = `onclick="Telegram.WebApp.openTelegramLink('${task.action_url}')"`;
-        }
-
-        el.innerHTML = `
-            <div class="tg-grid-icon ${iconTypeClass}" ${iconOnClick}>
-                <i class="${iconClass}"></i>
-            </div>
-            <div class="tg-grid-title">${task.title}</div>
-            <div class="tg-grid-reward">+${task.reward_amount} <i class="fa-solid fa-coins" style="color: #ffcc00;"></i></div>
-            ${buttonHtml}
-            ${progressHtml}
-        `;
-        
-        container.appendChild(el);
-
-        // Таймер
-        if (task.is_daily && task.last_claimed_at && !task.is_completed) {
-            const last = new Date(task.last_claimed_at).getTime();
-            const now = new Date().getTime();
-            if (now - last < 20 * 3600 * 1000) {
-                startButtonCooldown(`btn-${task.task_key}`, task.last_claimed_at);
-            }
-        }
     });
 }
 
@@ -1623,7 +885,7 @@ function hideQuestRoulette() {
 }
 
 // ==========================================
-// 7. ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ
+// 5. ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ
 // ==========================================
 
 function setPlatformTheme(platform) {
@@ -1634,20 +896,12 @@ function setPlatformTheme(platform) {
         questButton.classList.remove('twitch-theme');
         questButton.classList.add('telegram-theme');
         questButton.innerHTML = '<i class="fa-brands fa-telegram"></i> TELEGRAM ИСПЫТАНИЯ';
-        
         dom.challengeContainer.classList.add('hidden');
-        if(dom.telegramStaticList) {
-            dom.telegramStaticList.classList.remove('hidden');
-            loadTelegramTasks(); 
-        }
-
     } else {
         questButton.classList.remove('telegram-theme');
         questButton.classList.add('twitch-theme');
         questButton.innerHTML = '<i class="fa-brands fa-twitch"></i> TWITCH ИСПЫТАНИЯ';
-        
         dom.challengeContainer.classList.remove('hidden');
-        if(dom.telegramStaticList) dom.telegramStaticList.classList.add('hidden');
     }
 
     questsForRoulette = allQuests.filter(q => 
@@ -1690,25 +944,18 @@ function setPlatformTheme(platform) {
     }
 }
 
-// ==========================================
-// ГЛОБАЛЬНАЯ НАВИГАЦИЯ, СВАЙПЫ И КНОПКА "НАЗАД"
-// ==========================================
-
-// Умное переключение вкладок (не срабатывает, если мы уже на ней)
 function safeSwitchTab(platform) {
     const currentTheme = document.body.getAttribute('data-theme');
-    if (currentTheme === platform) return; // ЗАЩИТА: Если уже тут, игнорируем свайп/клик
+    if (currentTheme === platform) return;
 
     const switchEl = document.getElementById(`view-${platform}`);
     if (switchEl) switchEl.checked = true;
     setPlatformTheme(platform);
 }
 
-// Обработчик системной кнопки "Назад"
 function handleGlobalBack() {
     let closedAny = false;
 
-    // 1. Проверяем динамические попапы (Ошибки, Безопасно, Буст и тд)
     const injectedPopups = document.querySelectorAll('.popup-overlay');
     injectedPopups.forEach(p => {
         if (p.style.opacity !== '0' && p.style.display !== 'none') {
@@ -1717,13 +964,11 @@ function handleGlobalBack() {
         }
     });
 
-    // 2. Проверяем красивое окно с гридом (Telegram/Twitch Испытания)
     if (dom.modalOverlay && dom.modalOverlay.classList.contains('active')) {
         closeUniversalModal();
         closedAny = true;
     }
 
-    // 3. Проверяем статические модалки
     const staticModals = [
         dom.promptOverlay, dom.infoModalOverlay, dom.scheduleModal, 
         dom.rewardClaimedOverlay, dom.ticketsClaimedOverlay
@@ -1735,10 +980,8 @@ function handleGlobalBack() {
         }
     });
 
-    // Если мы закрыли хоть одно окно — остаемся на странице
     if (closedAny) return;
 
-    // Если окон нет — возвращаемся в меню
     if (window.history.length > 1 && document.referrer) {
         window.history.back();
     } else {
@@ -1746,11 +989,10 @@ function handleGlobalBack() {
     }
 }
 
-// Настройка жестов (Свайпы)
 function setupGestures() {
     let touchStartX = 0;
     let touchStartY = 0;
-    const SWIPE_THRESHOLD = 80; // Минимальная длина свайпа
+    const SWIPE_THRESHOLD = 80;
 
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
@@ -1764,26 +1006,18 @@ function setupGestures() {
         const diffX = touchEndX - touchStartX;
         const diffY = touchEndY - touchStartY;
 
-        // Если открыто какое-либо окно — блокируем свайпы
         if (document.querySelector('.popup-overlay, .prompt-overlay:not(.hidden), .active')) {
             return; 
         }
 
-        // ГОРИЗОНТАЛЬНЫЕ СВАЙПЫ
         if (Math.abs(diffX) > Math.abs(diffY)) {
             if (diffX < -SWIPE_THRESHOLD) {
-                // Свайп ВЛЕВО (<-) -> Twitch
                 safeSwitchTab('twitch');
             } else if (diffX > SWIPE_THRESHOLD) {
-                // Свайп ВПРАВО (->) -> Telegram
                 safeSwitchTab('telegram');
             }
         } 
-        // ВЕРТИКАЛЬНЫЕ СВАЙПЫ
         else if (Math.abs(diffY) > Math.abs(diffX)) {
-            // Свайп ВНИЗ (v) -> Ручная проверка
-            // Важное условие: срабатывает только если страница находится в самом верху, 
-            // чтобы не мешать обычному чтению списка (скроллу вниз)
             if (diffY > SWIPE_THRESHOLD && dom.mainContent.scrollTop <= 10) {
                 safeSwitchTab('manual');
             }
@@ -1797,9 +1031,6 @@ function initUnifiedSwitcher() {
         radio.addEventListener('change', (e) => {
             if (e.target.checked) {
                 const view = e.target.value;
-                
-                // 🔥 МЫ БОЛЬШЕ НИЧЕГО НЕ СОХРАНЯЕМ ПРИ КЛИКЕ
-                // (Сохранение происходит только при нажатии кнопки "Отменить" в другой функции)
 
                 if (!dom.sectionAuto || !dom.sectionManual) return;
 
@@ -1819,16 +1050,13 @@ function initUnifiedSwitcher() {
 }
 
 async function main() {
-    // 🔥 ЭКСТРЕННАЯ ОЧИСТКА: Удаляем "вечную" память, чтобы починить баг
     localStorage.removeItem('last_active_tab'); 
 
-    // 1. Проверка окружения Telegram
     if (window.Telegram && !Telegram.WebApp.initData) {
         if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
         return; 
     }
 
-    // === БЛОК 1: МГНОВЕННЫЙ РЕНДЕР ИЗ КЭША (Stale-While-Revalidate) ===
     const cachedRaw = localStorage.getItem('quests_cache_v1');
     let isRenderedFromCache = false;
 
@@ -1838,15 +1066,12 @@ async function main() {
             if (cachedData && cachedData.user) {
                 console.log("🚀 Restoring from cache...");
                 
-                // Применяем данные из кэша
                 userData = cachedData.user;
                 allQuests = cachedData.quests || [];
                 
-                // Обновляем UI
                 if (dom.fullName) {
                     dom.fullName.textContent = userData.full_name || "Гость";
                     
-                    // Кнопка промокодов
                     if (dom.fullName.parentNode && !document.getElementById('promo-btn-inject')) {
                         const btn = document.createElement('a');
                         btn.id = 'promo-btn-inject';
@@ -1861,10 +1086,8 @@ async function main() {
                     document.getElementById('ticketStats').textContent = userData.tickets || 0;
                 }
 
-                // Инициализация переключателя и темы
                 initUnifiedSwitcher();
                 
-                // === ЛОГИКА ВОЗВРАТА ПОСЛЕ ОТМЕНЫ ===
                 const tempTab = localStorage.getItem('temp_return_tab');
                 let defaultView;
 
@@ -1874,7 +1097,6 @@ async function main() {
                 } else {
                     defaultView = userData.is_stream_online ? 'twitch' : 'telegram';
                 }
-                // =====================================
 
                 const switchEl = document.getElementById(`view-${defaultView}`);
                 if (switchEl) {
@@ -1884,12 +1106,10 @@ async function main() {
                     dom.sectionManual.classList.add('hidden');
                 }
 
-                // 🔥 ИСПРАВЛЕНИЕ БАГА С ОТВАЛОМ TWITCH (КЭШ) 🔥
                 const isTwitchLinkedCache = !!(userData.twitch_id || userData.twitch_login || userData.twitch_access_token);
                 if (userData.challenge) renderChallenge(userData.challenge, !isTwitchLinkedCache);
                 else renderChallenge({ cooldown_until: userData.challenge_cooldown_until }, !isTwitchLinkedCache);
                 
-                // Скрываем загрузчик СРАЗУ, так как контент уже есть
                 if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
                 dom.mainContent.style.opacity = 1;
                 isRenderedFromCache = true;
@@ -1899,17 +1119,14 @@ async function main() {
         }
     }
 
-    // Если кэша нет, показываем загрузку
     if (!isRenderedFromCache && dom.loaderOverlay) {
         dom.loaderOverlay.classList.remove('hidden');
         updateLoading(10);
     }
     
-    // === БЛОК 2: ЗАГРУЗКА СВЕЖИХ ДАННЫХ (Сеть) ===
     try {
         let bootstrapData;
         
-        // Проверяем предзагрузку из HTML (window.bootstrapPromise)
         if (window.bootstrapPromise) {
             try {
                 bootstrapData = await window.bootstrapPromise;
@@ -1918,24 +1135,20 @@ async function main() {
                 bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
             }
         } else {
-            // Обычный запрос, если предзагрузки нет
             bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
         }
         
         updateLoading(50);
 
         if (bootstrapData) {
-            // === СОХРАНЯЕМ В КЭШ ===
             localStorage.setItem('quests_cache_v1', JSON.stringify(bootstrapData));
 
             userData = bootstrapData.user;
             allQuests = bootstrapData.quests;
             
-            // 👇 ДОБАВЛЯЕМ ВЫЗОВ ТРЕКЕРА СЮДА 👇
             if (bootstrapData.matrix_quest !== undefined) {
                 renderMatrixTracker(bootstrapData.matrix_quest, userData);
             }
-            // 👆 ============================ 👆
             
             if (userData) {
                 if (dom.fullName) {
@@ -1955,12 +1168,10 @@ async function main() {
                 }
             }
 
-            // Переинициализация с новыми данными
             initUnifiedSwitcher(); 
 
             let defaultView = userData.is_stream_online ? 'twitch' : 'telegram';
             
-            // Если рендерили из кэша, проверяем текущий выбор пользователя
             if (isRenderedFromCache) {
                  const currentChecked = document.querySelector('input[name="view"]:checked');
                  if (currentChecked) defaultView = currentChecked.value;
@@ -1971,7 +1182,6 @@ async function main() {
             
             setPlatformTheme(defaultView);
             
-            // Логика отображения секций
             if (defaultView === 'manual') {
                  dom.sectionAuto.classList.add('hidden');
                  dom.sectionManual.classList.remove('hidden');
@@ -1980,7 +1190,6 @@ async function main() {
                  dom.sectionManual.classList.add('hidden');
             }
 
-            // 🔥 ИСПРАВЛЕНИЕ БАГА С ОТВАЛОМ TWITCH (СЕТЬ) 🔥
             const isTwitchLinkedNet = !!(userData.twitch_id || userData.twitch_login || userData.twitch_access_token);
             if (userData.challenge) renderChallenge(userData.challenge, !isTwitchLinkedNet);
             else renderChallenge({ cooldown_until: userData.challenge_cooldown_until }, !isTwitchLinkedNet);
@@ -1988,7 +1197,6 @@ async function main() {
             updateLoading(70);
             
             try {
-                // Загружаем ручные квесты
                 const manualQuests = await makeApiRequest("/api/v1/quests/manual", {}, 'POST', true);
                 renderManualQuests(manualQuests);
             } catch (e) {
@@ -1997,20 +1205,13 @@ async function main() {
             }
         }
 
-        // =========================================================================
-        // 👇👇👇 ВАЖНАЯ ДОБАВКА: ПЕРЕКЛЮЧЕНИЕ НА TWITCH ПО КНОПКЕ "ИСПЫТАНИЕ" 👇👇👇
-        // =========================================================================
-        
-        // === ДОБАВЛЯЕМ ЧТЕНИЕ ПАРАМЕТРОВ URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const viewCommand = urlParams.get('view');
         const openCommand = urlParams.get('open');
         
-        // 1. Сначала проверяем, есть ли активный квест (ПРАВИЛО 3)
         if (userData.active_quest_id) {
             const activeQuest = allQuests.find(q => q.id === userData.active_quest_id);
             
-            // Определяем, где этот квест выполняется (Twitch или Telegram)
             if (activeQuest && activeQuest.quest_type && activeQuest.quest_type.includes('twitch')) {
                 safeSwitchTab('twitch');
             } else {
@@ -2019,11 +1220,9 @@ async function main() {
             
             console.log("✅ Квест активен. Просто открываем вкладку прогресса.");
             
-            // Очищаем URL, чтобы при обновлении не срабатывали триггеры
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
         } 
-        // 2. Если активного квеста НЕТ, обрабатываем команды открытия (ПРАВИЛА 1 и 2)
         else {
             if (viewCommand) {
                  safeSwitchTab(viewCommand);
@@ -2031,13 +1230,11 @@ async function main() {
             else if (openCommand === 'roulette' || openCommand === 'twitch_only') {
                 const isOnline = userData.is_stream_online === true;
                 
-                // ПРАВИЛО 2: Стрим ЕСТЬ -> Twitch
                 if (isOnline) {
                     safeSwitchTab('twitch');
                     console.log("🌊 Стрим онлайн -> Открываем Twitch выбор");
                     setTimeout(() => openQuestSelectionModal(), 400);
                 } 
-                // ПРАВИЛО 1: Стрима НЕТ -> Telegram
                 else {
                     safeSwitchTab('telegram');
                     console.log("zzz Стрим оффлайн -> Открываем TG выбор");
@@ -2049,16 +1246,11 @@ async function main() {
             }
         }
 
-        // =========================================================================
-        // 👇👇👇 НОВАЯ ЛОГИКА: АВТО-ОТКРЫТИЕ КВЕСТА ИЗ ЧЕКПОИНТА 👇👇👇
-        // =========================================================================
         const openQuestId = urlParams.get('open_id');
         if (openQuestId) {
-            // Ищем кнопку с этим ID (в ручных квестах она имеет атрибут data-id)
             const targetBtn = document.querySelector(`.perform-quest-button[data-id="${openQuestId}"]`);
             
             if (targetBtn) {
-                // 1. Принудительно переключаем на вкладку Manual
                 const manualTab = document.getElementById('view-manual');
                 if (manualTab) {
                     manualTab.checked = true;
@@ -2067,17 +1259,14 @@ async function main() {
                     if (dom.sectionManual) dom.sectionManual.classList.remove('hidden');
                 }
                 
-                // 2. Находим родительский аккордеон и раскрываем его
                 const accordion = targetBtn.closest('details.quest-category-accordion');
                 if (accordion) accordion.setAttribute('open', '');
                 
-                // 3. Плавный скролл и неоновая подсветка нужной карточки
                 const targetCard = targetBtn.closest('.quest-card');
                 if (targetCard) {
                     setTimeout(() => {
                         targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         
-                        // Эффект временного фокуса на карточке
                         const origShadow = targetCard.style.boxShadow;
                         const origBorder = targetCard.style.borderColor;
                         
@@ -2089,17 +1278,14 @@ async function main() {
                             targetCard.style.borderColor = origBorder;
                             targetCard.style.boxShadow = origShadow;
                         }, 2500);
-                    }, 300); // Задержка для плавной отрисовки DOM
+                    }, 300);
                 }
                 
-                // 4. Очищаем URL, чтобы не сработало повторно при перезагрузке
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({}, document.title, cleanUrl);
             }
         }
-        // =========================================================================
 
-        // Скрываем лоадер
         if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
         dom.mainContent.style.opacity = 1;
 
@@ -2123,9 +1309,9 @@ function initPullToRefresh() {
     const triggerThreshold = 80;
 
     content.addEventListener('touchstart', (e) => {
-        if (content.scrollTop <= 0) {
-            startY = e.touches[0].clientY;
-            isPulling = true;
+        if (content.scrollTop <= 0) { 
+            startY = e.touches[0].clientY; 
+            isPulling = true; 
             content.style.transition = 'none'; 
             ptrContainer.style.transition = 'none'; 
             icon.style.transition = 'none';
@@ -2167,18 +1353,15 @@ function initPullToRefresh() {
         pulledDistance = 0;
     });
 }
-    // 2. Авто-проверка профиля при возврате
-    // --- СОБЫТИЯ ---
+
 function setupEventListeners() {
-    // === НОВОЕ: Включаем кнопку Назад и свайпы ===
     if (window.Telegram && Telegram.WebApp.BackButton) {
         Telegram.WebApp.BackButton.show();
-        Telegram.WebApp.BackButton.offClick(handleGlobalBack); // Очистка дублей
+        Telegram.WebApp.BackButton.offClick(handleGlobalBack);
         Telegram.WebApp.BackButton.onClick(handleGlobalBack);
     }
     setupGestures();
-    // ==============================================
-    // 1. Вибрация в футере
+
     const footer = document.querySelector('.app-footer');
     if (footer) {
         footer.addEventListener('click', (e) => {
@@ -2188,63 +1371,6 @@ function setupEventListeners() {
         });
     }
 
-   // Добавляем глобальный флаг прямо перед слушателем
-let isProfileChecking = false;
-
-document.addEventListener('visibilitychange', async () => {
-    // 🔥 ФИКС: Добавляем проверку на !isProfileChecking
-    if (document.visibilityState === 'visible' && activeProfileCheck && !isProfileChecking) {
-        console.log("🔄 Пользователь вернулся, проверяем:", activeProfileCheck);
-        const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
-        if (!userId) return;
-
-        // 🔥 СРАЗУ блокируем от повторных срабатываний
-        isProfileChecking = true; 
-
-        const taskKey = activeProfileCheck === 'surname' ? 'tg_surname' : 'tg_bio';
-        await new Promise(r => setTimeout(r, 1500));
-
-        try {
-            const data = await makeApiRequest('/api/v1/telegram/claim_daily', { 
-                user_id: userId, 
-                task_key: taskKey 
-            }, 'POST', true);
-            
-            if (data && data.success) {
-                const popup = document.getElementById('profilePopup');
-                if (popup) popup.remove();
-                activeProfileCheck = null;
-
-                injectRewardPopup(data.reward || 0, "Профиль подтвержден!", true);
-
-                if (telegramTasksCache) {
-                    const task = telegramTasksCache.find(t => t.task_key === taskKey);
-                    if (task) {
-                        task.is_completed = true;
-                        if (data.day) task.current_day = data.day;
-                    }
-                }
-
-                const container = dom.modalContainer;
-                if (container && telegramTasksCache) {
-                    renderTelegramGrid(telegramTasksCache, container);
-                }
-                
-                const stats = document.getElementById('ticketStats');
-                if(stats && data.reward) stats.innerText = parseInt(stats.innerText || '0') + data.reward;
-            } else {
-                console.log("Проверка не прошла, ждем следующей попытки...");
-            }
-        } catch (e) {
-            console.error("Ошибка авто-проверки:", e);
-        } finally {
-            // 🔥 Обязательно снимаем блокировку, чтобы можно было проверить еще раз, если юзер снова уйдет/вернется
-            isProfileChecking = false;
-        }
-    }
-});
-
-    // 3. Аккордеон
     document.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('quest-category-header')) {
             e.preventDefault();
@@ -2256,7 +1382,6 @@ document.addEventListener('visibilitychange', async () => {
         }
     });
 
-    // 4. Модальные окна (Prompts, Rewards, Info, Schedule)
     if(dom.promptCancel) dom.promptCancel.addEventListener('click', () => dom.promptOverlay.classList.add('hidden'));
     
     if(dom.promptConfirm) dom.promptConfirm.addEventListener('click', async () => {
@@ -2280,7 +1405,6 @@ document.addEventListener('visibilitychange', async () => {
         });
     }
 
-    // 5. Кнопка выбора квестов
     if (dom.questChooseBtn) {
         dom.questChooseBtn.addEventListener("click", () => {
             if (dom.questChooseContainer.classList.contains('hidden')) {
@@ -2291,16 +1415,13 @@ document.addEventListener('visibilitychange', async () => {
         });
     }
     
-    // 6. ГЛАВНЫЙ ОБРАБОТЧИК КНОПОК (ИСПРАВЛЕННЫЙ)
     document.body.addEventListener('click', async (event) => {
         const target = event.target.closest('button');
         if (!target) return;
 
-        // -- Рулетка --
         if (target.id === 'get-challenge-btn') {
             await startChallengeRoulette();
 
-        // -- Забрать награду (Челлендж) --
         } else if (target.id === 'claim-challenge-btn') {
             target.disabled = true;
             target.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
@@ -2338,7 +1459,6 @@ document.addEventListener('visibilitychange', async () => {
                 if(userData.challenge) delete userData.challenge.claimed_at;
             }
 
-        // -- Забрать награду (Квест) --
         } else if (target.classList.contains('claim-reward-button') && target.dataset.questId) {
             const questId = target.dataset.questId;
             target.disabled = true;
@@ -2362,7 +1482,6 @@ document.addEventListener('visibilitychange', async () => {
                 target.innerHTML = '<i class="fa-solid fa-gift"></i> <span>Забрать</span>';
             }
 
-        // -- Выполнить (Ручной квест) --
         } else if (target.classList.contains('perform-quest-button') && target.dataset.id) {
             currentQuestId = target.dataset.id;
             dom.promptTitle.textContent = target.dataset.title;
@@ -2370,30 +1489,25 @@ document.addEventListener('visibilitychange', async () => {
             dom.promptOverlay.classList.remove('hidden');
             dom.promptInput.focus();
 
-        // -- Завершить истекшие (Челлендж или Квест) --
         } else if (target.id === 'check-challenge-progress-btn' || target.id === 'complete-expired-quest-btn') {
             target.disabled = true;
             target.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             
-            // 1. ЗАПОМИНАЕМ ТЕКУЩУЮ ВКЛАДКУ
             const currentTab = document.querySelector('input[name="view"]:checked')?.value || 'twitch';
             localStorage.setItem('temp_return_tab', currentTab);
 
-            // 2. Чистим кэш
             localStorage.removeItem('quests_cache_v1');
 
             try {
                 if (target.id === 'check-challenge-progress-btn') await makeApiRequest("/api/v1/user/challenge/close_expired");
                 else await makeApiRequest('/api/v1/quests/close_expired');
                 
-                // 3. Перезагружаем страницу
                 window.location.reload();
             } catch (e) {
                 console.error(e);
                 window.location.reload();
             }
 
-        // -- Отмена квеста --
         } else if (target.id === 'cancel-quest-btn') {
             event.preventDefault();
             Telegram.WebApp.showConfirm("Вы уверены, что хотите отменить это задание? Отменять задания можно лишь раз в сутки.", async (ok) => {
@@ -2414,18 +1528,15 @@ document.addEventListener('visibilitychange', async () => {
                     }
                 }
             });
-        // 7. 🔥 ОТМЕНА КВЕСТА ЗА БИЛЕТЫ (НОВОЕ) 🔥
         } else if (target.id === 'paid-cancel-quest-btn') {
             event.preventDefault();
             
             const cost = parseInt(target.dataset.cost || 5);
             const currentTickets = parseInt(userData.tickets || 0);
 
-            // А. Если билетов не хватает — показываем красивое окно
             if (currentTickets < cost) {
                 if(Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                 
-                // 🔥 Исправленное красивое окно с иконкой
                 openUniversalModal('Не хватает билетов', `
                     <div style="text-align:center; padding: 20px; display: flex; flex-direction: column; align-items: center;">
                         <div style="font-size: 50px; margin-bottom: 15px; animation: shake 0.5s; color: #ff4757; filter: drop-shadow(0 0 10px rgba(255, 71, 87, 0.3));">
@@ -2449,16 +1560,13 @@ document.addEventListener('visibilitychange', async () => {
                 return;
             }
 
-            // Б. Если билетов хватает — подтверждаем и списываем
             Telegram.WebApp.showConfirm(`Списать ${cost} билетов за отмену задания?`, async (ok) => {
                 if (ok) {
                     target.disabled = true;
                     target.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                     
                     try {
-                        // Эндпоинт для платной отмены (нужно будет добавить на бэке)
                         await makeApiRequest('/api/v1/quests/cancel_paid'); 
-                        
                         Telegram.WebApp.showAlert(`Задание отменено! Списано ${cost} билетов.`);
                         
                         const currentTab = document.querySelector('input[name="view"]:checked')?.value || 'twitch';
@@ -2473,11 +1581,11 @@ document.addEventListener('visibilitychange', async () => {
                 }
             });
         }
-    }); // Конец обработчика кнопок
+    });
 }
-    
+
 // ==========================================
-// 8. ЗАПУСК
+// 6. ЗАПУСК
 // ==========================================
 
 async function checkMaintenance() {
@@ -2498,32 +1606,6 @@ async function checkMaintenance() {
     }
 }
 
-// Глобальные "экспорты" для совместимости (если что-то вызывается из HTML напрямую)
-window.updateTelegramStatus = async function() {
-    try {
-        const res = await makeApiRequest('/api/v1/telegram/status', {}, 'POST', true);
-        if (!res) return;
-        
-        // Тут можно было бы обновить UI для Sub/Vote, но мы рендерим всё в loadTelegramTasks
-        // Оставим эту функцию пустой или используем для обновления кнопки подписки
-        const subBtn = document.getElementById('btn-tg-sub');
-        if (subBtn) {
-            if (res.subscribed) subBtn.style.display = 'none';
-            else subBtn.style.display = 'block';
-        }
-    } catch (e) { /* Silent */ }
-};
-
-window.checkTelegramProfile = function(type) {
-    // Эта функция больше не используется (заменена на handleDailyClaim),
-    // но оставим заглушку чтобы не было ошибок
-    console.log("Use handleDailyClaim instead");
-};
-
-window.doTelegramVote = function() {
-    // Тоже заменено на handleTgTaskClick -> injectBoostPopup
-};
-
 window.claimMatrixReward = async function() {
     const btn = document.getElementById('matrix-claim-btn');
     if (btn) {
@@ -2532,21 +1614,17 @@ window.claimMatrixReward = async function() {
     }
 
     try {
-        // 🔥 ВАЖНО: Замени '/api/v1/matrix/claim' на правильный эндпоинт твоего бэкенда!
         const result = await makeApiRequest('/api/v1/matrix/claim', {}, 'POST');
 
         if (result && result.success) {
-            // Если есть вибрация — вибрируем
             if (window.Telegram && Telegram.WebApp.HapticFeedback) {
                 Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
             
-            // Чистим кэш, чтобы при перезагрузке трекер обновился
             localStorage.removeItem('quests_cache_v1');
             
             const rewardAmount = result.reward || 10;
             
-            // 🔥 Компактный и эстетичный текст 🔥
             const successText = `
                 <span style="font-size: 18px; line-height: 1.2;">Доверие оправдано!</span>
                 <span style="font-size: 14px; color: #FFD700; display: block; margin-top: 8px; font-weight: 700;">
@@ -2557,7 +1635,6 @@ window.claimMatrixReward = async function() {
                 </span>
             `;
             
-            // Вызываем попап
             injectRewardPopup(rewardAmount, successText, true);
 
         } else {
