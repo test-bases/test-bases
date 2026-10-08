@@ -384,6 +384,7 @@
 }
 
 /* 5. Кнопка (ложится ровно поверх нарисованной желтой капсулы) */
+/* 5. Кнопка (ложится ровно поверх нарисованной желтой капсулы) */
 #claim-challenge-btn {
     position: absolute !important;
     top: 63.5% !important;
@@ -391,13 +392,13 @@
     width: 34% !important;
     height: 24.5% !important;
     border: none !important;
-    background: transparent !important; /* Желтая капсула уже нарисована на фоне! */
+    background: transparent !important; /* Желтая капсула светится из фона */
     border-radius: 999px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
-    color: #140f02 !important;
+    color: #140f02 !important; /* Глубокий темный цвет текста как на макете */
     font-family: 'Inter', sans-serif !important;
     font-size: clamp(9px, 2.7vw, 11.5px) !important;
     font-weight: 900 !important;
@@ -421,7 +422,7 @@
     transform: scale(0.97);
 }
 
-/* Состояние «Забрано» перекрывает нарисованную желтую кнопку темной плашкой */
+/* Состояние «Забрано» закрывает желтую капсулу темным фоном */
 #claim-challenge-btn.claimed {
     background: #1c1c21 !important;
     color: #777777 !important;
@@ -1465,7 +1466,7 @@
             setInterval(update, 1000);
         }
 
-       ffunction renderChallenge(challengeData) {
+       function renderChallenge(challengeData) {
             if (!dom.challengeCardBox) return;
 
             startDailyResetTimer();
@@ -1527,10 +1528,10 @@
             try {
                 const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST');
                 if (res && res.status === 'success') {
-                    injectRewardPopup(res.reward_amount || 2, "Задание дня выполнено! Награда начислена.");
+                    injectRewardPopup(res.reward_amount || 1, "Задание дня выполнено! Награда начислена.");
                     if (dom.claimChallengeBtn) {
-                        dom.claimChallengeBtn.textContent = "ЗАБРАНО";
-                        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+                        dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
+                        dom.claimChallengeBtn.className = "claimed";
                     }
                 } else {
                     customAlert(res?.detail || res?.message || "Условия ещё не выполнены", "ВЫЗОВ");
