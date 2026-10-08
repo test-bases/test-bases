@@ -4444,6 +4444,142 @@ async def sync_steam_inventory(
     except Exception as e:
         bot_stats["system_error"] = str(e)
 
+    MSK_TZ = timezone(timedelta(hours=3))
+
+async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncClient) -> dict:
+    """
+    1. Ищет активный квест на сегодня (по МСК).
+    2. Если нет — создает уникальный из challenge_templates.
+    3. Подтягивает актуальный дневной прогресс напрямую из таблицы users.
+    """
+    now_msk = datetime.now(MSK_TZ)
+    today_date = now_msk.strftime('%Y-%m-%d')
+
+    # 1. Проверяем, назначен ли уже квест на сегодня
+    res = await supabase.get(
+        "/user_daily_challenges",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "challenge_date": f"eq.{today_date}",
+            "limit": 1
+        }
+    )
+    user_challenge = res.json()[0] if res.is_success and res.json() else None
+
+    # 2. Если квеста нет — выбираем случайный активный шаблон
+    if not user_challenge:
+        tpl_res = await supabase.get(
+            "/challenge_templates",
+            params={"is_active": "eq.true"}
+        )
+        templates = tpl_res.json() if tpl_res.is_success and tpl_res.json() else []
+
+        if not templates:
+            logging.warning("[CHALLENGE] В challenge_templates нет активных шаблонов!")
+            return None
+
+        # Выбираем случайный шаблон
+        chosen_tpl = random.choice(templates)
+
+        # Парсим reward_config (на случай, если из базы пришла строка)
+        raw_config = chosen_tpl.get("reward_config", {})
+        if isinstance(raw_config, str):
+            try:
+                reward_config = json.loads(raw_config)
+            except Exception:
+                reward_config = {}
+        else:
+            reward_config = raw_config
+
+        # Определяем базовую награду (из tiered конфига или дефолт)
+        reward_amount = 2.0
+        if reward_config.get("mode") == "tiered":
+            tiers = reward_config.get("tiers", [])
+            if tiers:
+                first_tier_rewards = tiers[0].get("rewards", {})
+                reward_amount = float(first_tier_rewards.get("tickets") or first_tier_rewards.get("coins") or 2)
+        elif chosen_tpl.get("target_value"):
+            reward_amount = 2.0
+
+        new_challenge_payload = {
+            "telegram_id": telegram_id,
+            "template_id": chosen_tpl.get("id"),
+            "challenge_date": today_date,
+            "task_type": chosen_tpl.get("task_type"),
+            "title": chosen_tpl.get("title"),
+            "description": chosen_tpl.get("description"),
+            "icon": chosen_tpl.get("icon") or "fa-solid fa-bolt",
+            "target_value": chosen_tpl.get("target_value", 10),
+            "current_value": 0,
+            "reward_type": chosen_tpl.get("reward_type", "tickets"),
+            "reward_amount": reward_amount,
+            "reward_config": reward_config,
+            "is_completed": False
+        }
+
+        insert_res = await supabase.post(
+            "/user_daily_challenges",
+            json=new_challenge_payload,
+            headers={"Prefer": "return=representation"}
+        )
+
+        if insert_res.is_success and insert_res.json():
+            user_challenge = insert_res.json()[0]
+        elif insert_res.status_code == 409:
+            # Страховка от гонки потоков при параллельных запросах
+            re_get = await supabase.get(
+                "/user_daily_challenges",
+                params={"telegram_id": f"eq.{telegram_id}", "challenge_date": f"eq.{today_date}", "limit": 1}
+            )
+            user_challenge = re_get.json()[0] if re_get.is_success and re_get.json() else None
+        else:
+            logging.error(f"[CHALLENGE] Ошибка создания задания: {insert_res.text}")
+            return None
+
+    if not user_challenge:
+        return None
+
+    # 3. Синхронизируем текущий прогресс из таблицы users
+    task_type = user_challenge.get("task_type")
+    
+    u_res = await supabase.get(
+        "/users",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "select": "telegram_daily_message_count,daily_message_count,daily_uptime_minutes"
+        }
+    )
+    user_stats = u_res.json()[0] if u_res.is_success and u_res.json() else {}
+
+    real_current = 0
+    if task_type in ["tg_messages", "telegram_messages"]:
+        real_current = int(user_stats.get("telegram_daily_message_count") or 0)
+    elif task_type in ["twitch_messages", "stream_chat"]:
+        real_current = int(user_stats.get("daily_message_count") or 0)
+    elif task_type in ["twitch_uptime", "stream_uptime"]:
+        real_current = int(user_stats.get("daily_uptime_minutes") or 0)
+    else:
+        # Для других типов оставляем текущее накопленное значение
+        real_current = user_challenge.get("current_value", 0)
+
+    target_val = int(user_challenge.get("target_value", 1))
+    is_completed = real_current >= target_val
+
+    # 4. Обновляем в базе, если значения изменились
+    if real_current != user_challenge.get("current_value") or is_completed != user_challenge.get("is_completed"):
+        await supabase.patch(
+            "/user_daily_challenges",
+            params={"id": f"eq.{user_challenge['id']}"},
+            json={
+                "current_value": real_current,
+                "is_completed": is_completed
+            }
+        )
+        user_challenge["current_value"] = real_current
+        user_challenge["is_completed"] = is_completed
+
+    return user_challenge
+
 
 # =======================================================================
     # 🚀 СУПЕР-БЫСТРАЯ ЗАГРУЗКА БЕЗ ОГРАНИЧЕНИЙ ПО ЦЕНЕ (ОТ 0 КОПЕЕК) 🚀
@@ -4694,14 +4830,16 @@ async def get_bootstrap_data(
                 "trust_score": 30,
                 "last_grind_at": None,
                 "last_free_ticket_claimed_at": None,
-                "streak_days": 1
+                "streak_days": 1,
+                "challenge": None
             },
+            "challenge": None,
             "menu": menu_content,
             "quests": [],
             "weekly_goals": {"goals": [], "system_enabled": menu_content.get("weekly_goals_enabled", False)},
             "cauldron": cauldron_data,
             "auctions": auctions_list, 
-            "raffles": raffles_list,                 
+            "raffles": raffles_list,                  
             "my_active_cases": [],
             "unread_notifications": 0,
             "gift_available": False,
@@ -4757,7 +4895,7 @@ async def get_bootstrap_data(
         auctions_task = supabase.post("/rpc/get_public_auctions_for_user", json={"p_user_id": telegram_id})
         matrix_task = supabase.get("/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"})
         
-       # 👇 ДОБАВЛЯЕМ ПОЛУЧЕНИЕ КУПОНОВ
+        # 👇 ДОБАВЛЯЕМ ПОЛУЧЕНИЕ КУПОНОВ
         coupons_task = supabase.get("/cs_codes", params={
             "or": f"(activated_by_ids.cs.{{{telegram_id}}},assigned_to.eq.{telegram_id})",
             "is_active": "eq.true",
@@ -4835,30 +4973,6 @@ async def get_bootstrap_data(
                 user_data["trust_level"] = "gray"
                 user_data["trust_score"] = 30
 
-        raw_challenge = rpc_data.get('challenge')
-        if raw_challenge:
-            status = raw_challenge.get('status')
-            claimed_at_str = raw_challenge.get('claimed_at')
-            
-            if status == 'expired':
-                user_data['challenge'] = None
-            elif status == 'claimed' and claimed_at_str:
-                try:
-                    claimed_at = datetime.fromisoformat(claimed_at_str.replace('Z', '+00:00'))
-                    cooldown_end = claimed_at + timedelta(hours=12)
-                    
-                    if datetime.now(timezone.utc) < cooldown_end:
-                        user_data['challenge'] = raw_challenge
-                        user_data['challenge']['cooldown_until'] = cooldown_end.isoformat()
-                    else:
-                        user_data['challenge'] = None
-                except:
-                    user_data['challenge'] = None
-            else:
-                user_data['challenge'] = raw_challenge
-        else:
-            user_data['challenge'] = None
-
         trade_status_map = {
             "pending": "creating",
             "active": "confirming",
@@ -4883,6 +4997,15 @@ async def get_bootstrap_data(
             **db_data.get('user_extra', {}),
             **db_data.get('user_settings', {}) 
         })
+
+        # 🔥 НОВЫЙ ДНЕВНОЙ ПЕРСОНАЛЬНЫЙ ЧЕЛЛЕНДЖ (С ИКОНКАМИ И РАНДОМОМ) 🔥
+        # Вызываем строго ПОСЛЕ user_data.update, чтобы ни одно поле базы его не затерло!
+        try:
+            daily_challenge = await get_or_sync_daily_challenge(telegram_id, supabase)
+            user_data['challenge'] = daily_challenge
+        except Exception as chal_err:
+            logging.error(f"[BOOTSTRAP] Ошибка загрузки daily_challenge для {telegram_id}: {chal_err}", exc_info=True)
+            user_data['challenge'] = None
 
         user_data['equipped_title'] = None
         user_data['equipped_glow'] = None
@@ -4946,12 +5069,13 @@ async def get_bootstrap_data(
 
         return {
             "user": user_data,
+            "challenge": user_data.get('challenge'), # 👈 Добавлено для прямого доступа на фронтенде
             "menu": menu_content,
             "quests": quests_list,
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
             "auctions": auctions_list, 
-            "raffles": db_data.get('raffles', []),                 
+            "raffles": db_data.get('raffles', []),                  
             "my_active_cases": my_active_cases,
             "unread_notifications": unread_count,
             "gift_available": gift_available,
@@ -20809,6 +20933,91 @@ async def buy_checkpoint_exp(req: BuyExpRequest, supabase: httpx.AsyncClient = D
         raise HTTPException(status_code=500, detail="Ошибка выдачи EXP. Обратитесь к администратору.")
 
     return {"status": "success", "message": f"Прокачано до {target_level} уровня"}
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+class ClaimDailyChallengeRequest(BaseModel):
+    initData: str
+    challenge_id: int
+
+@app.post("/api/v1/daily_challenge/claim")
+async def claim_daily_challenge_endpoint(
+    req: ClaimDailyChallengeRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Авторизация по initData
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Не авторизован")
+    telegram_id = user_info["id"]
+
+    # 2. Достаем квест пользователя
+    c_res = await supabase.get(
+        "/user_daily_challenges",
+        params={"id": f"eq.{req.challenge_id}", "telegram_id": f"eq.{telegram_id}"}
+    )
+    if not c_res.is_success or not c_res.json():
+        raise HTTPException(status_code=404, detail="Задание не найдено")
+
+    challenge = c_res.json()[0]
+
+    if challenge.get("claimed_at"):
+        raise HTTPException(status_code=400, detail="Награда уже получена")
+
+    if not challenge.get("is_completed") and (challenge.get("current_value", 0) < challenge.get("target_value", 1)):
+        raise HTTPException(status_code=400, detail="Задание еще не выполнено")
+
+    # 3. Атомарно бронируем клейм (защита от мульти-клика)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    patch_claim = await supabase.patch(
+        "/user_daily_challenges",
+        params={"id": f"eq.{req.challenge_id}", "claimed_at": "is.null"},
+        json={"claimed_at": now_iso},
+        headers={"Prefer": "return=representation"}
+    )
+    if not patch_claim.is_success or not patch_claim.json():
+        raise HTTPException(status_code=400, detail="Награда уже обрабатывается или получена")
+
+    # 4. Начисляем награду в users
+    reward_type = challenge.get("reward_type", "tickets")
+    reward_amount = float(challenge.get("reward_amount") or 2.0)
+
+    u_res = await supabase.get(
+        "/users",
+        params={"telegram_id": f"eq.{telegram_id}", "select": "tickets,coins,completed_challenges_count"}
+    )
+    user_data = u_res.json()[0] if u_res.is_success and u_res.json() else {}
+
+    update_payload = {
+        "completed_challenges_count": int(user_data.get("completed_challenges_count") or 0) + 1,
+        "last_challenge_completed_at": now_iso
+    }
+
+    if reward_type == "coins":
+        cur_coins = float(user_data.get("coins") or 0.0)
+        update_payload["coins"] = cur_coins + reward_amount
+    else:
+        # По умолчанию выдаем билеты
+        cur_tickets = float(user_data.get("tickets") or 0.0)
+        update_payload["tickets"] = cur_tickets + reward_amount
+
+    await supabase.patch(
+        "/users",
+        params={"telegram_id": f"eq.{telegram_id}"},
+        json=update_payload
+    )
+
+    return {
+        "status": "success",
+        "reward_type": reward_type,
+        "reward_amount": reward_amount,
+        "message": "Награда успешно начислена!"
+    }
+    
+
     
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
