@@ -2,23 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Премиальная Матрица CS2</title>
+    <title>Задания</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <!-- Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
+    <script>
+    // Предварительная загрузка данных, пока грузится основной тяжелый JS
+    window.bootstrapPromise = fetch('/api/v1/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
+    }).then(r => r.json()).catch(e => null);
+    
+    // Заглушка Telegram, если скрипт не прогрузился
+    if (typeof Telegram === 'undefined') {
+      window.Telegram = {
+        WebApp: {
+          initData: '',
+          initDataUnsafe: {},
+          ready: function() { console.log('Telegram Mock Ready'); },
+          expand: function() { console.log('Telegram Mock Expand'); },
+          close: function() {},
+          showAlert: function(msg) { alert(msg); },
+          showConfirm: function(msg, cb) { if(cb) cb(confirm(msg)); },
+          openLink: function(url) { window.open(url, '_blank'); },
+          openTelegramLink: function(url) { window.open(url, '_blank'); },
+          HapticFeedback: { notificationOccurred: function() {}, impactOccurred: function() {} }
+        }
+      };
+    }
+  </script>
+
     <!-- Шрифты и Иконки -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="/quests.css?v=2" />
+  
+  <!-- 🔥 ПОДКЛЮЧАЕМ ИДЕАЛЬНЫЙ ВЕРХНИЙ БАР И МЕНЮ 🔥 -->
+  <script src="/top_nav.js" defer></script>
 
     <style>
         /* ==========================================
            1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС (ИДЕАЛЬНЫЕ ГРАНИЦЫ)
            ========================================== */
         :root {
+            /* --- БАЗОВЫЕ ПЕРЕМЕННЫЕ ИЗ СТАРОГО КОДА --- */
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --text-color-muted: #b0b0b0;
+            --quest-icon-color: #ffcc00;
+            --action-color: #007aff;
+            --disabled-color: #666;
+            --surface-glass-bg: rgba(28, 28, 30, 0.75);
+            --danger-color: #ff3b30;
+
+            /* --- ЦВЕТА ПО УМОЛЧАНИЮ (Зеленые) --- */
+            --primary-color: #34c759;
+            --primary-gradient: linear-gradient(90deg, #34c759, #2dbf55);
+            
+            /* Фон страницы (по умолчанию зеленый оттенок снизу) */
+            --bg-gradient: radial-gradient(ellipse at 50% 100%, #041a07, #000000);
+            
+            /* Фон плашки билетов (по умолчанию зеленый полупрозрачный) */
+            --tickets-bg: rgba(52, 199, 89, 0.15);
+            
+            /* Цвета платформ */
+            --twitch-color: #9146ff;
+            --telegram-color: #0088CC;
+
+
+            /* --- ПЕРЕМЕННЫЕ ИЗ НОВОГО КОДА --- */
             --bg-deep: #09090b;
             --card-bg: rgba(12, 12, 14, 0.75); /* Темный блюр как на скрине */
             --card-border: rgba(255, 255, 255, 0.15); /* Рамки как на скрине */
@@ -42,19 +100,48 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* === ЖЕЛЕЗОБЕТОННЫЙ ФИКС СКРОЛЛА И ШТОРКИ ИЗ СТАРОГО КОДА === */
         html, body {
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%;
-            background-color: var(--bg-deep);
-            font-family: 'Inter', sans-serif; 
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%; /* Используем 100%, чтобы не баговало с клавиатурой */
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0;
+            overflow: hidden; /* Жестко блокируем скролл самой страницы (резинку) */
+            
+            background-color: var(--bg-deep); /* Использована переменная из нового кода */
+            background-image: var(--bg-gradient);
+            background-size: cover;
+            background-repeat: no-repeat;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Совмещено */
             color: var(--text-main);
-            overflow-x: hidden;
+            transition: background-image 0.5s ease;
             -webkit-font-smoothing: antialiased;
+            
+            /* Делаем body flex-контейнером */
+            display: flex;
+            flex-direction: column;
         }
 
         ::-webkit-scrollbar { display: none; }
+
+        /* Если #app-container есть в HTML, он должен вести себя так же, как body. 
+           Если его нет, этот код просто ничего не сделает (не помешает). */
+        #app-container {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding-top: 0px !important; /* Убрали двойной отступ */
+            box-sizing: border-box !important;
+            
+            /* Делаем контейнер гибким строго по высоте экрана */
+            height: var(--tg-viewport-height, 100vh) !important;
+        }
+
 
         /* ==========================================
            2. МОБИЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16)
@@ -92,15 +179,25 @@
         }
 
         .main-content {
-            padding: 4px 10px 100px 10px; /* Прижали к верху */
+            flex: 1; /* Растягивает блок на всю свободную высоту экрана */
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            opacity: 0; 
-            transition: opacity 0.4s ease;
+            min-height: 0; /* Магическое свойство: разблокирует скролл внутри flex-блока */
+            overflow-y: auto !important; 
+            -webkit-overflow-scrolling: touch; /* Плавный скролл на iPhone */
+            box-sizing: border-box;
+            
+            /* Отступ теперь контролируется шапкой из top_nav */
+            padding-top: 5px !important;
+            padding-left: 15px;
+            padding-right: 15px;
+            padding-bottom: 120px; /* Отступ для нижнего меню */
+            
             position: relative;
             z-index: 10;
+            opacity: 0; 
+            transition: opacity 0.4s ease-in-out;
         }
+        .main-content.visible { opacity: 1; }
 
         /* ==========================================
            3. ВЕРХНИЙ БАР (МАТРИЦА - ТОЧНАЯ КОПИЯ СКРИНШОТА)
@@ -321,7 +418,8 @@
 
         .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; }
-        .close-btn { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 0;}
+        /* Конфликт классов с модалками из quests.css. Явно указываем для конструктора */
+        .cs-modal-card.large-modal .close-btn { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 0; width: auto;}
 
         .constructor-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
 
@@ -360,35 +458,1388 @@
         .sum-val { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
         .cs-gold-btn { background: var(--gold-grad); border: none; color: var(--text-dark); border-radius: 8px; padding: 10px 16px; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; text-transform: uppercase;}
 
-        .hidden { display: none !important; }
 
-        /* Лоадер */
-        .loader-backdrop { position: fixed; inset: 0; background: var(--bg-deep); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;}
-        .cs-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--gold-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
-        .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
-        .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+        /* --- СТИЛИ ИЗ СТАРОГО КОДА --- */
+
+        /* ПРОФИЛЬ (ВЕРХНЯЯ ЧАСТЬ) */
+        .user-profile { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            margin-top: 0; /* Убрали старый отступ, так как теперь отступает main-content */
+            position: relative; 
+        }
+        .user-info { display: flex; flex-direction: column; }.user-name { 
+            font-size: 12px;      /* Уменьшили с 16px до 13px */
+            font-weight: 800;     /* Сделали жирнее, чтобы читалось */
+            margin-bottom: 4px; 
+            
+            /* Гарантия, что длинный ник не сломает верстку */
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            max-width: 220px;     /* Ограничение ширины */
+        }
+        .stats-block { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+        .stats-item { display: flex; align-items: center; justify-content: flex-end; }
+        .stats-icon { width: 20px; height: 20px; background-color: #ffffff; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 6px; }
+        .stats-icon i { color: #000000; font-size: 11px; }
+        .stats-text { font-size: 12px; font-weight: 500; }
+
+        .tickets-item { 
+            background: var(--tickets-bg); /* Теперь динамический фон */
+            border-radius: 12px; 
+            padding: 6px 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-end; 
+            gap: 6px; 
+            position: relative;
+            z-index: 1;
+            transition: background 0.3s ease;
+        }
+        .tickets-item .stats-text { color: var(--primary-color); font-weight: 700; font-size: 14px; }
+        .stats-icon-star { background: var(--primary-color); margin-right: 0; transition: background 0.3s ease; }
+        .stats-icon-star i { color: #fff; }
+        .info-question-icon { font-size: 16px; color: #ffc700; cursor: pointer; margin-left: 4px; }
+
+        /* ОБЩИЕ СТИЛИ КАРТОЧЕК */
+        .page-title { font-size: 18px; font-weight: 600; margin: 0 0 15px 0; text-align: center; }
+
+        .quest-card { 
+            background-color: var(--surface-glass-bg); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            border-radius: 10px; 
+            padding: 10px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .quest-icon { font-size: 20px; color: var(--quest-icon-color); margin-bottom: 8px; text-shadow: 0 0 12px var(--quest-icon-color); }
+        .quest-image-icon { width: 32px; height: 32px; border-radius: 6px; margin: 0 auto 8px; object-fit: cover; }
+        .quest-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin: 0 0 5px 0; flex-grow: 1; text-align: center; }
+        .quest-subtitle { color: var(--text-color-muted); font-size: 11px; margin-bottom: 8px; text-align: center; }
+
+        /* Прогресс бар */
+        .progress-bar { width: 100%; height: 30px; background-color: #3a3a3c; border-radius: 15px; overflow: hidden; position: relative; margin-top: 10px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #34c759, #2dbf55); border-radius: 15px; transition: width 0.5s ease-in-out; }
+        .progress-content { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 0 8px; box-sizing: border-box; z-index: 1; }
+        .progress-text { font-weight: 600; font-size: 11px; color: var(--text-color); }
+
+        /* Кнопки */
+        .perform-quest-button { width: 100%; background-color: var(--action-color); border: none; padding: 8px; border-radius: 6px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: auto; }
+        .claim-reward-button { width: 100%; background: linear-gradient(90deg, #ffdd40, #ffc700); color: #1c1c1e; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; padding: 10px; margin-top: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 0 12px rgba(255, 204, 0, 0.5); }
+        .claim-reward-button:disabled { background: var(--disabled-color); color: var(--text-color-muted); box-shadow: none; cursor: not-allowed; }
+        .cancel-quest-button { width: 100%; background-color: #555; border: none; padding: 8px; border-radius: 6px; color: white; font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 6px; }
+        .cancel-quest-button:disabled { background-color: #333; color: #888; cursor: not-allowed;}
+
+        /* ЧЕЛЛЕНДЖ КАРТОЧКА ИЗ СТАРЫХ СТИЛЕЙ (УЖЕ ЗАМЕНЕНА НА НОВУЮ В HTML, ОСТАВЛЯЮ ДЛЯ СОВМЕСТИМОСТИ JS) */
+        .challenge-timer { font-size: 11px; font-weight: 500; color: var(--text-color-muted); margin-top: 6px; text-align: center; margin-bottom: 8px; min-width: 75px; }
+
+        /* РУЛЕТКА ЗАДАНИЙ */
+        .quest-choose-btn-roulette { 
+            display: block; width: 100%; padding: 12px; margin: 15px 0; font-size: 16px; font-weight: 700; border: none; border-radius: 10px; color: #1c1c1e; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 0 12px rgba(255, 204, 0, 0.5); box-sizing: border-box; 
+        }
+        .quest-choose-btn-roulette.twitch-theme { background: linear-gradient(90deg, #a97cff, var(--twitch-color)); color: white; box-shadow: 0 0 12px rgba(145, 70, 255, 0.6); }
+        .quest-choose-btn-roulette.telegram-theme { background: linear-gradient(90deg, #24a1de, var(--telegram-color)); color: white; box-shadow: 0 0 12px rgba(0, 136, 204, 0.6); }
+
+        .quest-choose-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 25px; margin-bottom: 10px; perspective: 1000px; }
+        .quest-option-card {
+            min-width: 0; height: 220px; background: var(--surface-glass-bg); border-radius: 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transform: rotateY(90deg); opacity: 0; transition: transform 0.6s ease, opacity 0.6s ease; text-align: center; padding: 10px; box-sizing: border-box; gap: 8px;
+        }
+        .quest-option-card.show { transform: rotateY(0); opacity: 1; }
+        .quest-option-card.chosen { animation: questChosen 0.6s forwards; }
+        .quest-option-card.fade-out { animation: fadeOut 0.5s forwards; }
+
+        @keyframes questChosen { to { transform: scale(0.1) translateY(-100px); opacity: 0; } }
+        @keyframes fadeOut { to { opacity: 0; transform: scale(0.9); } }
+
+        .event-mode-reward-wrapper {
+            width: 100%; box-sizing: border-box; text-align: left; margin-top: auto; padding: 8px; border-radius: 8px; background-color: rgba(40, 32, 18, 0.7); border: 1px solid #FFC837; box-shadow: 0 0 10px rgba(255, 200, 55, 0.3); display: flex; align-items: center; gap: 8px;
+        }
+        .event-mode-reward-wrapper .icon { font-size: 13px; color: #FFC837; flex-shrink: 0; }
+        .event-mode-reward-wrapper .text-content { display: flex; flex-direction: column; }
+        .event-mode-reward-wrapper .title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #FFD700; }
+        .event-mode-reward-wrapper .subtitle { font-size: 9px; font-weight: 500; color: #EAEAEA; line-height: 1.2; }
+
+        /* МОДАЛЬНЫЕ ОКНА И ЛОАДЕР (СТАРЫЕ) */
+        .hidden { display: none !important; }
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .spinner { width: 36px; height: 36px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .prompt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .prompt-modal { background-color: var(--surface-glass-bg); border: 1px solid rgba(58, 58, 60, 0.6); padding: 15px; border-radius: 12px; width: 85%; max-width: 300px; text-align: center; }
+        .prompt-actions { display:flex; gap: 10px; margin-top: 15px; }
+        .prompt-actions > * { flex:1; padding: 10px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .prompt-actions .confirm-btn { background-color: var(--primary-color); color: white; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .prompt-actions .cancel-btn { background-color: #555; color: white; }
+
+        /* ФУТЕР */
+        .app-footer {
+            display: flex; justify-content: space-around; align-items: center;
+            background-color: rgba(28, 28, 30, 0.85); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
+            padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            box-sizing: border-box; height: auto;
+        }
+
+        .footer-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+            color: #8E8E93; text-decoration: none; flex: 1; cursor: pointer; background: transparent; border: none; padding: 0; margin: 0;
+            font-size: 10px; line-height: 1; font-weight: 500; transition: all 0.2s ease;
+        }
+
+        .footer-item .icon-wrapper {
+            display: flex; justify-content: center; align-items: center; width: 24px; height: 24px; font-size: 22px; position: relative; transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .footer-item.active { color: #FFFFFF; }
+        .footer-item.active span { font-weight: 600; }
+        .footer-item.active .icon-wrapper { color: #34c759; transform: translateY(-2px); text-shadow: 0 0 12px rgba(52, 199, 89, 0.6); }
+        .footer-item.active .icon-wrapper::before {
+            content: ''; position: absolute; top: -8px; width: 20px; height: 2px; background-color: #34c759; border-radius: 2px; box-shadow: 0 0 5px rgba(52, 199, 89, 0.8);
+        }
+
+        /* АККОРДЕОН И СПИСКИ РУЧНЫХ КВЕСТОВ */
+        .quest-category-accordion { width: 100%; grid-column: 1 / -1; }
+        .quest-category-header { cursor: pointer; font-size: 16px; font-weight: 600; padding: 12px; background-color: rgba(44, 44, 46, 0.85); border-radius: 8px; list-style: none; margin-bottom: 10px; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .quest-category-header::-webkit-details-marker { display: none; }
+        .quest-category-header::before { content: '▶'; display: inline-block; margin-right: 8px; font-size: 12px; transition: transform 0.2s; }
+        .quest-category-accordion[open] > .quest-category-header::before { transform: rotate(90deg); }
+        .quest-category-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 5px; }
+
+        .manual-quest-actions { margin-top: auto; display: flex; gap: 6px; align-items: center; }
+        .manual-quest-actions .action-link-btn { background-color: #5856d6; padding: 5px 8px; font-size: 11px; border-radius: 5px; color: white; text-decoration: none; font-weight: 500; flex-shrink: 0; }
+        .manual-quest-actions .perform-quest-button { flex-grow: 1; margin-top: 0; padding: 6px; font-size: 12px; }
+
+        /* ДОП. ЭЛЕМЕНТЫ */
+        .active-quest-indicator { 
+            position: absolute; 
+            top: 8px; 
+            right: 10px; 
+            font-size: 10px; 
+            font-weight: 600; 
+            padding: 3px 7px; 
+            border-radius: 7px;
+            
+            /* ЦВЕТА (ВСЕГДА БЕЛЫЕ) */
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Легкая рамочка для красоты */
+        }
+        .twitch-update-notice { font-size: 10px; color: var(--text-color-muted); margin-top: 8px; padding: 4px; background-color: rgba(0,0,0,0.2); border-radius: 4px; }
+
+        /* PULL TO REFRESH */
+        #pull-to-refresh {
+            position: fixed; top: -80px; left: 0; width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; z-index: 2000; background: transparent; pointer-events: none; padding: 0; will-change: transform;
+        }
+        #pull-to-refresh i { font-size: 24px; color: #FFD700; opacity: 1; transform: scale(1); transition: opacity 0.2s, transform 0.2s; text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+        .no-scroll { overflow: hidden !important; touch-action: none; }
+
+        /* Статус стрима */
+        .stream-status-badge { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .stream-status-badge.online { background-color: #e91e63; color: white; border: 1px solid rgba(255,255,255,0.2); animation: pulse-live 2s infinite; }
+        .stream-status-badge.offline { background-color: rgba(0, 0, 0, 0.4); color: #aaa; border: 1px solid rgba(255,255,255,0.1); }
+        @keyframes pulse-live { 0% { box-shadow: 0 0 0 0 rgba(233, 30, 99, 0.4); } 70% { box-shadow: 0 0 0 5px rgba(233, 30, 99, 0); } 100% { box-shadow: 0 0 0 0 rgba(233, 30, 99, 0); } }
+
+        /* Истекшие задания */
+        .quest-card.expired .expired-overlay { display: flex; }
+        .quest-card.expired .quest-content-wrapper { filter: blur(3px); opacity: 0.5; pointer-events: none; }
+        .expired-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 10px; z-index: 2; background-color: rgba(0,0,0,0.5); }
+        .expired-overlay-text { font-size: 16px; font-weight: bold; color: var(--danger-color); text-shadow: 0 0 8px black; margin-bottom: 10px; }
+
+        /* Фиксы для модалок (ширина) */
+        .prompt-modal { width: 90% !important; max-width: 350px !important; margin: 0 auto; }
+        button, .popup-btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+        /* Адаптация для ПК */
+        @media (min-width: 768px) {
+            .main-content {
+            height: 100%; /* Убрали vh, теперь четко по родителю */
+            overflow-y: auto !important; 
+            -webkit-overflow-scrolling: touch; 
+            position: relative;
+            z-index: 10;
+            display: block;
+            box-sizing: border-box;
+            padding: 0 15px 120px; /* Отступы по бокам и снизу для футера */
+            opacity: 0; 
+            transition: opacity 0.4s ease-in-out;
+        }
+            .main-content > div, .main-content > section, .user-profile { max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; width: 100%; }
+        }
+
+
+        /* === СЛОЖНЫЙ ПЕРЕКЛЮЧАТЕЛЬ (3 КНОПКИ - 2 РЯДА) === */
+        .complex-switch-wrapper {
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .complex-switch-wrapper input { display: none; }
+
+        .switch-row {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 38px;
+            background: rgba(118, 118, 128, 0.12);
+            border-radius: 10px;
+            padding: 3px;
+            box-sizing: border-box;
+        }
+
+        .switch-label {
+            flex: 1;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #8e8e93; 
+            cursor: pointer;
+            transition: color 0.3s ease;
+            gap: 6px;
+            text-transform: uppercase;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .switch-label i { font-size: 14px; transition: transform 0.2s ease; }
+
+        /* === СЛАЙДЕРЫ (ФОН) === */
+        .slider-bg {
+            position: absolute;
+            top: 3px;
+            bottom: 3px;
+            background: #fff; /* Белый фон у всех слайдеров */
+            border-radius: 8px;
+            z-index: 1;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            opacity: 0; 
+            transform: scale(0.95); /* Чуть меньше, когда скрыт */
+            pointer-events: none;
+        }
+
+        /* Верхний слайдер (50%) */
+        .slider-top { left: 3px; width: calc(50% - 3px); }
+
+        /* Нижний слайдер (100%) */
+        .slider-bottom { left: 3px; width: calc(100% - 6px); }
+
+
+        /* === ЛОГИКА АКТИВАЦИИ === */
+
+        /* 1. TWITCH */
+        #view-twitch:checked ~ .switch-row-top .slider-top {
+            opacity: 1;
+            transform: translateX(0%) scale(1);
+        }
+        #view-twitch:checked ~ .switch-row-top label[for="view-twitch"] {
+            color: var(--twitch-color, #9146ff);
+        }
+
+        /* 2. TELEGRAM */
+        #view-telegram:checked ~ .switch-row-top .slider-top {
+            opacity: 1;
+            transform: translateX(100%) scale(1);
+        }
+        #view-telegram:checked ~ .switch-row-top label[for="view-telegram"] {
+            color: var(--telegram-color, #24a1de);
+        }
+
+        /* 3. ЗАДАНИЯ (Зеленый стиль) */
+        #view-manual:checked ~ .switch-row-bottom .slider-bottom {
+            opacity: 1;
+            transform: scale(1);
+        }
+        /* Текст становится зеленым (как у остальных цветным) */
+        #view-manual:checked ~ .switch-row-bottom label[for="view-manual"] {
+            color: #34c759; 
+        }
+        /* Иконка увеличивается */
+        #view-manual:checked ~ .switch-row-bottom label[for="view-manual"] i {
+            transform: scale(1.15);
+        }
+
+        /* Эффект увеличения иконок для верхнего ряда */
+        #view-twitch:checked ~ .switch-row-top label[for="view-twitch"] i,
+        #view-telegram:checked ~ .switch-row-top label[for="view-telegram"] i {
+            transform: scale(1.15);
+        }
+
+
+        /* === ТЕМЫ СТРАНИЦЫ (ФОН И ЭЛЕМЕНТЫ) === */
+
+        /* Twitch Theme */
+        body[data-theme="twitch"] {
+            --primary-color: #9146ff;
+            --primary-gradient: linear-gradient(90deg, #9146ff, #772ce8);
+            --bg-gradient: radial-gradient(ellipse at 50% 100%, #1a0b2e, #000000);
+            --tickets-bg: rgba(145, 70, 255, 0.15);
+        }
+
+        /* Telegram Theme */
+        body[data-theme="telegram"] {
+            --primary-color: #24a1de;
+            --primary-gradient: linear-gradient(90deg, #2AABEE, #229ED9);
+            --bg-gradient: radial-gradient(ellipse at 50% 100%, #0b1a2e, #000000);
+            --tickets-bg: rgba(36, 161, 222, 0.15);
+        }
+
+        /* Manual Theme (Зеленая - Классика) */
+        body[data-theme="manual"] {
+            --primary-color: #34c759;
+            --primary-gradient: linear-gradient(90deg, #34c759, #2dbf55);
+            --bg-gradient: radial-gradient(ellipse at 50% 100%, #041a07, #000000);
+            --tickets-bg: rgba(52, 199, 89, 0.15);
+        }
+
+        .quest-choose-btn-roulette {
+            transition: background 0.3s, box-shadow 0.3s, color 0.3s;
+        }
+
+        /* === Кнопка Промокодов (МИКРО-ВЕРСИЯ) === */
+        #promo-btn-inject, .promo-profile-btn {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            width: auto !important;
+            min-width: auto !important;
+            
+            /* --- НАЧАЛО ИЗМЕНЕНИЙ (ПОЗИЦИЯ) --- */
+            margin: 0 !important;           /* Убрали авто-отступы (центровку) */
+            position: absolute !important;  /* Включаем фиксированную позицию */
+            left: 0 !important;             /* Прижимаем влево */
+            top: 25px !important;           /* Отступ сверху (ровно под ник) */
+            z-index: 20;
+            /* --- КОНЕЦ ИЗМЕНЕНИЙ --- */
+
+            padding: 3px 8px !important;
+            background: linear-gradient(90deg, #6441a5 0%, #9146ff 100%);
+            color: white !important;
+            font-weight: 700;
+            font-size: 0 !important;
+            border-radius: 5px !important;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(100, 65, 165, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            height: auto !important;
+            line-height: 1;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+        }
+
+        /* Скрываем иконку, если она есть внутри */
+        #promo-btn-inject i, .promo-profile-btn i {
+            display: none !important;
+        }
+
+        /* Вставляем новый микро-текст */
+        #promo-btn-inject::after, .promo-profile-btn::after {
+            content: "Профиль | Промокоды";
+            font-size: 9px; /* Размер как у подписей к заданиям */
+            font-weight: 600;
+            display: block;
+        }
+
+        #promo-btn-inject:active, .promo-profile-btn:active {
+            transform: scale(0.96);
+            box-shadow: 0 1px 2px rgba(100, 65, 165, 0.1);
+        }
+
+        .promo-profile-btn + .promo-profile-btn {
+            display: none;
+        }
+
+        /* --- Стили для кнопок заданий --- */
+
+        /* === TELEGRAM ЗАДАНИЯ (ОЧИЩЕННЫЕ СТИЛИ) === */
+
+        /* Контейнер списка */
+        #tg-tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+        }
+
+        /* Карточка одного задания */
+        .tg-task-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 36px;
+            justify-content: center;
+        }
+
+        /* Верхняя часть карточки (Иконка + Текст + Кнопка) */
+        .tg-task-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        /* Левая часть (Иконка + Инфо) */
+        .tg-left-col {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Правая часть (Кнопка + Таймер) */
+        .tg-right-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        /* Квадратная иконка */
+        .tg-icon-box {
+            width: 24px;
+            height: 24px;
+            background: var(--telegram-color, #0088CC);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .tg-icon-box i {
+            color: #fff;
+            font-size: 11px;
+        }
+
+        /* Текстовый блок */
+        .tg-text-col {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            line-height: 1.2;
+        }
+
+        .tg-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .tg-subtitle {
+            font-size: 10px;
+            color: #888;
+            margin-top: 1px;
+        }
+
+        /* Кнопка действия */
+        .tg-action-btn {
+            background: var(--telegram-color, #0088CC);
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            min-width: 50px;
+            transition: opacity 0.2s;
+        }
+
+        .tg-action-btn:active {
+            opacity: 0.7;
+        }
+
+        .tg-action-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .tg-timer-text {
+            font-size: 9px; 
+            color: #666;
+        }
+
+        /* Прогресс-бар (полоска) */
+        .tg-progress-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .tg-progress-fill {
+            height: 100%;
+            background: var(--telegram-color, #0088CC);
+            width: 0%; /* Меняется через JS */
+            transition: width 0.3s ease;
+        }
+
+        /* Счетчик реакции (0/7) */
+        .tg-counter-text {
+            text-align: right;
+            font-size: 9px;
+            color: #666;
+            font-family: monospace;
+            align-self: flex-end;
+        }
+
+        /* Простые стили для окна */
+          .popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Темный фон */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px); /* Размытие фона */
+          }
+
+          .popup-content {
+            background: #1c1c1e; /* Цвет фона карточки */
+            color: #fff;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+          }
+
+          .popup-content h3 {
+            margin-top: 0;
+            color: #ff4757; /* Красный цвет заголовка */
+          }
+
+          .boost-link-btn {
+            display: block;
+            background: #0088cc; /* Telegram blue */
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+            transition: transform 0.1s;
+          }
+
+          .boost-link-btn:active {
+            transform: scale(0.98);
+          }
+
+          .close-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #aaa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+          }
+          
+          .close-btn:hover {
+            background: rgba(255,255,255,0.1);
+          }
+
+        /* Стили для выполненных заданий (Telegram) */
+        .tg-task-item.completed {
+            opacity: 0.5;                /* Делаем полупрозрачным */
+            filter: grayscale(1);        /* Делаем черно-белым */
+            order: 999;                  /* Принудительно кидаем в самый низ */
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            pointer-events: none;        /* Отключаем клики */
+        }
+
+        /* Зеленая галочка для выполненных */
+        .tg-completed-icon {
+            color: #34c759;
+            font-size: 16px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: rgba(52, 199, 89, 0.1);
+            border-radius: 50%;
+        }
+
+        /* === НОВЫЕ СТИЛИ (Кнопки и Сегменты) === */
+
+        /* 1. КНОПКИ ФИКСИРОВАННОГО РАЗМЕРА */
+        .tg-action-btn {
+            /* Фиксированная ширина, чтобы кнопка не скакала при смене текста на таймер */
+            min-width: 110px; 
+            text-align: center;
+            justify-content: center;
+            /* Если текст длинный, он не должен ломать кнопку */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 2. РАЗДЕЛЕННЫЙ ПРОГРЕСС БАР (SEGMENTS) */
+        .tg-progress-track {
+            /* Отключаем старый фон и делаем флекс */
+            background: transparent !important; 
+            display: flex !important;
+            gap: 4px; /* Расстояние между "днями" */
+            height: 6px !important; /* Чуть толще, чтобы было видно */
+            border-radius: 0 !important;
+            overflow: visible !important;
+        }
+
+        /* Сами полосочки (сегменты) */
+        .tg-progress-segment {
+            flex: 1; /* Растягиваются равномерно */
+            background: rgba(255, 255, 255, 0.15); /* Цвет невыполненного дня */
+            border-radius: 2px;
+            transition: background 0.3s ease;
+            height: 100%;
+        }
+
+        /* Закрашенный сегмент */
+        .tg-progress-segment.filled {
+            background: #34c759;
+            box-shadow: 0 0 5px rgba(52, 199, 89, 0.5); /* Зеленое свечение */
+        }
+
+        /* Старый класс fill нам больше не нужен, скрываем его на всякий случай, 
+           если где-то остался в HTML, но мы его заменим в JS */
+        .tg-progress-fill {
+            display: none;
+        }
+
+        /* === ФИКС ВЫРАВНИВАНИЯ ТЕКСТА === */
+
+        .tg-text-col {
+            /* Принудительно выравниваем элементы по левому краю */
+            align-items: flex-start !important; 
+            /* Принудительно выравниваем текст по левому краю */
+            text-align: left !important;
+            /* Убедимся, что колонка занимает все доступное место */
+            flex-grow: 1;
+            /* Добавим небольшой отступ справа, чтобы текст не прилипал к кнопке */
+            padding-right: 8px;
+        }
+
+        .tg-title, .tg-subtitle {
+            /* На всякий случай дублируем выравнивание для самих элементов */
+            text-align: left !important;
+            display: block; /* Чтобы занимали всю ширину */
+            width: 100%;
+        }
+
+        /* Красивая подсветка для "кодовой фразы" в описании */
+        .tg-code-phrase {
+            background: rgba(0, 136, 204, 0.2);
+            color: #64b5f6;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+        /* === СТИЛИ НОВОГО ОКНА === */
+
+        /* Затемнение фона */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); /* Темный фон */
+            backdrop-filter: blur(8px); /* Сильное размытие заднего фона */
+            z-index: 99999;
+            display: flex;
+            align-items: flex-end; /* Окно выезжает снизу (или center для центра) */
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Когда окно активно */
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Само окно (Карточка) */
+        .modal-content-card {
+            width: 100%;
+            max-width: 500px;
+            height: 85vh; /* Занимает 85% высоты экрана */
+            background: #1c1c1e;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+            transform: translateY(100%); /* Спрятано внизу */
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); /* Плавный выезд */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Окно выезжает */
+        .modal-overlay.active .modal-content-card {
+            transform: translateY(0);
+        }
+
+        /* Шапка */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            margin-bottom: 10px !important; /* Было 20 */
+            padding-bottom: 10px !important; /* Было 15 */
+            min-height: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
+        }
+
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .modal-close-btn:active { background: rgba(255, 255, 255, 0.3); }
+
+        /* Сетка/Список внутри окна */
+        .modal-grid {
+            flex-grow: 1;
+            overflow-y: auto; /* Скролл внутри окна */
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 40px; /* Отступ снизу */
+        }
+
+        /* === АНИМАЦИЯ ПОЯВЛЕНИЯ КАРТОЧЕК === */
+
+        /* Начальное состояние карточки в модалке */
+        .anim-card {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            animation: cardPopUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes cardPopUp {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Задержки для поочередного появления (до 10 элементов) */
+        .anim-delay-0 { animation-delay: 0.05s; }
+        .anim-delay-1 { animation-delay: 0.1s; }
+        .anim-delay-2 { animation-delay: 0.15s; }
+        .anim-delay-3 { animation-delay: 0.2s; }
+        .anim-delay-4 { animation-delay: 0.25s; }
+        .anim-delay-5 { animation-delay: 0.3s; }
+
+        /* === СЕТКА 3 В РЯД (GRID LAYOUT) === */
+
+        /* Переключаем контейнер модалки в режим сетки */
+        .modal-grid.grid-mode {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr); /* Ровно 3 колонки */
+            gap: 10px; /* Расстояние между карточками */
+            align-content: start;
+            padding-top: 0 !important;
+            gap: 8px !important; /* Чуть плотнее сетка */
+        }
+
+        /* === КАРТОЧКА В СЕТКЕ (Rich Card) === */
+        .tg-grid-card {
+            /* 1. Жесткая высота и ширина */
+            width: 100%;
+            box-sizing: border-box;
+
+            /* 2. Распределение контента */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* Раскидываем: Иконка-верх, Кнопка-низ */
+            
+            /* 3. Богатый стиль (Rich Glass) */
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+
+            height: 220px !important; /* Было 230px, сэкономим 20px на двух рядах */
+            padding: 12px 6px !important;
+        }
+
+        /* При нажатии */
+        .tg-grid-card:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* 4. Заголовок с фиксированным местом (под 4 строки) */
+        .tg-grid-title {
+            /* Фиксируем высоту блока текста (11px * 1.35 * 4 строки ≈ 60px) */
+            height: 60px !important; 
+            width: 100%;
+            
+            /* Типографика */
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.35;
+            color: #fff;
+            text-align: center;
+            
+            /* Центруем текст внутри блока, если он короткий */
+            display: flex;
+            align-items: center;     /* Центр по вертикали */
+            justify-content: center; /* Центр по горизонтали */
+            
+            /* Если текста ОЧЕНЬ много - обрезаем */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            
+            margin: 4px 0 6px 0 !important;
+        }
+
+        /* 5. Иконка */
+        .tg-grid-icon {
+            font-size: 24px;
+            /* Фиксируем размер, чтобы не сжималась */
+            flex-shrink: 0; 
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            
+            margin-top: 4px; /* Чуть отступа сверху */
+            width: 44px !important;
+            height: 44px !important;
+            font-size: 22px !important;
+        }
+
+        /* 6. Награда */
+        .tg-grid-reward {
+            font-size: 10px;
+            font-weight: 600;
+            color: #ffd700;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-bottom: auto; /* Толкает кнопку вниз, если остается место */
+        }
+
+        /* 7. Кнопка (Прижата к низу) */
+        .tg-grid-btn {
+            width: 100%;
+            height: 32px; /* Фиксированная высота кнопки */
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            margin-top: 8px;
+            flex-shrink: 0; /* Не даем кнопке сжиматься */
+        }
+
+        .tg-grid-btn:disabled {
+            background: #444;
+            color: #888;
+        }
+
+        /* Прогресс бар в карточке (минималистичный) */
+        .tg-grid-progress {
+            width: 100%;
+            display: flex;
+            gap: 2px;
+            height: 4px;
+            margin-top: 6px;
+        }
+        .tg-grid-segment {
+            flex: 1;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+        .tg-grid-segment.filled {
+            background: #34c759;
+            box-shadow: 0 0 5px #34c759;
+        }
+
+        /* === ПРЕМИУМ КНОПКИ (КОМПАКТНЫЕ 70px) === */
+        .tg-premium-btn {
+            /* Синий градиент */
+            background: linear-gradient(92deg, #0088cc 0%, #29b6f6 100%);
+            box-shadow: 0 2px 8px rgba(0, 136, 204, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            
+            border: none;
+            border-radius: 6px; 
+            color: #fff;
+            
+            /* === 2 РЯДА (ГЛАВНОЕ ИЗМЕНЕНИЕ) === */
+            display: inline-flex;
+            flex-direction: column; /* Элементы друг под другом */
+            align-items: center;
+            justify-content: center;
+            gap: 1px;               /* Минимальный зазор между строками */
+            
+            /* === РАЗМЕРЫ === */
+            width: 80px;            /* Твоя ширина */
+            height: 32px;           /* Чуть увеличил высоту (было 26), чтобы влезло 2 этажа */
+            padding: 2px 0;         /* Небольшие отступы сверху/снизу */
+            flex-shrink: 0;
+            
+            /* Шрифт для верхнего текста "ЗАБРАТЬ" */
+            font-size: 8px;         /* Чуть меньше, это лейбл */
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tg-premium-btn:active { transform: scale(0.96); }
+        .tg-premium-btn:disabled { background: #333; color: #777; box-shadow: none; cursor: not-allowed; }
+
+        /* === БЭЙДЖ С НАГРАДОЙ (СЖАТЫЙ) === */
+        .btn-reward-badge {
+            /* Фон делаем чуть темнее или убираем, если хочешь чисто цифры */
+            background: rgba(0, 0, 0, 0.15); 
+            border-radius: 3px;
+            padding: 1px 6px;       /* Чуть шире фон */
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            
+            /* Шрифт цифр (покрупнее верхнего текста) */
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            font-size: 10px;        /* Цифры видны хорошо */
+            color: #fff;
+            line-height: 1;
+            margin-top: 1px;        /* Микро-отступ от текста */
+        }
+
+        /* Иконка билета */
+        .btn-ticket-icon {
+            font-size: 9px;       /* Уменьшили иконку */
+            color: #FFD700;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+        }
+
+        /* === СТИЛИ ДЛЯ АККОРДЕОНА ВЫПОЛНЕННЫХ ЗАДАНИЙ === */
+
+        /* Сам контейнер аккордеона (растягиваем на всю ширину сетки) */
+        .tg-completed-details {
+            grid-column: 1 / -1; /* Важно: заставляет блок занять всю ширину Grid-сетки */
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.03); /* Прозрачный серый */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .tg-completed-details[open] {
+            background: rgba(255, 255, 255, 0.05); /* Чуть светлее при открытии */
+        }
+
+        /* Заголовок (кнопка открытия) */
+        .tg-completed-summary {
+            padding: 14px;
+            color: #8e8e93; /* Приятный серый текст */
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none; /* Убираем стандартный треугольник */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .tg-completed-summary:hover {
+            color: #fff;
+        }
+
+        /* Скрываем стандартный маркер в Webkit */
+        .tg-completed-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        /* Иконка стрелочки */
+        .tg-chevron {
+            transition: transform 0.3s ease;
+        }
+        .tg-completed-details[open] .tg-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Внутренняя сетка для выполненных заданий */
+        .tg-completed-grid {
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            /* Копируем настройки основной сетки, чтобы карточки были такими же */
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Или как у тебя в основном CSS */
+            gap: 10px;
+        }
+
+        /* Анимация мерцания */
+        @keyframes skeleton-loading {
+            0% { background-color: rgba(255, 255, 255, 0.05); }
+            50% { background-color: rgba(255, 255, 255, 0.1); }
+            100% { background-color: rgba(255, 255, 255, 0.05); }
+        }
+
+        .skeleton {
+            animation: skeleton-loading 1.5s infinite ease-in-out;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: transparent !important;
+            pointer-events: none;
+        }
+
+        .skeleton-text { height: 14px; margin-bottom: 6px; width: 70%; border-radius: 4px; }
+        .skeleton-title { height: 20px; margin-bottom: 10px; width: 50%; border-radius: 6px; }
+        .skeleton-icon { width: 40px; height: 40px; border-radius: 50%; }
+        .skeleton-btn { height: 36px; width: 100%; border-radius: 8px; margin-top: auto; }
+
+        /* Оставьте blur только для устройств, которые это хорошо поддерживают */
+        .quest-card, .app-footer, .prompt-modal {
+            /* Фоллбэк (для слабых телефонов просто непрозрачный фон) */
+            background-color: rgba(28, 28, 30, 0.95); 
+        }
+
+        @supports ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
+            /* И здесь тоже УБРАЛИ .user-profile */
+            .quest-card, .app-footer, .prompt-modal {
+                background-color: var(--surface-glass-bg); /* Ваш полупрозрачный цвет */
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+            }
+        }
+
+        /* === НОВАЯ КРАСИВАЯ МОДАЛКА НАГРАДЫ === */
+
+        /* Фон-затемнение с блюром */
+        .reward-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px); /* Сильное размытие фона */
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .reward-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Карточка модалки */
+        .reward-card {
+            position: relative;
+            width: 85%;
+            max-width: 320px;
+            background: linear-gradient(165deg, rgba(35, 35, 40, 0.95) 0%, rgba(20, 20, 25, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.8) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Эффект пружины */
+            overflow: hidden;
+        }
+
+        .reward-overlay.visible .reward-card {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Эффект свечения позади иконки (вращающиеся лучи) */
+        .reward-glow-bg {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(255, 215, 0, 0.1) 60deg,
+                transparent 120deg,
+                rgba(255, 215, 0, 0.1) 180deg,
+                transparent 240deg,
+                rgba(255, 215, 0, 0.1) 300deg,
+                transparent 360deg
+            );
+            animation: rotateGlow 10s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes rotateGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Контейнер иконки */
+        .reward-icon-wrapper {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        /* Сама иконка */
+        .reward-icon-wrapper i {
+            font-size: 50px;
+            color: #FFD700;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+            animation: iconBounce 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes iconBounce {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8)); }
+        }
+
+        /* Тексты */
+        .reward-title {
+            position: relative;
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 8px 0;
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .reward-subtitle {
+            position: relative;
+            font-size: 13px;
+            color: #8e8e93;
+            margin: 0 0 20px 0;
+            z-index: 1;
+            line-height: 1.4;
+        }
+
+        /* Блок с суммой награды */
+        .reward-amount-box {
+            position: relative;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 25px;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reward-amount-text {
+            font-size: 24px;
+            font-weight: 900;
+            color: #FFD700; /* Золотой */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Кнопка */
+        .reward-confirm-btn {
+            position: relative;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(92deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 1;
+            box-shadow: 0 5px 15px rgba(255, 165, 0, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .reward-confirm-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Конфетти (упрощенное на CSS) */
+        .confetti-piece {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            top: -10px;
+            z-index: 2;
+            opacity: 0;
+        }
+
+        /* === ФИКС ДЛЯ СЕКРЕТНОГО ОКНА (7 ДЕНЬ) === */
+
+        /* Сам фон-затемнение (изначально скрыт) */
+        .custom-popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden; /* Скрыто по умолчанию */
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        /* Когда JS добавляет этот класс — показываем окно */
+        .custom-popup-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Стили самой карточки внутри */
+        .custom-popup-overlay .custom-popup {
+            background: #1c1c1e;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            width: 85%;
+            max-width: 320px;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Анимация увеличения карточки при появлении */
+        .custom-popup-overlay.visible .custom-popup {
+            transform: scale(1);
+        }
+
+        /* Стили кнопок внутри этого попапа */
+        .custom-popup-overlay .popup-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .custom-popup-overlay .popup-btn.primary {
+            background: #FFD700;
+            color: #000;
+        }
+
+        .custom-popup-overlay .popup-btn.secondary {
+            background: transparent;
+            color: #8e8e93;
+        }
     </style>
 </head>
 <body>
 
     <!-- Загрузочный экран -->
-    <div id="loader-overlay" class="loader-backdrop">
-        <div class="cs-spinner"></div>
-        <div id="loading-text" class="cs-loading-text">0%</div>
-        <div class="cs-loading-bar"><div id="loading-bar-fill" class="cs-loading-fill"></div></div>
+    <div id="loader-overlay" class="loader-backdrop" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999;">
+        <div class="cs-spinner spinner"></div>
+        <div id="loading-text" class="cs-loading-text" style="color: #fff; margin-top: 15px; font-family: sans-serif; font-weight: bold; font-size: 18px;">0%</div>
+        <div class="cs-loading-bar" style="width: 200px; height: 4px; background: #333; border-radius: 2px; margin-top: 10px; overflow: hidden;"><div id="loading-bar-fill" class="cs-loading-fill" style="width: 0%; height: 100%; background: #007aff; transition: width 0.3s ease;"></div></div>
     </div>
 
     <!-- ГЛАВНЫЙ ОГРАНИЧИТЕЛЬНЫЙ КОНТЕЙНЕР (ШИРИНА ТЕЛЕФОНА) -->
-    <div class="mobile-wrapper">
+    <div class="mobile-wrapper" id="app-container">
         <!-- ОПЕРАТИВНИК НА ФОНЕ (ПОДНЯТ ВЫШЕ И ЛЕВЕЕ, ЗА ВСЕМИ ЭЛЕМЕНТАМИ) -->
         <div class="bg-soldier"></div>
         
         <main id="main-content" class="main-content">
             
+            <div id="pull-to-refresh">
+                <i class="fa-solid fa-rotate-right"></i> 
+            </div>
+
+            <!-- УМЕНЬШИЛИ margin-bottom до 5px -->
+            <div id="matrix-quest-tracker" style="margin-bottom: 5px; width: 100%;">
+            <!-- Сюда рендерится старая логика, либо новая Матрица, если адаптировать. Пока оставляем контейнер -->
+            </div>
+
             <!-- 1. ТОП БАР (МАТРИЦА - ТОЧНАЯ КОПИЯ СКРИНШОТА) -->
-            <div class="matrix-top-bar">
+            <div class="matrix-top-bar" id="matrix-top-bar-new">
                 <div class="matrix-brand">
                     <div class="matrix-icon"><i class="fa-solid fa-shapes"></i></div>
                     <div class="matrix-titles">
@@ -400,15 +1851,15 @@
                     <div class="stat-block">
                         <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
                         <div class="stat-info">
-                            <div class="stat-head"><span>Telegram</span><span class="stat-val">12/50</span></div>
-                            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
+                            <div class="stat-head"><span>Telegram</span><span class="stat-val" id="matrix-tg-val">12/50</span></div>
+                            <div class="stat-track"><div class="stat-fill" id="matrix-tg-fill" style="width: 24%;"></div></div>
                         </div>
                     </div>
                     <div class="stat-block">
                         <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
                         <div class="stat-info">
-                            <div class="stat-head"><span>Twitch</span><span class="stat-val">48/200</span></div>
-                            <div class="stat-track"><div class="stat-fill" style="width: 24%;"></div></div>
+                            <div class="stat-head"><span>Twitch</span><span class="stat-val" id="matrix-tw-val">48/200</span></div>
+                            <div class="stat-track"><div class="stat-fill" id="matrix-tw-fill" style="width: 24%;"></div></div>
                         </div>
                     </div>
                 </div>
@@ -437,20 +1888,42 @@
                 </div>
             </div>
 
-            <!-- 3. ТАБЫ (В ТЕМНОМ БЛЮРЕ) -->
-            <div class="cs-tabs">
-                <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
-                    <i class="fa-regular fa-calendar-check"></i> План
-                </button>
-                <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
-                    <i class="fa-solid fa-bolt"></i> Проверка
-                </button>
+            <!-- УМЕНЬШИЛИ отступы: добавили margin-top: 5px и оставили margin-bottom: 5px -->
+            <h2 class="page-title hidden" style="grid-column: 1 / -1; margin-top: 5px; margin-bottom: 5px;">
+                🎯 Центр заданий
+            </h2>
+
+            <div class="complex-switch-wrapper" style="grid-column: 1 / -1; margin-bottom: 20px;">
+                
+                <input type="radio" name="view" id="view-twitch" value="twitch" checked>
+                <input type="radio" name="view" id="view-telegram" value="telegram">
+                <input type="radio" name="view" id="view-manual" value="manual">
+
+                <div class="switch-row switch-row-top">
+                    <label for="view-twitch" class="switch-label">
+                        <i class="fa-brands fa-twitch"></i> Twitch
+                    </label>
+                    <label for="view-telegram" class="switch-label">
+                        <i class="fa-brands fa-telegram"></i> Telegram
+                    </label>
+                    <div class="slider-bg slider-top"></div>
+                </div>
+
+                <div class="switch-row switch-row-bottom">
+                    <label for="view-manual" class="switch-label">
+                        <i class="fa-solid fa-list-check"></i> Задания с ручной проверкой
+                    </label>
+                    <div class="slider-bg slider-bottom"></div>
+                </div>
+
             </div>
 
-            <div id="section-weekly-plan">
+            <div id="section-auto-quests" class="auto-quest-section">
+                <!-- Контейнер для вывода старого челенджа -->
+                <div id="challenge-container"></div>
                 
-                <!-- 4. СТРИМ-ЧЕЛЛЕНДЖ -->
-                <div class="premium-card challenge-card">
+                <!-- 4. СТРИМ-ЧЕЛЛЕНДЖ (НОВЫЙ ДИЗАЙН - СКРЫТ ПО УМОЛЧАНИЮ) -->
+                <div class="premium-card challenge-card hidden" id="new-challenge-card">
                     <i class="fa-brands fa-twitch watermark-icon"></i>
                     
                     <div class="card-header borderless">
@@ -486,13 +1959,29 @@
                                 <span class="r-lbl-mini">Награда</span>
                                 <span class="r-val-mini">+2 <i class="fa-solid fa-ticket"></i></span>
                             </div>
-                            <button id="claim-challenge-btn" class="cs-gold-btn-mini" onclick="claimActiveStreamChallenge()">Забрать</button>
+                            <button id="claim-challenge-btn-new" class="cs-gold-btn-mini" onclick="claimActiveStreamChallenge()">Забрать</button>
                         </div>
                     </div>
                 </div>
 
+                <div id="telegram-static-quests" class="hidden">
+                    <div class="quest-card challenge-card" style="padding: 12px; gap: 0; min-height: auto; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                        <div id="tg-tasks-list"></div>
+                    </div> 
+                </div> 
+
+                <div id="twitch-roulette-area">
+                    <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0; width: 100%;">
+                    
+                    <button id="quest-choose-btn" class="quest-choose-btn-roulette" style="width: 100%; margin: 0;">
+                        НАЧАТЬ ИСПЫТАНИЕ
+                    </button>
+                    <div id="quest-choose-container" class="quest-choose-container hidden" style="width: 100%; margin-top: 10px;"></div>
+                    <div id="active-automatic-quest-container" style="width: 100%; margin-top: 5px;"></div>
+                </div>
+
                 <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
-                <div class="premium-card trigger-card" onclick="openConstructorModal()">
+                <div class="premium-card trigger-card" onclick="openConstructorModal()" style="margin-top: 20px;">
                     <div class="card-header borderless">
                         <div class="head-left">
                             <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
@@ -511,63 +2000,149 @@
                     </div>
                 </div>
 
-                <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
-                <div class="premium-card streak-card">
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box fire-box"><i class="fa-solid fa-fire"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
-                                <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;">1 / 4</span></p>
-                            </div>
-                        </div>
-                        <button class="ghost-btn" onclick="customAlert('Серия обновляется каждую неделю. Не пропускай!', 'О СЕРИИ')"><i class="fa-solid fa-gift"></i> Инфо</button>
-                    </div>
-
-                    <div class="streak-body">
-                        <div class="streak-segments">
-                            <div class="seg active"></div>
-                            <div class="seg"></div>
-                            <div class="seg"></div>
-                            <div class="seg"></div>
-                        </div>
-
-                        <div class="streak-grid">
-                            <div class="s-item active">
-                                <div class="s-img case-img"></div>
-                                <b>1 неделя</b>
-                                <span>Армейский<br>или кейс</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-1"></div>
-                                <b>2 недели</b>
-                                <span>Запрещ.<br>+10 бил.</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-2"></div>
-                                <b>3 недели</b>
-                                <span>Засекреч.<br>скин</span>
-                            </div>
-                            <div class="s-item gold-tier">
-                                <div class="s-img knife-img"></div>
-                                <b class="gold-text">4 недели</b>
-                                <span>Тайный<br>или нож</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <!-- РУЧНАЯ ПРОВЕРКА -->
-            <div id="section-manual-quests" class="hidden">
-                <div style="text-align: center; color: #fff; margin-top: 40px; font-size: 11px;">
-                    <i class="fa-solid fa-bolt" style="font-size: 20px; margin-bottom: 10px; opacity: 0.5;"></i><br>
-                    Ручные квесты загружаются...
+            <div id="section-manual-quests" class="hidden" style="grid-column: 1 / -1; width: 100%;">
+                <div style="text-align: center; margin-bottom: 15px; color: #ffcc00; font-size: 13px; font-weight: 600;">
+                     📝 Список доступных заданий
                 </div>
+                <div id="manual-quests-list" style="width: 100%;">
+                    <div class="spinner"></div>
+                </div>
+                <span class="manual-hint" style="display: block; font-size: 11px; color: #666; text-align: center; margin-top: 15px; margin-bottom: 20px;">
+                    Статус проверки можно увидеть в <span style="color: #ffc700;">Профиле</span>
+                </span>
             </div>
         </main>
     </div> <!-- Конец .mobile-wrapper -->
+
+    <script src="/bottom-nav.js"></script>
+
+    <!-- МОДАЛЬНЫЕ ОКНА ИЗ СТАРОГО КОДА -->
+    <div id="promocode-overlay" class="promocode-overlay hidden"></div>
+
+    <div id="reward-claimed-overlay" class="prompt-overlay hidden">
+      <div class="prompt-modal">
+          <h3>Награда получена!</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--text-color-muted);">
+              Промокод добавлен в ваш профиль. Вы можете найти все свои награды там.
+          </p>
+          <div class="prompt-actions">
+              <button id="reward-close-btn" class="cancel-btn">Закрыть</button>
+              <a href="/profile" class="confirm-btn">Профиль</a>
+          </div>
+      </div>
+    </div>
+
+    <div id="tickets-claimed-overlay" class="prompt-overlay hidden">
+      <div class="prompt-modal">
+          <h3>Билеты получены!</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--text-color-muted);">
+              Билеты за выполнение задания успешно начислены на ваш баланс.
+          </p>
+          <div class="prompt-actions">
+              <button id="tickets-claim-close-btn" class="confirm-btn">Отлично!</button>
+          </div>
+      </div>
+    </div>
+
+    <div id="info-modal-overlay" class="prompt-overlay hidden">
+      <div class="prompt-modal">
+          <h3>Что такое билеты?</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--text-color-muted);">
+              Выполняйте задания и челленджи, чтобы заработать билеты. Используйте их для участия в розыгрышах ценных призов!
+          </p>
+          <div class="prompt-actions">
+              <button class="confirm-btn" id="info-modal-close-btn">Понятно</button>
+          </div>
+      </div>
+    </div>
+
+    <div id="schedule-modal-overlay" class="prompt-overlay hidden">
+      <div class="prompt-modal" style="width: 90%; max-width: 400px; padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h3 style="margin: 0; font-size: 18px;">📅 Расписание стримов</h3>
+              
+              <button id="schedule-modal-close-btn" class="modal-close-btn">
+                  <i class="fa-solid fa-xmark"></i>
+              </button>
+              
+          </div>
+          <img src="https://i.postimg.cc/NMw2ByPZ/raspisanie-strimov.jpg" loading="lazy" alt="Расписание" style="width: 100%; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+          <button onclick="Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv')" class="confirm-btn" style="width: 100%; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #9146ff; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 12px;">
+              <i class="fa-brands fa-twitch"></i> Перейти на канал
+          </button>
+      </div>
+  </div>
+
+    <div id="custom-prompt-overlay" class="prompt-overlay hidden">
+      <div class="prompt-modal">
+          <h3 id="prompt-title">Title</h3>
+          <p>Введите данные для проверки.</p>
+          <input type="text" id="prompt-input" placeholder="Ваш ник или ссылка...">
+          <div class="prompt-actions">
+              <button id="prompt-cancel" class="cancel-btn">Отмена</button>
+              <button id="prompt-confirm" class="confirm-btn">Отправить</button>
+          </div>
+      </div>
+    </div>
+
+    <div id="boostPopup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+      <h3>⚠️ Внимание!</h3>
+      <p>Вы еще не проголосовали за наш канал. Чтобы продолжить, пожалуйста, отдайте свой голос.</p>
+      
+      <a href="https://t.me/boost/hatelove_ttv" target="_blank" class="boost-link-btn">
+        🚀 Проголосовать за канал
+      </a>
+
+      <button id="closePopupBtn" class="close-btn">
+        Буду знать!
+      </button>
+    </div>
+  </div>
+
+    <div id="secret-reward-popup" class="custom-popup-overlay">
+      <div class="custom-popup" style="border: 1px solid #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);">
+          <div style="font-size: 50px; margin-bottom: 15px; animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);">🎁</div>
+          
+          <h3 style="color: #FFD700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">ПОЗДРАВЛЯЕМ!</h3>
+          
+          <p style="font-size: 15px; color: #fff; line-height: 1.5; margin-bottom: 20px;">
+              Ты продержался <b>7 дней</b>! <br>
+              Твой приз — <b>СЕКРЕТНЫЙ КОД</b>.
+          </p>
+          
+          <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; font-size: 13px; color: #ccc; margin-bottom: 20px;">
+              Код находится в твоем <b>Профиле</b><br>
+              в разделе <b>SECRET PROMOCODE</b>.
+          </div>
+
+          <div class="popup-actions">
+              <button id="go-to-profile-btn" class="popup-btn primary" style="background: #FFD700; color: #000; font-weight: 800;">
+                  <i class="fa-regular fa-id-card" style="margin-right: 8px;"></i> ЗАБРАТЬ В ПРОФИЛЕ
+              </button>
+              <button id="close-secret-popup-btn" class="popup-btn secondary" style="margin-top: 10px;">
+                  Позже
+              </button>
+          </div>
+      </div>
+  </div>
+
+    <div id="universal-modal-overlay" class="modal-overlay hidden">
+      <div class="modal-content-card">
+          <div class="modal-header">
+              <h2 id="modal-title" class="modal-title">Задания</h2>
+              <button id="modal-close-btn" class="modal-close-btn">
+                  <i class="fa-solid fa-xmark"></i>
+              </button>
+          </div>
+          
+          <div id="modal-cards-container" class="modal-grid">
+              </div>
+      </div>
+  </div>
 
     <!-- ================= 7. МОДАЛКА: КОНСТРУКТОР ================= -->
     <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
@@ -717,28 +2292,13 @@
 
     <!-- ================= JS ЛОГИКА ================= -->
     <script>
-        const dom = {
-            loaderOverlay: document.getElementById('loader-overlay'),
-            loadingText: document.getElementById('loading-text'),
-            loadingBarFill: document.getElementById('loading-bar-fill'),
-            mainContent: document.getElementById('main-content'),
-            constructorTotalReward: document.getElementById('constructor-total-reward'),
-            activateContractBtn: document.getElementById('activate-contract-btn'),
-            sectionWeekly: document.getElementById('section-weekly-plan'),
-            sectionManual: document.getElementById('section-manual-quests'),
-        };
-
+        // === ЛОГИКА НОВОГО КОНСТРУКТОРА ===
         const constructorConfig = {
             twitch_chat: { rewardOptions: [1, 2, 4], selectedIdx: 1, enabled: false },
             twitch_uptime: { rewardOptions: [1, 2, 5], selectedIdx: 1, enabled: false },
             telegram_chat: { rewardOptions: [1, 2, 3], selectedIdx: 1, enabled: false },
             personal_quest: { rewardOptions: [5, 6, 8], selectedIdx: 1, enabled: false }
         };
-
-        function updateLoading(percent) {
-            if (dom.loadingText) dom.loadingText.textContent = Math.floor(percent) + '%';
-            if (dom.loadingBarFill) dom.loadingBarFill.style.width = Math.floor(percent) + '%';
-        }
 
         window.customAlert = function(text, title = 'ВНИМАНИЕ') {
             const old = document.getElementById('custom-cs-alert');
@@ -760,17 +2320,21 @@
         };
 
         window.switchMainTab = function(tab) {
+            // Переключаем табы нового дизайна (сейчас они не привязаны напрямую к логике старых)
+            // Оставим заготовку
             const isWeekly = tab === 'weekly';
             document.getElementById('tab-btn-weekly')?.classList.toggle('active', isWeekly);
             document.getElementById('tab-btn-manual')?.classList.toggle('active', !isWeekly);
-            dom.sectionWeekly?.classList.toggle('hidden', !isWeekly);
-            dom.sectionManual?.classList.toggle('hidden', isWeekly);
+            
+            // Если нужно скрывать контент нового челенджа
+            // dom.sectionWeekly?.classList.toggle('hidden', !isWeekly);
+            // dom.sectionManual?.classList.toggle('hidden', isWeekly);
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
         };
 
         window.claimActiveStreamChallenge = function() {
             window.customAlert("Награда +2 билета зачислена на ваш баланс!", "ЧЕЛЛЕНДЖ ВЫПОЛНЕН");
-            const btn = document.getElementById('claim-challenge-btn');
+            const btn = document.getElementById('claim-challenge-btn-new');
             if (btn) { btn.textContent = "ЗАБРАНО"; btn.classList.add('disabled'); }
         };
 
@@ -819,8 +2383,10 @@
                     total += slot.rewardOptions[slot.selectedIdx];
                 }
             });
-            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
-            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
+            const constructorTotalReward = document.getElementById('constructor-total-reward');
+            const activateContractBtn = document.getElementById('activate-contract-btn');
+            if (constructorTotalReward) constructorTotalReward.textContent = String(total);
+            if (activateContractBtn) activateContractBtn.classList.toggle('disabled', !anyEnabled);
         }
 
         window.submitConstructorContract = function() {
@@ -835,21 +2401,12 @@
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         };
 
-        // Запуск
-        updateLoading(30);
-        setTimeout(() => { updateLoading(70); recalcConstructorTotal(); }, 200);
-        setTimeout(() => {
-            updateLoading(100);
-            if (dom.loaderOverlay) {
-                dom.loaderOverlay.style.opacity = 0;
-                setTimeout(() => dom.loaderOverlay.classList.add('hidden'), 300);
-            }
-            dom.mainContent.style.opacity = 1;
-            if (window.Telegram?.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-            }
-        }, 600);
-    </script>
-</body>
-</html>
+
+        // ==========================================
+        // 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И DOM (ИЗ СТАРОГО КОДА)
+        // ==========================================
+        const dom = {
+            loaderOverlay: document.getElementById('loader-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            loadingBarFill: document.getElementById('loading-bar-fill'),
+            mainContent: document.
