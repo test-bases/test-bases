@@ -103,15 +103,16 @@
         }
 
         .main-content {
-            padding: 4px 10px 100px 10px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            opacity: 0; 
-            transition: opacity 0.4s ease;
-            position: relative;
-            z-index: 10;
-        }
+    /* 140px + безопасная зона экрана iPhone гарантируют, что карточки не скроются за bottom-nav */
+    padding: 4px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0; 
+    transition: opacity 0.4s ease;
+    position: relative;
+    z-index: 10;
+}
 
         /* ==========================================
            3. ВЕРХНИЙ БАР (МАТРИЦА)
@@ -581,6 +582,11 @@
         .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
         .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
         .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+        @keyframes pulse-live {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.04); opacity: 0.85; filter: drop-shadow(0 0 6px rgba(52, 199, 89, 0.6)); }
+    100% { transform: scale(1); opacity: 1; }
+}
     </style>
 </head>
 <body>
@@ -604,32 +610,41 @@
                 <i class="fa-solid fa-rotate-right" style="color: var(--gold-primary); font-size: 18px; margin-bottom: 6px;"></i>
             </div>
             
-            <!-- 1. ТОП БАР (МАТРИЦА - ТОЧНАЯ КОПИЯ СКРИНШОТА) -->
-            <div class="matrix-top-bar" id="matrix-top-bar">
-                <div class="matrix-brand">
-                    <div class="matrix-icon"><i class="fa-solid fa-shapes"></i></div>
-                    <div class="matrix-titles">
-                        <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size: 10px; opacity: 0.8;"></i></span>
-                        <span class="m-sub" id="matrix-sub-title">Проверка доверием</span>
-                    </div>
-                </div>
-                <div class="matrix-stats" id="matrix-stats-container">
-                    <div class="stat-block">
-                        <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-head"><span>Telegram</span><span class="stat-val" id="matrix-tg-val">12/50</span></div>
-                            <div class="stat-track"><div class="stat-fill" id="matrix-tg-fill" style="width: 24%;"></div></div>
-                        </div>
-                    </div>
-                    <div class="stat-block">
-                        <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-head"><span>Twitch</span><span class="stat-val" id="matrix-twitch-val">48/200</span></div>
-                            <div class="stat-track"><div class="stat-fill" id="matrix-twitch-fill" style="width: 24%;"></div></div>
-                        </div>
-                    </div>
-                </div>
+            <!-- 1. ТОП БАР (МАТРИЦА С ПОЛНЫМ ФУНКЦИОНАЛОМ) -->
+<div class="matrix-top-bar" id="matrix-top-bar">
+    <div class="matrix-brand">
+        <div class="matrix-icon" id="matrix-main-icon"><i class="fa-solid fa-shapes"></i></div>
+        <div class="matrix-titles">
+            <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size: 10px; opacity: 0.8;" onclick="customAlert('Проявляйте активность в чатах Telegram и Twitch для подтверждения доверия и получения редких кейсов.', 'О МАТРИЦЕ')"></i></span>
+            <span class="m-sub" id="matrix-sub-title">Проверка доверием</span>
+        </div>
+    </div>
+    
+    <div class="matrix-stats" id="matrix-stats-container">
+        <!-- Блок Telegram (Кликабелен) -->
+        <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openTelegramLink('https://t.me/hatelove_ttv'); } else { window.open('https://t.me/hatelove_ttv', '_blank'); }">
+            <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
+            <div class="stat-info">
+                <div class="stat-head"><span>Telegram</span><span class="stat-val" id="matrix-tg-val">0/50</span></div>
+                <div class="stat-track"><div class="stat-fill" id="matrix-tg-fill" style="width: 0%;"></div></div>
             </div>
+        </div>
+        
+        <!-- Блок Twitch (Кликабелен) -->
+        <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv'); } else { window.open('https://www.twitch.tv/hatelove_ttv', '_blank'); }">
+            <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
+            <div class="stat-info">
+                <div class="stat-head"><span>Twitch</span><span class="stat-val" id="matrix-twitch-val">0/200</span></div>
+                <div class="stat-track"><div class="stat-fill" id="matrix-twitch-fill" style="width: 0%;"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Предупреждение если Twitch не привязан (по умолчанию скрыто) -->
+<div id="matrix-twitch-alert" style="display: none; color: #ff3b30; font-size: 9px; font-weight: 700; text-align: right; padding-right: 12px; margin-top: -8px; margin-bottom: 10px;">
+    <i class="fa-solid fa-triangle-exclamation"></i> <a href="/profile" style="color: #ff3b30; text-decoration: underline;">Привяжи Twitch в профиле!</a>
+</div>
 
             <!-- 2. HERO ШАПКА -->
             <div class="hero-section">
@@ -1204,20 +1219,71 @@
         // 5. МАТРИЦА (ОБНОВЛЕНИЕ ДАННЫХ И НАГРАДА)
         // ==========================================
         function renderMatrixTracker(matrixData, user) {
-            if (!matrixData) return;
-            const tgDone = matrixData.tg_msg_current || 0;
-            const twitchDone = matrixData.twitch_msg_current || 0;
+    if (!matrixData) return;
 
-            if (dom.matrixTgVal) dom.matrixTgVal.textContent = `${tgDone >= 50 ? 50 : tgDone}/50`;
-            if (dom.matrixTgFill) dom.matrixTgFill.style.width = `${Math.min(100, (tgDone / 50) * 100)}%`;
-            if (dom.matrixTwitchVal) dom.matrixTwitchVal.textContent = `${twitchDone >= 200 ? 200 : twitchDone}/200`;
-            if (dom.matrixTwitchFill) dom.matrixTwitchFill.style.width = `${Math.min(100, (twitchDone / 200) * 100)}%`;
+    // Если квест завершён или выбрана не синяя пилюля — скрываем или показываем финал
+    if (matrixData.selected_pill && matrixData.selected_pill !== 'blue') {
+        if (dom.matrixTopBar) dom.matrixTopBar.style.display = 'none';
+        return;
+    }
+    if (dom.matrixTopBar) dom.matrixTopBar.style.display = 'flex';
 
-            const isReadyToClaim = tgDone >= 50 && twitchDone >= 200 && !matrixData.is_completed;
-            if (isReadyToClaim && dom.matrixSubTitle) {
-                dom.matrixSubTitle.innerHTML = `<span style="color:#34c759; font-weight:800; cursor:pointer;" onclick="claimMatrixReward()">ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i></span>`;
-            }
+    const tgDone = matrixData.tg_msg_current || 0;
+    const twitchDone = matrixData.twitch_msg_current || 0;
+
+    // 1. Обновляем цифры и полосы прогресса
+    if (dom.matrixTgVal) dom.matrixTgVal.textContent = `${tgDone >= 50 ? 50 : tgDone}/50`;
+    if (dom.matrixTgFill) dom.matrixTgFill.style.width = `${Math.min(100, (tgDone / 50) * 100)}%`;
+    
+    if (dom.matrixTwitchVal) dom.matrixTwitchVal.textContent = `${twitchDone >= 200 ? 200 : twitchDone}/200`;
+    if (dom.matrixTwitchFill) dom.matrixTwitchFill.style.width = `${Math.min(100, (twitchDone / 200) * 100)}%`;
+
+    // 2. Алерт привязки Twitch
+    const alertEl = document.getElementById('matrix-twitch-alert');
+    if (alertEl) {
+        const isTwitchLinked = !!(user && (user.twitch_id || user.twitch_login));
+        alertEl.style.display = isTwitchLinked ? 'none' : 'block';
+    }
+
+    // 3. Динамические уровни доверия и смена подзаголовка/иконки
+    const isReadyToClaim = tgDone >= 50 && twitchDone >= 200 && !matrixData.is_completed;
+    const totalPercent = ((Math.min(tgDone / 50, 1) + Math.min(twitchDone / 200, 1)) / 2);
+
+    const subTitleEl = document.getElementById('matrix-sub-title');
+    const mainIconEl = document.getElementById('matrix-main-icon');
+
+    if (matrixData.is_completed) {
+        if (subTitleEl) subTitleEl.innerHTML = `<span style="color:#34c759; font-weight:800;">ВЫПОЛНЕНО</span>`;
+        if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-check" style="color:#34c759;"></i>`;
+    } else if (isReadyToClaim) {
+        // Кнопка забрать приз прямо внутри матрицы
+        if (subTitleEl) {
+            subTitleEl.innerHTML = `
+                <span onclick="claimMatrixReward()" style="color: #34c759; font-weight: 900; cursor: pointer; text-transform: uppercase; animation: pulse-live 1.5s infinite;">
+                    ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i>
+                </span>`;
         }
+        if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-gift" style="color:#34c759;"></i>`;
+    } else if (totalPercent >= 0.8) {
+        if (subTitleEl) subTitleEl.textContent = "Абсолютная верность";
+        if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-bolt" style="color:var(--gold-primary);"></i>`;
+    } else if (totalPercent >= 0.5) {
+        if (subTitleEl) subTitleEl.textContent = "Доверие растет";
+        if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-fire" style="color:#ff9500;"></i>`;
+    } else {
+        if (subTitleEl) subTitleEl.textContent = "Проверка доверием";
+        if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-shapes"></i>`;
+    }
+}
+        // Фоновое обновление данных каждые 30 секунд
+setInterval(async () => {
+    try {
+        const hb = await makeApiRequest('/api/v1/user/heartbeat', {}, 'POST', true);
+        if (hb && hb.matrix_quest) {
+            renderMatrixTracker(hb.matrix_quest, userData);
+        }
+    } catch(e) {}
+}, 30000);
 
         window.claimMatrixReward = async function() {
             try {
