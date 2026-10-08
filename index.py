@@ -14,13 +14,16 @@ import httpx
 import asyncio
 import re
 import builtins
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import parse_qsl, unquote, urlencode
 from typing import Optional, List, Dict, Any
 from zoneinfo import ZoneInfo
 from contextlib import asynccontextmanager
 from urllib3.exceptions import InsecureRequestWarning
-from dateutil import parser  # <-- ОСТАВИЛИ, так как нужен в других частях кода
+from dateutil import parser
+
+# 🔥 ОБЪЯВЛЯЕМ ЧАСОВОЙ ПОЯС МСК ДЛЯ ВСЕХ ФУНКЦИЙ В ФАЙЛЕ:
+MSK_TZ = timezone(timedelta(hours=3))
 
 # --- Сторонние библиотеки ---
 from dotenv import load_dotenv
@@ -4452,7 +4455,9 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     2. Если нет — создает уникальный из challenge_templates.
     3. Подтягивает актуальный дневной прогресс напрямую из таблицы users.
     """
-    now_msk = datetime.now(MSK_TZ)
+    # Гарантированное объявление часового пояса МСК внутри функции
+    msk_tz = timezone(timedelta(hours=3))
+    now_msk = datetime.now(msk_tz)
     today_date = now_msk.strftime('%Y-%m-%d')
 
     # 1. Проверяем, назначен ли уже квест на сегодня
