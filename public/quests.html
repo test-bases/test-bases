@@ -244,102 +244,270 @@
         .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
         /* ==========================================
-           7. СТРИМ-ЧЕЛЛЕНДЖ
+           7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ДИЗАЙН ПО МАКЕТУ)
            ========================================== */
-        .challenge-card { border-color: var(--card-border-gold); }
-        .watermark-icon { position: absolute; right: -15px; top: -10px; font-size: 90px; color: #fff; opacity: 0.02; pointer-events: none; z-index: 0; }
-        .live-badge { 
-            display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.6); 
-            padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); 
-            font-size: 8px; font-weight: 800; z-index: 2; flex-shrink: 0;
+        .challenge-card {
+            position: relative;
+            background: #09090c;
+            border: 1.5px solid #FFD700;
+            border-radius: 22px;
+            padding: 14px 14px 14px 10px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.25), inset 0 0 12px rgba(255, 215, 0, 0.08);
+            overflow: hidden;
+            width: 100%;
         }
-        .pulse-dot { width: 5px; height: 5px; background: #FF9500; border-radius: 50%; box-shadow: 0 0 6px #FF9500; }
-        .live-badge .dim { color: #fff; font-weight: 600; opacity: 0.9;}
 
-        .challenge-body-row {
-            display: flex; flex-direction: row; gap: 8px; 
-            padding: 0 12px 12px 12px; position: relative; z-index: 2;
+        /* Неоновый блик в левом верхнем углу */
+        .challenge-card::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.35) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
         }
-        
-        .task-box {
-            flex: 1; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: var(--radius-md); padding: 8px 10px; display: flex; align-items: center; gap: 8px; min-width: 0;
-        }
-        .task-icon-mini {
-            width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.05);
-            display: flex; justify-content: center; align-items: center; font-size: 11px; color: #fff; flex-shrink: 0;
-        }
-        .task-info-mini { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; justify-content: center;}
-        .task-title-mini { font-size: 9px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff;}
-        .task-progress-row { display: flex; align-items: center; gap: 6px; }
-        .progress-bar-mini { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; flex: 1; overflow: hidden; }
-        .progress-fill-mini { height: 100%; background: var(--gold-grad); border-radius: 2px; }
-        .task-num-mini { font-size: 8px; font-weight: 800; font-family: monospace; color: var(--text-dim); white-space: nowrap; opacity: 0.9;}
 
-        .reward-box {
-            background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: var(--radius-md); padding: 8px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        /* Левая колонка: персонаж */
+        .challenge-art-col {
+            width: 110px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
         }
-        .reward-info-mini { display: flex; flex-direction: column; justify-content: center; gap: 2px;}
-        .r-lbl-mini { font-size: 8px; color: var(--text-dim); opacity: 0.9;}
-        .r-val-mini { font-size: 12px; font-weight: 900; color: var(--gold-primary); display: flex; align-items: center; gap: 3px; }
+
+        .challenge-art-img {
+            width: 100%;
+            height: 100%;
+            max-height: 140px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.4));
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Правая колонка: весь контент */
+        .challenge-content-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Верхняя строка: заголовок и таймер */
+        .challenge-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .challenge-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .challenge-main-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 900;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .challenge-sub-title {
+            margin: 0;
+            font-size: 9.5px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Таймер-пилюля в верхнем правом углу */
+        .challenge-timer-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #000000;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 800;
+            font-family: monospace;
+            color: #FFFFFF;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .challenge-timer-pill i {
+            color: #FFD700;
+            font-size: 10px;
+        }
+
+        /* Центральная карточка задания с прогресс-баром */
+        .challenge-task-card {
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .challenge-task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .challenge-task-text {
+            font-size: 10px;
+            font-weight: 800;
+            color: #FFFFFF;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .challenge-task-count {
+            font-size: 10px;
+            font-weight: 900;
+            color: #FFFFFF;
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        .challenge-progress-track {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .challenge-progress-bar {
+            height: 100%;
+            background: #FFD700;
+            border-radius: 999px;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+            transition: width 0.3s ease;
+        }
+
+        /* Нижняя строка: награда и кнопка */
+        .challenge-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .challenge-reward-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .challenge-reward-label {
+            font-size: 8.5px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+        }
+
+        .challenge-reward-value {
+            font-size: 14px;
+            font-weight: 900;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1;
+        }
+
+        .challenge-reward-value i {
+            font-size: 12px;
+        }
+
+        /* Объемная золотая капсульная кнопка */
         .cs-gold-btn-mini {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 18px;
-    background: linear-gradient(180deg, #FFE14D 0%, #FFB703 50%, #F59E0B 100%);
-    border: 1px solid rgba(255, 220, 100, 0.6);
-    border-radius: 999px;
-    color: #161102;
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    line-height: 1;
-    cursor: pointer;
-    user-select: none;
-    text-decoration: none;
-    box-shadow: 
-        inset 0 1px 1px rgba(255, 255, 255, 0.7),
-        inset 0 -2px 4px rgba(180, 83, 9, 0.4),
-        0 4px 15px rgba(245, 158, 11, 0.45);
-    transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
-}
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: linear-gradient(180deg, #FFE14D 0%, #FFB703 50%, #F59E0B 100%);
+            border: 1px solid rgba(255, 220, 100, 0.7);
+            border-radius: 999px;
+            color: #161102;
+            font-family: 'Inter', sans-serif;
+            font-size: 10.5px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.7),
+                inset 0 -2px 4px rgba(180, 83, 9, 0.4),
+                0 4px 14px rgba(245, 158, 11, 0.45);
+            transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+            white-space: nowrap;
+        }
 
-.cs-gold-btn-mini i {
-    font-size: 12px;
-    color: #161102;
-}
+        .cs-gold-btn-mini i {
+            font-size: 11px;
+            color: #161102;
+        }
 
-.cs-gold-btn-mini .btn-arrow {
-    font-size: 11px;
-    opacity: 0.85;
-}
+        .cs-gold-btn-mini .btn-arrow {
+            font-size: 10px;
+            opacity: 0.85;
+        }
 
-.cs-gold-btn-mini:hover {
-    filter: brightness(1.05);
-    box-shadow: 
-        inset 0 1px 1px rgba(255, 255, 255, 0.8),
-        0 6px 20px rgba(245, 158, 11, 0.6);
-}
+        .cs-gold-btn-mini:hover {
+            filter: brightness(1.05);
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.8),
+                0 6px 18px rgba(245, 158, 11, 0.6);
+        }
 
-.cs-gold-btn-mini:active {
-    transform: scale(0.96);
-    box-shadow: 
-        inset 0 2px 3px rgba(0, 0, 0, 0.2),
-        0 2px 8px rgba(245, 158, 11, 0.3);
-}
+        .cs-gold-btn-mini:active {
+            transform: scale(0.96);
+        }
 
-.cs-gold-btn-mini.disabled {
-    opacity: 0.45;
-    pointer-events: none;
-    filter: grayscale(0.85);
-    box-shadow: none;
-}
-
+        .cs-gold-btn-mini.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.8);
+            box-shadow: none;
+        }
         /* ==========================================
            8. ТРИГГЕР КОНСТРУКТОРА
            ========================================== */
@@ -747,50 +915,51 @@
             <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
             <div id="section-weekly-plan">
                 
-                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ -->
-                <div class="premium-card challenge-card" id="challenge-card-box">
-                    <i class="fa-solid fa-trophy watermark-icon" id="challenge-watermark-icon"></i>
-                    
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box" id="challenge-icon-box"><i class="fa-solid fa-bolt" id="challenge-main-icon"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title" id="challenge-header-title">ЕЖЕДНЕВНЫЙ ВЫЗОВ</h2>
-                                <p class="c-desc" id="challenge-header-desc">Личное задание на сегодня</p>
-                            </div>
-                        </div>
-                        <div class="live-badge" id="challenge-timer-badge">
-                            <i class="fa-regular fa-clock" style="color: var(--gold-primary);"></i> <span id="challenge-reset-timer">--:--:--</span>
-                        </div>
-                  </div>
+                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ПОЛНЫЙ МАКЕТ С ПЕПЕ) -->
+                <div class="challenge-card" id="challenge-card-box">
+                    <!-- ЛЕВАЯ КОЛОНКА: АРТ ПЕРСОНАЖА -->
+                    <div class="challenge-art-col">
+                        <img src="/public/static/pepe_challenge.webp" id="challenge-art-img" class="challenge-art-img" alt="Пепе">
+                    </div>
 
-                    <!-- Горизонтальная структура карточки -->
-                    <div class="challenge-body-row">
-                        <!-- Левый блок - Задание -->
-                        <div class="task-box">
-                            <div class="task-icon-mini" id="challenge-task-mini-icon"><i class="fa-solid fa-bullseye"></i></div>
-                            <div class="task-info-mini">
-                                <span class="task-title-mini" id="challenge-task-name">Загрузка задания...</span>
-                                <div class="task-progress-row">
-                                    <div class="progress-bar-mini">
-                                        <div class="progress-fill-mini" id="challenge-progress-fill" style="width: 0%;"></div>
-                                    </div>
-                                    <span class="task-num-mini" id="challenge-task-numbers">0 / 0</span>
-                                </div>
+                    <!-- ПРАВАЯ КОЛОНКА: ДАННЫЕ ЗАДАНИЯ -->
+                    <div class="challenge-content-col">
+                        <!-- ВЕРХ: НАЗВАНИЕ + ТАЙМЕР -->
+                        <div class="challenge-top-row">
+                            <div class="challenge-title-group">
+                                <h2 class="challenge-main-title" id="challenge-header-title">РАЗМИНКА</h2>
+                                <p class="challenge-sub-title" id="challenge-header-desc">Личное задание на сегодня</p>
+                            </div>
+                            <div class="challenge-timer-pill" id="challenge-timer-badge">
+                                <i class="fa-regular fa-clock"></i>
+                                <span id="challenge-reset-timer">23:59:59</span>
                             </div>
                         </div>
-                        
-                        <!-- Правый блок - Награда и Кнопка -->
-                        <div class="reward-box">
-                            <div class="reward-info-mini">
-                                <span class="r-lbl-mini">Награда</span>
-                                <span class="r-val-mini" id="challenge-reward-val">+0 <i class="fa-solid fa-ticket"></i></span>
+
+                        <!-- ЦЕНТР: ПЛАШКА ЗАДАНИЯ С ПОЛОСОЙ ПРОГРЕССА -->
+                        <div class="challenge-task-card">
+                            <div class="challenge-task-header">
+                                <span class="challenge-task-text" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
+                                <span class="challenge-task-count" id="challenge-task-numbers">0 / 5</span>
+                            </div>
+                            <div class="challenge-progress-track">
+                                <div class="challenge-progress-bar" id="challenge-progress-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- НИЗ: НАГРАДА + КНОПКА -->
+                        <div class="challenge-bottom-row">
+                            <div class="challenge-reward-group">
+                                <span class="challenge-reward-label">Награда</span>
+                                <span class="challenge-reward-value" id="challenge-reward-val">
+                                    +1 <i class="fa-solid fa-coins"></i>
+                                </span>
                             </div>
                             <button id="claim-challenge-btn" class="cs-gold-btn-mini disabled" onclick="claimActiveStreamChallenge()">
-    <i class="fa-solid fa-comment-dots"></i>
-    <span>В ПРОЦЕССЕ</span>
-    <i class="fa-solid fa-angles-right btn-arrow"></i>
-</button>
+                                <i class="fa-solid fa-comment-dots"></i>
+                                <span>В ПРОЦЕССЕ</span>
+                                <i class="fa-solid fa-angles-right btn-arrow"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1411,7 +1580,6 @@
 
             startDailyResetTimer();
 
-            // Если квеста нет вообще
             if (!challengeData) {
                 if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание нового задания...";
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
@@ -1430,28 +1598,25 @@
             const isClaimed = !!challengeData.claimed_at;
             const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
 
-            // Заголовки и тексты
-            if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "ЕЖЕДНЕВНЫЙ ВЫЗОВ";
+            // Заголовок и подзаголовок
+            if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
+            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = challengeData.description || "Личное задание на сегодня";
+            
+            // Текст задания и цифры
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
-
-            // Динамические иконки (из шаблона)
-            const iconCls = challengeData.icon || "fa-solid fa-bolt";
-            if (dom.challengeMainIcon) dom.challengeMainIcon.className = iconCls;
-            if (dom.challengeTaskMiniIcon) dom.challengeTaskMiniIcon.innerHTML = `<i class="${iconCls}"></i>`;
-            if (dom.challengeWatermarkIcon) dom.challengeWatermarkIcon.className = `${iconCls} watermark-icon`;
-
-            // Прогресс
-            if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
 
-            // Иконка и сумма награды
-            const rewType = challengeData.reward_type || 'tickets';
-            const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
+            // Полоса прогресса
+            if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
+
+            // Награда (по умолчанию золотые монетки)
+            const rewType = challengeData.reward_type || 'coins';
+            const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
             if (dom.challengeRewardVal) {
-                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 2} ${rewIcon}`;
+                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
             }
 
-            // Новая кнопка со стрелочками и состояниями
+            // Статус и иконки кнопки
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
