@@ -151,23 +151,27 @@
 }
 
         /* Оперативник привязан к шапке: поднимается и опускается вместе с ней */
-        .bg-soldier {
-    position: absolute;
-    right: -20px;
-    top: -17px;
-    width: 310px;
-    height: 310px;
-    background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp');
-    background-size: contain;
-    background-position: top right;
-    background-repeat: no-repeat;
-    z-index: -1;
-    pointer-events: none;
-    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.15));
-    clip-path: inset(0 0 40px 0); /* Параметр обрезки: срезает 40px снизу (регулируйте под нужную высоту) */
-    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
-    mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
-    opacity: 0.9;
+        /* ==========================================
+   4. HERO СЕКЦИЯ (ШАПКА, ОПЕРАТИВНИК И ЛИМИТЫ)
+   ========================================== */
+
+.bg-soldier { 
+    position: absolute; 
+    right: -1px; 
+    top: -17px; 
+    width: 310px; 
+    height: 310px; 
+    background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp'); 
+    background-size: contain; 
+    background-position: top right; 
+    background-repeat: no-repeat; 
+    z-index: -1; 
+    pointer-events: none; 
+    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.15)); 
+    clip-path: inset(0 0 40px 0); 
+    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+    mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+    opacity: 0.9; 
 }
 
         .hero-content { 
@@ -180,20 +184,17 @@
         .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;}
 
         .limit-pill { 
-            position: absolute; 
-            top: 0; 
-            right: 0; 
-            z-index: 3;
-            display: flex; 
-            align-items: center; 
-            gap: 6px;
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border);
-            border-radius: 10px; 
-            padding: 6px 8px; 
-            backdrop-filter: blur(20px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
+    position: absolute; 
+    top: 0; 
+    right: 0; 
+    z-index: -77; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    border-radius: 10px; 
+    backdrop-filter: blur(20px); 
+    -webkit-backdrop-filter: blur(20px);
+}
         .limit-pill i { color: var(--gold-primary); font-size: 14px; transform: rotate(-10deg); }
         .limit-texts { display: flex; flex-direction: column; }
         .limit-lbl { font-size: 8px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
