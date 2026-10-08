@@ -85,15 +85,16 @@
         }
 
         .main-content {
-            padding: 4px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            opacity: 0; 
-            transition: opacity 0.4s ease;
-            position: relative;
-            z-index: 10;
-        }
+    /* Третье значение отвечает за отступ снизу: увеличьте 140px, например, до 180px или 200px */
+    padding: 4px 10px calc(180px + env(safe-area-inset-bottom, 20px)) 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0; 
+    transition: opacity 0.4s ease;
+    position: relative;
+    z-index: 10;
+}
 
         /* ==========================================
            3. ВЕРХНИЙ БАР (МАТРИЦА)
