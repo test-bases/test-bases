@@ -84,24 +84,6 @@
             z-index: 1;
         }
 
-        .bg-soldier {
-            position: absolute; 
-            right: -15px; 
-            top: -15px;
-            width: 350px; 
-            height: 350px;
-            background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp');
-            background-size: contain; 
-            background-position: center right; 
-            background-repeat: no-repeat;
-            z-index: 0; 
-            pointer-events: none;
-            filter: drop-shadow(0 0 15px rgba(212,175,55,0.15));
-            -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%);
-            mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%);
-            opacity: 0.9;
-        }
-
         .main-content {
             padding: 4px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
             width: 100%;
@@ -155,9 +137,6 @@
         .stat-fill { height: 100%; background: var(--gold-grad); border-radius: 2px; }
 
         /* ==========================================
-           4. HERO ШАПКА
-           ========================================== */
-        /* ==========================================
            4. HERO СЕКЦИЯ (ШАПКА И ОПЕРАТИВНИК)
            ========================================== */
         .hero-section { 
@@ -171,15 +150,15 @@
         }
 
         /* Оперативник привязан к шапке: поднимается и опускается вместе с ней */
-        .bg-soldier {
+        .bg-soldier { 
             position: absolute; 
             right: -20px; 
-            top: -35px; /* Высота шлема четко по уровню заголовка */
+            top: -35px;
             width: 310px; 
             height: 310px;
             background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp');
             background-size: contain; 
-            background-position: top right; /* Шлем сразу сверху, не сползает вниз */
+            background-position: top right;
             background-repeat: no-repeat;
             z-index: 1; 
             pointer-events: none;
@@ -192,14 +171,17 @@
         .hero-content { 
             width: 65%; 
             position: relative; 
-            z-index: 2; /* Текст гарантированно поверх картинки */
+            z-index: 2;
         }
+        .hero-title { font-size: 16px; font-weight: 900; line-height: 1.15; margin: 0 0 6px 0; text-transform: uppercase; }
+        .gold-text { background: var(--gold-grad-light); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;}
 
-        .limit-pill {
+        .limit-pill { 
             position: absolute; 
             top: 0; 
             right: 0; 
-            z-index: 3; /* Кнопка лимита поверх картинки */
+            z-index: 3;
             display: flex; 
             align-items: center; 
             gap: 6px;
@@ -631,9 +613,6 @@
 
     <!-- ГЛАВНЫЙ ОГРАНИЧИТЕЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16) -->
     <div class="mobile-wrapper">
-        <!-- ОПЕРАТИВНИК НА ФОНЕ (ПОДНЯТ ВЫШЕ И ЛЕВЕЕ, ЗА ВСЕМИ ЭЛЕМЕНТАМИ) -->
-        <div class="bg-soldier"></div>
-        
         <main id="main-content" class="main-content">
             
             <!-- Pull to Refresh индикатор -->
@@ -764,8 +743,8 @@
                         <div class="head-left">
                             <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
                             <div class="head-titles">
-                                <h2 class="c-title">КОНСТРУКТОР КОНТРАКТА</h2>
-                                <p class="c-desc">Настрой сложность. Слоты выкл.</p>
+                                <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
+                                <p class="c-desc">Настрой сам себе задания</p>
                             </div>
                         </div>
                     </div>
@@ -1676,10 +1655,17 @@
                     try {
                         bootstrapData = await window.bootstrapPromise;
                     } catch (e) {
-                        bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
+                        bootstrapData = null;
                     }
-                } else {
-                    bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
+                }
+                
+                // Страховка: если предзагрузка вернула null, пробуем стандартный запрос
+                if (!bootstrapData) {
+                    try {
+                        bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
+                    } catch (e) {
+                        console.warn("Основной запрос bootstrap не удался:", e);
+                    }
                 }
 
                 updateLoading(65);
