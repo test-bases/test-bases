@@ -243,13 +243,13 @@
         .c-title { margin: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
-       /* ==========================================
-   7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ИДЕАЛЬНЫЙ ШАБЛОН)
+/* ==========================================
+   7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ТОЧНО ПО МАКЕТУ)
    ========================================== */
 .challenge-card-canvas {
     position: relative;
     width: 100%;
-    aspect-ratio: 960 / 410; /* Пропорции шаблона */
+    aspect-ratio: 960 / 410;
     background-image: url('/public/static/pepe_challenge.webp');
     background-size: 100% 100%;
     background-position: center;
@@ -260,18 +260,19 @@
     user-select: none;
 }
 
-/* 1. Заголовок и подзаголовок (над центральной плашкой) */
+/* 1. Заголовок и подзаголовок */
 .canvas-title-group {
     position: absolute;
     top: 11%;
-    left: 36.5%;
+    left: 36%;
     display: flex;
     flex-direction: column;
     gap: 1px;
+    max-width: 40%;
 }
 .canvas-main-title {
     margin: 0;
-    font-size: clamp(12px, 3.8vw, 16px);
+    font-size: clamp(13px, 3.8vw, 16px);
     font-weight: 900;
     color: #FFFFFF;
     text-transform: uppercase;
@@ -280,40 +281,43 @@
 }
 .canvas-sub-title {
     margin: 0;
-    font-size: clamp(7.5px, 2.2vw, 9.5px);
+    font-size: clamp(8px, 2.3vw, 10px);
     color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* 2. Таймер (ложится ровно в верхнее правое окошко рядом с часиками) */
 .canvas-timer-text {
     position: absolute;
     top: 11%;
-    right: 4.5%;
-    width: 11%;
+    right: 4%;
+    width: 13%;
     height: 12%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(8px, 2.5vw, 11px);
+    font-size: clamp(9px, 2.6vw, 11px);
     font-weight: 800;
     font-family: monospace;
     color: #FFFFFF;
     line-height: 1;
 }
 
-/* 3. Центральное окно (задание + шкала прогресса) */
+/* 3. Центральная плашка: задание + шкала прогресса */
 .canvas-task-box {
     position: absolute;
     top: 30.5%;
     left: 35.5%;
-    width: 61%;
+    width: 61.5%;
     height: 28.5%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 0 4%;
-    gap: 5px;
+    gap: 6px;
 }
 .canvas-task-header {
     display: flex;
@@ -322,7 +326,7 @@
     width: 100%;
 }
 .canvas-task-title {
-    font-size: clamp(8px, 2.4vw, 10.5px);
+    font-size: clamp(8.5px, 2.5vw, 11px);
     font-weight: 800;
     color: #FFFFFF;
     white-space: nowrap;
@@ -331,14 +335,14 @@
     max-width: 80%;
 }
 .canvas-task-numbers {
-    font-size: clamp(8.5px, 2.6vw, 11px);
+    font-size: clamp(9px, 2.7vw, 11px);
     font-weight: 900;
     font-family: monospace;
     color: #FFFFFF;
 }
 .canvas-progress-track {
     width: 100%;
-    height: 7px;
+    height: 8px;
     background: rgba(255, 255, 255, 0.12);
     border-radius: 999px;
     overflow: hidden;
@@ -351,7 +355,7 @@
     transition: width 0.3s ease;
 }
 
-/* 4. Левое нижнее окно (Награда) */
+/* 4. Левое нижнее окно: Награда */
 .canvas-reward-box {
     position: absolute;
     top: 63.5%;
@@ -365,12 +369,12 @@
     gap: 1px;
 }
 .canvas-reward-label {
-    font-size: clamp(7px, 2vw, 8.5px);
+    font-size: clamp(7.5px, 2.1vw, 9px);
     color: rgba(255, 255, 255, 0.65);
     font-weight: 600;
 }
 .canvas-reward-val {
-    font-size: clamp(11px, 3.2vw, 15px);
+    font-size: clamp(12px, 3.4vw, 15px);
     font-weight: 900;
     color: #FFD700;
     display: flex;
@@ -379,46 +383,53 @@
     line-height: 1;
 }
 
-/* 5. Кнопка (ложится прямо поверх нарисованной желтой капсулы) */
-.canvas-btn-trigger {
-    position: absolute;
-    top: 63.5%;
-    right: 3.5%;
-    width: 33.5%;
-    height: 24.5%;
-    border: none;
-    background: transparent;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    color: #120e02;
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(8.5px, 2.5vw, 11px);
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    cursor: pointer;
-    line-height: 1;
+/* 5. Кнопка (ложится ровно поверх нарисованной желтой капсулы) */
+#claim-challenge-btn {
+    position: absolute !important;
+    top: 63.5% !important;
+    right: 3.2% !important;
+    width: 34% !important;
+    height: 24.5% !important;
+    border: none !important;
+    background: transparent !important; /* Желтая капсула уже нарисована на фоне! */
+    border-radius: 999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    color: #140f02 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: clamp(9px, 2.7vw, 11.5px) !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    z-index: 10 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
-.canvas-btn-trigger i {
-    font-size: clamp(8.5px, 2.5vw, 11px);
-    color: #120e02;
+
+#claim-challenge-btn i {
+    font-size: clamp(9px, 2.7vw, 11px) !important;
+    color: #140f02 !important;
 }
-.canvas-btn-trigger:active {
+
+#claim-challenge-btn:active {
     transform: scale(0.97);
 }
 
-/* Состояние «Забрано» (перекрывает желтую капсулу темным фоном) */
-.canvas-btn-trigger.claimed {
-    background: #232328;
-    color: #888888;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    pointer-events: none;
+/* Состояние «Забрано» перекрывает нарисованную желтую кнопку темной плашкой */
+#claim-challenge-btn.claimed {
+    background: #1c1c21 !important;
+    color: #777777 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    pointer-events: none !important;
 }
-.canvas-btn-trigger.claimed i {
-    color: #888888;
+#claim-challenge-btn.claimed i {
+    color: #777777 !important;
 }
         /* ==========================================
            8. ТРИГГЕР КОНСТРУКТОРА
@@ -827,7 +838,7 @@
             <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
             <div id="section-weekly-plan">
                 
-                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ХОЛСТ ПО ШАБЛОНУ) -->
+                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ТОЧНАЯ ПОСАДКА НА ФОН) -->
                 <div class="challenge-card-canvas" id="challenge-card-box">
                     <!-- Заголовок и подзаголовок -->
                     <div class="canvas-title-group">
@@ -835,10 +846,10 @@
                         <span class="canvas-sub-title" id="challenge-header-desc">Личное задание на сегодня</span>
                     </div>
 
-                    <!-- Таймер (в правое окошко с часами) -->
-                    <span class="canvas-timer-text" id="challenge-reset-timer">23:50:11</span>
+                    <!-- Таймер (в правое окошко с часиками) -->
+                    <span class="canvas-timer-text" id="challenge-reset-timer">23:59:59</span>
 
-                    <!-- Центральное окно задания -->
+                    <!-- Центральная плашка: задание + шкала -->
                     <div class="canvas-task-box">
                         <div class="canvas-task-header">
                             <span class="canvas-task-title" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
@@ -855,24 +866,12 @@
                         <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
                     </div>
 
-                <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
-                <div class="premium-card trigger-card" onclick="openConstructorModal()">
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
-                                <p class="c-desc">Настрой сам себе задания</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="handdrawn-arrow">
-                        <span>Настрой<br>под себя</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
+                    <!-- Кнопка поверх желтой капсулы фона -->
+                    <button id="claim-challenge-btn" onclick="claimActiveStreamChallenge()">
+                        <i class="fa-solid fa-comment-dots"></i>
+                        <span>В ПРОЦЕССЕ</span>
+                        <i class="fa-solid fa-angles-right"></i>
+                    </button>
                 </div>
 
                 <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
@@ -1466,18 +1465,18 @@
             setInterval(update, 1000);
         }
 
-       function renderChallenge(challengeData) {
+       ffunction renderChallenge(challengeData) {
             if (!dom.challengeCardBox) return;
 
             startDailyResetTimer();
 
             if (!challengeData) {
-                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание нового задания...";
+                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание задания...";
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
                 if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
                 if (dom.claimChallengeBtn) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЖДЕМ</span>`;
-                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+                    dom.claimChallengeBtn.classList.add('claimed');
                 }
                 return;
             }
@@ -1491,8 +1490,8 @@
 
             // Заголовок и подзаголовок
             if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
-            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = challengeData.description || "Личное задание на сегодня";
-            
+            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = "Личное задание на сегодня";
+
             // Текст задания и цифры
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
@@ -1500,24 +1499,24 @@
             // Полоса прогресса
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
 
-            // Награда (по умолчанию золотые монетки)
+            // Награда
             const rewType = challengeData.reward_type || 'coins';
             const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
             if (dom.challengeRewardVal) {
                 dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
             }
 
-            // Статус и иконки кнопки
+            // Управление состоянием кнопки без сброса её координат
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
-                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+                    dom.claimChallengeBtn.className = "claimed";
                 } else if (canClaim) {
-                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
-                    dom.claimChallengeBtn.className = "cs-gold-btn-mini";
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right"></i>`;
+                    dom.claimChallengeBtn.className = "";
                 } else {
-                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
-                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right"></i>`;
+                    dom.claimChallengeBtn.className = "";
                 }
             }
         }
