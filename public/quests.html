@@ -284,12 +284,61 @@
         .r-lbl-mini { font-size: 8px; color: var(--text-dim); opacity: 0.9;}
         .r-val-mini { font-size: 12px; font-weight: 900; color: var(--gold-primary); display: flex; align-items: center; gap: 3px; }
         .cs-gold-btn-mini {
-            background: var(--gold-grad); border: none; color: var(--text-dark);
-            border-radius: 6px; padding: 6px 14px; font-size: 9px; font-weight: 800;
-            cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(212,175,55,0.3); text-transform: uppercase;
-        }
-        .cs-gold-btn-mini:active { transform: scale(0.95); }
-        .cs-gold-btn-mini.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, #FFE14D 0%, #FFB703 50%, #F59E0B 100%);
+    border: 1px solid rgba(255, 220, 100, 0.6);
+    border-radius: 999px;
+    color: #161102;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+    box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.7),
+        inset 0 -2px 4px rgba(180, 83, 9, 0.4),
+        0 4px 15px rgba(245, 158, 11, 0.45);
+    transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cs-gold-btn-mini i {
+    font-size: 12px;
+    color: #161102;
+}
+
+.cs-gold-btn-mini .btn-arrow {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.cs-gold-btn-mini:hover {
+    filter: brightness(1.05);
+    box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.8),
+        0 6px 20px rgba(245, 158, 11, 0.6);
+}
+
+.cs-gold-btn-mini:active {
+    transform: scale(0.96);
+    box-shadow: 
+        inset 0 2px 3px rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.cs-gold-btn-mini.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(0.85);
+    box-shadow: none;
+}
 
         /* ==========================================
            8. ТРИГГЕР КОНСТРУКТОРА
@@ -737,7 +786,11 @@
                                 <span class="r-lbl-mini">Награда</span>
                                 <span class="r-val-mini" id="challenge-reward-val">+0 <i class="fa-solid fa-ticket"></i></span>
                             </div>
-                            <button id="claim-challenge-btn" class="cs-gold-btn-mini disabled" onclick="claimActiveStreamChallenge()">ЖДЕМ</button>
+                            <button id="claim-challenge-btn" class="cs-gold-btn-mini disabled" onclick="claimActiveStreamChallenge()">
+    <i class="fa-solid fa-comment-dots"></i>
+    <span>В ПРОЦЕССЕ</span>
+    <i class="fa-solid fa-angles-right btn-arrow"></i>
+</button>
                         </div>
                     </div>
                 </div>
@@ -1363,11 +1416,17 @@
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
                 if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
                 if (dom.claimChallengeBtn) {
-                    dom.claimChallengeBtn.textContent = "ЖДЕМ";
-                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
-                }
-                return;
-            }
+    if (isClaimed) {
+        dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
+        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+    } else if (canClaim) {
+        dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
+        dom.claimChallengeBtn.className = "cs-gold-btn-mini";
+    } else {
+        dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
+        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+    }
+}
 
             activeChallengeId = challengeData.id;
             const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
