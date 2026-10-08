@@ -698,33 +698,35 @@
             <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
             <div id="section-weekly-plan">
                 
-                <!-- 4. СТРИМ-ЧЕЛЛЕНДЖ -->
+                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ -->
                 <div class="premium-card challenge-card" id="challenge-card-box">
-                    <i class="fa-brands fa-twitch watermark-icon"></i>
+                    <i class="fa-solid fa-trophy watermark-icon" id="challenge-watermark-icon"></i>
                     
                     <div class="card-header borderless">
                         <div class="head-left">
-                            <div class="icon-box"><i class="fa-brands fa-twitch"></i></div>
+                            <div class="icon-box" id="challenge-icon-box"><i class="fa-solid fa-bolt" id="challenge-main-icon"></i></div>
                             <div class="head-titles">
-                                <h2 class="c-title" id="challenge-header-title">СТРИМ-ЧЕЛЛЕНДЖ</h2>
-                                <p class="c-desc" id="challenge-header-desc">Выполни задание во время прямой трансляции и получи награду!</p>
+                                <h2 class="c-title" id="challenge-header-title">ЕЖЕДНЕВНЫЙ ВЫЗОВ</h2>
+                                <p class="c-desc" id="challenge-header-desc">Личное задание на сегодня</p>
                             </div>
                         </div>
-                        <div class="live-badge" id="stream-live-badge"><span class="pulse-dot"></span> LIVE <span class="dim">12.4K</span></div>
-                    </div>
+                        <div class="live-badge" id="challenge-timer-badge">
+                            <i class="fa-regular fa-clock" style="color: var(--gold-primary);"></i> <span id="challenge-reset-timer">--:--:--</span>
+                        </div>
+                  </div>
 
-                    <!-- Горизонтальная структура как на скриншоте -->
+                    <!-- Горизонтальная структура карточки -->
                     <div class="challenge-body-row">
                         <!-- Левый блок - Задание -->
                         <div class="task-box">
-                            <div class="task-icon-mini"><i class="fa-solid fa-bullseye"></i></div>
+                            <div class="task-icon-mini" id="challenge-task-mini-icon"><i class="fa-solid fa-bullseye"></i></div>
                             <div class="task-info-mini">
-                                <span class="task-title-mini" id="challenge-task-name">Проведи в чате 50 сообщений</span>
+                                <span class="task-title-mini" id="challenge-task-name">Загрузка задания...</span>
                                 <div class="task-progress-row">
                                     <div class="progress-bar-mini">
-                                        <div class="progress-fill-mini" id="challenge-progress-fill" style="width: 48%;"></div>
+                                        <div class="progress-fill-mini" id="challenge-progress-fill" style="width: 0%;"></div>
                                     </div>
-                                    <span class="task-num-mini" id="challenge-task-numbers">24 / 50</span>
+                                    <span class="task-num-mini" id="challenge-task-numbers">0 / 0</span>
                                 </div>
                             </div>
                         </div>
@@ -733,9 +735,9 @@
                         <div class="reward-box">
                             <div class="reward-info-mini">
                                 <span class="r-lbl-mini">Награда</span>
-                                <span class="r-val-mini" id="challenge-reward-val">+2 <i class="fa-solid fa-ticket"></i></span>
+                                <span class="r-val-mini" id="challenge-reward-val">+0 <i class="fa-solid fa-ticket"></i></span>
                             </div>
-                            <button id="claim-challenge-btn" class="cs-gold-btn-mini" onclick="claimActiveStreamChallenge()">Забрать</button>
+                            <button id="claim-challenge-btn" class="cs-gold-btn-mini disabled" onclick="claimActiveStreamChallenge()">ЖДЕМ</button>
                         </div>
                     </div>
                 </div>
@@ -1035,11 +1037,14 @@
             // Шапка и лимит
             weeklyLimitCount: document.getElementById('weekly-limit-count'),
 
-            // Стрим-челлендж
+            // Челлендж
             challengeCardBox: document.getElementById('challenge-card-box'),
             challengeHeaderTitle: document.getElementById('challenge-header-title'),
             challengeHeaderDesc: document.getElementById('challenge-header-desc'),
-            streamLiveBadge: document.getElementById('stream-live-badge'),
+            challengeWatermarkIcon: document.getElementById('challenge-watermark-icon'),
+            challengeMainIcon: document.getElementById('challenge-main-icon'),
+            challengeTaskMiniIcon: document.getElementById('challenge-task-mini-icon'),
+            challengeResetTimer: document.getElementById('challenge-reset-timer'),
             challengeTaskName: document.getElementById('challenge-task-name'),
             challengeProgressFill: document.getElementById('challenge-progress-fill'),
             challengeTaskNumbers: document.getElementById('challenge-task-numbers'),
@@ -1316,78 +1321,113 @@
         };
 
         // ==========================================
-        // 6. СТРИМ-ЧЕЛЛЕНДЖ
+        // 6. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ
         // ==========================================
-        function renderChallenge(challengeData, isGuest) {
-            if (!dom.challengeCardBox) return;
-            if (isGuest) {
-                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Привяжите Twitch в профиле";
-                if (dom.claimChallengeBtn) {
-                    dom.claimChallengeBtn.textContent = "ПРИВЯЗАТЬ";
-                    dom.claimChallengeBtn.onclick = () => { window.location.href = '/profile'; };
-                }
-                return;
-            }
+        function startDailyResetTimer() {
+            const timerEl = dom.challengeResetTimer || document.getElementById('challenge-reset-timer');
+            if (!timerEl) return;
 
-            if (!challengeData || !challengeData.description) {
+            const update = () => {
+                const now = new Date();
+                // Переводим текущее локальное время в UTC, а затем в MSK (UTC+3)
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const msk = new Date(utc + (3600000 * 3));
+
+                const tomorrow = new Date(msk);
+                tomorrow.setHours(24, 0, 0, 0);
+
+                const diff = tomorrow - msk;
+                if (diff <= 0) {
+                    timerEl.textContent = "00:00:00";
+                    return;
+                }
+
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+
+                timerEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            };
+
+            update();
+            setInterval(update, 1000);
+        }
+
+        function renderChallenge(challengeData) {
+            if (!dom.challengeCardBox) return;
+
+            startDailyResetTimer();
+
+            if (!challengeData) {
                 if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание нового задания...";
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
                 if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
                 if (dom.claimChallengeBtn) {
                     dom.claimChallengeBtn.textContent = "ЖДЕМ";
-                    dom.claimChallengeBtn.classList.add('disabled');
+                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                 }
                 return;
             }
 
-            activeChallengeId = challengeData.challenge_id || challengeData.id;
-            const cur = challengeData.progress_value || 0;
+            activeChallengeId = challengeData.id;
+            const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
             const target = challengeData.target_value || 1;
-            const pct = Math.min(100, (cur / target) * 100);
-            const canClaim = cur >= target && !challengeData.claimed_at;
+            const pct = Math.min(100, Math.floor((cur / target) * 100));
+            const isClaimed = !!challengeData.claimed_at;
+            const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
 
-            if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description;
+            // Заголовки и тексты
+            if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "ЕЖЕДНЕВНЫЙ ВЫЗОВ";
+            if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
+
+            // Динамические иконки (из challenge_templates: fa-brands fa-twitch, fa-brands fa-telegram и т.д.)
+            const iconCls = challengeData.icon || "fa-solid fa-bolt";
+            if (dom.challengeMainIcon) dom.challengeMainIcon.className = iconCls;
+            if (dom.challengeTaskMiniIcon) dom.challengeTaskMiniIcon.innerHTML = `<i class="${iconCls}"></i>`;
+            if (dom.challengeWatermarkIcon) dom.challengeWatermarkIcon.className = `${iconCls} watermark-icon`;
+
+            // Прогресс
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
-            if (dom.challengeRewardVal) dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 2} <i class="fa-solid fa-ticket"></i>`;
 
+            // Иконка награды
+            const rewType = challengeData.reward_type || 'tickets';
+            const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
+            if (dom.challengeRewardVal) {
+                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 2} ${rewIcon}`;
+            }
+
+            // Состояние кнопки забора
             if (dom.claimChallengeBtn) {
-                if (challengeData.claimed_at) {
+                if (isClaimed) {
                     dom.claimChallengeBtn.textContent = "ЗАБРАНО";
-                    dom.claimChallengeBtn.classList.add('disabled');
+                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                 } else if (canClaim) {
                     dom.claimChallengeBtn.textContent = "ЗАБРАТЬ";
-                    dom.claimChallengeBtn.classList.remove('disabled');
+                    dom.claimChallengeBtn.className = "cs-gold-btn-mini";
                 } else {
                     dom.claimChallengeBtn.textContent = "В ПРОЦЕССЕ";
-                    dom.claimChallengeBtn.classList.add('disabled');
+                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                 }
             }
         }
 
         window.claimActiveStreamChallenge = async function() {
-            if (!activeChallengeId) {
-                injectRewardPopup(2, "Челлендж выполнен! Награда начислена.");
-                if (dom.claimChallengeBtn) {
-                    dom.claimChallengeBtn.textContent = "ЗАБРАНО";
-                    dom.claimChallengeBtn.classList.add('disabled');
-                }
-                return;
-            }
+            if (!activeChallengeId) return;
 
             try {
-                const res = await makeApiRequest(`/api/v1/challenges/${activeChallengeId}/claim`, {}, 'POST');
-                if (res && res.success) {
-                    injectRewardPopup(res.tickets_awarded || 2, "Награда за челлендж получена!");
+                const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST');
+                if (res && res.status === 'success') {
+                    injectRewardPopup(res.reward_amount || 2, "Задание дня выполнено! Награда начислена.");
                     if (dom.claimChallengeBtn) {
                         dom.claimChallengeBtn.textContent = "ЗАБРАНО";
-                        dom.claimChallengeBtn.classList.add('disabled');
+                        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                     }
                 } else {
-                    customAlert(res?.message || "Не удалось забрать награду", "ОШИБКА");
+                    customAlert(res?.detail || res?.message || "Условия ещё не выполнены", "ВЫЗОВ");
                 }
             } catch (e) {
-                console.error("Ошибка claimActiveStreamChallenge:", e);
+                console.error("Ошибка при получении награды челленджа:", e);
             }
         };
 
@@ -1680,13 +1720,8 @@
                     // Передаем данные матрицы (или null, если квеста нет в ответе, чтобы точно скрыть плашку)
                     renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
 
-                    const isTwitchLinked = !!(userData.twitch_id || userData.twitch_login);
-                    if (userData.challenge) {
-                        renderChallenge(userData.challenge, !isTwitchLinked);
-                    } else if (userData.challenge_cooldown_until) {
-                        renderChallenge({ cooldown_until: userData.challenge_cooldown_until }, !isTwitchLinked);
-                    }
-                }
+                    const currentChallenge = bootstrapData.challenge || userData.challenge || null;
+                    renderChallenge(currentChallenge);
 
                 updateLoading(100);
             } catch (err) {
