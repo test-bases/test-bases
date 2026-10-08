@@ -1406,27 +1406,22 @@
             setInterval(update, 1000);
         }
 
-        function renderChallenge(challengeData) {
+       function renderChallenge(challengeData) {
             if (!dom.challengeCardBox) return;
 
             startDailyResetTimer();
 
+            // Если квеста нет вообще
             if (!challengeData) {
                 if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание нового задания...";
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
                 if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
                 if (dom.claimChallengeBtn) {
-    if (isClaimed) {
-        dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
-        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
-    } else if (canClaim) {
-        dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
-        dom.claimChallengeBtn.className = "cs-gold-btn-mini";
-    } else {
-        dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
-        dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
-    }
-}
+                    dom.claimChallengeBtn.innerHTML = `<span>ЖДЕМ</span>`;
+                    dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
+                }
+                return;
+            }
 
             activeChallengeId = challengeData.id;
             const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
@@ -1439,7 +1434,7 @@
             if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "ЕЖЕДНЕВНЫЙ ВЫЗОВ";
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
 
-            // Динамические иконки (из challenge_templates: fa-brands fa-twitch, fa-brands fa-telegram и т.д.)
+            // Динамические иконки (из шаблона)
             const iconCls = challengeData.icon || "fa-solid fa-bolt";
             if (dom.challengeMainIcon) dom.challengeMainIcon.className = iconCls;
             if (dom.challengeTaskMiniIcon) dom.challengeTaskMiniIcon.innerHTML = `<i class="${iconCls}"></i>`;
@@ -1449,23 +1444,23 @@
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
 
-            // Иконка награды
+            // Иконка и сумма награды
             const rewType = challengeData.reward_type || 'tickets';
             const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
             if (dom.challengeRewardVal) {
                 dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 2} ${rewIcon}`;
             }
 
-            // Состояние кнопки забора
+            // Новая кнопка со стрелочками и состояниями
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
-                    dom.claimChallengeBtn.textContent = "ЗАБРАНО";
+                    dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
                     dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                 } else if (canClaim) {
-                    dom.claimChallengeBtn.textContent = "ЗАБРАТЬ";
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
                     dom.claimChallengeBtn.className = "cs-gold-btn-mini";
                 } else {
-                    dom.claimChallengeBtn.textContent = "В ПРОЦЕССЕ";
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right btn-arrow"></i>`;
                     dom.claimChallengeBtn.className = "cs-gold-btn-mini disabled";
                 }
             }
