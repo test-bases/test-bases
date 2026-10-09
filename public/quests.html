@@ -244,7 +244,7 @@
         .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
 /* ==========================================
-   7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ТОЧНО ПО МАКЕТУ)
+   7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (С РАМКОЙ)
    ========================================== */
 .challenge-card-canvas {
     position: relative;
@@ -254,10 +254,16 @@
     background-size: 100% 100%;
     background-position: center;
     background-repeat: no-repeat;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     border-radius: 20px;
     overflow: hidden;
     user-select: none;
+    
+    /* Золотая неоновая рамка под стиль CS2 */
+    border: 1.5px solid rgba(255, 215, 0, 0.45);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 
+                inset 0 0 15px rgba(212, 175, 55, 0.15),
+                0 0 12px rgba(255, 215, 0, 0.2);
 }
 
 /* 1. Заголовок и подзаголовок */
@@ -837,63 +843,63 @@
             </div>
 
             <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
-            <div id="section-weekly-plan">
-                
-                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ТОЧНАЯ ПОСАДКА НА ФОН) -->
-                <div class="challenge-card-canvas" id="challenge-card-box">
-                    <!-- Заголовок и подзаголовок -->
-                    <div class="canvas-title-group">
-                        <h2 class="canvas-main-title" id="challenge-header-title">РАЗМИНКА</h2>
-                        <span class="canvas-sub-title" id="challenge-header-desc">Личное задание на сегодня</span>
-                    </div>
+<div id="section-weekly-plan">
+    
+    <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ -->
+    <div class="challenge-card-canvas" id="challenge-card-box">
+        <!-- Заголовок и подзаголовок -->
+        <div class="canvas-title-group">
+            <h2 class="canvas-main-title" id="challenge-header-title">РАЗМИНКА</h2>
+            <span class="canvas-sub-title" id="challenge-header-desc">Личное задание на сегодня</span>
+        </div>
 
-                    <!-- Таймер (в правое окошко с часиками) -->
-                    <span class="canvas-timer-text" id="challenge-reset-timer">23:59:59</span>
+        <!-- Таймер -->
+        <span class="canvas-timer-text" id="challenge-reset-timer">23:59:59</span>
 
-                    <!-- Центральная плашка: задание + шкала -->
-                    <div class="canvas-task-box">
-                        <div class="canvas-task-header">
-                            <span class="canvas-task-title" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
-                            <span class="canvas-task-numbers" id="challenge-task-numbers">0 / 5</span>
-                        </div>
-                        <div class="canvas-progress-track">
-                            <div class="canvas-progress-fill" id="challenge-progress-fill" style="width: 0%;"></div>
-                        </div>
-                    </div>
+        <!-- Задание + прогресс-бар -->
+        <div class="canvas-task-box">
+            <div class="canvas-task-header">
+                <span class="canvas-task-title" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
+                <span class="canvas-task-numbers" id="challenge-task-numbers">0 / 5</span>
+            </div>
+            <div class="canvas-progress-track">
+                <div class="canvas-progress-fill" id="challenge-progress-fill" style="width: 0%;"></div>
+            </div>
+        </div>
 
-                    <!-- Окно награды (слева внизу) -->
-                    <div class="canvas-reward-box">
-                        <span class="canvas-reward-label">Награда</span>
-                        <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
-                    </div>
+        <!-- Награда -->
+        <div class="canvas-reward-box">
+            <span class="canvas-reward-label">Награда</span>
+            <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
+        </div>
 
-                    <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
-                <div class="premium-card trigger-card" onclick="openConstructorModal()">
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
-                                <p class="c-desc">Настрой сам себе задания</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="handdrawn-arrow">
-                        <span>Настрой<br>под себя</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
+        <!-- Кнопка действия (лежит строго на холсте) -->
+        <button id="claim-challenge-btn" onclick="claimActiveStreamChallenge()">
+            <i class="fa-solid fa-comment-dots"></i>
+            <span>В ПРОЦЕССЕ</span>
+            <i class="fa-solid fa-angles-right"></i>
+        </button>
+    </div>
 
-                    <!-- Кнопка поверх желтой капсулы фона -->
-                    <button id="claim-challenge-btn" onclick="claimActiveStreamChallenge()">
-                        <i class="fa-solid fa-comment-dots"></i>
-                        <span>В ПРОЦЕССЕ</span>
-                        <i class="fa-solid fa-angles-right"></i>
-                    </button>
+    <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА (ТЕПЕРЬ ОТДЕЛЬНО СНИЗУ) -->
+    <div class="premium-card trigger-card" onclick="openConstructorModal()">
+        <div class="card-header borderless">
+            <div class="head-left">
+                <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div class="head-titles">
+                    <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
+                    <p class="c-desc">Настрой сам себе задания</p>
                 </div>
-
+            </div>
+        </div>
+        
+        <div class="handdrawn-arrow">
+            <span>Настрой<br>под себя</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
                 <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
                 <div class="premium-card streak-card">
                     <div class="card-header borderless">
