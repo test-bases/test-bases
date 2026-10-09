@@ -1,1895 +1,1794 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Премиальная Матрица CS2</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- Telegram WebApp -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Предзагрузка bootstrap данных -->
-    <script>
-        window.bootstrapPromise = fetch('/api/v1/bootstrap', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
-        }).then(r => r.json()).catch(e => null);
-    </script>
+    <meta charset="UTF-8">
+    <title>Премиальная Матрица CS2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Предзагрузка bootstrap данных -->
+    <script>
+        window.bootstrapPromise = fetch('/api/v1/bootstrap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '' })
+        }).then(r => r.json()).catch(e => null);
+    </script>
 
-    <!-- Подключение верхнего бара -->
-    <script src="/top_nav.js" defer></script>
+    <!-- Подключение верхнего бара -->
+    <script src="/top_nav.js" defer></script>
 
-    <!-- Шрифты и Иконки -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Шрифты и Иконки -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-    <style>
-        /* ==========================================
-           1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС
-           ========================================== */
-        :root {
-            --bg-deep: #09090b;
-            --card-bg: rgba(12, 12, 14, 0.75);
-            --card-border: rgba(255, 255, 255, 0.15);
-            --card-border-gold: rgba(212, 175, 55, 0.35);
-            
-            --gold-primary: #FFD700;
-            --gold-grad: linear-gradient(180deg, #F9D877 0%, #C49A29 100%);
-            --gold-grad-light: linear-gradient(180deg, #FFFFFF 0%, #FFD700 100%);
+    <style>
+        /* ==========================================
+           1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС
+           ========================================== */
+        :root {
+            --bg-deep: #09090b;
+            --card-bg: rgba(12, 12, 14, 0.75);
+            --card-border: rgba(255, 255, 255, 0.15);
+            --card-border-gold: rgba(212, 175, 55, 0.35);
+            
+            --gold-primary: #FFD700;
+            --gold-grad: linear-gradient(180deg, #F9D877 0%, #C49A29 100%);
+            --gold-grad-light: linear-gradient(180deg, #FFFFFF 0%, #FFD700 100%);
 
-            --text-main: #FFFFFF;
-            --text-dim: #FFFFFF;
-            --text-dark: #18181B;
+            --text-main: #FFFFFF;
+            --text-dim: #FFFFFF;
+            --text-dark: #18181B;
 
-            --radius-xl: 14px;
-            --radius-lg: 10px;
-            --radius-md: 8px;
-        }
+            --radius-xl: 14px;
+            --radius-lg: 10px;
+            --radius-md: 8px;
+        }
 
-        *, *::before, *::after { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent;
-        }
+        *, *::before, *::after { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
 
-        html, body {
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%;
-            background-color: var(--bg-deep);
-            font-family: 'Inter', sans-serif; 
-            color: var(--text-main);
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+        html, body {
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: var(--bg-deep); 
+            font-family: 'Inter', sans-serif; 
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
 
-        ::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar { display: none; }
 
-        /* ==========================================
-           2. МОБИЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16)
-           ========================================== */
-        .mobile-wrapper {
-            width: 100%;
-            max-width: 430px; 
-            min-height: 100vh;
-            margin: 0 auto;
-            position: relative;
-            background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1), transparent 40%);
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            z-index: 1;
-        }
+        /* ==========================================
+           2. МОБИЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16)
+           ========================================== */
+        .mobile-wrapper {
+            width: 100%;
+            max-width: 430px; 
+            min-height: 100vh;
+            margin: 0 auto;
+            position: relative;
+            background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1), transparent 40%);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
 
-        .main-content {
-    /* 16px сверху опустит и матрицу, и саму шапку с оперативником */
-    padding: 16px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    opacity: 0; 
-    transition: opacity 0.4s ease;
-    position: relative;
-    z-index: 10;
-}
+        .main-content {
+            padding: 16px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0; 
+            transition: opacity 0.4s ease;
+            position: relative;
+            z-index: 10;
+        }
 
-        /* ==========================================
-           3. ВЕРХНИЙ БАР (МАТРИЦА)
-           ========================================== */
-        .matrix-top-bar {
-            display: flex; align-items: center; justify-content: flex-start;
-            background: rgba(10, 10, 12, 0.85); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px; padding: 6px 12px; margin-bottom: 12px;
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 8px rgba(212,175,55,0.1); 
-            width: 100%;
-        }
-        .matrix-brand { 
-            display: flex; align-items: center; gap: 8px; 
-            padding-right: 12px; margin-right: 12px;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .matrix-icon { 
-            width: 32px; height: 32px; border-radius: 50%; 
-            border: 1px solid rgba(212, 175, 55, 0.5); 
-            display: flex; align-items: center; justify-content: center; 
-            color: var(--gold-primary); font-size: 14px; 
-            background: rgba(0,0,0,0.5); 
-        }
-        .matrix-titles { display: flex; flex-direction: column; gap: 2px; }
-        .m-title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; color: #fff;}
-        .m-sub { font-size: 9px; color: var(--text-dim); opacity: 0.8; }
+        /* ==========================================
+           3. ВЕРХНИЙ БАР (МАТРИЦА)
+           ========================================== */
+        .matrix-top-bar {
+            display: flex; align-items: center; justify-content: flex-start;
+            background: rgba(10, 10, 12, 0.85); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; padding: 6px 12px; margin-bottom: 12px;
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 8px rgba(212,175,55,0.1); 
+            width: 100%;
+        }
+        .matrix-brand { 
+            display: flex; align-items: center; gap: 8px; 
+            padding-right: 12px; margin-right: 12px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .matrix-icon { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            border: 1px solid rgba(212, 175, 55, 0.5); 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--gold-primary); font-size: 14px; 
+            background: rgba(0,0,0,0.5); 
+        }
+        .matrix-titles { display: flex; flex-direction: column; gap: 2px; }
+        .m-title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; color: #fff;}
+        .m-sub { font-size: 9px; color: var(--text-dim); opacity: 0.8; }
 
-        .matrix-stats { display: flex; align-items: center; gap: 14px; flex: 1; justify-content: space-around; }
-        .stat-block { display: flex; align-items: center; gap: 6px; }
-        .stat-icon-wrap {
-            width: 24px; height: 24px; border-radius: 50%; 
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(212, 175, 55, 0.3);
-            display: flex; justify-content: center; align-items: center;
-        }
-        .stat-icon { font-size: 10px; color: #fff; opacity: 0.9; }
-        .stat-info { display: flex; flex-direction: column; width: 65px; gap: 4px; }
-        .stat-head { display: flex; justify-content: space-between; font-size: 9px; color: #fff; font-weight: 500; }
-        .stat-val { font-family: monospace; font-weight: 800; opacity: 0.9; }
-        .stat-track { height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; width: 100%; overflow: hidden; }
-        .stat-fill { height: 100%; background: var(--gold-grad); border-radius: 2px; }
+        .matrix-stats { display: flex; align-items: center; gap: 14px; flex: 1; justify-content: space-around; }
+        .stat-block { display: flex; align-items: center; gap: 6px; }
+        .stat-icon-wrap {
+            width: 24px; height: 24px; border-radius: 50%; 
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .stat-icon { font-size: 10px; color: #fff; opacity: 0.9; }
+        .stat-info { display: flex; flex-direction: column; width: 65px; gap: 4px; }
+        .stat-head { display: flex; justify-content: space-between; font-size: 9px; color: #fff; font-weight: 500; }
+        .stat-val { font-family: monospace; font-weight: 800; opacity: 0.9; }
+        .stat-track { height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; width: 100%; overflow: hidden; }
+        .stat-fill { height: 100%; background: var(--gold-grad); border-radius: 2px; }
 
-        /* ==========================================
-           4. HERO СЕКЦИЯ (ШАПКА И ОПЕРАТИВНИК)
-           ========================================== */
-        .hero-section { 
-    position: relative; 
-    min-height: 95px; 
-    margin-bottom: 24px; /* Увеличенный отступ снизу до кнопок (было 12px) */
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    width: 100%;
-}
+        /* ==========================================
+           4. HERO СЕКЦИЯ (ШАПКА И ОПЕРАТИВНИК)
+           ========================================== */
+        .hero-section { 
+            position: relative; 
+            min-height: 95px; 
+            margin-bottom: 24px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            width: 100%;
+        }
 
-        /* Оперативник привязан к шапке: поднимается и опускается вместе с ней */
-        /* ==========================================
-   4. HERO СЕКЦИЯ (ШАПКА, ОПЕРАТИВНИК И ЛИМИТЫ)
-   ========================================== */
+        .bg-soldier { 
+            position: absolute; 
+            right: -1px; 
+            top: -17px; 
+            width: 310px; 
+            height: 310px; 
+            background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp'); 
+            background-size: contain; 
+            background-position: top right; 
+            background-repeat: no-repeat; 
+            z-index: -1; 
+            pointer-events: none; 
+            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.15)); 
+            clip-path: inset(0 0 40px 0); 
+            -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+            mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+            opacity: 0.9; 
+        }
 
-.bg-soldier { 
-    position: absolute; 
-    right: -1px; 
-    top: -17px; 
-    width: 310px; 
-    height: 310px; 
-    background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp'); 
-    background-size: contain; 
-    background-position: top right; 
-    background-repeat: no-repeat; 
-    z-index: -1; 
-    pointer-events: none; 
-    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.15)); 
-    clip-path: inset(0 0 40px 0); 
-    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
-    mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
-    opacity: 0.9; 
-}
+        .hero-content { 
+            width: 65%; 
+            position: relative; 
+            z-index: 2; 
+        }
+        .hero-title { font-size: 16px; font-weight: 900; line-height: 1.15; margin: 0 0 6px 0; text-transform: uppercase; }
+        .gold-text { background: var(--gold-grad-light); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;}
 
-        .hero-content { 
-            width: 65%; 
-            position: relative; 
-            z-index: 2;
-        }
-        .hero-title { font-size: 16px; font-weight: 900; line-height: 1.15; margin: 0 0 6px 0; text-transform: uppercase; }
-        .gold-text { background: var(--gold-grad-light); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600; opacity: 0.9;}
+        .limit-pill { 
+            position: absolute; 
+            top: 10px; 
+            right: 0; 
+            z-index: 2; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            border-radius: 10px; 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .limit-pill i { color: var(--gold-primary); font-size: 14px; transform: rotate(-10deg); }
+        .limit-texts { display: flex; flex-direction: column; }
+        .limit-lbl { font-size: 8px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
+        .limit-val { font-size: 11px; font-weight: 900; font-family: monospace; line-height: 1;}
 
-        .limit-pill { 
-    position: absolute; 
-    top: 10; 
-    right: 0; 
-    z-index: -77; 
-    display: flex; 
-    align-items: center; 
-    gap: 6px; 
-    border-radius: 10px; 
-    backdrop-filter: blur(20px); 
-    -webkit-backdrop-filter: blur(20px);
-}
-        .limit-pill i { color: var(--gold-primary); font-size: 14px; transform: rotate(-10deg); }
-        .limit-texts { display: flex; flex-direction: column; }
-        .limit-lbl { font-size: 8px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
-        .limit-val { font-size: 11px; font-weight: 900; font-family: monospace; line-height: 1;}
+        /* ==========================================
+           5. ТАБЫ
+           ========================================== */
+        .cs-tabs { 
+            display: flex; gap: 4px; 
+            background: var(--card-bg);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--card-border); border-radius: 30px; 
+            padding: 4px; margin-bottom: 12px; width: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        .cs-tab-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+            background: transparent; border: 1px solid transparent; border-radius: 20px;
+            padding: 8px 10px; font-size: 11px; font-weight: 700; color: #fff; cursor: pointer; transition: 0.3s;
+        }
+        .cs-tab-btn.active { 
+            background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); 
+            color: #fff; box-shadow: inset 0 0 10px rgba(255,255,255,0.05); 
+        }
 
-        /* ==========================================
-           5. ТАБЫ
-           ========================================== */
-        .cs-tabs { 
-            display: flex; gap: 4px; 
-            background: var(--card-bg);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--card-border); border-radius: 30px; 
-            padding: 4px; margin-bottom: 12px; width: 100%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-        .cs-tab-btn {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-            background: transparent; border: 1px solid transparent; border-radius: 20px;
-            padding: 8px 10px; font-size: 11px; font-weight: 700; color: #fff; cursor: pointer; transition: 0.3s;
-        }
-        .cs-tab-btn.active { 
-            background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); 
-            color: #fff; box-shadow: inset 0 0 10px rgba(255,255,255,0.05); 
-        }
+        /* ==========================================
+           6. КАРТОЧКИ ОБЩЕЕ
+           ========================================== */
+        .premium-card {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            border-radius: var(--radius-xl); margin-bottom: 10px;
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            position: relative; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.5); width: 100%;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); position: relative; z-index: 2; }
+        .card-header.borderless { border-bottom: none; }
+        .head-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .icon-box { 
+            width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; 
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; 
+        }
+        .fire-box { color: #FF9500; background: rgba(255,149,0,0.15); border-color: rgba(255,149,0,0.3); }
+        .head-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+        .c-title { margin: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
-        /* ==========================================
-           6. КАРТОЧКИ ОБЩЕЕ
-           ========================================== */
-        .premium-card {
-            background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: var(--radius-xl); margin-bottom: 10px;
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            position: relative; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.5); width: 100%;
-        }
-        .card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); position: relative; z-index: 2; }
-        .card-header.borderless { border-bottom: none; }
-        .head-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-        .icon-box { 
-            width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; 
-            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
-            display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; 
-        }
-        .fire-box { color: #FF9500; background: rgba(255,149,0,0.15); border-color: rgba(255,149,0,0.3); }
-        .head-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
-        .c-title { margin: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
+        /* ==========================================
+           7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ХОЛСТ И ПОЗИЦИИ)
+           ========================================== */
+        .challenge-card-canvas {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 960 / 410;
+            min-height: 165px; /* ⬅️ Не дает карточке схлопнуться в 0px */
+            background-image: url('/public/static/pepe_challenge.webp');
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin-bottom: 14px;
+            border-radius: 20px;
+            overflow: hidden;
+            user-select: none;
+            border: none;
+            box-shadow: 0 6px 22px rgba(0,0,0,0.6);
+        }
 
-/* ==========================================
-   7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (С РАМКОЙ)
-   ========================================== */
-.challenge-card-canvas {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 960 / 410;
-    background-image: url('/public/static/pepe_challenge.webp');
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
-    margin-bottom: 14px;
-    border-radius: 20px;
-    overflow: hidden;
-    user-select: none;
-    
-    /* Золотая неоновая рамка под стиль CS2 */
-    border: 1.5px solid rgba(255, 215, 0, 0.45);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 
-                inset 0 0 15px rgba(212, 175, 55, 0.15),
-                0 0 12px rgba(255, 215, 0, 0.2);
-}
+        /* 📍 1. ЗАГОЛОВОК И ПОДЗАГОЛОВОК */
+        .canvas-title-group {
+            position: absolute;
+            top: 11%;    /* ⬅️ ДВИГАТЬ ЗАГОЛОВОК ВВЕРХ/ВНИЗ */
+            left: 36%;   /* ⬅️ ДВИГАТЬ ЗАГОЛОВОК ВЛЕВО/ВПРАВО */
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            max-width: 40%;
+        }
+        .canvas-main-title {
+            margin: 0;
+            font-size: clamp(12px, 3.6vw, 15px);
+            font-weight: 900;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+            /* Сдвиг только верхнего слова: */
+            /* transform: translate(0px, 0px); */
+        }
+        .canvas-sub-title {
+            margin: 0;
+            font-size: clamp(8px, 2.3vw, 10px);
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-/* 1. Заголовок и подзаголовок */
-.canvas-title-group {
-    position: absolute;
-    top: 11%;
-    left: 36%;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    max-width: 40%;
-}
-.canvas-main-title {
-    margin: 0;
-    font-size: clamp(13px, 3.8vw, 16px);
-    font-weight: 900;
-    color: #FFFFFF;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1.1;
-}
-.canvas-sub-title {
-    margin: 0;
-    font-size: clamp(8px, 2.3vw, 10px);
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        /* 📍 2. ТАЙМЕР */
+        .canvas-timer-text {
+            position: absolute;
+            top: 12%;
+            right: 3%;
+            width: 13%;
+            height: 12%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(8px, 2.6vw, 10px);
+            font-weight: 800;
+            font-family: monospace;
+            color: #FFFFFF;
+            line-height: 1;
+        }
 
-/* 2. Таймер (ложится ровно в верхнее правое окошко рядом с часиками) */
-.canvas-timer-text {
-    position: absolute;
-    top: 12%;
-    right: 3%;
-    width: 13%;
-    height: 12%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(8px, 7.6vw, 9px);
-    font-weight: 800;
-    font-family: monospace;
-    color: #FFFFFF;
-    line-height: 1;
-}
+        /* 📍 3. ЦЕНТРАЛЬНАЯ ПЛАШКА ЗАДАНИЯ */
+        .canvas-task-box {
+            position: absolute;
+            top: 30.5%;
+            left: 35.5%;
+            width: 61.5%;
+            height: 28.5%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 4%;
+            gap: 6px;
+        }
+        .canvas-task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .canvas-task-title {
+            font-size: clamp(8.5px, 2.5vw, 11px);
+            font-weight: 800;
+            color: #FFFFFF;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+        }
+        .canvas-task-numbers {
+            font-size: clamp(9px, 2.7vw, 11px);
+            font-weight: 900;
+            font-family: monospace;
+            color: #FFFFFF;
+        }
+        .canvas-progress-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .canvas-progress-fill {
+            height: 100%;
+            background: #FFD700;
+            border-radius: 999px;
+            box-shadow: 0 0 10px #FFD700;
+            transition: width 0.3s ease;
+        }
 
-/* 3. Центральная плашка: задание + шкала прогресса */
-.canvas-task-box {
-    position: absolute;
-    top: 30.5%;
-    left: 35.5%;
-    width: 61.5%;
-    height: 28.5%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 4%;
-    gap: 6px;
-}
-.canvas-task-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.canvas-task-title {
-    font-size: clamp(8.5px, 2.5vw, 11px);
-    font-weight: 800;
-    color: #FFFFFF;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 80%;
-}
-.canvas-task-numbers {
-    font-size: clamp(9px, 2.7vw, 11px);
-    font-weight: 900;
-    font-family: monospace;
-    color: #FFFFFF;
-}
-.canvas-progress-track {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    overflow: hidden;
-}
-.canvas-progress-fill {
-    height: 100%;
-    background: #FFD700;
-    border-radius: 999px;
-    box-shadow: 0 0 10px #FFD700;
-    transition: width 0.3s ease;
-}
+        /* 📍 4. ОКНО НАГРАДЫ */
+        .canvas-reward-box {
+            position: absolute;
+            top: 63.5%;   /* ⬅️ ДВИГАТЬ ВСЮ НАГРАДУ ВВЕРХ/ВНИЗ */
+            left: 35.5%;  /* ⬅️ ДВИГАТЬ ВСЮ НАГРАДУ ВЛЕВО/ВПРАВО */
+            width: 25.5%;
+            height: 24.5%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 4%;
+            gap: 1px;
+        }
+        .canvas-reward-label {
+            font-size: clamp(7.5px, 2.1vw, 9px);
+            color: rgba(255, 255, 255, 0.65);
+            font-weight: 600;
+            line-height: 1;
+            /* Сдвиг слова "Награда": */
+            /* transform: translate(0px, 0px); */
+        }
+        .canvas-reward-val {
+            font-size: clamp(12px, 3.4vw, 15px);
+            font-weight: 900;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1;
+            /* Сдвиг цифры "+1": */
+            /* transform: translate(0px, 0px); */
+        }
 
-/* 4. Левое нижнее окно: Награда */
-.canvas-reward-box {
-    position: absolute;
-    top: 63.5%;
-    left: 35.5%;
-    width: 25.5%;
-    height: 24.5%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: 4%;
-    gap: 1px;
-}
-.canvas-reward-label {
-    font-size: clamp(7.5px, 2.1vw, 9px);
-    color: rgba(255, 255, 255, 0.65);
-    font-weight: 600;
-}
-.canvas-reward-val {
-    font-size: clamp(12px, 3.4vw, 15px);
-    font-weight: 900;
-    color: #FFD700;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    line-height: 1;
-}
+        /* 📍 5. КНОПКА */
+        #claim-challenge-btn {
+            position: absolute !important;
+            top: 61.5% !important;
+            right: 2.2% !important;
+            width: 34% !important;
+            height: 24.5% !important;
+            border: none !important;
+            background: transparent !important;
+            border-radius: 999px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            color: #140f02 !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: clamp(9px, 2.7vw, 11.5px) !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.4px !important;
+            cursor: pointer !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            z-index: 10 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
-/* 5. Кнопка (ложится ровно поверх нарисованной желтой капсулы) */
-/* 5. Кнопка (ложится ровно поверх нарисованной желтой капсулы) */
-#claim-challenge-btn {
-    position: absolute !important;
-    top: 61.5% !important;
-    right: 2.2% !important;
-    width: 34% !important;
-    height: 24.5% !important;
-    border: none !important;
-    background: transparent !important; /* Желтая капсула светится из фона */
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    color: #140f02 !important; /* Глубокий темный цвет текста как на макете */
-    font-family: 'Inter', sans-serif !important;
-    font-size: clamp(9px, 2.7vw, 11.5px) !important;
-    font-weight: 900 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.4px !important;
-    cursor: pointer !important;
-    line-height: 1 !important;
-    box-shadow: none !important;
-    outline: none !important;
-    z-index: 10 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
+        #claim-challenge-btn i {
+            font-size: clamp(9px, 2.7vw, 11px) !important;
+            color: #140f02 !important;
+        }
 
-#claim-challenge-btn i {
-    font-size: clamp(9px, 2.7vw, 11px) !important;
-    color: #140f02 !important;
-}
+        #claim-challenge-btn:active {
+            transform: scale(0.97);
+        }
 
-#claim-challenge-btn:active {
-    transform: scale(0.97);
-}
+        #claim-challenge-btn.claimed {
+            background: #1c1c21 !important;
+            color: #777777 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            pointer-events: none !important;
+        }
+        #claim-challenge-btn.claimed i {
+            color: #777777 !important;
+        }
 
-/* Состояние «Забрано» закрывает желтую капсулу темным фоном */
-#claim-challenge-btn.claimed {
-    background: #1c1c21 !important;
-    color: #777777 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    pointer-events: none !important;
-}
-#claim-challenge-btn.claimed i {
-    color: #777777 !important;
-}
-        /* ==========================================
-           8. ТРИГГЕР КОНСТРУКТОРА
-           ========================================== */
-        .trigger-card { cursor: pointer; transition: 0.2s; display: flex; align-items: center;}
-        .trigger-card:active { transform: scale(0.98); background: rgba(26,26,32,0.9); }
-        .trigger-card .card-header { flex: 1; padding-right: 80px; } 
-        .handdrawn-arrow {
-            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-            display: flex; align-items: center; gap: 6px; color: var(--gold-primary); font-family: cursive; font-size: 10px; font-weight: 600; text-align: right; opacity: 0.9;
-        }
+        /* ==========================================
+           8. ТРИГГЕР КОНСТРУКТОРА
+           ========================================== */
+        .trigger-card { cursor: pointer; transition: 0.2s; display: flex; align-items: center;}
+        .trigger-card:active { transform: scale(0.98); background: rgba(26,26,32,0.9); }
+        .trigger-card .card-header { flex: 1; padding-right: 80px; } 
+        .handdrawn-arrow {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            display: flex; align-items: center; gap: 6px; color: var(--gold-primary); font-family: cursive; font-size: 10px; font-weight: 600; text-align: right; opacity: 0.9;
+        }
 
-        /* ==========================================
-           9. ИДЕАЛЬНАЯ СЕРИЯ 
-           ========================================== */
-        .ghost-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-        .streak-body { padding: 0 14px 14px 14px; }
-        .streak-segments { display: flex; gap: 4px; margin-bottom: 10px; }
-        .seg { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
-        .seg.active { background: var(--gold-primary); box-shadow: 0 0 6px rgba(255,215,0,0.4); }
+        /* ==========================================
+           9. ИДЕАЛЬНАЯ СЕРИЯ 
+           ========================================== */
+        .ghost-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .streak-body { padding: 0 14px 14px 14px; }
+        .streak-segments { display: flex; gap: 4px; margin-bottom: 10px; }
+        .seg { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .seg.active { background: var(--gold-primary); box-shadow: 0 0 6px rgba(255,215,0,0.4); }
 
-        .streak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
-        .s-item {
-            background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
-            padding: 8px 4px; display: flex; flex-direction: column; align-items: center; text-align: center;
-        }
-        .s-item.active { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.4); }
-        .s-item.gold-tier { border-color: var(--gold-primary); }
-        .s-img { width: 34px; height: 26px; background-size: contain; background-position: center; background-repeat: no-repeat; margin-bottom: 4px; }
-        
-        .case-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPasw8rsUFJ5KBFZv668FFU1nfbOIj8W7oWzkYLdlPOsMOmIk2lu5cB1g_zMu92giw23qEs4Zzr2INedJgU4YVCE_1W4xO_qjZ-975_Kn3Bl7ikmsH2MzkS3hAYMMLLo8Wvdvg/128fx128f"); }
-        .wp-img-1 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09izh5-HnvD8J_WEwjsBvpMp3OyW84_32VLt_0VsMm_zLYeTewU8Y1vX_VG6x-u-h8C76M_XiSw03H9b7Ww/128fx128f"); }
-        .wp-img-2 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FABz7PLfYQJG6d2inL-GkvP9Jrafw2lU6ccp0rqV942s3wHsqhc_YGD2IdfDJ1c2YFzV-VG8x-7v18e6u56Yn3RhunU8pSGKUw-Wp0U/128fx128f"); }
-        .knife-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf1f_BYQJB-ditq4yCkP_gfezcx29T68Al373D8Yj23Q2y80A-Nzv7ctTHegU6aVCC_FC3wOnu1pW0tJTNzCExunN352GdwULpwt1qEQ/128fx128f"); }
-        
-        .s-item b { font-size: 8px; margin-bottom: 2px; }
-        .s-item span { font-size: 7px; color: var(--text-dim); line-height: 1.2; word-wrap: break-word; opacity: 0.9;}
+        .streak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+        .s-item {
+            background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+            padding: 8px 4px; display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .s-item.active { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.4); }
+        .s-item.gold-tier { border-color: var(--gold-primary); }
+        .s-img { width: 34px; height: 26px; background-size: contain; background-position: center; background-repeat: no-repeat; margin-bottom: 4px; }
+        
+        .case-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPasw8rsUFJ5KBFZv668FFU1nfbOIj8W7oWzkYLdlPOsMOmIk2lu5cB1g_zMu92giw23qEs4Zzr2INedJgU4YVCE_1W4xO_qjZ-975_Kn3Bl7ikmsH2MzkS3hAYMMLLo8Wvdvg/128fx128f"); }
+        .wp-img-1 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09izh5-HnvD8J_WEwjsBvpMp3OyW84_32VLt_0VsMm_zLYeTewU8Y1vX_VG6x-u-h8C76M_XiSw03H9b7Ww/128fx128f"); }
+        .wp-img-2 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FABz7PLfYQJG6d2inL-GkvP9Jrafw2lU6ccp0rqV942s3wHsqhc_YGD2IdfDJ1c2YFzV-VG8x-7v18e6u56Yn3RhunU8pSGKUw-Wp0U/128fx128f"); }
+        .knife-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf1f_BYQJB-ditq4yCkP_gfezcx29T68Al373D8Yj23Q2y80A-Nzv7ctTHegU6aVCC_FC3wOnu1pW0tJTNzCExunN352GdwULpwt1qEQ/128fx128f"); }
+        
+        .s-item b { font-size: 8px; margin-bottom: 2px; }
+        .s-item span { font-size: 7px; color: var(--text-dim); line-height: 1.2; word-wrap: break-word; opacity: 0.9;}
 
-        /* ==========================================
-           10. РУЧНЫЕ ЗАДАНИЯ (СТИЛИ В ДИЗАЙНЕ МАТРИЦЫ)
-           ========================================== */
-        .manual-section-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-        }
+        /* ==========================================
+           10. РУЧНЫЕ ЗАДАНИЯ
+           ========================================== */
+        .manual-section-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
 
-        .quest-category-accordion {
-            width: 100%;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--radius-xl);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            overflow: hidden;
-            margin-bottom: 10px;
-            transition: border-color 0.3s;
-        }
-        .quest-category-accordion[open] {
-            border-color: var(--card-border-gold);
-        }
+        .quest-category-accordion {
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-xl);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            overflow: hidden;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+        .quest-category-accordion[open] {
+            border-color: var(--card-border-gold);
+        }
 
-        .quest-category-header {
-            padding: 12px 14px;
-            font-size: 12px;
-            font-weight: 800;
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            user-select: none;
-        }
-        .quest-category-header::-webkit-details-marker { display: none; }
-        .quest-category-header::after {
-            content: '\f078';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            font-size: 10px;
-            color: var(--gold-primary);
-            transition: transform 0.3s ease;
-        }
-        .quest-category-accordion[open] .quest-category-header::after {
-            transform: rotate(180deg);
-        }
+        .quest-category-header {
+            padding: 12px 14px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+        .quest-category-header::-webkit-details-marker { display: none; }
+        .quest-category-header::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 10px;
+            color: var(--gold-primary);
+            transition: transform 0.3s ease;
+        }
+        .quest-category-accordion[open] .quest-category-header::after {
+            transform: rotate(180deg);
+        }
 
-        .quest-category-body {
-            padding: 8px 12px 14px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
+        .quest-category-body {
+            padding: 8px 12px 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-        .manual-quest-card {
-            background: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--radius-lg);
-            padding: 10px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .manual-quest-card:active {
-            transform: scale(0.99);
-        }
+        .manual-quest-card {
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .manual-quest-card:active {
+            transform: scale(0.99);
+        }
 
-        .manual-quest-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .manual-quest-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            color: var(--gold-primary);
-            flex-shrink: 0;
-        }
-        .manual-quest-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            flex: 1;
-            overflow: hidden;
-        }
-        .manual-quest-title {
-            font-size: 11px;
-            font-weight: 800;
-            color: #fff;
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .manual-quest-desc {
-            font-size: 9px;
-            color: var(--text-dim);
-            margin: 0;
-            opacity: 0.85;
-            line-height: 1.25;
-        }
+        .manual-quest-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .manual-quest-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--gold-primary);
+            flex-shrink: 0;
+        }
+        .manual-quest-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            overflow: hidden;
+        }
+        .manual-quest-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .manual-quest-desc {
+            font-size: 9px;
+            color: var(--text-dim);
+            margin: 0;
+            opacity: 0.85;
+            line-height: 1.25;
+        }
 
-        .manual-quest-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-top: 2px;
-        }
-        .manual-reward-pill {
-            font-size: 10px;
-            font-weight: 800;
-            color: var(--gold-primary);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-family: monospace;
-        }
+        .manual-quest-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 2px;
+        }
+        .manual-reward-pill {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--gold-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: monospace;
+        }
 
-        .manual-actions-wrap {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .action-link-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #fff;
-            text-decoration: none;
-            font-size: 9px;
-            font-weight: 700;
-            padding: 6px 10px;
-            border-radius: 6px;
-            transition: 0.2s;
-        }
-        .perform-quest-button {
-            background: var(--gold-grad);
-            border: none;
-            color: var(--text-dark);
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
-            transition: transform 0.1s;
-        }
-        .perform-quest-button:active {
-            transform: scale(0.96);
-        }
+        .manual-actions-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .action-link-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            text-decoration: none;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+        .perform-quest-button {
+            background: var(--gold-grad);
+            border: none;
+            color: var(--text-dark);
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+            transition: transform 0.1s;
+        }
+        .perform-quest-button:active {
+            transform: scale(0.96);
+        }
 
-        /* ==========================================
-           11. МОДАЛКИ (КОНСТРУКТОР + ВВОД ДАННЫХ)
-           ========================================== */
-        .cs-modal-backdrop { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
-            z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .cs-modal-backdrop.show { opacity: 1; pointer-events: auto; }
-        
-        .cs-modal-card.large-modal { 
-            width: 100%; max-width: 380px; 
-            background: var(--card-bg); border: 1px solid var(--card-border-gold); 
-            border-radius: var(--radius-xl); box-shadow: 0 10px 50px rgba(0,0,0,0.8); 
-            display: flex; flex-direction: column; max-height: 90vh;
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-        }
+        /* ==========================================
+           11. МОДАЛКИ (КОНСТРУКТОР + ВВОД ДАННЫХ)
+           ========================================== */
+        .cs-modal-backdrop { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
+            z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .cs-modal-backdrop.show { opacity: 1; pointer-events: auto; }
+        
+        .cs-modal-card.large-modal { 
+            width: 100%; max-width: 380px; 
+            background: var(--card-bg); border: 1px solid var(--card-border-gold); 
+            border-radius: var(--radius-xl); box-shadow: 0 10px 50px rgba(0,0,0,0.8); 
+            display: flex; flex-direction: column; max-height: 90vh;
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+        }
 
-        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; }
-        .close-btn { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 0;}
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 0;}
 
-        .constructor-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+        .constructor-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
 
-        .c-row { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 10px; transition: 0.3s; }
-        .c-row.row-disabled { opacity: 0.5; }
-        .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;}
-        .c-icon { width: 30px; height: 30px; flex-shrink: 0; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;}
-        .c-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden;}
-        .c-titles b { font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;}
-        .c-titles span { font-size: 9px; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.9;}
+        .c-row { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 10px; transition: 0.3s; }
+        .c-row.row-disabled { opacity: 0.5; }
+        .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;}
+        .c-icon { width: 30px; height: 30px; flex-shrink: 0; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;}
+        .c-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden;}
+        .c-titles b { font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;}
+        .c-titles span { font-size: 9px; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.9;}
 
-        .c-toggle-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;}
-        .ios-switch { position: relative; display: inline-block; width: 34px; height: 20px; }
-        .ios-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--gold-primary); }
-        input:checked + .slider:before { transform: translateX(14px); background-color: #000; }
-        .toggle-lbl { font-size: 8px; font-weight: 800; color: #fff; opacity: 0.9; }
+        .c-toggle-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;}
+        .ios-switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+        .ios-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold-primary); }
+        input:checked + .slider:before { transform: translateX(14px); background-color: #000; }
+        .toggle-lbl { font-size: 8px; font-weight: 800; color: #fff; opacity: 0.9; }
 
-        .chips-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .target-chip { 
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); 
-            border-radius: var(--radius-md); padding: 8px 0; display: flex; 
-            flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
-            cursor: pointer; transition: 0.2s; color: #fff; 
-        }
-        .target-chip.active { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.5); box-shadow: inset 0 0 10px rgba(212,175,55,0.1); }
-        .target-chip .val { font-size: 10px; font-weight: 800; text-align: center; line-height: 1.1;}
-        .target-chip .rew { font-size: 9px; font-weight: 700; color: var(--gold-primary); display: flex; align-items: center; gap: 2px; }
+        .chips-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .target-chip { 
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: var(--radius-md); padding: 8px 0; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
+            cursor: pointer; transition: 0.2s; color: #fff; 
+        }
+        .target-chip.active { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.5); box-shadow: inset 0 0 10px rgba(212,175,55,0.1); }
+        .target-chip .val { font-size: 10px; font-weight: 800; text-align: center; line-height: 1.1;}
+        .target-chip .rew { font-size: 9px; font-weight: 700; color: var(--gold-primary); display: flex; align-items: center; gap: 2px; }
 
-        .modal-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
-        .sum-box { display: flex; flex-direction: column; gap: 4px; }
-        .sum-box span { font-size: 9px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
-        .sum-val { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
-        .cs-gold-btn { background: var(--gold-grad); border: none; color: var(--text-dark); border-radius: 8px; padding: 10px 16px; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; text-transform: uppercase; cursor: pointer;}
-        .cs-gold-btn.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
+        .sum-box { display: flex; flex-direction: column; gap: 4px; }
+        .sum-box span { font-size: 9px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
+        .sum-val { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
+        .cs-gold-btn { background: var(--gold-grad); border: none; color: var(--text-dark); border-radius: 8px; padding: 10px 16px; font-size: 10px; font-weight: 900; display: flex; align-items: center; gap: 4px; text-transform: uppercase; cursor: pointer;}
+        .cs-gold-btn.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
 
-        /* Попап ввода данных квеста */
-        .prompt-modal-card {
-            width: 100%; max-width: 320px;
-            background: var(--card-bg); border: 1px solid var(--card-border-gold);
-            border-radius: var(--radius-xl); padding: 20px;
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            display: flex; flex-direction: column; gap: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-        .prompt-modal-card h3 {
-            margin: 0; font-size: 13px; font-weight: 800; color: #fff; text-align: center;
-        }
-        .prompt-modal-card p {
-            margin: 0; font-size: 10px; color: var(--text-dim); opacity: 0.8; text-align: center;
-        }
-        .prompt-input-field {
-            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
-            border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 11px;
-            outline: none; font-family: inherit;
-        }
-        .prompt-input-field:focus {
-            border-color: var(--gold-primary);
-        }
-        .prompt-actions-row {
-            display: flex; gap: 8px; margin-top: 4px;
-        }
-        .prompt-btn-cancel {
-            flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; font-size: 10px; font-weight: 700; padding: 10px; border-radius: 8px; cursor: pointer;
-        }
-        .prompt-btn-confirm {
-            flex: 1; background: var(--gold-grad); border: none;
-            color: var(--text-dark); font-size: 10px; font-weight: 800; padding: 10px; border-radius: 8px; cursor: pointer;
-        }
+        /* Попап ввода данных квеста */
+        .prompt-modal-card {
+            width: 100%; max-width: 320px;
+            background: var(--card-bg); border: 1px solid var(--card-border-gold);
+            border-radius: var(--radius-xl); padding: 20px;
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        .prompt-modal-card h3 {
+            margin: 0; font-size: 13px; font-weight: 800; color: #fff; text-align: center;
+        }
+        .prompt-modal-card p {
+            margin: 0; font-size: 10px; color: var(--text-dim); opacity: 0.8; text-align: center;
+        }
+        .prompt-input-field {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 11px;
+            outline: none; font-family: inherit;
+        }
+        .prompt-input-field:focus {
+            border-color: var(--gold-primary);
+        }
+        .prompt-actions-row {
+            display: flex; gap: 8px; margin-top: 4px;
+        }
+        .prompt-btn-cancel {
+            flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; font-size: 10px; font-weight: 700; padding: 10px; border-radius: 8px; cursor: pointer;
+        }
+        .prompt-btn-confirm {
+            flex: 1; background: var(--gold-grad); border: none;
+            color: var(--text-dark); font-size: 10px; font-weight: 800; padding: 10px; border-radius: 8px; cursor: pointer;
+        }
 
-        .hidden { display: none !important; }
+        .hidden { display: none !important; }
 
-        /* Лоадер */
-        .loader-backdrop { position: fixed; inset: 0; background: var(--bg-deep); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;}
-        .cs-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--gold-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
-        .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
-        .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
-        @keyframes pulse-live {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.04); opacity: 0.85; filter: drop-shadow(0 0 6px rgba(52, 199, 89, 0.6)); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-    </style>
+        /* Лоадер */
+        .loader-backdrop { position: fixed; inset: 0; background: var(--bg-deep); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;}
+        .cs-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--gold-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
+        .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+        .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+    </style>
 </head>
 <body>
 
-    <!-- Загрузочный экран -->
-    <div id="loader-overlay" class="loader-backdrop">
-        <div class="cs-spinner"></div>
-        <div id="loading-text" class="cs-loading-text">0%</div>
-        <div class="cs-loading-bar"><div id="loading-bar-fill" class="cs-loading-fill"></div></div>
-    </div>
-
-    <!-- ГЛАВНЫЙ ОГРАНИЧИТЕЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16) -->
-    <div class="mobile-wrapper">
-        <main id="main-content" class="main-content">
-            
-            <!-- Pull to Refresh индикатор -->
-            <div id="pull-to-refresh" style="text-align: center; height: 0; overflow: hidden; transition: height 0.2s;">
-                <i class="fa-solid fa-rotate-right" style="color: var(--gold-primary); font-size: 18px; margin-bottom: 6px;"></i>
-            </div>
-            
-            <!-- 1. ТОП БАР (МАТРИЦА С ПОЛНЫМ ФУНКЦИОНАЛОМ - СКРЫТА ПО УМОЛЧАНИЮ) -->
-            <div class="matrix-top-bar" id="matrix-top-bar" style="display: none;">
-                <div class="matrix-brand">
-                    <div class="matrix-icon" id="matrix-main-icon"><i class="fa-solid fa-shapes"></i></div>
-                    <div class="matrix-titles">
-                        <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size: 10px; opacity: 0.8;" onclick="customAlert('Проявляйте активность в чатах Telegram и Twitch для подтверждения доверия и получения редких кейсов.', 'О МАТРИЦЕ')"></i></span>
-                        <span class="m-sub" id="matrix-sub-title">Проверка доверием</span>
-                    </div>
-                </div>
-                
-                <div class="matrix-stats" id="matrix-stats-container">
-                    <!-- Блок Telegram (Кликабелен) -->
-                    <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openTelegramLink('https://t.me/hatelove_ttv'); } else { window.open('https://t.me/hatelove_ttv', '_blank'); }">
-                        <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-head"><span>Telegram</span><span class="stat-val" id="matrix-tg-val">0/50</span></div>
-                            <div class="stat-track"><div class="stat-fill" id="matrix-tg-fill" style="width: 0%;"></div></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Блок Twitch (Кликабелен) -->
-                    <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv'); } else { window.open('https://www.twitch.tv/hatelove_ttv', '_blank'); }">
-                        <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-head"><span>Twitch</span><span class="stat-val" id="matrix-twitch-val">0/200</span></div>
-                            <div class="stat-track"><div class="stat-fill" id="matrix-twitch-fill" style="width: 0%;"></div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Предупреждение если Twitch не привязан (по умолчанию скрыто) -->
-            <div id="matrix-twitch-alert" style="display: none; color: #ff3b30; font-size: 9px; font-weight: 700; text-align: right; padding-right: 12px; margin-top: -8px; margin-bottom: 10px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> <a href="/profile" style="color: #ff3b30; text-decoration: underline;">Привяжи Twitch в профиле!</a>
-            </div>
-
-            <!-- 2. HERO ШАПКА -->
-            <div class="hero-section">
-                <!-- ОПЕРАТИВНИК НА ФОНЕ (ПРИВЯЗАН К ШАПКЕ: ПОДНИМАЕТСЯ И ОПУСКАЕТСЯ ВМЕСТЕ С НЕЙ) -->
-                <div class="bg-soldier"></div>
-
-                <div class="hero-content">
-                    <h1 class="hero-title">
-                        ВЫБЕРИ САМ, КАКУЮ<br>
-                        <span class="gold-text">АКТИВНОСТЬ ГОТОВ</span><br>
-                        ВЫПОЛНЯТЬ
-                    </h1>
-                    <div class="hero-meta">
-                        <i class="fa-regular fa-calendar-days" style="color: var(--gold-primary);"></i>
-                        <span>Недельные испытания</span>
-                    </div>
-                </div>
-                
-                <div class="limit-pill">
-                    <i class="fa-solid fa-bolt"></i>
-                    <div class="limit-texts">
-                        <span class="limit-lbl">Лимит:</span>
-                        <span id="weekly-limit-count" class="limit-val">0 / 5</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. ТАБЫ (В ТЕМНОМ БЛЮРЕ) -->
-            <div class="cs-tabs">
-                <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
-                    <i class="fa-regular fa-calendar-check"></i> План
-                </button>
-                <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
-                    <i class="fa-solid fa-bolt"></i> Проверка
-                </button>
-            </div>
-
-            <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
-<div id="section-weekly-plan">
-    
-    <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ -->
-    <div class="challenge-card-canvas" id="challenge-card-box">
-        <!-- Заголовок и подзаголовок -->
-        <div class="canvas-title-group">
-            <h2 class="canvas-main-title" id="challenge-header-title">РАЗМИНКА</h2>
-            <span class="canvas-sub-title" id="challenge-header-desc">Личное задание на сегодня</span>
-        </div>
-
-        <!-- Таймер -->
-        <span class="canvas-timer-text" id="challenge-reset-timer">23:59:59</span>
-
-        <!-- Задание + прогресс-бар -->
-        <div class="canvas-task-box">
-            <div class="canvas-task-header">
-                <span class="canvas-task-title" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
-                <span class="canvas-task-numbers" id="challenge-task-numbers">0 / 5</span>
-            </div>
-            <div class="canvas-progress-track">
-                <div class="canvas-progress-fill" id="challenge-progress-fill" style="width: 0%;"></div>
-            </div>
-        </div>
-
-        <!-- Награда -->
-        <div class="canvas-reward-box">
-            <span class="canvas-reward-label">Награда</span>
-            <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
-        </div>
-
-        <!-- Кнопка действия (лежит строго на холсте) -->
-        <button id="claim-challenge-btn" onclick="claimActiveStreamChallenge()">
-            <i class="fa-solid fa-comment-dots"></i>
-            <span>В ПРОЦЕССЕ</span>
-            <i class="fa-solid fa-angles-right"></i>
-        </button>
-    </div>
-
-    <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА (ТЕПЕРЬ ОТДЕЛЬНО СНИЗУ) -->
-    <div class="premium-card trigger-card" onclick="openConstructorModal()">
-        <div class="card-header borderless">
-            <div class="head-left">
-                <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
-                <div class="head-titles">
-                    <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
-                    <p class="c-desc">Настрой сам себе задания</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="handdrawn-arrow">
-            <span>Настрой<br>под себя</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-    </div>
-                <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
-                <div class="premium-card streak-card">
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box fire-box"><i class="fa-solid fa-fire"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
-                                <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;" id="streak-counter-text">1 / 4</span></p>
-                            </div>
-                        </div>
-                        <button class="ghost-btn" onclick="customAlert('Серия обновляется каждую неделю. Не пропускай!', 'О СЕРИИ')"><i class="fa-solid fa-gift"></i> Инфо</button>
-                    </div>
-
-                    <div class="streak-body">
-                        <div class="streak-segments">
-                            <div class="seg active" id="streak-seg-1"></div>
-                            <div class="seg" id="streak-seg-2"></div>
-                            <div class="seg" id="streak-seg-3"></div>
-                            <div class="seg" id="streak-seg-4"></div>
-                        </div>
-
-                        <div class="streak-grid">
-                            <div class="s-item active">
-                                <div class="s-img case-img"></div>
-                                <b>1 неделя</b>
-                                <span>Армейский<br>или кейс</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-1"></div>
-                                <b>2 недели</b>
-                                <span>Запрещ.<br>+10 бил.</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-2"></div>
-                                <b>3 недели</b>
-                                <span>Засекреч.<br>скин</span>
-                            </div>
-                            <div class="s-item gold-tier">
-                                <div class="s-img knife-img"></div>
-                                <b class="gold-text">4 недели</b>
-                                <span>Тайный<br>или нож</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- СЕКЦИЯ 2: РУЧНАЯ ПРОВЕРКА (РУЧНЫЕ КВЕСТЫ) -->
-            <div id="section-manual-quests" class="hidden">
-                <div style="text-align: center; margin-bottom: 12px; color: var(--gold-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> Доступные задания для проверки
-                </div>
-                
-                <!-- Сюда JS монтирует категории и карточки ручных квестов -->
-                <div id="manual-quests-list" class="manual-section-wrapper">
-                    <div style="text-align: center; color: #fff; padding: 30px 0; font-size: 11px; opacity: 0.8;">
-                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 22px; color: var(--gold-primary); margin-bottom: 10px;"></i><br>
-                        Загрузка заданий...
-                    </div>
-                </div>
-                
-                <span style="display: block; font-size: 9px; color: var(--text-dim); text-align: center; margin-top: 14px; opacity: 0.7;">
-                    Статус проверки можно увидеть в <span style="color: var(--gold-primary); font-weight: 700;">Профиле</span>
-                </span>
-            </div>
-
-        </main>
-    </div> <!-- Конец .mobile-wrapper -->
-
-    <!-- ================= МОДАЛКА: ВВОД ДАННЫХ ДЛЯ РУЧНОГО КВЕСТА ================= -->
-    <div id="custom-prompt-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closePromptModal()">
-        <div class="prompt-modal-card">
-            <h3 id="prompt-title">Отправка задания</h3>
-            <p>Введите ваш ник, ссылку или подтверждающие данные:</p>
-            <input type="text" id="prompt-input" class="prompt-input-field" placeholder="Ваш ник или ссылка...">
-            <div class="prompt-actions-row">
-                <button id="prompt-cancel" class="prompt-btn-cancel" onclick="closePromptModal()">Отмена</button>
-                <button id="prompt-confirm" class="prompt-btn-confirm" onclick="submitPromptModal()">Отправить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= МОДАЛКА: РАСПИСАНИЕ СТРИМОВ ================= -->
-    <div id="schedule-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) this.classList.remove('show')">
-        <div class="cs-modal-card large-modal" style="max-width: 340px; padding: 16px;">
-            <div class="modal-head" style="padding: 0 0 12px 0;">
-                <h2>📅 Расписание стримов</h2>
-                <button class="close-btn" onclick="document.getElementById('schedule-modal-overlay').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <img src="https://i.postimg.cc/NMw2ByPZ/raspisanie-strimov.jpg" loading="lazy" alt="Расписание" style="width: 100%; border-radius: 10px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <button onclick="Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv')" class="cs-gold-btn" style="width: 100%; justify-content: center;">
-                <i class="fa-brands fa-twitch"></i> Перейти на канал
-            </button>
-        </div>
-    </div>
-
-    <!-- ================= МОДАЛКА: КОНСТРУКТОР ================= -->
-    <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
-        <div class="cs-modal-card large-modal">
-            
-            <div class="modal-head">
-                <h2>КОНСТРУКТОР КОНТРАКТА</h2>
-                <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="constructor-list">
-                
-                <!-- СЛОТ 1 -->
-                <div class="c-row row-disabled" id="row-twitch-chat">
-                    <div class="c-row-top">
-                        <div class="c-info-block">
-                            <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
-                            <div class="c-titles">
-                                <b>Twitch Чат</b>
-                                <span>Сообщений в чате</span>
-                            </div>
-                        </div>
-                        <div class="c-toggle-block">
-                            <label class="ios-switch">
-                                <input type="checkbox" onchange="toggleConstructorRow('twitch_chat', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-lbl" id="status-twitch-chat">ВЫКЛ</span>
-                        </div>
-                    </div>
-                    <div class="c-row-bottom chips-3">
-                        <button class="target-chip" onclick="selectChip('twitch_chat', 0)">
-                            <span class="val">25</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-                        </button>
-                        <button class="target-chip active" onclick="selectChip('twitch_chat', 1)">
-                            <span class="val">50</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-                        </button>
-                        <button class="target-chip" onclick="selectChip('twitch_chat', 2)">
-                            <span class="val">100</span><span class="rew"><i class="fa-solid fa-ticket"></i> +4</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- СЛОТ 2 -->
-                <div class="c-row row-disabled" id="row-twitch-uptime">
-                    <div class="c-row-top">
-                        <div class="c-info-block">
-                            <div class="c-icon"><i class="fa-solid fa-play"></i></div>
-                            <div class="c-titles">
-                                <b>Стрим</b>
-                                <span>Время просмотра</span>
-                            </div>
-                        </div>
-                        <div class="c-toggle-block">
-                            <label class="ios-switch">
-                                <input type="checkbox" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-lbl" id="status-twitch-uptime">ВЫКЛ</span>
-                        </div>
-                    </div>
-                    <div class="c-row-bottom chips-3">
-                        <button class="target-chip" onclick="selectChip('twitch_uptime', 0)">
-                            <span class="val">30 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-                        </button>
-                        <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)">
-                            <span class="val">60 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-                        </button>
-                        <button class="target-chip" onclick="selectChip('twitch_uptime', 2)">
-                            <span class="val">120 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- СЛОТ 3 -->
-                <div class="c-row row-disabled" id="row-telegram-chat">
-                    <div class="c-row-top">
-                        <div class="c-info-block">
-                            <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
-                            <div class="c-titles">
-                                <b>Telegram Чат</b>
-                                <span>Сообщений в чате</span>
-                            </div>
-                        </div>
-                        <div class="c-toggle-block">
-                            <label class="ios-switch">
-                                <input type="checkbox" onchange="toggleConstructorRow('telegram_chat', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-lbl" id="status-telegram-chat">ВЫКЛ</span>
-                        </div>
-                    </div>
-                    <div class="c-row-bottom chips-3">
-                        <button class="target-chip" onclick="selectChip('telegram_chat', 0)">
-                            <span class="val">15</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span>
-                        </button>
-                        <button class="target-chip active" onclick="selectChip('telegram_chat', 1)">
-                            <span class="val">30</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span>
-                        </button>
-                        <button class="target-chip" onclick="selectChip('telegram_chat', 2)">
-                            <span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- СЛОТ 4 -->
-                <div class="c-row row-disabled" id="row-personal-quest">
-                    <div class="c-row-top">
-                        <div class="c-info-block">
-                            <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
-                            <div class="c-titles">
-                                <b>Персональный</b>
-                                <span>Игровая цель</span>
-                            </div>
-                        </div>
-                        <div class="c-toggle-block">
-                            <label class="ios-switch">
-                                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
-                        </div>
-                    </div>
-                    <div class="c-row-bottom chips-3">
-                        <button class="target-chip" onclick="selectChip('personal_quest', 0)">
-                            <span class="val">10 кейсов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span>
-                        </button>
-                        <button class="target-chip active" onclick="selectChip('personal_quest', 1)">
-                            <span class="val">50 слов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +6</span>
-                        </button>
-                        <button class="target-chip" onclick="selectChip('personal_quest', 2)">
-                            <span class="val">3 друга</span><span class="rew"><i class="fa-solid fa-ticket"></i> +8</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <div class="sum-box">
-                    <span>Итоговая награда</span>
-                    <div class="sum-val"><i class="fa-solid fa-ticket" style="color:var(--gold-primary);"></i> <span id="constructor-total-reward">0</span></div>
-                </div>
-                <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ПОДКЛЮЧЕНИЕ НИЖНЕГО МЕНЮ (BOTTOM NAV) -->
-    <script src="/bottom-nav.js"></script>
-
-    <!-- ================= 8. JS ЛОГИКА ================= -->
-    <script>
-        // ==========================================
-        // 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ DOM
-        // ==========================================
-        const dom = {
-            loaderOverlay: document.getElementById('loader-overlay'),
-            loadingText: document.getElementById('loading-text'),
-            loadingBarFill: document.getElementById('loading-bar-fill'),
-            mainContent: document.getElementById('main-content'),
-            
-            // Вкладки и секции
-            tabBtnWeekly: document.getElementById('tab-btn-weekly'),
-            tabBtnManual: document.getElementById('tab-btn-manual'),
-            sectionWeekly: document.getElementById('section-weekly-plan'),
-            sectionManual: document.getElementById('section-manual-quests'),
-
-            // Матрица
-            matrixTopBar: document.getElementById('matrix-top-bar'),
-            matrixSubTitle: document.getElementById('matrix-sub-title'),
-            matrixTgVal: document.getElementById('matrix-tg-val'),
-            matrixTgFill: document.getElementById('matrix-tg-fill'),
-            matrixTwitchVal: document.getElementById('matrix-twitch-val'),
-            matrixTwitchFill: document.getElementById('matrix-twitch-fill'),
-            matrixStatsContainer: document.getElementById('matrix-stats-container'),
-
-            // Шапка и лимит
-            weeklyLimitCount: document.getElementById('weekly-limit-count'),
-
-            // Челлендж
-            challengeCardBox: document.getElementById('challenge-card-box'),
-            challengeHeaderTitle: document.getElementById('challenge-header-title'),
-            challengeHeaderDesc: document.getElementById('challenge-header-desc'),
-            challengeWatermarkIcon: document.getElementById('challenge-watermark-icon'),
-            challengeMainIcon: document.getElementById('challenge-main-icon'),
-            challengeTaskMiniIcon: document.getElementById('challenge-task-mini-icon'),
-            challengeResetTimer: document.getElementById('challenge-reset-timer'),
-            challengeTaskName: document.getElementById('challenge-task-name'),
-            challengeProgressFill: document.getElementById('challenge-progress-fill'),
-            challengeTaskNumbers: document.getElementById('challenge-task-numbers'),
-            challengeRewardVal: document.getElementById('challenge-reward-val'),
-            claimChallengeBtn: document.getElementById('claim-challenge-btn'),
-
-            // Идеальная серия
-            streakCounterText: document.getElementById('streak-counter-text'),
-
-            // Ручные задания
-            manualQuestsList: document.getElementById('manual-quests-list'),
-            promptOverlay: document.getElementById('custom-prompt-overlay'),
-            promptTitle: document.getElementById('prompt-title'),
-            promptInput: document.getElementById('prompt-input'),
-            promptCancel: document.getElementById('prompt-cancel'),
-            promptConfirm: document.getElementById('prompt-confirm'),
-
-            // Конструктор
-            constructorModalOverlay: document.getElementById('constructor-modal-overlay'),
-            constructorTotalReward: document.getElementById('constructor-total-reward'),
-            activateContractBtn: document.getElementById('activate-contract-btn'),
-
-            // Расписание
-            scheduleModal: document.getElementById('schedule-modal-overlay')
-        };
-
-        let currentQuestId = null;
-        let countdownIntervals = {};
-        let allQuests = [];
-        let userData = {};
-        let activeChallengeId = null;
-
-        // Конфигурация слотов конструктора
-        const constructorConfig = {
-            twitch_chat: { rewardOptions: [1, 2, 4], selectedIdx: 1, enabled: false },
-            twitch_uptime: { rewardOptions: [1, 2, 5], selectedIdx: 1, enabled: false },
-            telegram_chat: { rewardOptions: [1, 2, 3], selectedIdx: 1, enabled: false },
-            personal_quest: { rewardOptions: [5, 6, 8], selectedIdx: 1, enabled: false }
-        };
-
-        // ==========================================
-        // 2. УТИЛИТЫ И API
-        // ==========================================
-        function escapeHTML(str) {
-            if (typeof str !== 'string') return str;
-            return str.replace(/[&<>"']/g, match => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            })[match]);
-        }
-
-        function updateLoading(percent) {
-            if (dom.loadingText) dom.loadingText.textContent = Math.floor(percent) + '%';
-            if (dom.loadingBarFill) dom.loadingBarFill.style.width = Math.floor(percent) + '%';
-        }
-
-        async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false) {
-            if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.remove('hidden');
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-                const options = { 
-                    method, 
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal 
-                };
-                
-                const initData = window.Telegram?.WebApp?.initData || '';
-                if (method !== 'GET') {
-                    options.body = JSON.stringify({ ...body, initData });
-                }
-                
-                const response = await fetch(url, options);
-                clearTimeout(timeoutId);
-
-                if (response.status === 429) throw new Error('Слишком много запросов (Cooldown)'); 
-                if (response.status === 204) return null;
-                
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || result.message || 'Ошибка сервера');
-                return result;
-            } catch (e) {
-                if (e.name === 'AbortError') e.message = "Превышено время ожидания ответа.";
-                if (!isSilent && window.Telegram?.WebApp?.showAlert) {
-                    Telegram.WebApp.showAlert(`Ошибка: ${e.message}`);
-                }
-                throw e;
-            } finally {
-                if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
-            }
-        }
-
-        function startCountdown(timerElement, expiresAt, intervalKey, onEndCallback) {
-            if (countdownIntervals[intervalKey]) clearInterval(countdownIntervals[intervalKey]);
-            if (!timerElement) return;
-
-            const endTime = new Date(expiresAt).getTime();
-            const updateTimer = () => {
-                const now = new Date().getTime();
-                const distance = endTime - now;
-                if (distance < 0) {
-                    clearInterval(countdownIntervals[intervalKey]);
-                    delete countdownIntervals[intervalKey];
-                    if (onEndCallback) onEndCallback();
-                    return;
-                }
-                const d = Math.floor(distance / 86400000);
-                const h = Math.floor((distance % 86400000) / 3600000);
-                const m = Math.floor((distance % 3600000) / 60000);
-                const s = Math.floor((distance % 60000) / 1000);
-                let result = '';
-                if (d > 0) result += `${d}д `;
-                result += `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                timerElement.textContent = result;
-            };
-            countdownIntervals[intervalKey] = setInterval(updateTimer, 1000);
-            updateTimer();
-        }
-
-        // ==========================================
-        // 3. ОКНА ОПОВЕЩЕНИЙ И ПОПАПЫ
-        // ==========================================
-        window.customAlert = function(text, title = 'ВНИМАНИЕ') {
-            const old = document.getElementById('custom-cs-alert');
-            if (old) old.remove();
-
-            const overlay = document.createElement('div');
-            overlay.id = 'custom-cs-alert';
-            overlay.className = 'cs-modal-backdrop show';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-            overlay.innerHTML = `
-                <div class="cs-modal-card large-modal" style="text-align: center; padding: 20px; max-width: 280px; align-items: center;">
-                    <h3 style="color:var(--gold-primary); margin-top: 0; font-size: 13px; font-weight: 800; text-transform: uppercase;">${title}</h3>
-                    <p style="color:#FFF; font-size: 10px; line-height: 1.4; margin-bottom: 16px; opacity: 0.9;">${text}</p>
-                    <button class="cs-gold-btn" style="width: 100%; justify-content: center;" onclick="this.closest('.cs-modal-backdrop').remove()">ОТЛИЧНО</button>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-        };
-
-        function injectRewardPopup(amount, text = "Задание выполнено!", reloadOnClose = false) {
-            const existing = document.getElementById('rewardPopup');
-            if (existing) existing.remove();
-
-            const popupHtml = `
-            <div id="rewardPopup" class="cs-modal-backdrop show" style="z-index: 999999;">
-                <div class="cs-modal-card large-modal" style="text-align: center; padding: 24px 20px; max-width: 290px; align-items: center;">
-                    <div style="font-size: 40px; margin-bottom: 10px; color: var(--gold-primary); filter: drop-shadow(0 0 15px rgba(255,215,0,0.4));">
-                        <i class="fa-solid fa-gift"></i>
-                    </div>
-                    <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 800; color: #fff; text-transform: uppercase;">${text}</h3>
-                    ${amount > 0 ? `
-                        <div style="background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25); border-radius: 12px; padding: 10px; margin-bottom: 16px; min-width: 100px;">
-                            <span style="font-size: 26px; font-weight: 900; color: var(--gold-primary);">+${amount}</span>
-                        </div>
-                    ` : '<div style="margin-bottom: 16px;"></div>'}
-                    <button id="closeRewardBtn" class="cs-gold-btn" style="width: 100%; justify-content: center;">ЗАКРЫТЬ</button>
-                </div>
-            </div>`;
-
-            document.body.insertAdjacentHTML('beforeend', popupHtml);
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-
-            document.getElementById('closeRewardBtn').addEventListener('click', () => {
-                const p = document.getElementById('rewardPopup');
-                if (p) p.remove();
-                if (reloadOnClose) window.location.reload();
-            });
-        }
-
-        // ==========================================
-        // 4. ТАБЫ: ПЛАН / ПРОВЕРКА
-        // ==========================================
-        window.switchMainTab = function(tab) {
-            const isWeekly = tab === 'weekly';
-            if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
-            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', !isWeekly);
-            if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
-            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', isWeekly);
-            
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            
-            if (!isWeekly) {
-                loadManualQuests();
-            }
-        };
-
-        // ==========================================
-        // 5. МАТРИЦА (ОБНОВЛЕНИЕ ДАННЫХ И НАГРАДА)
-        // ==========================================
-        function renderMatrixTracker(matrixData, user) {
-            const topBar = dom.matrixTopBar || document.getElementById('matrix-top-bar');
-            const alertEl = document.getElementById('matrix-twitch-alert');
-
-            // Если данных нет, таблетка НЕ синяя (или не выбрана вообще), или квест завершён — СКРЫВАЕМ
-            if (!matrixData || matrixData.selected_pill !== 'blue' || matrixData.is_completed) {
-                if (topBar) topBar.style.display = 'none';
-                if (alertEl) alertEl.style.display = 'none';
-                return;
-            }
-
-            // Показываем плашку ТОЛЬКО если выбрана именно синяя таблетка
-            if (topBar) topBar.style.display = 'flex';
-
-            const tgDone = matrixData.tg_msg_current || 0;
-            const twitchDone = matrixData.twitch_msg_current || 0;
-
-            // 1. Прогресс и счетчики
-            if (dom.matrixTgVal) dom.matrixTgVal.textContent = `${tgDone >= 50 ? 50 : tgDone}/50`;
-            if (dom.matrixTgFill) dom.matrixTgFill.style.width = `${Math.min(100, (tgDone / 50) * 100)}%`;
-            
-            if (dom.matrixTwitchVal) dom.matrixTwitchVal.textContent = `${twitchDone >= 200 ? 200 : twitchDone}/200`;
-            if (dom.matrixTwitchFill) dom.matrixTwitchFill.style.width = `${Math.min(100, (twitchDone / 200) * 100)}%`;
-
-            // 2. Алерт привязки Twitch (только если матрица активна)
-            if (alertEl) {
-                const isTwitchLinked = !!(user && (user.twitch_id || user.twitch_login));
-                alertEl.style.display = isTwitchLinked ? 'none' : 'block';
-            }
-
-            // 3. Динамические статусы доверия
-            const isReadyToClaim = tgDone >= 50 && twitchDone >= 200 && !matrixData.is_completed;
-            const totalPercent = ((Math.min(tgDone / 50, 1) + Math.min(twitchDone / 200, 1)) / 2);
-
-            const subTitleEl = document.getElementById('matrix-sub-title');
-            const mainIconEl = document.getElementById('matrix-main-icon');
-
-            if (isReadyToClaim) {
-                if (subTitleEl) {
-                    subTitleEl.innerHTML = `
-                        <span onclick="claimMatrixReward()" style="color: #34c759; font-weight: 900; cursor: pointer; text-transform: uppercase;">
-                            ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i>
-                        </span>`;
-                }
-                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-gift" style="color:#34c759;"></i>`;
-            } else if (totalPercent >= 0.8) {
-                if (subTitleEl) subTitleEl.textContent = "Абсолютная верность";
-                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-bolt" style="color:var(--gold-primary);"></i>`;
-            } else if (totalPercent >= 0.5) {
-                if (subTitleEl) subTitleEl.textContent = "Доверие растет";
-                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-fire" style="color:#ff9500;"></i>`;
-            } else {
-                if (subTitleEl) subTitleEl.textContent = "Проверка доверием";
-                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-shapes"></i>`;
-            }
-        }
-
-        // Фоновое обновление данных каждые 30 секунд
-        setInterval(async () => {
-            try {
-                const hb = await makeApiRequest('/api/v1/user/heartbeat', {}, 'POST', true);
-                if (hb && hb.matrix_quest) {
-                    renderMatrixTracker(hb.matrix_quest, userData);
-                }
-            } catch(e) {}
-        }, 30000);
-
-        window.claimMatrixReward = async function() {
-            try {
-                const result = await makeApiRequest('/api/v1/matrix/claim', {}, 'POST');
-                if (result && result.success) {
-                    injectRewardPopup(result.reward || 10, "Доверие оправдано! Кейс начислен.", true);
-                } else {
-                    customAlert(result?.message || "Условия ещё не выполнены", "МАТРИЦА");
-                }
-            } catch (e) {
-                console.error("Ошибка claimMatrixReward:", e);
-            }
-        };
-
-        // ==========================================
-        // 6. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ
-        // ==========================================
-        function startDailyResetTimer() {
-            const timerEl = dom.challengeResetTimer || document.getElementById('challenge-reset-timer');
-            if (!timerEl) return;
-
-            const update = () => {
-                const now = new Date();
-                // Переводим текущее локальное время в UTC, а затем в MSK (UTC+3)
-                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-                const msk = new Date(utc + (3600000 * 3));
-
-                const tomorrow = new Date(msk);
-                tomorrow.setHours(24, 0, 0, 0);
-
-                const diff = tomorrow - msk;
-                if (diff <= 0) {
-                    timerEl.textContent = "00:00:00";
-                    return;
-                }
-
-                const h = Math.floor(diff / 3600000);
-                const m = Math.floor((diff % 3600000) / 60000);
-                const s = Math.floor((diff % 60000) / 1000);
-
-                timerEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-            };
-
-            update();
-            setInterval(update, 1000);
-        }
-
-       function renderChallenge(challengeData) {
-            if (!dom.challengeCardBox) return;
-
-            startDailyResetTimer();
-
-            if (!challengeData) {
-                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание задания...";
-                if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
-                if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
-                if (dom.claimChallengeBtn) {
-                    dom.claimChallengeBtn.innerHTML = `<span>ЖДЕМ</span>`;
-                    dom.claimChallengeBtn.classList.add('claimed');
-                }
-                return;
-            }
-
-            activeChallengeId = challengeData.id;
-            const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
-            const target = challengeData.target_value || 1;
-            const pct = Math.min(100, Math.floor((cur / target) * 100));
-            const isClaimed = !!challengeData.claimed_at;
-            const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
-
-            // Заголовок и подзаголовок
-            if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
-            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = "Личное задание на сегодня";
-
-            // Текст задания и цифры
-            if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
-            if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
-
-            // Полоса прогресса
-            if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
-
-            // Награда
-            const rewType = challengeData.reward_type || 'coins';
-            const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
-            if (dom.challengeRewardVal) {
-                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
-            }
-
-            // Управление состоянием кнопки без сброса её координат
-            if (dom.claimChallengeBtn) {
-                if (isClaimed) {
-                    dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
-                    dom.claimChallengeBtn.className = "claimed";
-                } else if (canClaim) {
-                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right"></i>`;
-                    dom.claimChallengeBtn.className = "";
-                } else {
-                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right"></i>`;
-                    dom.claimChallengeBtn.className = "";
-                }
-            }
-        }
-
-        window.claimActiveStreamChallenge = async function() {
-            if (!activeChallengeId) return;
-
-            try {
-                const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST');
-                if (res && res.status === 'success') {
-                    injectRewardPopup(res.reward_amount || 1, "Задание дня выполнено! Награда начислена.");
-                    if (dom.claimChallengeBtn) {
-                        dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
-                        dom.claimChallengeBtn.className = "claimed";
-                    }
-                } else {
-                    customAlert(res?.detail || res?.message || "Условия ещё не выполнены", "ВЫЗОВ");
-                }
-            } catch (e) {
-                console.error("Ошибка при получении награды челленджа:", e);
-            }
-        };
-
-        // ==========================================
-        // 7. РУЧНЫЕ ЗАДАНИЯ (ЗАГРУЗКА, АККОРДЕОНЫ, ОТПРАВКА)
-        // ==========================================
-        async function loadManualQuests() {
-            if (!dom.manualQuestsList) return;
-            try {
-                const questsData = await makeApiRequest("/api/v1/quests/manual", {}, 'POST', true);
-                renderManualQuests(questsData);
-            } catch (e) {
-                console.warn("Фоллбэк для ручных квестов из allQuests:", e);
-                const fallback = allQuests.filter(q => q.quest_type === 'manual_check');
-                renderManualQuests(fallback);
-            }
-        }
-
-        function renderManualQuests(questsData) {
-            const container = dom.manualQuestsList;
-            if (!container) return;
-            container.innerHTML = '';
-
-            let quests = [];
-            if (Array.isArray(questsData)) {
-                quests = questsData;
-            } else if (questsData && Array.isArray(questsData.quests)) {
-                quests = questsData.quests;
-            } else if (questsData && Array.isArray(questsData.data)) {
-                quests = questsData.data;
-            }
-
-            if (!quests || quests.length === 0) {
-                container.innerHTML = `<div style="text-align: center; font-size: 11px; color: var(--text-dim); padding: 20px 0; opacity: 0.7;">Нет заданий для ручной проверки.</div>`;
-                return;
-            }
-
-            const groupedQuests = new Map();
-            quests.forEach(quest => {
-                const categoryName = quest.quest_categories ? quest.quest_categories.name : 'Разное';
-                if (!groupedQuests.has(categoryName)) groupedQuests.set(categoryName, []);
-                groupedQuests.get(categoryName).push(quest);
-            });
-
-            groupedQuests.forEach((questsInCategory, categoryName) => {
-                const questsHtml = questsInCategory.map(quest => {
-                    const iconHtml = (quest.icon_url && quest.icon_url !== "")
-                        ? `<img src="${escapeHTML(quest.icon_url)}" style="width:100%; height:100%; border-radius:6px; object-fit:cover;">`
-                        : `<i class="fa-solid fa-list-check"></i>`;
-
-                    const actionLinkHtml = (quest.action_url && quest.action_url !== "")
-                        ? `<a href="${escapeHTML(quest.action_url)}" target="_blank" rel="noopener noreferrer" class="action-link-btn" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openLink('${escapeHTML(quest.action_url)}'); return false; }">Перейти</a>`
-                        : '';
-
-                    const submitButtonText = (quest.action_url && quest.action_url !== "") ? 'Отправить' : 'Выполнить';
-
-                    return `
-                        <div class="manual-quest-card">
-                            <div class="manual-quest-head">
-                                <div class="manual-quest-icon">${iconHtml}</div>
-                                <div class="manual-quest-info">
-                                    <h3 class="manual-quest-title">${escapeHTML(quest.title || '')}</h3>
-                                    <p class="manual-quest-desc">${escapeHTML(quest.description || '')}</p>
-                                </div>
-                            </div>
-                            <div class="manual-quest-footer">
-                                <div class="manual-reward-pill">+${quest.reward_amount || 1} <i class="fa-solid fa-ticket"></i></div>
-                                <div class="manual-actions-wrap">
-                                    ${actionLinkHtml}
-                                    <button class="perform-quest-button" data-id="${quest.id}" data-title="${escapeHTML(quest.title || '')}">${submitButtonText}</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                const accordionHtml = `
-                    <details class="quest-category-accordion">
-                        <summary class="quest-category-header">${escapeHTML(categoryName)}</summary>
-                        <div class="quest-category-body">
-                            ${questsHtml}
-                        </div>
-                    </details>
-                `;
-                container.insertAdjacentHTML('beforeend', accordionHtml);
-            });
-        }
-
-        // Модалка ввода для отправки ручного квеста
-        window.openPromptModal = function(questId, title) {
-            currentQuestId = questId;
-            if (dom.promptTitle) dom.promptTitle.textContent = title || 'Отправка задания';
-            if (dom.promptInput) dom.promptInput.value = '';
-            if (dom.promptOverlay) dom.promptOverlay.classList.add('show');
-            setTimeout(() => { if (dom.promptInput) dom.promptInput.focus(); }, 100);
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-        };
-
-        window.closePromptModal = function() {
-            if (dom.promptOverlay) dom.promptOverlay.classList.remove('show');
-            currentQuestId = null;
-        };
-
-        window.submitPromptModal = async function() {
-            if (!dom.promptInput) return;
-            const text = dom.promptInput.value.trim();
-            if (!text) {
-                customAlert("Пожалуйста, заполните поле ввода перед отправкой.", "ВНИМАНИЕ");
-                return;
-            }
-            const qId = currentQuestId;
-            closePromptModal();
-
-            try {
-                await makeApiRequest(`/api/v1/quests/${qId}/submit`, { submittedData: text });
-                customAlert("Ваша заявка принята и отправлена на проверку модераторам!", "УСПЕШНО");
-            } catch (e) {
-                console.error("Ошибка при отправке ручного квеста:", e);
-            }
-        };
-
-        // ==========================================
-        // 8. КОНСТРУКТОР КОНТРАКТА
-        // ==========================================
-        window.openConstructorModal = function() {
-            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-        };
-
-        window.closeConstructorModal = function() {
-            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
-        };
-
-        window.selectChip = function(key, index) {
-            const config = constructorConfig[key];
-            if (!config) return;
-            config.selectedIdx = index;
-            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
-            if (rowEl) {
-                const chips = rowEl.querySelectorAll('.target-chip');
-                chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            recalcConstructorTotal();
-        };
-
-        window.toggleConstructorRow = function(key, isEnabled) {
-            const config = constructorConfig[key];
-            if (!config) return;
-            config.enabled = isEnabled;
-            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
-            const statusText = document.getElementById(`status-${key.replace('_', '-')}`);
-            if (rowEl) rowEl.classList.toggle('row-disabled', !isEnabled);
-            if (statusText) {
-                statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
-                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'var(--text-dim)';
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            recalcConstructorTotal();
-        };
-
-        function recalcConstructorTotal() {
-            let total = 0; 
-            let anyEnabled = false;
-            Object.values(constructorConfig).forEach(slot => {
-                if (slot.enabled) {
-                    anyEnabled = true;
-                    total += slot.rewardOptions[slot.selectedIdx];
-                }
-            });
-            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
-            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
-        }
-
-        window.submitConstructorContract = function() {
-            let activeSlots = 0;
-            Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
-            if (activeSlots === 0) return;
-
-            closeConstructorModal();
-            customAlert("Сложный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
-            if (dom.weeklyLimitCount) {
-                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        };
-
-        // ==========================================
-        // 9. СОБЫТИЯ И PULL-TO-REFRESH
-        // ==========================================
-        function setupEventListeners() {
-            // Обработчик клика на кнопки внутри списка ручных заданий
-            document.body.addEventListener('click', (e) => {
-                const target = e.target.closest('button');
-                if (!target) return;
-
-                if (target.classList.contains('perform-quest-button') && target.dataset.id) {
-                    openPromptModal(target.dataset.id, target.dataset.title);
-                }
-            });
-
-            // Настройка системной кнопки Telegram "Назад"
-            if (window.Telegram?.WebApp?.BackButton) {
-                Telegram.WebApp.BackButton.show();
-                Telegram.WebApp.BackButton.onClick(() => {
-                    if (dom.constructorModalOverlay?.classList.contains('show')) {
-                        closeConstructorModal();
-                        return;
-                    }
-                    if (dom.promptOverlay?.classList.contains('show')) {
-                        closePromptModal();
-                        return;
-                    }
-                    if (dom.scheduleModal?.classList.contains('show')) {
-                        dom.scheduleModal.classList.remove('show');
-                        return;
-                    }
-                    if (window.history.length > 1) {
-                        window.history.back();
-                    } else {
-                        window.location.href = '/menu';
-                    }
-                });
-            }
-        }
-
-        function initPullToRefresh() {
-            const content = dom.mainContent;
-            const ptr = document.getElementById('pull-to-refresh');
-            if (!content || !ptr) return;
-            let startY = 0;
-            let pulling = false;
-
-            content.addEventListener('touchstart', (e) => {
-                if (content.scrollTop <= 0) {
-                    startY = e.touches[0].clientY;
-                    pulling = true;
-                }
-            }, { passive: true });
-
-            content.addEventListener('touchmove', (e) => {
-                if (!pulling) return;
-                const diff = e.touches[0].clientY - startY;
-                if (diff > 0 && content.scrollTop <= 0) {
-                    ptr.style.height = `${Math.min(50, diff * 0.4)}px`;
-                }
-            }, { passive: true });
-
-            content.addEventListener('touchend', () => {
-                if (!pulling) return;
-                pulling = false;
-                if (parseInt(ptr.style.height || '0') >= 40) {
-                    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    window.location.reload();
-                }
-                ptr.style.height = '0px';
-            });
-        }
-
-        // ==========================================
-        // 10. ОСНОВНАЯ ФУНКЦИЯ ЗАПУСКА
-        // ==========================================
-        async function main() {
-            updateLoading(25);
-            try {
-                let bootstrapData;
-                if (window.bootstrapPromise) {
-                    try {
-                        bootstrapData = await window.bootstrapPromise;
-                    } catch (e) {
-                        bootstrapData = null;
-                    }
-                }
-                
-                // Страховка: если предзагрузка вернула null, пробуем стандартный запрос
-                if (!bootstrapData) {
-                    try {
-                        bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true);
-                    } catch (e) {
-                        console.warn("Основной запрос bootstrap не удался:", e);
-                    }
-                }
-
-                updateLoading(65);
-
-                if (bootstrapData) {
-                    userData = bootstrapData.user || {};
-                    allQuests = bootstrapData.quests || [];
-
-                    // Передаем данные матрицы (или null, если квеста нет в ответе, чтобы точно скрыть плашку)
-                    renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
-
-                    const currentChallenge = bootstrapData.challenge || userData.challenge || null;
-                    renderChallenge(currentChallenge);
-                }
-
-                updateLoading(100);
-            } catch (err) {
-                console.error("Ошибка при инициализации main:", err);
-            } finally {
-                if (dom.loaderOverlay) {
-                    dom.loaderOverlay.style.opacity = '0';
-                    setTimeout(() => dom.loaderOverlay.classList.add('hidden'), 300);
-                }
-                if (dom.mainContent) dom.mainContent.style.opacity = '1';
-
-                if (window.Telegram?.WebApp) {
-                    Telegram.WebApp.ready();
-                    Telegram.WebApp.expand();
-                }
-            }
-        }
-
-        // Запуск
-        setupEventListeners();
-        initPullToRefresh();
-        main();
-    </script>
+    <!-- Загрузочный экран -->
+    <div id="loader-overlay" class="loader-backdrop">
+        <div class="cs-spinner"></div>
+        <div id="loading-text" class="cs-loading-text">0%</div>
+        <div class="cs-loading-bar"><div id="loading-bar-fill" class="cs-loading-fill"></div></div>
+    </div>
+
+    <!-- ГЛАВНЫЙ ОГРАНИЧИТЕЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16) -->
+    <div class="mobile-wrapper">
+        <main id="main-content" class="main-content">
+            
+            <!-- Pull to Refresh индикатор -->
+            <div id="pull-to-refresh" style="text-align: center; height: 0; overflow: hidden; transition: height 0.2s;">
+                <i class="fa-solid fa-rotate-right" style="color: var(--gold-primary); font-size: 18px; margin-bottom: 6px;"></i>
+            </div>
+            
+            <!-- 1. ТОП БАР (МАТРИЦА С ПОЛНЫМ ФУНКЦИОНАЛОМ - СКРЫТА ПО УМОЛЧАНИЮ) -->
+            <div class="matrix-top-bar" id="matrix-top-bar" style="display: none;">
+                <div class="matrix-brand">
+                    <div class="matrix-icon" id="matrix-main-icon"><i class="fa-solid fa-shapes"></i></div>
+                    <div class="matrix-titles">
+                        <span class="m-title">МАТРИЦА <i class="fa-regular fa-circle-question" style="font-size: 10px; opacity: 0.8;" onclick="customAlert('Проявляйте активность в чатах Telegram и Twitch для подтверждения доверия и получения редких кейсов.', 'О МАТРИЦЕ')"></i></span>
+                        <span class="m-sub" id="matrix-sub-title">Проверка доверием</span>
+                    </div>
+                </div>
+                
+                <div class="matrix-stats" id="matrix-stats-container">
+                    <!-- Telegram -->
+                    <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openTelegramLink('https://t.me/hatelove_ttv'); } else { window.open('https://t.me/hatelove_ttv', '_blank'); }">
+                        <div class="stat-icon-wrap"><i class="fa-brands fa-telegram stat-icon"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-head"><span>Telegram</span><span class="stat-val" id="matrix-tg-val">0/50</span></div>
+                            <div class="stat-track"><div class="stat-fill" id="matrix-tg-fill" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Twitch -->
+                    <div class="stat-block" style="cursor: pointer;" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv'); } else { window.open('https://www.twitch.tv/hatelove_ttv', '_blank'); }">
+                        <div class="stat-icon-wrap"><i class="fa-brands fa-twitch stat-icon"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-head"><span>Twitch</span><span class="stat-val" id="matrix-twitch-val">0/200</span></div>
+                            <div class="stat-track"><div class="stat-fill" id="matrix-twitch-fill" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Предупреждение если Twitch не привязан -->
+            <div id="matrix-twitch-alert" style="display: none; color: #ff3b30; font-size: 9px; font-weight: 700; text-align: right; padding-right: 12px; margin-top: -8px; margin-bottom: 10px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <a href="/profile" style="color: #ff3b30; text-decoration: underline;">Привяжи Twitch в профиле!</a>
+            </div>
+
+            <!-- 2. HERO ШАПКА -->
+            <div class="hero-section">
+                <div class="bg-soldier"></div>
+
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        ВЫБЕРИ САМ, КАКУЮ<br>
+                        <span class="gold-text">АКТИВНОСТЬ ГОТОВ</span><br>
+                        ВЫПОЛНЯТЬ
+                    </h1>
+                    <div class="hero-meta">
+                        <i class="fa-regular fa-calendar-days" style="color: var(--gold-primary);"></i>
+                        <span>Недельные испытания</span>
+                    </div>
+                </div>
+                
+                <div class="limit-pill">
+                    <i class="fa-solid fa-bolt"></i>
+                    <div class="limit-texts">
+                        <span class="limit-lbl">Лимит:</span>
+                        <span id="weekly-limit-count" class="limit-val">0 / 5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ТАБЫ -->
+            <div class="cs-tabs">
+                <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
+                    <i class="fa-regular fa-calendar-check"></i> План
+                </button>
+                <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
+                    <i class="fa-solid fa-bolt"></i> Проверка
+                </button>
+            </div>
+
+            <!-- СЕКЦИЯ 1: НЕДЕЛЬНЫЙ ПЛАН -->
+            <div id="section-weekly-plan">
+                
+                <!-- 4. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ -->
+                <div class="challenge-card-canvas" id="challenge-card-box">
+                    <!-- Заголовок и подзаголовок -->
+                    <div class="canvas-title-group">
+                        <h2 class="canvas-main-title" id="challenge-header-title">РАЗМИНКА</h2>
+                        <span class="canvas-sub-title" id="challenge-header-desc">Личное задание на сегодня</span>
+                    </div>
+
+                    <!-- Таймер -->
+                    <span class="canvas-timer-text" id="challenge-reset-timer">23:59:59</span>
+
+                    <!-- Задание + шкала -->
+                    <div class="canvas-task-box">
+                        <div class="canvas-task-header">
+                            <span class="canvas-task-title" id="challenge-task-name">Актив в чате: 5 → 15 → 50 ...</span>
+                            <span class="canvas-task-numbers" id="challenge-task-numbers">0 / 5</span>
+                        </div>
+                        <div class="canvas-progress-track">
+                            <div class="canvas-progress-fill" id="challenge-progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Награда -->
+                    <div class="canvas-reward-box">
+                        <span class="canvas-reward-label">Награда</span>
+                        <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
+                    </div>
+
+                    <!-- Кнопка действия -->
+                    <button id="claim-challenge-btn" onclick="claimActiveStreamChallenge()">
+                        <i class="fa-solid fa-comment-dots"></i>
+                        <span>В ПРОЦЕССЕ</span>
+                        <i class="fa-solid fa-angles-right"></i>
+                    </button>
+                </div>
+
+                <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
+                <div class="premium-card trigger-card" onclick="openConstructorModal()">
+                    <div class="card-header borderless">
+                        <div class="head-left">
+                            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <div class="head-titles">
+                                <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
+                                <p class="c-desc">Настрой сам себе задания</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="handdrawn-arrow">
+                        <span>Настрой<br>под себя</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 6. ИДЕАЛЬНАЯ СЕРИЯ -->
+                <div class="premium-card streak-card">
+                    <div class="card-header borderless">
+                        <div class="head-left">
+                            <div class="icon-box fire-box"><i class="fa-solid fa-fire"></i></div>
+                            <div class="head-titles">
+                                <h2 class="c-title">ИДЕАЛЬНАЯ СЕРИЯ</h2>
+                                <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;" id="streak-counter-text">1 / 4</span></p>
+                            </div>
+                        </div>
+                        <button class="ghost-btn" onclick="customAlert('Серия обновляется каждую неделю. Не пропускай!', 'О СЕРИИ')"><i class="fa-solid fa-gift"></i> Инфо</button>
+                    </div>
+
+                    <div class="streak-body">
+                        <div class="streak-segments">
+                            <div class="seg active" id="streak-seg-1"></div>
+                            <div class="seg" id="streak-seg-2"></div>
+                            <div class="seg" id="streak-seg-3"></div>
+                            <div class="seg" id="streak-seg-4"></div>
+                        </div>
+
+                        <div class="streak-grid">
+                            <div class="s-item active">
+                                <div class="s-img case-img"></div>
+                                <b>1 неделя</b>
+                                <span>Армейский<br>или кейс</span>
+                            </div>
+                            <div class="s-item">
+                                <div class="s-img wp-img-1"></div>
+                                <b>2 недели</b>
+                                <span>Запрещ.<br>+10 бил.</span>
+                            </div>
+                            <div class="s-item">
+                                <div class="s-img wp-img-2"></div>
+                                <b>3 недели</b>
+                                <span>Засекреч.<br>скин</span>
+                            </div>
+                            <div class="s-item gold-tier">
+                                <div class="s-img knife-img"></div>
+                                <b class="gold-text">4 недели</b>
+                                <span>Тайный<br>или нож</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- СЕКЦИЯ 2: РУЧНАЯ ПРОВЕРКА (РУЧНЫЕ КВЕСТЫ) -->
+            <div id="section-manual-quests" class="hidden">
+                <div style="text-align: center; margin-bottom: 12px; color: var(--gold-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> Доступные задания для проверки
+                </div>
+                
+                <div id="manual-quests-list" class="manual-section-wrapper">
+                    <div style="text-align: center; color: #fff; padding: 30px 0; font-size: 11px; opacity: 0.8;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 22px; color: var(--gold-primary); margin-bottom: 10px;"></i><br>
+                        Загрузка заданий...
+                    </div>
+                </div>
+                
+                <span style="display: block; font-size: 9px; color: var(--text-dim); text-align: center; margin-top: 14px; opacity: 0.7;">
+                    Статус проверки можно увидеть в <span style="color: var(--gold-primary); font-weight: 700;">Профиле</span>
+                </span>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- МОДАЛКА: ВВОД ДАННЫХ ДЛЯ РУЧНОГО КВЕСТА -->
+    <div id="custom-prompt-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closePromptModal()">
+        <div class="prompt-modal-card">
+            <h3 id="prompt-title">Отправка задания</h3>
+            <p>Введите ваш ник, ссылку или подтверждающие данные:</p>
+            <input type="text" id="prompt-input" class="prompt-input-field" placeholder="Ваш ник или ссылка...">
+            <div class="prompt-actions-row">
+                <button id="prompt-cancel" class="prompt-btn-cancel" onclick="closePromptModal()">Отмена</button>
+                <button id="prompt-confirm" class="prompt-btn-confirm" onclick="submitPromptModal()">Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА: РАСПИСАНИЕ СТРИМОВ -->
+    <div id="schedule-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) this.classList.remove('show')">
+        <div class="cs-modal-card large-modal" style="max-width: 340px; padding: 16px;">
+            <div class="modal-head" style="padding: 0 0 12px 0;">
+                <h2>📅 Расписание стримов</h2>
+                <button class="close-btn" onclick="document.getElementById('schedule-modal-overlay').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <img src="https://i.postimg.cc/NMw2ByPZ/raspisanie-strimov.jpg" loading="lazy" alt="Расписание" style="width: 100%; border-radius: 10px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <button onclick="Telegram.WebApp.openLink('https://www.twitch.tv/hatelove_ttv')" class="cs-gold-btn" style="width: 100%; justify-content: center;">
+                <i class="fa-brands fa-twitch"></i> Перейти на канал
+            </button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА: КОНСТРУКТОР -->
+    <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
+        <div class="cs-modal-card large-modal">
+            <div class="modal-head">
+                <h2>КОНСТРУКТОР КОНТРАКТА</h2>
+                <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="constructor-list">
+                <!-- СЛОТ 1 -->
+                <div class="c-row row-disabled" id="row-twitch-chat">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
+                            <div class="c-titles">
+                                <b>Twitch Чат</b>
+                                <span>Сообщений в чате</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('twitch_chat', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-twitch-chat">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('twitch_chat', 0)"><span class="val">25</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span></button>
+                        <button class="target-chip active" onclick="selectChip('twitch_chat', 1)"><span class="val">50</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span></button>
+                        <button class="target-chip" onclick="selectChip('twitch_chat', 2)"><span class="val">100</span><span class="rew"><i class="fa-solid fa-ticket"></i> +4</span></button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 2 -->
+                <div class="c-row row-disabled" id="row-twitch-uptime">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-solid fa-play"></i></div>
+                            <div class="c-titles">
+                                <b>Стрим</b>
+                                <span>Время просмотра</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('twitch_uptime', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-twitch-uptime">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('twitch_uptime', 0)"><span class="val">30 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span></button>
+                        <button class="target-chip active" onclick="selectChip('twitch_uptime', 1)"><span class="val">60 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span></button>
+                        <button class="target-chip" onclick="selectChip('twitch_uptime', 2)"><span class="val">120 мин</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span></button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 3 -->
+                <div class="c-row row-disabled" id="row-telegram-chat">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
+                            <div class="c-titles">
+                                <b>Telegram Чат</b>
+                                <span>Сообщений в чате</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('telegram_chat', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-telegram-chat">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('telegram_chat', 0)"><span class="val">15</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span></button>
+                        <button class="target-chip active" onclick="selectChip('telegram_chat', 1)"><span class="val">30</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span></button>
+                        <button class="target-chip" onclick="selectChip('telegram_chat', 2)"><span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span></button>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 4 -->
+                <div class="c-row row-disabled" id="row-personal-quest">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                            <div class="c-titles">
+                                <b>Персональный</b>
+                                <span>Игровая цель</span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-row-bottom chips-3">
+                        <button class="target-chip" onclick="selectChip('personal_quest', 0)"><span class="val">10 кейсов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span></button>
+                        <button class="target-chip active" onclick="selectChip('personal_quest', 1)"><span class="val">50 слов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +6</span></button>
+                        <button class="target-chip" onclick="selectChip('personal_quest', 2)"><span class="val">3 друга</span><span class="rew"><i class="fa-solid fa-ticket"></i> +8</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="sum-box">
+                    <span>Итоговая награда</span>
+                    <div class="sum-val"><i class="fa-solid fa-ticket" style="color:var(--gold-primary);"></i> <span id="constructor-total-reward">0</span></div>
+                </div>
+                <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПОДКЛЮЧЕНИЕ НИЖНЕГО МЕНЮ (BOTTOM NAV) -->
+    <script src="/bottom-nav.js"></script>
+
+    <!-- ================= 8. JS ЛОГИКА ================= -->
+    <script>
+        // =========================================================================
+        // ⚙️ ПАНЕЛЬ РУЧНОЙ НАСТРОЙКИ ЧЕЛЛЕНДЖА
+        // =========================================================================
+        const CUSTOM_CHALLENGE = {
+            enabled: true,            // true: текст и награда берутся отсюда; false: брать с бэкенда
+            title: "РАЗМИНКА",        // Заголовок
+            subtitle: "Личное задание на сегодня", 
+            taskName: "Актив в чате: 5 → 15 → 50 ...", // Текст задания
+            curVal: 0,                // Текущий прогресс
+            targetVal: 5,             // Цель
+            reward: 1,                // Количество монет или билетов
+            rewardType: "coins"       // "coins" (монета) или "tickets" (билет)
+        };
+
+        // ==========================================
+        // 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ DOM
+        // ==========================================
+        const dom = {
+            loaderOverlay: document.getElementById('loader-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            loadingBarFill: document.getElementById('loading-bar-fill'),
+            mainContent: document.getElementById('main-content'),
+            
+            tabBtnWeekly: document.getElementById('tab-btn-weekly'),
+            tabBtnManual: document.getElementById('tab-btn-manual'),
+            sectionWeekly: document.getElementById('section-weekly-plan'),
+            sectionManual: document.getElementById('section-manual-quests'),
+
+            matrixTopBar: document.getElementById('matrix-top-bar'),
+            matrixSubTitle: document.getElementById('matrix-sub-title'),
+            matrixTgVal: document.getElementById('matrix-tg-val'),
+            matrixTgFill: document.getElementById('matrix-tg-fill'),
+            matrixTwitchVal: document.getElementById('matrix-twitch-val'),
+            matrixTwitchFill: document.getElementById('matrix-twitch-fill'),
+            matrixStatsContainer: document.getElementById('matrix-stats-container'),
+
+            weeklyLimitCount: document.getElementById('weekly-limit-count'),
+
+            challengeCardBox: document.getElementById('challenge-card-box'),
+            challengeHeaderTitle: document.getElementById('challenge-header-title'),
+            challengeHeaderDesc: document.getElementById('challenge-header-desc'),
+            challengeResetTimer: document.getElementById('challenge-reset-timer'),
+            challengeTaskName: document.getElementById('challenge-task-name'),
+            challengeProgressFill: document.getElementById('challenge-progress-fill'),
+            challengeTaskNumbers: document.getElementById('challenge-task-numbers'),
+            challengeRewardVal: document.getElementById('challenge-reward-val'),
+            claimChallengeBtn: document.getElementById('claim-challenge-btn'),
+
+            streakCounterText: document.getElementById('streak-counter-text'),
+
+            manualQuestsList: document.getElementById('manual-quests-list'),
+            promptOverlay: document.getElementById('custom-prompt-overlay'),
+            promptTitle: document.getElementById('prompt-title'),
+            promptInput: document.getElementById('prompt-input'),
+            promptCancel: document.getElementById('prompt-cancel'),
+            promptConfirm: document.getElementById('prompt-confirm'),
+
+            constructorModalOverlay: document.getElementById('constructor-modal-overlay'),
+            constructorTotalReward: document.getElementById('constructor-total-reward'),
+            activateContractBtn: document.getElementById('activate-contract-btn'),
+
+            scheduleModal: document.getElementById('schedule-modal-overlay')
+        };
+
+        let currentQuestId = null;
+        let countdownIntervals = {};
+        let allQuests = [];
+        let userData = {};
+        let activeChallengeId = null;
+
+        const constructorConfig = {
+            twitch_chat: { rewardOptions: [1, 2, 4], selectedIdx: 1, enabled: false },
+            twitch_uptime: { rewardOptions: [1, 2, 5], selectedIdx: 1, enabled: false },
+            telegram_chat: { rewardOptions: [1, 2, 3], selectedIdx: 1, enabled: false },
+            personal_quest: { rewardOptions: [5, 6, 8], selectedIdx: 1, enabled: false }
+        };
+
+        // ==========================================
+        // 2. УТИЛИТЫ И API
+        // ==========================================
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>"']/g, match => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[match]);
+        }
+
+        function updateLoading(percent) {
+            if (dom.loadingText) dom.loadingText.textContent = Math.floor(percent) + '%';
+            if (dom.loadingBarFill) dom.loadingBarFill.style.width = Math.floor(percent) + '%';
+        }
+
+        async function makeApiRequest(url, body = {}, method = 'POST', isSilent = false) {
+            if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.remove('hidden');
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+                const options = { 
+                    method, 
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal 
+                };
+                
+                const initData = window.Telegram?.WebApp?.initData || '';
+                if (method !== 'GET') {
+                    options.body = JSON.stringify({ ...body, initData });
+                }
+                
+                const response = await fetch(url, options);
+                clearTimeout(timeoutId);
+
+                if (response.status === 429) throw new Error('Слишком много запросов (Cooldown)'); 
+                if (response.status === 204) return null;
+                
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || result.message || 'Ошибка сервера');
+                return result;
+            } catch (e) {
+                if (e.name === 'AbortError') e.message = "Превышено время ожидания ответа.";
+                if (!isSilent && window.Telegram?.WebApp?.showAlert) {
+                    Telegram.WebApp.showAlert(`Ошибка: ${e.message}`);
+                }
+                throw e;
+            } finally {
+                if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
+            }
+        }
+
+        function startDailyResetTimer() {
+            const timerEl = dom.challengeResetTimer || document.getElementById('challenge-reset-timer');
+            if (!timerEl) return;
+
+            const update = () => {
+                const now = new Date();
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const msk = new Date(utc + (3600000 * 3));
+
+                const tomorrow = new Date(msk);
+                tomorrow.setHours(24, 0, 0, 0);
+
+                const diff = tomorrow - msk;
+                if (diff <= 0) {
+                    timerEl.textContent = "00:00:00";
+                    return;
+                }
+
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+
+                timerEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            };
+
+            update();
+            setInterval(update, 1000);
+        }
+
+        // ==========================================
+        // 3. ОТРИСОВКА ЧЕЛЛЕНДЖА
+        // ==========================================
+        function renderChallenge(challengeData) {
+            if (!dom.challengeCardBox) return;
+
+            startDailyResetTimer();
+
+            // Если включена ручная настройка — берем данные из CUSTOM_CHALLENGE
+            if (CUSTOM_CHALLENGE.enabled) {
+                challengeData = {
+                    id: 9999,
+                    title: CUSTOM_CHALLENGE.title,
+                    description: CUSTOM_CHALLENGE.taskName,
+                    current_value: CUSTOM_CHALLENGE.curVal,
+                    target_value: CUSTOM_CHALLENGE.targetVal,
+                    reward_amount: CUSTOM_CHALLENGE.reward,
+                    reward_type: CUSTOM_CHALLENGE.rewardType,
+                    is_completed: CUSTOM_CHALLENGE.curVal >= CUSTOM_CHALLENGE.targetVal
+                };
+            }
+
+            if (!challengeData) {
+                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание задания...";
+                if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
+                if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
+                if (dom.claimChallengeBtn) {
+                    dom.claimChallengeBtn.innerHTML = `<span>ЖДЕМ</span>`;
+                    dom.claimChallengeBtn.classList.add('claimed');
+                }
+                return;
+            }
+
+            activeChallengeId = challengeData.id;
+            const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
+            const target = challengeData.target_value || 1;
+            const pct = Math.min(100, Math.floor((cur / target) * 100));
+            const isClaimed = !!challengeData.claimed_at;
+            const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
+
+            // Заголовок и подзаголовок
+            if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
+            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = CUSTOM_CHALLENGE.enabled ? CUSTOM_CHALLENGE.subtitle : "Личное задание на сегодня";
+
+            // Текст задания и цифры
+            if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
+            if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
+
+            // Полоса прогресса
+            if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
+
+            // Награда
+            const rewType = challengeData.reward_type || 'coins';
+            const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
+            if (dom.challengeRewardVal) {
+                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
+            }
+
+            // Кнопка
+            if (dom.claimChallengeBtn) {
+                if (isClaimed) {
+                    dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
+                    dom.claimChallengeBtn.className = "claimed";
+                } else if (canClaim) {
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right"></i>`;
+                    dom.claimChallengeBtn.className = "";
+                } else {
+                    dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right"></i>`;
+                    dom.claimChallengeBtn.className = "";
+                }
+            }
+        }
+
+        window.claimActiveStreamChallenge = async function() {
+            if (!activeChallengeId) return;
+
+            try {
+                const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST');
+                if (res && res.status === 'success') {
+                    injectRewardPopup(res.reward_amount || 1, "Задание дня выполнено! Награда начислена.");
+                    if (dom.claimChallengeBtn) {
+                        dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
+                        dom.claimChallengeBtn.className = "claimed";
+                    }
+                } else {
+                    customAlert(res?.detail || res?.message || "Условия ещё не выполнены", "ВЫЗОВ");
+                }
+            } catch (e) {
+                console.error("Ошибка при получении награды челленджа:", e);
+            }
+        };
+
+        // ==========================================
+        // 4. МАТРИЦА
+        // ==========================================
+        function renderMatrixTracker(matrixData, user) {
+            const topBar = dom.matrixTopBar || document.getElementById('matrix-top-bar');
+            const alertEl = document.getElementById('matrix-twitch-alert');
+
+            if (!matrixData || matrixData.selected_pill !== 'blue' || matrixData.is_completed) {
+                if (topBar) topBar.style.display = 'none';
+                if (alertEl) alertEl.style.display = 'none';
+                return;
+            }
+
+            if (topBar) topBar.style.display = 'flex';
+
+            const tgDone = matrixData.tg_msg_current || 0;
+            const twitchDone = matrixData.twitch_msg_current || 0;
+
+            if (dom.matrixTgVal) dom.matrixTgVal.textContent = `${tgDone >= 50 ? 50 : tgDone}/50`;
+            if (dom.matrixTgFill) dom.matrixTgFill.style.width = `${Math.min(100, (tgDone / 50) * 100)}%`;
+            
+            if (dom.matrixTwitchVal) dom.matrixTwitchVal.textContent = `${twitchDone >= 200 ? 200 : twitchDone}/200`;
+            if (dom.matrixTwitchFill) dom.matrixTwitchFill.style.width = `${Math.min(100, (twitchDone / 200) * 100)}%`;
+
+            if (alertEl) {
+                const isTwitchLinked = !!(user && (user.twitch_id || user.twitch_login));
+                alertEl.style.display = isTwitchLinked ? 'none' : 'block';
+            }
+
+            const isReadyToClaim = tgDone >= 50 && twitchDone >= 200 && !matrixData.is_completed;
+            const totalPercent = ((Math.min(tgDone / 50, 1) + Math.min(twitchDone / 200, 1)) / 2);
+
+            const subTitleEl = document.getElementById('matrix-sub-title');
+            const mainIconEl = document.getElementById('matrix-main-icon');
+
+            if (isReadyToClaim) {
+                if (subTitleEl) {
+                    subTitleEl.innerHTML = `
+                        <span onclick="claimMatrixReward()" style="color: #34c759; font-weight: 900; cursor: pointer; text-transform: uppercase;">
+                            ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i>
+                        </span>`;
+                }
+                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-gift" style="color:#34c759;"></i>`;
+            } else if (totalPercent >= 0.8) {
+                if (subTitleEl) subTitleEl.textContent = "Абсолютная верность";
+                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-bolt" style="color:var(--gold-primary);"></i>`;
+            } else if (totalPercent >= 0.5) {
+                if (subTitleEl) subTitleEl.textContent = "Доверие растет";
+                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-fire" style="color:#ff9500;"></i>`;
+            } else {
+                if (subTitleEl) subTitleEl.textContent = "Проверка доверием";
+                if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-shapes"></i>`;
+            }
+        }
+
+        setInterval(async () => {
+            try {
+                const hb = await makeApiRequest('/api/v1/user/heartbeat', {}, 'POST', true);
+                if (hb && hb.matrix_quest) {
+                    renderMatrixTracker(hb.matrix_quest, userData);
+                }
+            } catch(e) {}
+        }, 30000);
+
+        window.claimMatrixReward = async function() {
+            try {
+                const result = await makeApiRequest('/api/v1/matrix/claim', {}, 'POST');
+                if (result && result.success) {
+                    injectRewardPopup(result.reward || 10, "Доверие оправдано! Кейс начислен.", true);
+                } else {
+                    customAlert(result?.message || "Условия ещё не выполнены", "МАТРИЦА");
+                }
+            } catch (e) {
+                console.error("Ошибка claimMatrixReward:", e);
+            }
+        };
+
+        // ==========================================
+        // 5. РУЧНЫЕ ЗАДАНИЯ
+        // ==========================================
+        async function loadManualQuests() {
+            if (!dom.manualQuestsList) return;
+            try {
+                const questsData = await makeApiRequest("/api/v1/quests/manual", {}, 'POST', true);
+                renderManualQuests(questsData);
+            } catch (e) {
+                const fallback = allQuests.filter(q => q.quest_type === 'manual_check');
+                renderManualQuests(fallback);
+            }
+        }
+
+        function renderManualQuests(questsData) {
+            const container = dom.manualQuestsList;
+            if (!container) return;
+            container.innerHTML = '';
+
+            let quests = [];
+            if (Array.isArray(questsData)) {
+                quests = questsData;
+            } else if (questsData && Array.isArray(questsData.quests)) {
+                quests = questsData.quests;
+            } else if (questsData && Array.isArray(questsData.data)) {
+                quests = questsData.data;
+            }
+
+            if (!quests || quests.length === 0) {
+                container.innerHTML = `<div style="text-align: center; font-size: 11px; color: var(--text-dim); padding: 20px 0; opacity: 0.7;">Нет заданий для ручной проверки.</div>`;
+                return;
+            }
+
+            const groupedQuests = new Map();
+            quests.forEach(quest => {
+                const categoryName = quest.quest_categories ? quest.quest_categories.name : 'Разное';
+                if (!groupedQuests.has(categoryName)) groupedQuests.set(categoryName, []);
+                groupedQuests.get(categoryName).push(quest);
+            });
+
+            groupedQuests.forEach((questsInCategory, categoryName) => {
+                const questsHtml = questsInCategory.map(quest => {
+                    const iconHtml = (quest.icon_url && quest.icon_url !== "")
+                        ? `<img src="${escapeHTML(quest.icon_url)}" style="width:100%; height:100%; border-radius:6px; object-fit:cover;">`
+                        : `<i class="fa-solid fa-list-check"></i>`;
+
+                    const actionLinkHtml = (quest.action_url && quest.action_url !== "")
+                        ? `<a href="${escapeHTML(quest.action_url)}" target="_blank" rel="noopener noreferrer" class="action-link-btn" onclick="if(window.Telegram?.WebApp) { Telegram.WebApp.openLink('${escapeHTML(quest.action_url)}'); return false; }">Перейти</a>`
+                        : '';
+
+                    const submitButtonText = (quest.action_url && quest.action_url !== "") ? 'Отправить' : 'Выполнить';
+
+                    return `
+                        <div class="manual-quest-card">
+                            <div class="manual-quest-head">
+                                <div class="manual-quest-icon">${iconHtml}</div>
+                                <div class="manual-quest-info">
+                                    <h3 class="manual-quest-title">${escapeHTML(quest.title || '')}</h3>
+                                    <p class="manual-quest-desc">${escapeHTML(quest.description || '')}</p>
+                                </div>
+                            </div>
+                            <div class="manual-quest-footer">
+                                <div class="manual-reward-pill">+${quest.reward_amount || 1} <i class="fa-solid fa-ticket"></i></div>
+                                <div class="manual-actions-wrap">
+                                    ${actionLinkHtml}
+                                    <button class="perform-quest-button" data-id="${quest.id}" data-title="${escapeHTML(quest.title || '')}">${submitButtonText}</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const accordionHtml = `
+                    <details class="quest-category-accordion">
+                        <summary class="quest-category-header">${escapeHTML(categoryName)}</summary>
+                        <div class="quest-category-body">
+                            ${questsHtml}
+                        </div>
+                    </details>
+                `;
+                container.insertAdjacentHTML('beforeend', accordionHtml);
+            });
+        }
+
+        window.openPromptModal = function(questId, title) {
+            currentQuestId = questId;
+            if (dom.promptTitle) dom.promptTitle.textContent = title || 'Отправка задания';
+            if (dom.promptInput) dom.promptInput.value = '';
+            if (dom.promptOverlay) dom.promptOverlay.classList.add('show');
+            setTimeout(() => { if (dom.promptInput) dom.promptInput.focus(); }, 100);
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
+
+        window.closePromptModal = function() {
+            if (dom.promptOverlay) dom.promptOverlay.classList.remove('show');
+            currentQuestId = null;
+        };
+
+        window.submitPromptModal = async function() {
+            if (!dom.promptInput) return;
+            const text = dom.promptInput.value.trim();
+            if (!text) {
+                customAlert("Пожалуйста, заполните поле ввода перед отправкой.", "ВНИМАНИЕ");
+                return;
+            }
+            const qId = currentQuestId;
+            closePromptModal();
+
+            try {
+                await makeApiRequest(`/api/v1/quests/${qId}/submit`, { submittedData: text });
+                customAlert("Ваша заявка принята и отправлена на проверку модераторам!", "УСПЕШНО");
+            } catch (e) {
+                console.error("Ошибка при отправке ручного квеста:", e);
+            }
+        };
+
+        // ==========================================
+        // 6. КОНСТРУКТОР
+        // ==========================================
+        window.openConstructorModal = function() {
+            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
+
+        window.closeConstructorModal = function() {
+            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
+        };
+
+        window.selectChip = function(key, index) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.selectedIdx = index;
+            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+            if (rowEl) {
+                const chips = rowEl.querySelectorAll('.target-chip');
+                chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
+
+        window.toggleConstructorRow = function(key, isEnabled) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.enabled = isEnabled;
+            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+            const statusText = document.getElementById(`status-${key.replace('_', '-')}`);
+            if (rowEl) rowEl.classList.toggle('row-disabled', !isEnabled);
+            if (statusText) {
+                statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
+                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'var(--text-dim)';
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
+
+        function recalcConstructorTotal() {
+            let total = 0; 
+            let anyEnabled = false;
+            Object.values(constructorConfig).forEach(slot => {
+                if (slot.enabled) {
+                    anyEnabled = true;
+                    total += slot.rewardOptions[slot.selectedIdx];
+                }
+            });
+            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
+            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
+        }
+
+        window.submitConstructorContract = function() {
+            let activeSlots = 0;
+            Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
+            if (activeSlots === 0) return;
+
+            closeConstructorModal();
+            customAlert("Сложный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
+            if (dom.weeklyLimitCount) {
+                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        };
+
+        // ==========================================
+        // 7. ПЕРЕКЛЮЧЕНИЕ ТАБОВ И ПОПАПЫ
+        // ==========================================
+        window.switchMainTab = function(tab) {
+            const isWeekly = tab === 'weekly';
+            if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
+            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', !isWeekly);
+            if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
+            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', isWeekly);
+            
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            if (!isWeekly) loadManualQuests();
+        };
+
+        window.customAlert = function(text, title = 'ВНИМАНИЕ') {
+            const old = document.getElementById('custom-cs-alert');
+            if (old) old.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'custom-cs-alert';
+            overlay.className = 'cs-modal-backdrop show';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            overlay.innerHTML = `
+                <div class="cs-modal-card large-modal" style="text-align: center; padding: 20px; max-width: 280px; align-items: center;">
+                    <h3 style="color:var(--gold-primary); margin-top: 0; font-size: 13px; font-weight: 800; text-transform: uppercase;">${title}</h3>
+                    <p style="color:#FFF; font-size: 10px; line-height: 1.4; margin-bottom: 16px; opacity: 0.9;">${text}</p>
+                    <button class="cs-gold-btn" style="width: 100%; justify-content: center;" onclick="this.closest('.cs-modal-backdrop').remove()">ОТЛИЧНО</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        };
+
+        function injectRewardPopup(amount, text = "Задание выполнено!", reloadOnClose = false) {
+            const existing = document.getElementById('rewardPopup');
+            if (existing) existing.remove();
+
+            const popupHtml = `
+            <div id="rewardPopup" class="cs-modal-backdrop show" style="z-index: 999999;">
+                <div class="cs-modal-card large-modal" style="text-align: center; padding: 24px 20px; max-width: 290px; align-items: center;">
+                    <div style="font-size: 40px; margin-bottom: 10px; color: var(--gold-primary); filter: drop-shadow(0 0 15px rgba(255,215,0,0.4));">
+                        <i class="fa-solid fa-gift"></i>
+                    </div>
+                    <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 800; color: #fff; text-transform: uppercase;">${text}</h3>
+                    ${amount > 0 ? `
+                        <div style="background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25); border-radius: 12px; padding: 10px; margin-bottom: 16px; min-width: 100px;">
+                            <span style="font-size: 26px; font-weight: 900; color: var(--gold-primary);">+${amount}</span>
+                        </div>
+                    ` : '<div style="margin-bottom: 16px;"></div>'}
+                    <button id="closeRewardBtn" class="cs-gold-btn" style="width: 100%; justify-content: center;">ЗАКРЫТЬ</button>
+                </div>
+            </div>`;
+
+            document.body.insertAdjacentHTML('beforeend', popupHtml);
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+            document.getElementById('closeRewardBtn').addEventListener('click', () => {
+                const p = document.getElementById('rewardPopup');
+                if (p) p.remove();
+                if (reloadOnClose) window.location.reload();
+            });
+        }
+
+        // ==========================================
+        // 8. СОБЫТИЯ И PULL-TO-REFRESH
+        // ==========================================
+        function setupEventListeners() {
+            document.body.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+                if (target.classList.contains('perform-quest-button') && target.dataset.id) {
+                    openPromptModal(target.dataset.id, target.dataset.title);
+                }
+            });
+
+            if (window.Telegram?.WebApp?.BackButton) {
+                Telegram.WebApp.BackButton.show();
+                Telegram.WebApp.BackButton.onClick(() => {
+                    if (dom.constructorModalOverlay?.classList.contains('show')) { closeConstructorModal(); return; }
+                    if (dom.promptOverlay?.classList.contains('show')) { closePromptModal(); return; }
+                    if (dom.scheduleModal?.classList.contains('show')) { dom.scheduleModal.classList.remove('show'); return; }
+                    if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/menu'; }
+                });
+            }
+        }
+
+        function initPullToRefresh() {
+            const content = dom.mainContent;
+            const ptr = document.getElementById('pull-to-refresh');
+            if (!content || !ptr) return;
+            let startY = 0;
+            let pulling = false;
+
+            content.addEventListener('touchstart', (e) => {
+                if (content.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; }
+            }, { passive: true });
+
+            content.addEventListener('touchmove', (e) => {
+                if (!pulling) return;
+                const diff = e.touches[0].clientY - startY;
+                if (diff > 0 && content.scrollTop <= 0) {
+                    ptr.style.height = `${Math.min(50, diff * 0.4)}px`;
+                }
+            }, { passive: true });
+
+            content.addEventListener('touchend', () => {
+                if (!pulling) return;
+                pulling = false;
+                if (parseInt(ptr.style.height || '0') >= 40) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    window.location.reload();
+                }
+                ptr.style.height = '0px';
+            });
+        }
+
+        // ==========================================
+        // 9. ЗАПУСК
+        // ==========================================
+        async function main() {
+            updateLoading(25);
+            try {
+                let bootstrapData;
+                if (window.bootstrapPromise) {
+                    try { bootstrapData = await window.bootstrapPromise; } catch (e) { bootstrapData = null; }
+                }
+                
+                if (!bootstrapData) {
+                    try { bootstrapData = await makeApiRequest("/api/v1/bootstrap", {}, 'POST', true); } catch (e) {}
+                }
+
+                updateLoading(65);
+
+                if (bootstrapData) {
+                    userData = bootstrapData.user || {};
+                    allQuests = bootstrapData.quests || [];
+                    renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
+                }
+
+                // Рендерим челлендж (если CUSTOM_CHALLENGE.enabled = true, он всегда берет твои настройки)
+                const currentChallenge = bootstrapData?.challenge || userData?.challenge || null;
+                renderChallenge(currentChallenge);
+
+                updateLoading(100);
+            } catch (err) {
+                console.error("Ошибка при инициализации main:", err);
+            } finally {
+                if (dom.loaderOverlay) {
+                    dom.loaderOverlay.style.opacity = '0';
+                    setTimeout(() => dom.loaderOverlay.classList.add('hidden'), 300);
+                }
+                if (dom.mainContent) dom.mainContent.style.opacity = '1';
+
+                if (window.Telegram?.WebApp) {
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
+                }
+            }
+        }
+
+        setupEventListeners();
+        initPullToRefresh();
+        main();
+    </script>
 </body>
 </html>
-
-я вот тут не могу настроить:
-<div class="canvas-reward-box">
-            <span class="canvas-reward-label">Награда</span>
-            <span class="canvas-reward-val" id="challenge-reward-val">+1 <i class="fa-solid fa-coins"></i></span>
-        </div>
-
-и тут
-
-<h2 class="canvas-main-title" id="challenge-header-title">Разминка</h2>
