@@ -199,14 +199,19 @@
         /* ==========================================
            5. ТАБЫ (ОБНОВЛЕННЫЕ - 3 Вкладки)
            ========================================== */
-        .cs-tabs { 
-            display: flex; gap: 4px; 
-            background: var(--card-bg);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--card-border); border-radius: 30px; 
-            padding: 4px; margin-bottom: 12px; width: 100%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
+        .cs-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--card-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--card-border);
+    border-radius: 30px;
+    padding: 4px;
+    margin-bottom: 2px;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
         .cs-tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
             background: transparent; border: 1px solid transparent; border-radius: 20px;
@@ -864,7 +869,7 @@
                     <i class="fa-solid fa-file-signature"></i> Активное
                 </button>
                 <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
-                    <i class="fa-solid fa-clipboard-list"></i> Проверка
+                    <i class="fa-solid fa-clipboard-list"></i> Доп. задания
                 </button>
             </div>
 
@@ -981,8 +986,8 @@
 
             <!-- СЕКЦИЯ 3: РУЧНАЯ ПРОВЕРКА (РУЧНЫЕ КВЕСТЫ) -->
             <div id="section-manual-quests" class="hidden">
-                <div style="text-align: center; margin-bottom: 12px; color: var(--gold-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> Дополнительные задания
+                <div style="text-align: center;margin-bottom: 14px;color: var(--gold-primary);font-size: 12px;font-weight: 800;text-transform: uppercase;letter-spacing: 0.5px;margin-top: 14px;">
+                    <i class="fa-solid fa-clipboard-list" style="margin-right: 5px;"></i> Доп. задания (проверяет администратор)
                 </div>
                 
                 <div id="manual-quests-list" class="manual-section-wrapper">
