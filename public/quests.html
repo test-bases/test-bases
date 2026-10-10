@@ -278,14 +278,19 @@
     transform: translate(1px, -5px);
 }
         .canvas-sub-title {
-            margin: 0;
-            font-size: clamp(8px, 2.3vw, 10px);
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    margin: 0;
+    font-size: clamp(8px, 2.3vw, 10px);
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* Добавьте эти три строки для управления позицией: */
+    position: relative;
+    top: -2px; /* Отрицательное значение (-2px) — ВВЕРХ, положительное (2px) — ВНИЗ */
+    left: 5px; /* Положительное значение (5px) — ВПРАВО, отрицательное (-5px) — ВЛЕВО */
+}
 
         /* 📍 2. ТАЙМЕР */
         .canvas-timer-text {
