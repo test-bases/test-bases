@@ -31,7 +31,8 @@
            1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СБРОС
            ========================================== */
         :root {
-            --bg-deep: #09090b;
+            /* Измененный фон на #121212 */
+            --bg-deep: #121212; 
             --card-bg: rgba(12, 12, 14, 0.75);
             --card-border: rgba(255, 255, 255, 0.15);
             --card-border-gold: rgba(212, 175, 55, 0.35);
@@ -77,6 +78,7 @@
             min-height: 100vh;
             margin: 0 auto;
             position: relative;
+            background-color: #121212;
             background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1), transparent 40%);
             overflow-x: hidden;
             display: flex;
@@ -195,14 +197,14 @@
         .limit-val { font-size: 11px; font-weight: 900; font-family: monospace; line-height: 1;}
 
         /* ==========================================
-           5. ТАБЫ
+           5. ТАБЫ (ОБНОВЛЕННЫЕ - 3 Вкладки)
            ========================================== */
         .cs-tabs { 
             display: flex; gap: 4px; 
             background: var(--card-bg);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border: 1px solid var(--card-border); border-radius: 30px; 
-            padding: 4px; margin-bottom: 1px; width: 100%;
+            padding: 4px; margin-bottom: 12px; width: 100%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         .cs-tab-btn {
@@ -238,24 +240,67 @@
         .c-desc { margin: 0; font-size: 10px; color: var(--text-dim); line-height: 1.2; opacity: 0.9;}
 
         /* ==========================================
+           НОВЫЙ ДИЗАЙН: КНОПКА КОНСТРУКТОРА
+           ========================================== */
+        .constructor-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(12, 12, 14, 0.9) 100%);
+            border: 1px solid var(--card-border-gold);
+            border-radius: var(--radius-xl);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
+            transition: all 0.2s ease;
+        }
+        .constructor-card:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+        }
+        .constructor-icon-wrap {
+            width: 38px; height: 38px;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid var(--gold-primary);
+            border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 16px; color: var(--gold-primary);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+        }
+        .constructor-text-wrap {
+            flex: 1; margin: 0 12px;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .constructor-title { font-size: 13px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .constructor-desc { font-size: 10px; color: rgba(255,255,255,0.7); margin: 0; font-weight: 500;}
+        .constructor-arrow {
+            width: 26px; height: 26px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--gold-primary); font-size: 10px;
+        }
+
+        /* ==========================================
            7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ХОЛСТ И ПОЗИЦИИ)
            ========================================== */
         .challenge-card-canvas {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 960 / 410;
-    min-height: 165px;
-    background-image: url(/public/static/pepe_challenge.webp);
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
-    margin-bottom: -4px;
-    border-radius: 20px;
-    overflow: hidden;
-    user-select: none;
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6), 
-                0 0 10px rgba(212, 175, 55, 0.2); /* ⬅️ Мягкое золотистое свечение */
-}
+            position: relative;
+            width: 100%;
+            aspect-ratio: 960 / 410;
+            min-height: 165px;
+            background-image: url(/public/static/pepe_challenge.webp);
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin-bottom: -4px;
+            border-radius: 20px;
+            overflow: hidden;
+            user-select: none;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6), 
+                        0 0 10px rgba(212, 175, 55, 0.2);
+        }
 
         /* 📍 1. ЗАГОЛОВОК И ПОДЗАГОЛОВОК */
         .canvas-title-group {
@@ -268,46 +313,44 @@
             max-width: 40%;
         }
         .canvas-main-title {
-    margin: 0;
-    font-size: clamp(12px, 3.6vw, 15px);
-    font-weight: 900;
-    color: #FFFFFF;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1.1;
-    transform: translate(1px, -5px);
-}
+            margin: 0;
+            font-size: clamp(12px, 3.6vw, 15px);
+            font-weight: 900;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+            transform: translate(1px, -5px);
+        }
         .canvas-sub-title {
-    margin: 0;
-    font-size: clamp(8px, 2.3vw, 10px);
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    /* Добавьте эти три строки для управления позицией: */
-    position: relative;
-    top: -2px; /* Отрицательное значение (-2px) — ВВЕРХ, положительное (2px) — ВНИЗ */
-    left: 5px; /* Положительное значение (5px) — ВПРАВО, отрицательное (-5px) — ВЛЕВО */
-}
+            margin: 0;
+            font-size: clamp(8px, 2.3vw, 10px);
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            top: -5px;
+            left: 0px;
+        } /* ДОБАВЛЕНА ЗАКРЫВАЮЩАЯ СКОБКА */
 
         /* 📍 2. ТАЙМЕР */
         .canvas-timer-text {
-    position: absolute;
-    top: 12%;
-    right: 3%;
-    width: 13%;
-    height: 12%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(8px, 2.6vw, 9px);
-    font-weight: 800;
-    font-family: monospace;
-    color: #FFFFFF;
-    line-height: 1;
-}
+            position: absolute;
+            top: 12%;
+            right: 3%;
+            width: 13%;
+            height: 12%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(8px, 2.6vw, 9px);
+            font-weight: 800;
+            font-family: monospace;
+            color: #FFFFFF;
+            line-height: 1;
+        }
 
         /* 📍 3. ЦЕНТРАЛЬНАЯ ПЛАШКА ЗАДАНИЯ */
         .canvas-task-box {
@@ -372,22 +415,22 @@
             gap: 1px;
         }
         .canvas-reward-label {
-    font-size: clamp(7.5px, 2.1vw, 9px);
-    color: rgba(255, 255, 255, 1.65);
-    font-weight: 600;
-    line-height: 1;
-    transform: translate(19px, -8px);
-}
+            font-size: clamp(7.5px, 2.1vw, 9px);
+            color: rgba(255, 255, 255, 1.65);
+            font-weight: 600;
+            line-height: 1;
+            transform: translate(19px, -8px);
+        }
         .canvas-reward-val {
-    font-size: clamp(12px, 3.4vw, 15px);
-    font-weight: 900;
-    color: #FFD700;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    line-height: 1;
-    transform: translate(17px, -3px);
-}
+            font-size: clamp(12px, 3.4vw, 15px);
+            font-weight: 900;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1;
+            transform: translate(17px, -3px);
+        }
 
         /* 📍 5. КНОПКА */
         #claim-challenge-btn {
@@ -435,17 +478,6 @@
         }
         #claim-challenge-btn.claimed i {
             color: #777777 !important;
-        }
-
-        /* ==========================================
-           8. ТРИГГЕР КОНСТРУКТОРА
-           ========================================== */
-        .trigger-card { cursor: pointer; transition: 0.2s; display: flex; align-items: center;}
-        .trigger-card:active { transform: scale(0.98); background: rgba(26,26,32,0.9); }
-        .trigger-card .card-header { flex: 1; padding-right: 80px; } 
-        .handdrawn-arrow {
-            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-            display: flex; align-items: center; gap: 6px; color: var(--gold-primary); font-family: cursive; font-size: 10px; font-weight: 600; text-align: right; opacity: 0.9;
         }
 
         /* ==========================================
@@ -825,13 +857,16 @@
                 </div>
             </div>
 
-            <!-- 3. ТАБЫ -->
+            <!-- 3. ТАБЫ (ОБНОВЛЕННЫЕ) -->
             <div class="cs-tabs">
                 <button class="cs-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
                     <i class="fa-regular fa-calendar-check"></i> План
                 </button>
+                <button class="cs-tab-btn" id="tab-btn-contract" onclick="switchMainTab('contract')" style="display: none;">
+                    <i class="fa-solid fa-file-signature"></i> Активное
+                </button>
                 <button class="cs-tab-btn" id="tab-btn-manual" onclick="switchMainTab('manual')">
-                    <i class="fa-solid fa-bolt"></i> Проверка
+                    <i class="fa-solid fa-clipboard-list"></i> Проверка
                 </button>
             </div>
 
@@ -874,23 +909,17 @@
                     </button>
                 </div>
 
-                <!-- 5. КАРТОЧКА-ТРИГГЕР КОНСТРУКТОРА -->
-                <div class="premium-card trigger-card" onclick="openConstructorModal()">
-                    <div class="card-header borderless">
-                        <div class="head-left">
-                            <div class="icon-box"><i class="fa-solid fa-boxes-stacked"></i></div>
-                            <div class="head-titles">
-                                <h2 class="c-title">КОНСТРУКТОР ЗАДАНИЙ</h2>
-                                <p class="c-desc">Настрой сам себе задания</p>
-                            </div>
-                        </div>
+                <!-- 5. КНОПКА КОНСТРУКТОРА (НОВЫЙ ДИЗАЙН) -->
+                <div class="constructor-card" onclick="openConstructorModal()">
+                    <div class="constructor-icon-wrap">
+                        <i class="fa-solid fa-hammer"></i>
                     </div>
-                    
-                    <div class="handdrawn-arrow">
-                        <span>Настрой<br>под себя</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 18L18 6M6 18C10 18 16 14 18 6M6 18L8 12" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
+                    <div class="constructor-text-wrap">
+                        <h2 class="constructor-title gold-text">СВОЙ КОНТРАКТ</h2>
+                        <p class="constructor-desc">Собери задание и забери куш</p>
+                    </div>
+                    <div class="constructor-arrow">
+                        <i class="fa-solid fa-chevron-right"></i>
                     </div>
                 </div>
 
@@ -942,10 +971,20 @@
 
             </div>
 
-            <!-- СЕКЦИЯ 2: РУЧНАЯ ПРОВЕРКА (РУЧНЫЕ КВЕСТЫ) -->
+            <!-- СЕКЦИЯ 2: АКТИВНЫЙ КОНТРАКТ (ПОЯВЛЯЕТСЯ ПОСЛЕ СОЗДАНИЯ) -->
+            <div id="section-active-contract" class="hidden">
+                <div style="text-align: center; margin-bottom: 12px; color: var(--gold-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-file-signature" style="margin-right: 4px;"></i> Ваш активный контракт
+                </div>
+                <div id="active-contract-list" class="manual-section-wrapper">
+                    <!-- Заполняется через JS -->
+                </div>
+            </div>
+
+            <!-- СЕКЦИЯ 3: РУЧНАЯ ПРОВЕРКА (РУЧНЫЕ КВЕСТЫ) -->
             <div id="section-manual-quests" class="hidden">
                 <div style="text-align: center; margin-bottom: 12px; color: var(--gold-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> Доступные задания для проверки
+                    <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> Дополнительные задания
                 </div>
                 
                 <div id="manual-quests-list" class="manual-section-wrapper">
@@ -1139,8 +1178,11 @@
             mainContent: document.getElementById('main-content'),
             
             tabBtnWeekly: document.getElementById('tab-btn-weekly'),
+            tabBtnContract: document.getElementById('tab-btn-contract'),
             tabBtnManual: document.getElementById('tab-btn-manual'),
+            
             sectionWeekly: document.getElementById('section-weekly-plan'),
+            sectionContract: document.getElementById('section-active-contract'),
             sectionManual: document.getElementById('section-manual-quests'),
 
             matrixTopBar: document.getElementById('matrix-top-bar'),
@@ -1285,7 +1327,6 @@
 
             startDailyResetTimer();
 
-            // Если включена ручная настройка — берем данные из CUSTOM_CHALLENGE
             if (CUSTOM_CHALLENGE.enabled) {
                 challengeData = {
                     id: 9999,
@@ -1317,25 +1358,20 @@
             const isClaimed = !!challengeData.claimed_at;
             const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
 
-            // Заголовок и подзаголовок
             if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
             if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = CUSTOM_CHALLENGE.enabled ? CUSTOM_CHALLENGE.subtitle : "Личное задание на сегодня";
 
-            // Текст задания и цифры
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
 
-            // Полоса прогресса
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
 
-            // Награда
             const rewType = challengeData.reward_type || 'coins';
             const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
             if (dom.challengeRewardVal) {
                 dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
             }
 
-            // Кнопка
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
@@ -1475,7 +1511,7 @@
             }
 
             if (!quests || quests.length === 0) {
-                container.innerHTML = `<div style="text-align: center; font-size: 11px; color: var(--text-dim); padding: 20px 0; opacity: 0.7;">Нет заданий для ручной проверки.</div>`;
+                container.innerHTML = `<div style="text-align: center; font-size: 11px; color: var(--text-dim); padding: 20px 0; opacity: 0.7;">Нет дополнительных заданий.</div>`;
                 return;
             }
 
@@ -1563,7 +1599,7 @@
         };
 
         // ==========================================
-        // 6. КОНСТРУКТОР
+        // 6. КОНСТРУКТОР + ВЫВОД АКТИВНОГО
         // ==========================================
         window.openConstructorModal = function() {
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
@@ -1615,6 +1651,65 @@
             if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
         }
 
+        function renderActiveContractUI() {
+            const container = document.getElementById('active-contract-list');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            let totalRew = 0;
+            Object.keys(constructorConfig).forEach(key => {
+                const slot = constructorConfig[key];
+                if(slot.enabled) {
+                    const rew = slot.rewardOptions[slot.selectedIdx];
+                    totalRew += rew;
+                    
+                    let title = ""; let icon = ""; let targetText = "";
+                    
+                    if(key === 'twitch_chat') { 
+                        title = "Twitch Чат"; icon = "fa-brands fa-twitch"; 
+                        targetText = ["25 сообщений", "50 сообщений", "100 сообщений"][slot.selectedIdx];
+                    }
+                    if(key === 'twitch_uptime') { 
+                        title = "Стрим (Время)"; icon = "fa-solid fa-play"; 
+                        targetText = ["30 мин", "60 мин", "120 мин"][slot.selectedIdx];
+                    }
+                    if(key === 'telegram_chat') { 
+                        title = "Telegram Чат"; icon = "fa-brands fa-telegram"; 
+                        targetText = ["15 сообщений", "30 сообщений", "60 сообщений"][slot.selectedIdx];
+                    }
+                    if(key === 'personal_quest') { 
+                        title = "Персональный квест"; icon = "fa-solid fa-crosshairs"; 
+                        targetText = ["10 кейсов", "50 слов", "3 друга"][slot.selectedIdx];
+                    }
+
+                    container.innerHTML += `
+                        <div class="manual-quest-card">
+                            <div class="manual-quest-head">
+                                <div class="manual-quest-icon"><i class="${icon}"></i></div>
+                                <div class="manual-quest-info">
+                                    <h3 class="manual-quest-title">${title}</h3>
+                                    <p class="manual-quest-desc">Цель: ${targetText}</p>
+                                </div>
+                            </div>
+                            <div class="manual-quest-footer">
+                                <div class="manual-reward-pill">+${rew} <i class="fa-solid fa-ticket"></i></div>
+                                <div class="manual-actions-wrap">
+                                    <button class="perform-quest-button" style="background: rgba(255,255,255,0.1); color: var(--gold-primary); pointer-events:none; box-shadow: none;">В ПРОЦЕССЕ</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            container.innerHTML += `
+                <div class="premium-card" style="margin-top: 10px; padding: 16px; text-align: center; border-color: var(--card-border-gold); background: rgba(212, 175, 55, 0.05);">
+                    <div style="font-size: 10px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; font-weight:700;">Общая награда контракта</div>
+                    <div style="font-size: 22px; font-weight: 900; color: var(--gold-primary);">+${totalRew} <i class="fa-solid fa-ticket"></i></div>
+                </div>
+            `;
+        }
+
         window.submitConstructorContract = function() {
             let activeSlots = 0;
             Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
@@ -1625,6 +1720,16 @@
             if (dom.weeklyLimitCount) {
                 dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
             }
+            
+            // Включаем 2 вкладку "Активное" (Контракт)
+            if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
+            
+            // Отрисовываем выбранные задания
+            renderActiveContractUI();
+            
+            // Сразу перекидываем пользователя на эту вкладку
+            switchMainTab('contract');
+
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         };
 
@@ -1633,13 +1738,19 @@
         // ==========================================
         window.switchMainTab = function(tab) {
             const isWeekly = tab === 'weekly';
+            const isContract = tab === 'contract';
+            const isManual = tab === 'manual';
+
             if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
-            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', !isWeekly);
+            if (dom.tabBtnContract) dom.tabBtnContract.classList.toggle('active', isContract);
+            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', isManual);
+
             if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
-            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', isWeekly);
+            if (dom.sectionContract) dom.sectionContract.classList.toggle('hidden', !isContract);
+            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', !isManual);
             
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            if (!isWeekly) loadManualQuests();
+            if (isManual) loadManualQuests();
         };
 
         window.customAlert = function(text, title = 'ВНИМАНИЕ') {
@@ -1767,7 +1878,6 @@
                     renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
                 }
 
-                // Рендерим челлендж (если CUSTOM_CHALLENGE.enabled = true, он всегда берет твои настройки)
                 const currentChallenge = bootstrapData?.challenge || userData?.challenge || null;
                 renderChallenge(currentChallenge);
 
