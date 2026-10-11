@@ -48,26 +48,23 @@
             content: ''; display: block; height: 160px; width: 100%; flex-shrink: 0; pointer-events: none;
         }
 
-       /* 2. 🔥 ШАПКА (ВЕРНУЛИ В ПОТОК) 🔥 */
+       /* 🔥 ШАПКА (ПРИЛИПАЕТ ПРИ СКРОЛЛЕ) 🔥 */
         .top-header {
-            /* Оставляем flex, чтобы всё выравнивалось */
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
             
-            /* 🔥 МЕНЯЕМ ABSOLUTE НА STICKY 🔥 */
-            /* Это заставит шапку отталкивать контент, но прилипнуть к верху при скролле */
+            /* МЕНЯЕМ НА STICKY */
             position: sticky; 
-            top: 0; 
+            top: -1px; /* -1px спасает от багов отрисовки на iOS */
             z-index: 100;
-            margin-bottom: 0 !important;
+            margin-bottom: 22px !important; /* ВЕРНУЛИ ОТСТУП, чтобы карточки не прилипали */
             
-            /* Стартовое состояние без цвета и блюра */
+            /* Стартовое состояние (прозрачное) */
             background: transparent; 
             backdrop-filter: blur(0px); 
             -webkit-backdrop-filter: blur(0px); 
             border-bottom: 1px solid transparent; 
             
-            /* Плавное включение стекла */
             transition: background 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease, border-bottom 0.3s ease;
         }
         body.android-mode .top-header { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 72px) !important; }
@@ -522,10 +519,19 @@
             document.body.insertBefore(container.firstChild, document.body.firstChild);
         }
 
+        // ==========================================
+        // 🔥 МАГИЯ: ПЕРЕНОСИМ ШАПКУ ВНУТРЬ СВИТКА 🔥
+        // ==========================================
+        const header = document.getElementById('universal-top-header');
+        const scrollable = document.querySelector('.main-content-scrollable');
+        if (header && scrollable) {
+            // Кладем шапку самым первым элементом внутрь блока с заданиями
+            scrollable.insertBefore(header, scrollable.firstChild);
+        }
+
         bindEvents();
         loadCachedAvatar();
     }
-
     function moveShopButtonsToHeader() {
         const isPC = !(/android/i.test(navigator.userAgent) || /iPad|iPhone|iPod/.test(navigator.userAgent));
         if (!isPC) return; 
