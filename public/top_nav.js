@@ -75,7 +75,6 @@
             background: rgba(18, 18, 20, 0.75); 
             backdrop-filter: blur(20px); 
             -webkit-backdrop-filter: blur(20px); 
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
         }
 
         .logo-wrapper { display: flex; align-items: center; gap: 14px; cursor: pointer; }
