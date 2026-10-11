@@ -129,11 +129,47 @@
       transform: none !important;
     }
 
-    /* Принудительно убираем отступ снизу у глобальной шапки top_nav */
-    #universal-top-header {
-      margin-bottom: 4px !important;
-    }
+    /* === ЕДИНАЯ МОНОЛИТНАЯ ШАПКА === */
+#universal-top-header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  transition: background 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease !important;
+}
 
+/* Единый блюр на всю шапку целиком (активируется при скролле) */
+#universal-top-header.scrolled {
+  background: rgba(18, 18, 20, 0.75) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Меню квестов внутри единой шапки: убираем отдельный fixed, фон и блюр */
+#quests-sticky-menus {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: calc(100% + 32px) !important; /* растягиваем на всю ширину от края до края */
+  margin-left: -16px !important;
+  margin-right: -16px !important;
+  margin-top: 4px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 10 !important;
+}
+
+/* В режиме обучения поднимаем всю шапку над затемнением */
+body.tour-mode #universal-top-header {
+  z-index: 9993 !important;
+}
     /* === SUB-HEADER === */
     .sub-header {
       padding: 14px 15px 4px 15px;
@@ -921,7 +957,7 @@
 
   <!-- ШАПКА СО СТАТУСОМ -->
  <!-- 🔥 ОБЕРТКА ДЛЯ ЛОКАЛЬНЫХ МЕНЮ С ЭФФЕКТОМ СТЕКЛА 🔥 -->
-  <div id="quests-sticky-menus" style="position: fixed; top: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 65px); left: 0; right: 0; z-index: 99; transition: background 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s, border-bottom 0.3s; padding-top: 5px; padding-bottom: 5px;">
+ <div id="quests-sticky-menus">>
       <header class="sub-header" style="padding-bottom: 0;">
           <!-- Левая часть: название и вопрос -->
           <div style="display: flex; align-items: center; gap: 6px;">
@@ -951,7 +987,7 @@
       </div>
   </div>
 
-  <main id="main-scroll-area" style="position: fixed; top: 14; left: 0; right: 0; bottom: 60px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding-top: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 140px);">
+  <main id="main-scroll-area" style="position: fixed; top: 0; left: 0; right: 0; bottom: 60px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding-top: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 165px);">
 
       <!-- ВКЛАДКА 1: ЗАДАНИЯ -->
       <div id="tab-tasks" class="tab-content active">
@@ -1971,36 +2007,52 @@ let currentShopTab = 'skins';
         initPullToRefresh();
 
         // ==========================================
-        // 🔥 ПРИНУДИТЕЛЬНЫЙ БЛЮР ДЛЯ QUESTS.HTML 🔥
-        // ==========================================
-        const scrollArea = document.getElementById('main-scroll-area');
-        const questsMenus = document.getElementById('quests-sticky-menus');
-        
-        if (scrollArea) {
-            scrollArea.addEventListener('scroll', () => {
-                const topHeader = document.getElementById('universal-top-header');
-                const isScrolled = scrollArea.scrollTop > 5;
-                
-                if (questsMenus) {
-                    if (isScrolled) {
-                        questsMenus.style.background = 'rgba(18, 18, 20, 0.75)';
-                        questsMenus.style.backdropFilter = 'blur(20px)';
-                        questsMenus.style.webkitBackdropFilter = 'blur(20px)';
-                        questsMenus.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
-                    } else {
-                        questsMenus.style.background = 'transparent';
-                        questsMenus.style.backdropFilter = 'blur(0px)';
-                        questsMenus.style.webkitBackdropFilter = 'blur(0px)';
-                        questsMenus.style.borderBottom = '1px solid transparent';
-                    }
-                }
+// 🔥 ЕДИНОЕ ОБЪЕДИНЕНИЕ ШАПОК И СКРОЛЛ-БЛЮР 🔥
+// ==========================================
+function unifyHeader() {
+    const topHeader = document.getElementById('universal-top-header');
+    const questsMenus = document.getElementById('quests-sticky-menus');
+    const scrollArea = document.getElementById('main-scroll-area');
 
-                if (topHeader) {
-                    if (isScrolled) topHeader.classList.add('scrolled');
-                    else topHeader.classList.remove('scrolled');
-                }
-            }, { passive: true });
+    if (topHeader && questsMenus) {
+        // Переносим меню внутрь шапки top_nav второй строкой
+        if (questsMenus.parentElement !== topHeader) {
+            topHeader.appendChild(questsMenus);
         }
+        // Автоматически выставляем правильный отступ для скролла под любую высоту экрана
+        if (scrollArea && topHeader.offsetHeight > 50) {
+            scrollArea.style.paddingTop = (topHeader.offsetHeight + 10) + 'px';
+        }
+    }
+}
+
+// Проверяем появление top_nav при старте
+const headerSyncInterval = setInterval(() => {
+    const topHeader = document.getElementById('universal-top-header');
+    if (topHeader) {
+        unifyHeader();
+        clearInterval(headerSyncInterval);
+    }
+}, 30);
+setTimeout(() => clearInterval(headerSyncInterval), 3000);
+
+window.addEventListener('resize', unifyHeader);
+
+// Единый слушатель скролла — управляет классом .scrolled только на общем родителе
+const scrollArea = document.getElementById('main-scroll-area');
+if (scrollArea) {
+    scrollArea.addEventListener('scroll', () => {
+        const topHeader = document.getElementById('universal-top-header');
+        if (!topHeader) return;
+        
+        const isScrolled = scrollArea.scrollTop > 5;
+        if (isScrolled) {
+            topHeader.classList.add('scrolled');
+        } else {
+            topHeader.classList.remove('scrolled');
+        }
+    }, { passive: true });
+}
 
         const grindBtn = document.getElementById('grind-btn');
         if (grindBtn) {
