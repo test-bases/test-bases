@@ -64,21 +64,31 @@
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
             
-            /* --- ОТРЫВАЕМ ШАПКУ И ФИКСИРУЕМ СВЕРХУ --- */
             position: absolute; 
             top: 0; left: 0; right: 0;
             z-index: 100;
-            margin-bottom: 0 !important; /* Убираем марджин, так как шапка теперь висит над контентом */
+            margin-bottom: 0 !important;
             
-            /* --- ТЁМНЫЙ БЛЮР --- */
-            background: rgba(18, 18, 20, 0.75); /* Полупрозрачный фон */
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px); 
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Легкая граница для эффекта стекла */
+            /* --- СТАРТОВОЕ СОСТОЯНИЕ (ПРОЗРАЧНОЕ) --- */
+            background: transparent; 
+            backdrop-filter: blur(0px); 
+            -webkit-backdrop-filter: blur(0px); 
+            border-bottom: 1px solid transparent; 
+            
+            /* Плавный переход для эффекта стекла */
+            transition: background 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease, border-bottom 0.3s ease;
         }
         
         body.android-mode .top-header { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 72px) !important; }
         body.desktop-platform .top-header { padding-top: 41px !important; margin-bottom: 0 !important; }
+
+        /* --- СОСТОЯНИЕ ПРИ СКРОЛЛЕ (ВКЛЮЧАЕТСЯ ЧЕРЕЗ JS) --- */
+        .top-header.scrolled {
+            background: rgba(18, 18, 20, 0.75); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        }
 
         .logo-wrapper { display: flex; align-items: center; gap: 14px; cursor: pointer; }
         .app-logo { width: 28px; height: 28px; border-radius: 0; background: transparent; object-fit: contain; }
@@ -622,8 +632,24 @@
         if (sideMenu) sideMenu.onclick = (e) => { 
             if (e.target === sideMenu) toggleMenu(false); 
         };
-    }
+    // ==========================================
+        // 🔥 НОВОЕ: ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА
+        // ==========================================
+        const scrollableContainer = document.querySelector('.main-content-scrollable');
+        const mainHeader = document.getElementById('universal-top-header');
 
+        if (scrollableContainer && mainHeader) {
+            scrollableContainer.addEventListener('scroll', () => {
+                // Если скролл больше 15 пикселей - включаем стекло, иначе выключаем
+                if (scrollableContainer.scrollTop > 15) {
+                    mainHeader.classList.add('scrolled');
+                } else {
+                    mainHeader.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        }
+    }
+    
     function loadCachedAvatar() {
         try {
             const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
