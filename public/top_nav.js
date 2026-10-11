@@ -39,34 +39,27 @@
             flex: 1;
             height: auto; 
             overflow-y: auto; overflow-x: hidden;
-            -webkit-overflow-scrolling: touch; padding-bottom: 0; 
+            -webkit-overflow-scrolling: touch; 
+            padding-bottom: 0; 
             overscroll-behavior-x: none !important;
+            
+            /* УБИРАЕМ РАСПОРКУ ::before ПОЛНОСТЬЮ! Она больше не нужна */
         }
-        
-        /* 1. 🔥 НЕВИДИМАЯ РАСПОРКА 🔥 */
-        /* Отталкивает контент вниз ровно на высоту шапки */
-        .main-content-scrollable::before {
-            content: ''; 
-            display: block; 
-            height: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 140px); 
-            width: 100%; 
-            flex-shrink: 0; 
-            pointer-events: none;
-        }
-        body.android-mode .main-content-scrollable::before { height: calc(var(--tg-content-safe-area-inset-top, 0px) + 130px); }
-        body.desktop-platform .main-content-scrollable::before { height: 90px; }
 
         .main-content-scrollable::after {
             content: ''; display: block; height: 160px; width: 100%; flex-shrink: 0; pointer-events: none;
         }
 
-       /* 2. 🔥 ШАПКА (ПРОЗРАЧНАЯ ПО УМОЛЧАНИЮ) 🔥 */
+       /* 2. 🔥 ШАПКА (ВЕРНУЛИ В ПОТОК) 🔥 */
         .top-header {
+            /* Оставляем flex, чтобы всё выравнивалось */
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
             
-            position: absolute; 
-            top: 0; left: 0; right: 0;
+            /* 🔥 МЕНЯЕМ ABSOLUTE НА STICKY 🔥 */
+            /* Это заставит шапку отталкивать контент, но прилипнуть к верху при скролле */
+            position: sticky; 
+            top: 0; 
             z-index: 100;
             margin-bottom: 0 !important;
             
@@ -650,7 +643,7 @@
             if (e.target === sideMenu) toggleMenu(false); 
         };
     // ==========================================
-        // 🔥 НОВОЕ: ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА
+        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ИСПРАВЛЕННАЯ)
         // ==========================================
         const scrollableContainer = document.querySelector('.main-content-scrollable');
         const mainHeader = document.getElementById('universal-top-header');
@@ -665,7 +658,6 @@
                 }
             }, { passive: true });
         }
-    }
     
     function loadCachedAvatar() {
         try {
