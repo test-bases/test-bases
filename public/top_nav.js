@@ -35,15 +35,13 @@
 
         .hidden { display: none !important; }
 
-       .main-content-scrollable {
+        .main-content-scrollable {
             flex: 1;
             height: auto; 
             overflow-y: auto; overflow-x: hidden;
             -webkit-overflow-scrolling: touch; 
             padding-bottom: 0; 
             overscroll-behavior-x: none !important;
-            
-            /* УБИРАЕМ РАСПОРКУ ::before ПОЛНОСТЬЮ! Она больше не нужна */
         }
 
         .main-content-scrollable::after {
@@ -613,23 +611,6 @@
                 }
             }
         };
-        // ==========================================
-        // АВТОМАТИЧЕСКИЙ БЛЮР ШАПКИ ПРИ СКРОЛЛЕ
-        // ==========================================
-        document.addEventListener('scroll', function(e) {
-            // Проверяем, что листают именно основной контент
-            if (e.target && e.target.classList && e.target.classList.contains('main-content-scrollable')) {
-                const mainHeader = document.getElementById('universal-top-header');
-                if (mainHeader) {
-                    // Если пролистали больше 15 пикселей вниз - красим шапку и добавляем блюр
-                    if (e.target.scrollTop > 15) {
-                        mainHeader.classList.add('scrolled');
-                    } else {
-                        mainHeader.classList.remove('scrolled');
-                    }
-                }
-            }
-        }, true); // true нужен обязательно, чтобы перехватывать скролл внутренних блоков
 
         window.addEventListener('popstate', (e) => {
             if (sideMenu && sideMenu.classList.contains('active') && !e.state?.sideMenuOpen) {
@@ -642,7 +623,8 @@
         if (sideMenu) sideMenu.onclick = (e) => { 
             if (e.target === sideMenu) toggleMenu(false); 
         };
-    // ==========================================
+
+        // ==========================================
         // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ИСПРАВЛЕННАЯ)
         // ==========================================
         const scrollableContainer = document.querySelector('.main-content-scrollable');
@@ -658,6 +640,7 @@
                 }
             }, { passive: true });
         }
+    }
     
     function loadCachedAvatar() {
         try {
