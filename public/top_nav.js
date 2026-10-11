@@ -639,12 +639,15 @@
 
         if (scrollableContainer && mainHeader) {
             const updateHeaderBlur = () => {
-                // Проверяем: есть ли вообще скролл? 
-                // Если высота контента меньше или равна высоте экрана — страница короткая
-                const isShortPage = scrollableContainer.scrollHeight <= scrollableContainer.clientHeight + 5;
+                // Вычисляем максимальный скролл
+                const maxScroll = scrollableContainer.scrollHeight - scrollableContainer.clientHeight;
                 
-                // Включаем блюр, если страница короткая ИЛИ если пролистали вниз больше чем на 15px
-                if (isShortPage || scrollableContainer.scrollTop > 15) {
+                // У нас есть искусственный ::after блок на 160px снизу.
+                // Если скроллить можно меньше чем на 165px, значит реального контента мало!
+                const isShortPage = maxScroll <= 165;
+                
+                // Включаем блюр, если страница короткая ИЛИ если пролистали вниз больше 5px
+                if (isShortPage || scrollableContainer.scrollTop > 5) {
                     mainHeader.classList.add('scrolled');
                 } else {
                     mainHeader.classList.remove('scrolled');
@@ -654,11 +657,10 @@
             // 1. Слушаем скролл
             scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
             
-            // 2. Вызываем при старте с небольшой задержкой, чтобы страница успела отрисоваться
+            // 2. Вызываем при старте с небольшой задержкой
             setTimeout(updateHeaderBlur, 100);
 
-            // 3. Супер-защита: если задания подгружаются с задержкой (по API), 
-            // этот обсервер заметит добавление новых элементов и сам пересчитает блюр
+            // 3. Обсервер: если контент подгрузится позже, он перепроверит высоту
             const observer = new MutationObserver(updateHeaderBlur);
             observer.observe(scrollableContainer, { childList: true, subtree: true });
         }
