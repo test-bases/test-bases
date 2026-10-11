@@ -531,7 +531,8 @@
 
         bindEvents();
         loadCachedAvatar();
-    }
+    } // <-- ВОТ ЗДЕСЬ ЗАКАНЧИВАЕТСЯ INJECTDOM. У тебя тут раньше была ошибка.
+
     function moveShopButtonsToHeader() {
         const isPC = !(/android/i.test(navigator.userAgent) || /iPad|iPhone|iPod/.test(navigator.userAgent));
         if (!isPC) return; 
