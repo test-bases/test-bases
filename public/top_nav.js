@@ -633,52 +633,9 @@
         };
 
         // ==========================================
-        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ДЛЯ ВСЕХ ТИПОВ ВЕРСТКИ)
-        // ==========================================
-        const scrollableContainer = document.querySelector('.main-content-scrollable, .main-content, .mobile-wrapper');
-        const mainHeader = document.getElementById('universal-top-header');
-
-        if (scrollableContainer && mainHeader) {
-            const updateHeaderBlur = () => {
-                // Захватываем скролл откуда угодно (внутренний блок или само окно)
-                const currentScroll = scrollableContainer.scrollTop || window.scrollY || document.documentElement.scrollTop || 0;
-                
-                // Сдвинулись вниз хоть на миллиметр — включаем стекло
-                if (currentScroll > 0) {
-                    mainHeader.classList.add('scrolled');
-                } else {
-                    mainHeader.classList.remove('scrolled');
-                }
-            };
-
-            // Слушаем скролл и на контейнере, и на окне (страхует от разных CSS на разных страницах)
-            scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
-            window.addEventListener('scroll', updateHeaderBlur, { passive: true });
-            
-            setTimeout(updateHeaderBlur, 100);
-
-            const observer = new MutationObserver(updateHeaderBlur);
-            observer.observe(scrollableContainer, { childList: true, subtree: true });
-        }
-    }
-        };
-
-        window.addEventListener('popstate', (e) => {
-            if (sideMenu && sideMenu.classList.contains('active') && !e.state?.sideMenuOpen) {
-                toggleMenu(false, true); 
-            }
-        });
-
-        if (menuBtn) menuBtn.onclick = () => toggleMenu(true);
-        if (closeMenuBtn) closeMenuBtn.onclick = () => toggleMenu(false);
-        if (sideMenu) sideMenu.onclick = (e) => { 
-            if (e.target === sideMenu) toggleMenu(false); 
-        };
-
-        // ==========================================
         // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (С ПРОВЕРКОЙ ВЫСОТЫ)
         // ==========================================
-        const scrollableContainer = document.querySelector('.main-content-scrollable');
+        const scrollableContainer = document.querySelector('.main-content-scrollable, .main-content, .mobile-wrapper');
         const mainHeader = document.getElementById('universal-top-header');
 
         if (scrollableContainer && mainHeader) {
