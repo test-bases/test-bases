@@ -40,24 +40,45 @@
             height: auto; 
 
             overflow-y: auto; overflow-x: hidden;
-            -webkit-overflow-scrolling: touch; padding-bottom: 0; 
+            -webkit-overflow-scrolling: touch; 
+            
+            /* НОВОЕ: Добавляем отступ сверху, равный высоте шапки, 
+               чтобы при загрузке контент начинался строго под ней */
+            padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 130px);
+            padding-bottom: 0; 
             overscroll-behavior-x: none !important;
         }
+        
+        /* Адаптируем отступ для разных устройств */
+        body.android-mode .main-content-scrollable { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 120px); }
+        body.desktop-platform .main-content-scrollable { padding-top: 90px; }
+
         .main-content-scrollable::after {
             content: ''; display: block; height: 160px; width: 100%; flex-shrink: 0; pointer-events: none;
         }
 
        /* ==========================================
-           ШАПКА (ОПУСКАЕМ И СЖИМАЕМ)
+           ШАПКА (ФИКСИРУЕМ ПОВЕРХ КОНТЕНТА)
         ========================================== */
         .top-header {
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
-            margin-bottom: 22px; 
-            position: relative; z-index: 100;
+            
+            /* --- ОТРЫВАЕМ ШАПКУ И ФИКСИРУЕМ СВЕРХУ --- */
+            position: absolute; 
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            margin-bottom: 0 !important; /* Убираем марджин, так как шапка теперь висит над контентом */
+            
+            /* --- ТЁМНЫЙ БЛЮР --- */
+            background: rgba(18, 18, 20, 0.75); /* Полупрозрачный фон */
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Легкая граница для эффекта стекла */
         }
+        
         body.android-mode .top-header { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 72px) !important; }
-        body.desktop-platform .top-header { padding-top: 41px !important; margin-bottom: 10px !important; }
+        body.desktop-platform .top-header { padding-top: 41px !important; margin-bottom: 0 !important; }
 
         .logo-wrapper { display: flex; align-items: center; gap: 14px; cursor: pointer; }
         .app-logo { width: 28px; height: 28px; border-radius: 0; background: transparent; object-fit: contain; }
