@@ -35,31 +35,32 @@
 
         .hidden { display: none !important; }
 
-        .main-content-scrollable {
+       .main-content-scrollable {
             flex: 1;
             height: auto; 
-
             overflow-y: auto; overflow-x: hidden;
-            -webkit-overflow-scrolling: touch; 
-            
-            /* НОВОЕ: Добавляем отступ сверху, равный высоте шапки, 
-               чтобы при загрузке контент начинался строго под ней */
-            padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 130px);
-            padding-bottom: 0; 
+            -webkit-overflow-scrolling: touch; padding-bottom: 0; 
             overscroll-behavior-x: none !important;
         }
         
-        /* Адаптируем отступ для разных устройств */
-        body.android-mode .main-content-scrollable { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 120px); }
-        body.desktop-platform .main-content-scrollable { padding-top: 90px; }
+        /* 1. 🔥 НЕВИДИМАЯ РАСПОРКА 🔥 */
+        /* Отталкивает контент вниз ровно на высоту шапки */
+        .main-content-scrollable::before {
+            content: ''; 
+            display: block; 
+            height: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 140px); 
+            width: 100%; 
+            flex-shrink: 0; 
+            pointer-events: none;
+        }
+        body.android-mode .main-content-scrollable::before { height: calc(var(--tg-content-safe-area-inset-top, 0px) + 130px); }
+        body.desktop-platform .main-content-scrollable::before { height: 90px; }
 
         .main-content-scrollable::after {
             content: ''; display: block; height: 160px; width: 100%; flex-shrink: 0; pointer-events: none;
         }
 
-       /* ==========================================
-           ШАПКА (ФИКСИРУЕМ ПОВЕРХ КОНТЕНТА)
-        ========================================== */
+       /* 2. 🔥 ШАПКА (ПРОЗРАЧНАЯ ПО УМОЛЧАНИЮ) 🔥 */
         .top-header {
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
@@ -69,20 +70,19 @@
             z-index: 100;
             margin-bottom: 0 !important;
             
-            /* --- СТАРТОВОЕ СОСТОЯНИЕ (ПРОЗРАЧНОЕ) --- */
+            /* Стартовое состояние без цвета и блюра */
             background: transparent; 
             backdrop-filter: blur(0px); 
             -webkit-backdrop-filter: blur(0px); 
             border-bottom: 1px solid transparent; 
             
-            /* Плавный переход для эффекта стекла */
+            /* Плавное включение стекла */
             transition: background 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease, border-bottom 0.3s ease;
         }
-        
         body.android-mode .top-header { padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + 72px) !important; }
         body.desktop-platform .top-header { padding-top: 41px !important; margin-bottom: 0 !important; }
 
-        /* --- СОСТОЯНИЕ ПРИ СКРОЛЛЕ (ВКЛЮЧАЕТСЯ ЧЕРЕЗ JS) --- */
+        /* 3. 🔥 КЛАСС АКТИВНОГО БЛЮРА (ВКЛЮЧИТСЯ ЧЕРЕЗ JS) 🔥 */
         .top-header.scrolled {
             background: rgba(18, 18, 20, 0.75); 
             backdrop-filter: blur(20px); 
@@ -620,6 +620,23 @@
                 }
             }
         };
+        // ==========================================
+        // АВТОМАТИЧЕСКИЙ БЛЮР ШАПКИ ПРИ СКРОЛЛЕ
+        // ==========================================
+        document.addEventListener('scroll', function(e) {
+            // Проверяем, что листают именно основной контент
+            if (e.target && e.target.classList && e.target.classList.contains('main-content-scrollable')) {
+                const mainHeader = document.getElementById('universal-top-header');
+                if (mainHeader) {
+                    // Если пролистали больше 15 пикселей вниз - красим шапку и добавляем блюр
+                    if (e.target.scrollTop > 15) {
+                        mainHeader.classList.add('scrolled');
+                    } else {
+                        mainHeader.classList.remove('scrolled');
+                    }
+                }
+            }
+        }, true); // true нужен обязательно, чтобы перехватывать скролл внутренних блоков
 
         window.addEventListener('popstate', (e) => {
             if (sideMenu && sideMenu.classList.contains('active') && !e.state?.sideMenuOpen) {
