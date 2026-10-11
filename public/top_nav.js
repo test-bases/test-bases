@@ -531,7 +531,7 @@
 
         bindEvents();
         loadCachedAvatar();
-    } // <-- ВОТ ЗДЕСЬ ЗАКАНЧИВАЕТСЯ INJECTDOM. У тебя тут раньше была ошибка.
+    }
 
     function moveShopButtonsToHeader() {
         const isPC = !(/android/i.test(navigator.userAgent) || /iPad|iPhone|iPod/.test(navigator.userAgent));
@@ -662,6 +662,7 @@
             const observer = new MutationObserver(updateHeaderBlur);
             observer.observe(scrollableContainer, { childList: true, subtree: true });
         }
+    }
     
     function loadCachedAvatar() {
         try {
