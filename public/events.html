@@ -920,38 +920,38 @@
   <div id="pull-to-refresh"><i class="fa-solid fa-arrow-down" id="ptr-icon"></i></div>
 
   <!-- ШАПКА СО СТАТУСОМ -->
-  <header class="sub-header">
-    <!-- Левая часть: название и вопрос (кнопка обновления скрыта) -->
-    <div style="display: flex; align-items: center; gap: 6px;">
-        <span class="header-title-label">Гринд-фарм</span>
-        <button class="tour-help-btn" onclick="startGrindTour()" title="Что такое гринд?">
-            <i class="fa-solid fa-question"></i>
-        </button>
-    </div>
+ <!-- 🔥 ОБЕРТКА ДЛЯ ЛОКАЛЬНЫХ МЕНЮ С ЭФФЕКТОМ СТЕКЛА 🔥 -->
+  <div id="quests-sticky-menus" style="position: fixed; top: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 65px); left: 0; right: 0; z-index: 99; transition: background 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s, border-bottom 0.3s; padding-top: 5px; padding-bottom: 5px;">
+      <header class="sub-header" style="padding-bottom: 0;">
+          <!-- Левая часть: название и вопрос -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="header-title-label">Гринд-фарм</span>
+              <button class="tour-help-btn" onclick="startGrindTour()" title="Что такое гринд?">
+                  <i class="fa-solid fa-question"></i>
+              </button>
+          </div>
+          <!-- Правая часть: подпись "СТАТУС:" -->
+          <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openStatusesModal()" title="Все статусы гринда">
+              <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase; letter-spacing: 0.5px;">Статус:</span>
+              <div class="status-pill" id="user-status">
+                  Стандарт <i class="fa-solid fa-chevron-right" style="font-size: 7px; opacity: 0.5;"></i>
+              </div>
+          </div>
+      </header>
 
-    <!-- Правая часть: подпись "СТАТУС:" и сам статус (кликабельно) -->
-    <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openStatusesModal()" title="Все статусы гринда">
-        <span style="font-size: 8px; font-weight: 800; color: var(--text-color-muted); text-transform: uppercase; letter-spacing: 0.5px;">Статус:</span>
-        <div class="status-pill" id="user-status">
-            Стандарт <i class="fa-solid fa-chevron-right" style="font-size: 7px; opacity: 0.5;"></i>
-        </div>
-    </div>
-  </header>
+      <div style="display:none;" aria-hidden="true">
+          <span id="user-coins">0.0</span>
+          <span id="user-tickets">0</span>
+      </div>
 
-  <!-- СКРЫТЫЕ ЭЛЕМЕНТЫ (ЯКОРЯ ДЛЯ СИНХРОНИЗАЦИИ С top_nav.js) -->
-  <div style="display:none;" aria-hidden="true">
-    <span id="user-coins">0.0</span>
-    <span id="user-tickets">0</span>
+      <div class="segment-control" style="margin-bottom: 0;">
+          <div class="segment-btn active" onclick="switchMainTab('tasks', this)">Задания</div>
+          <div class="segment-btn" onclick="switchMainTab('free', this)">Бесплатно</div>
+          <div class="segment-btn" onclick="switchMainTab('shop', this)">Магазин</div>
+      </div>
   </div>
 
-  <!-- СЕГМЕНТИРОВАННАЯ НАВИГАЦИЯ -->
-  <div class="segment-control">
-      <div class="segment-btn active" onclick="switchMainTab('tasks', this)">Задания</div>
-      <div class="segment-btn" onclick="switchMainTab('free', this)">Бесплатно</div>
-      <div class="segment-btn" onclick="switchMainTab('shop', this)">Магазин</div>
-  </div>
-
- <main id="main-scroll-area" style="height: calc(100vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;">
+  <main id="main-scroll-area" style="position: fixed; top: 0; left: 0; right: 0; bottom: 60px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding-top: calc(var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 24px)) + 140px);">
 
       <!-- ВКЛАДКА 1: ЗАДАНИЯ -->
       <div id="tab-tasks" class="tab-content active">
@@ -1961,14 +1961,46 @@ let currentShopTab = 'skins';
     let telegramTasksCache = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-    restoreSavedTabs(); // Восстанавливаем вкладку, на которой был пользователь
-    initTabSwipe();     // Включаем свайп влево-вправо на мобильных
+        restoreSavedTabs(); // Восстанавливаем вкладку, на которой был пользователь
+        initTabSwipe();     // Включаем свайп влево-вправо на мобильных
 
-    loadTelegramTasks();
-    fetchShopItems();
+        loadTelegramTasks();
+        fetchShopItems();
 
-    init();
-    initPullToRefresh();
+        init();
+        initPullToRefresh();
+
+        // ==========================================
+        // 🔥 ПРИНУДИТЕЛЬНЫЙ БЛЮР ДЛЯ QUESTS.HTML 🔥
+        // ==========================================
+        const scrollArea = document.getElementById('main-scroll-area');
+        const questsMenus = document.getElementById('quests-sticky-menus');
+        
+        if (scrollArea) {
+            scrollArea.addEventListener('scroll', () => {
+                const topHeader = document.getElementById('universal-top-header');
+                const isScrolled = scrollArea.scrollTop > 5;
+                
+                if (questsMenus) {
+                    if (isScrolled) {
+                        questsMenus.style.background = 'rgba(18, 18, 20, 0.75)';
+                        questsMenus.style.backdropFilter = 'blur(20px)';
+                        questsMenus.style.webkitBackdropFilter = 'blur(20px)';
+                        questsMenus.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
+                    } else {
+                        questsMenus.style.background = 'transparent';
+                        questsMenus.style.backdropFilter = 'blur(0px)';
+                        questsMenus.style.webkitBackdropFilter = 'blur(0px)';
+                        questsMenus.style.borderBottom = '1px solid transparent';
+                    }
+                }
+
+                if (topHeader) {
+                    if (isScrolled) topHeader.classList.add('scrolled');
+                    else topHeader.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        }
 
         const grindBtn = document.getElementById('grind-btn');
         if (grindBtn) {
