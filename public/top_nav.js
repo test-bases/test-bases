@@ -631,22 +631,36 @@
         };
 
         // ==========================================
-        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ИСПРАВЛЕННАЯ)
+        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (С ПРОВЕРКОЙ ВЫСОТЫ)
         // ==========================================
         const scrollableContainer = document.querySelector('.main-content-scrollable');
         const mainHeader = document.getElementById('universal-top-header');
 
         if (scrollableContainer && mainHeader) {
-            scrollableContainer.addEventListener('scroll', () => {
-                // Если скролл больше 15 пикселей - включаем стекло, иначе выключаем
-                if (scrollableContainer.scrollTop > 15) {
+            const updateHeaderBlur = () => {
+                // Проверяем: есть ли вообще скролл? 
+                // Если высота контента меньше или равна высоте экрана — страница короткая
+                const isShortPage = scrollableContainer.scrollHeight <= scrollableContainer.clientHeight + 5;
+                
+                // Включаем блюр, если страница короткая ИЛИ если пролистали вниз больше чем на 15px
+                if (isShortPage || scrollableContainer.scrollTop > 15) {
                     mainHeader.classList.add('scrolled');
                 } else {
                     mainHeader.classList.remove('scrolled');
                 }
-            }, { passive: true });
+            };
+
+            // 1. Слушаем скролл
+            scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
+            
+            // 2. Вызываем при старте с небольшой задержкой, чтобы страница успела отрисоваться
+            setTimeout(updateHeaderBlur, 100);
+
+            // 3. Супер-защита: если задания подгружаются с задержкой (по API), 
+            // этот обсервер заметит добавление новых элементов и сам пересчитает блюр
+            const observer = new MutationObserver(updateHeaderBlur);
+            observer.observe(scrollableContainer, { childList: true, subtree: true });
         }
-    }
     
     function loadCachedAvatar() {
         try {
