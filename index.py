@@ -20944,6 +20944,7 @@ async def buy_checkpoint_exp(req: BuyExpRequest, supabase: httpx.AsyncClient = D
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional, List
 from pydantic import BaseModel
 from fastapi import HTTPException, Depends
@@ -20968,9 +20969,17 @@ class SaveTemplateRequest(AdminBaseRequest):
 class DeleteTemplateRequest(AdminBaseRequest):
     template_id: int
 
+class UserLookupRequest(AdminBaseRequest):
+    query: Optional[str] = None
+    target_id: Optional[int] = None
+
 class ResetUserChallengeRequest(AdminBaseRequest):
     target_telegram_id: int
     action: str  # 'reset_progress' или 'reassign_random'
+
+class ClaimDailyChallengeRequest(BaseModel):
+    initData: str
+    challenge_id: int
 
 
 def verify_admin(init_data: str) -> int:
@@ -20993,27 +21002,14 @@ async def get_challenge_stats(
 ):
     verify_admin(req.initData)
 
-    # Текущая дата по МСК (как в default значении твоей таблицы)
-    # Запрашиваем записи на сегодня
+    today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
     res = await supabase.get(
         "/user_daily_challenges",
         params={
-            "challenge_date": f"eq.(CURRENT_DATE)",
+            "challenge_date": f"eq.{today_msk}",
             "select": "id,is_completed,claimed_at,current_value,target_value,reward_amount"
         }
     )
-    
-    # Если eq.(CURRENT_DATE) не резолвится PostgREST напрямую, подставим дату сервером
-    if not res.is_success or not res.json():
-        from zoneinfo import ZoneInfo
-        today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
-        res = await supabase.get(
-            "/user_daily_challenges",
-            params={
-                "challenge_date": f"eq.{today_msk}",
-                "select": "id,is_completed,claimed_at,current_value,target_value,reward_amount"
-            }
-        )
 
     items = res.json() if res.is_success and isinstance(res.json(), list) else []
 
@@ -21067,11 +21063,9 @@ async def list_templates(
     )
     templates = res.json() if res.is_success and isinstance(res.json(), list) else []
 
-    # Приводим к удобному виду для фронтенда
     formatted = []
     for t in templates:
         r_config = t.get("reward_config") or {}
-        # Достаем количество билетов из config
         tickets = float(r_config.get("tickets") or r_config.get("amount") or 1.0)
         formatted.append({
             "id": t["id"],
@@ -21106,7 +21100,6 @@ async def save_template(
     }
 
     if req.id:
-        # Редактирование существующего
         res = await supabase.patch(
             "/challenge_templates",
             params={"id": f"eq.{req.id}"},
@@ -21114,7 +21107,6 @@ async def save_template(
             headers={"Prefer": "return=representation"}
         )
     else:
-        # Создание нового
         res = await supabase.post(
             "/challenge_templates",
             json=payload,
@@ -21145,30 +21137,108 @@ async def delete_template(
 
 
 # =====================================================================
-# 3. ПОИСК И СБРОС ИСПЫТАНИЯ ПОЛЬЗОВАТЕЛЮ
+# 3. СПИСОК АКТИВНЫХ ИГРОКОВ ЗА СЕГОДНЯ
 # =====================================================================
-@app.post("/api/v1/admin/challenges/user_lookup")
-async def user_challenge_lookup(
+@app.post("/api/v1/admin/challenges/active_users")
+async def get_today_active_challenge_users(
     req: AdminBaseRequest,
-    target_id: int,
     supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
     verify_admin(req.initData)
 
-    # 1. Достаем инфо о юзере
+    today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
+
+    # 1. Запрашиваем сегодняшние испытания
+    ch_res = await supabase.get(
+        "/user_daily_challenges",
+        params={
+            "challenge_date": f"eq.{today_msk}",
+            "order": "created_at.desc",
+            "limit": "100",
+            "select": "id,telegram_id,title,task_type,target_value,current_value,reward_amount,is_completed,claimed_at"
+        }
+    )
+    challenges = ch_res.json() if ch_res.is_success and isinstance(ch_res.json(), list) else []
+
+    if not challenges:
+        return {"status": "success", "users": []}
+
+    # 2. Собираем профили игроков по их telegram_id
+    tg_ids = list({str(c["telegram_id"]) for c in challenges})
+    users_map = {}
+
+    if tg_ids:
+        u_res = await supabase.get(
+            "/users",
+            params={
+                "telegram_id": f"in.({','.join(tg_ids)})",
+                "select": "telegram_id,username,full_name,twitch_login"
+            }
+        )
+        if u_res.is_success and isinstance(u_res.json(), list):
+            for u in u_res.json():
+                users_map[u["telegram_id"]] = u
+
+    # 3. Собираем единый ответ
+    formatted = []
+    for c in challenges:
+        u = users_map.get(c["telegram_id"]) or {}
+        formatted.append({
+            "telegram_id": c["telegram_id"],
+            "full_name": u.get("full_name"),
+            "username": u.get("username"),
+            "twitch_login": u.get("twitch_login"),
+            "title": c.get("title"),
+            "target_value": c.get("target_value", 10),
+            "current_value": c.get("current_value", 0),
+            "reward_amount": float(c.get("reward_amount") or 1.0),
+            "is_completed": bool(c.get("is_completed")),
+            "claimed_at": c.get("claimed_at")
+        })
+
+    return {"status": "success", "users": formatted}
+
+
+# =====================================================================
+# 4. ПОИСК ИГРОКА (ПО TELEGRAM ID ИЛИ TWITCH НИКУ)
+# =====================================================================
+@app.post("/api/v1/admin/challenges/user_lookup")
+async def user_challenge_lookup(
+    req: UserLookupRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    search_val = (req.query or (str(req.target_id) if req.target_id is not None else "")).strip()
+    if not search_val:
+        raise HTTPException(status_code=400, detail="Введите Telegram ID или Twitch ник")
+
+    clean_val = search_val.lstrip("@").lower()
+
+    if clean_val.isdigit():
+        user_params = {"telegram_id": f"eq.{int(clean_val)}"}
+    else:
+        user_params = {"or": f"(twitch_login.ilike.{clean_val},username.ilike.{clean_val})"}
+
     u_res = await supabase.get(
         "/users",
-        params={"telegram_id": f"eq.{target_id}", "select": "telegram_id,username,full_name,tickets"}
+        params={
+            **user_params,
+            "select": "telegram_id,username,full_name,twitch_login,tickets",
+            "limit": "1"
+        }
     )
-    user = u_res.json()[0] if u_res.is_success and u_res.json() else None
-    if not user:
+    user_list = u_res.json() if u_res.is_success and isinstance(u_res.json(), list) else []
+    if not user_list:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
-    # 2. Достаем актуальный челлендж
+    user = user_list[0]
+    tg_id = user["telegram_id"]
+
     c_res = await supabase.get(
         "/user_daily_challenges",
         params={
-            "telegram_id": f"eq.{target_id}",
+            "telegram_id": f"eq.{tg_id}",
             "order": "challenge_date.desc",
             "limit": "1"
         }
@@ -21182,6 +21252,9 @@ async def user_challenge_lookup(
     }
 
 
+# =====================================================================
+# 5. СБРОС ИЛИ ПЕРЕВЫДАЧА ИСПЫТАНИЯ
+# =====================================================================
 @app.post("/api/v1/admin/challenges/reset_user")
 async def reset_user_challenge(
     req: ResetUserChallengeRequest,
@@ -21189,12 +21262,9 @@ async def reset_user_challenge(
 ):
     verify_admin(req.initData)
     target_tg = req.target_telegram_id
-
-    from zoneinfo import ZoneInfo
     today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
 
     if req.action == "reset_progress":
-        # Сброс прогресса на 0 и снятие клейма
         res = await supabase.patch(
             "/user_daily_challenges",
             params={"telegram_id": f"eq.{target_tg}", "challenge_date": f"eq.{today_msk}"},
@@ -21203,13 +21273,11 @@ async def reset_user_challenge(
         return {"status": "success", "message": "Прогресс сброшен на 0!"}
 
     elif req.action == "reassign_random":
-        # 1. Удаляем сегодняшнее задание
         await supabase.delete(
             "/user_daily_challenges",
             params={"telegram_id": f"eq.{target_tg}", "challenge_date": f"eq.{today_msk}"}
         )
 
-        # 2. Достаем активные шаблоны
         t_res = await supabase.get("/challenge_templates", params={"is_active": "eq.true"})
         templates = t_res.json() if t_res.is_success and t_res.json() else []
         if not templates:
@@ -21219,7 +21287,6 @@ async def reset_user_challenge(
         r_config = chosen.get("reward_config") or {}
         tickets_amt = float(r_config.get("tickets") or 1.0)
 
-        # 3. Создаем новое задание
         new_row = {
             "telegram_id": target_tg,
             "template_id": chosen["id"],
@@ -21247,10 +21314,9 @@ async def reset_user_challenge(
     raise HTTPException(status_code=400, detail="Неверное действие")
 
 
-class ClaimDailyChallengeRequest(BaseModel):
-    initData: str
-    challenge_id: int
-
+# =====================================================================
+# 6. КЛЕЙМ НАГРАДЫ ПОЛЬЗОВАТЕЛЕМ (ИСПЫТАНИЕ ДНЯ)
+# =====================================================================
 @app.post("/api/v1/daily_challenge/claim")
 async def claim_daily_challenge_endpoint(
     req: ClaimDailyChallengeRequest,
@@ -21289,9 +21355,9 @@ async def claim_daily_challenge_endpoint(
     if not patch_claim.is_success or not patch_claim.json():
         raise HTTPException(status_code=400, detail="Награда уже обрабатывается или получена")
 
-    # 4. Начисляем награду в users
+    # 4. Начисляем билеты в users
     reward_type = challenge.get("reward_type", "tickets")
-    reward_amount = float(challenge.get("reward_amount") or 2.0)
+    reward_amount = float(challenge.get("reward_amount") or 1.0)
 
     u_res = await supabase.get(
         "/users",
@@ -21308,7 +21374,6 @@ async def claim_daily_challenge_endpoint(
         cur_coins = float(user_data.get("coins") or 0.0)
         update_payload["coins"] = cur_coins + reward_amount
     else:
-        # По умолчанию выдаем билеты
         cur_tickets = float(user_data.get("tickets") or 0.0)
         update_payload["tickets"] = cur_tickets + reward_amount
 
@@ -21324,7 +21389,6 @@ async def claim_daily_challenge_endpoint(
         "reward_amount": reward_amount,
         "message": "Награда успешно начислена!"
     }
-    
 
     
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
