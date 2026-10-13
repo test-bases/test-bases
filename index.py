@@ -28363,6 +28363,182 @@ async def draw_raffle(
     # Используем секрет cron-а для внутреннего вызова
     return await finalize_raffle_webhook(FinalizeRequest(raffle_id=req.raffle_id, secret=get_cron_secret()), supabase)
 
+# 3.1. (Админ) Тестовая отправка розыгрыша через Bot-T строго админу в ЛС
+@app.post("/api/v1/admin/raffles/test_pm")
+async def test_raffle_pm(
+    req: RaffleDrawRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    MY_TELEGRAM_ID = 477521935
+
+    # 1. Проверяем права админа
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or (user_info['id'] not in ADMIN_IDS and user_info['id'] != MY_TELEGRAM_ID):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    # 2. Получаем данные розыгрыша из БД
+    r_resp = await supabase.get("/raffles", params={"id": f"eq.{req.raffle_id}"})
+    if not r_resp.json():
+        raise HTTPException(status_code=404, detail="Розыгрыш не найден")
+
+    raffle = r_resp.json()[0]
+    s = raffle.get('settings', {})
+
+    # 3. Собираем текст поста
+    prize_name = s.get('prize_name', 'Приз')
+    quality = s.get('skin_quality', '')
+    desc = s.get('description', '')
+    prize_full = f"{prize_name} ({quality})" if quality else prize_name
+    price = s.get('price_rub') or s.get('price')
+
+    min_participants = int(s.get('min_participants', 0))
+    ticket_cost = int(s.get('ticket_cost', 0))
+    min_bp_level = int(s.get('min_bp_level', 0))
+    min_coins = float(s.get('min_coins', 0.0))
+    name_tag = s.get('required_name_tag')
+    sub_req = s.get('requires_telegram_sub', False)
+
+    min_msgs = int(s.get('min_messages') or s.get('min_daily_messages') or 0)
+    msg_period = s.get('message_period', 'daily')
+    period_map = {'daily': 'за стрим', 'weekly': 'за неделю', 'monthly': 'за месяц'}
+    period_str = period_map.get(msg_period, 'за стрим')
+
+    txt = f"🧪 <b>[ТЕСТ BOT-T: ТОЛЬКО ДЛЯ АДМИНА]</b>\n\n"
+    txt += f"🚀 <b>РОЗЫГРЫШ ДЛЯ МОИХ ПАЧАНОВ</b>\n\n"
+    if desc:
+        txt += f"<i>{desc}</i>\n\n"
+    txt += f"🏆 <b>Приз:</b> {prize_full}\n"
+    if price:
+        txt += f"💵 <b>Стоимость:</b> {round(float(price), 2)} ₽\n"
+        
+    txt += "\n📌 <b>Условия:</b>\n"
+    if sub_req:
+        txt += '└ Подписка на ТГ канал <a href="https://t.me/hatelove_ttv">HATElove_ttv</a>\n'
+    if ticket_cost > 0:
+        txt += f"└ Вход: {ticket_cost} билетов 🎫\n"
+    if min_participants > 0:
+        txt += f"└ Минимум участников: {min_participants} 👥\n"
+    if min_bp_level > 0:
+        txt += f"└ Уровень Battle Pass: {min_bp_level} ⭐️\n"
+    if min_coins > 0:
+        txt += f"└ Баланс в боте: {int(min_coins)} монет 💰\n"
+    if name_tag:
+        txt += f"└ Никнейм содержит: «{name_tag}» 🏷\n"
+    if min_msgs > 0:
+        txt += f"└ Активность на стриме ({min_msgs} сообщ. {period_str})\n"
+
+    if raffle.get('end_time'):
+        try:
+            dt_input = datetime.fromisoformat(raffle['end_time'].replace('Z', ''))
+            txt += f"\n⏳ <b>Итоги:</b> {dt_input.strftime('%d.%m.%Y %H:%M')} (МСК)\n"
+        except Exception:
+            pass
+
+    txt += "\n👇 <b>Жми кнопку, чтобы поучаствовать!</b>"
+
+    post_img = s.get('prize_image') or s.get('card_image')
+    # Скрытая ссылка для автоматического баннера-превью Telegram
+    if post_img and post_img.startswith("http"):
+        txt = f'<a href="{post_img}">&#8203;</a>' + txt
+
+    parts_cnt = raffle.get('participants_count', 0)
+    url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{req.raffle_id}"
+    btn_text = f"Участвовать 🎲 ({parts_cnt})"
+
+    # 4. ОТПРАВЛЯЕМ ЧЕРЕЗ BOT-T СТРОГО НА ID АДМИНА
+    auth = get_bott_auth_payload()
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=20.0, follow_redirects=True, headers=headers) as client:
+        # ШАГ А: Находим или создаем тестовый сегмент только с твоим ID
+        target_group_name = f"Admin_Test_{MY_TELEGRAM_ID}"
+        group_id = None
+
+        try:
+            groups_resp = await client.post("/v1/bot/group/index", json=auth)
+            if groups_resp.status_code == 200 and groups_resp.json().get("result"):
+                for g in groups_resp.json().get("data", []):
+                    if g.get("name") == target_group_name:
+                        group_id = g.get("id")
+                        break
+        except Exception as e:
+            print(f"⚠️ Ошибка проверки сегментов Bot-T: {e}")
+
+        if not group_id:
+            try:
+                create_grp_resp = await client.post(
+                    "/v1/bot/group/create-with-users",
+                    json={
+                        **auth,
+                        "name": target_group_name,
+                        "users": [MY_TELEGRAM_ID]
+                    }
+                )
+                grp_res = create_grp_resp.json()
+                if grp_res.get("result"):
+                    group_id = grp_res.get("data", {}).get("id") or grp_res.get("data", {}).get("group_id")
+                    print(f"✅ Bot-T: Создан персональный сегмент #{group_id} для {MY_TELEGRAM_ID}")
+                else:
+                    print(f"⚠️ Bot-T Create Group Error: {grp_res.get('message')}")
+            except Exception as e:
+                print(f"⚠️ Ошибка создания сегмента в Bot-T: {e}")
+
+        # СТРАХОВКА: Если сегмент не определен, НИ В КОЕМ СЛУЧАЕ не шлем рассылку всем!
+        if not group_id:
+            raise HTTPException(
+                status_code=500,
+                detail="Не удалось создать персональный сегмент в Bot-T. Рассылка отменена для защиты от отправки всем."
+            )
+
+        # ШАГ Б: Создаем черновик рассылки
+        create_resp = await client.post(
+            "/v1/bot/mailing/mailing/create",
+            json={**auth, "type": 0, "text": txt}
+        )
+        c_res = create_resp.json()
+        if not c_res.get("result"):
+            raise HTTPException(status_code=500, detail=f"Bot-T ошибка создания: {c_res.get('message')}")
+
+        mailing_id = c_res["data"]["id"]
+        message_id = c_res["data"]["message"]["id"]
+
+        # ШАГ В: Привязываем сегмент (СТРОГО ТОЛЬКО ТЫ!)
+        set_grp_resp = await client.post(
+            "/v1/bot/mailing/mailing/set-group",
+            json={**auth, "id": mailing_id, "group_id": group_id}
+        )
+        grp_bind_res = set_grp_resp.json()
+        if not grp_bind_res.get("result"):
+            # Если сегмент не привязался — прерываем процесс!
+            raise HTTPException(status_code=500, detail=f"Bot-T: Не удалось привязать сегмент #{group_id}")
+
+        # ШАГ Г: Привязываем Inline-кнопку
+        btn_resp = await client.post(
+            "/v1/bot/keyboard/inline-new/add-button-with-line",
+            json={
+                **auth,
+                "message_id": message_id,
+                "name": btn_text,
+                "link": url_btn
+            }
+        )
+        b_res = btn_resp.json()
+        if not b_res.get("result"):
+            print(f"⚠️ Bot-T Button Warning: {b_res.get('message')}")
+
+        # ШАГ Д: Запускаем рассылку (улетит ТОЛЬКО в твой сегмент!)
+        start_resp = await client.post(
+            "/v1/bot/mailing/mailing/start",
+            json={**auth, "id": mailing_id}
+        )
+        s_res = start_resp.json()
+        if not s_res.get("result"):
+            raise HTTPException(status_code=500, detail=f"Bot-T ошибка запуска: {s_res.get('message')}")
+
+        print(f"🚀 Bot-T: Тестовая рассылка #{mailing_id} запущена только на ID {MY_TELEGRAM_ID}!")
+
+    return {"status": "success", "message": f"Тест отправлен через Bot-T на твой ID #{MY_TELEGRAM_ID}!"}
+
 # 4. (Юзер) Участие
 @app.post("/api/v1/raffles/join")
 async def join_raffle(
