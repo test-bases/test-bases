@@ -2320,6 +2320,7 @@ if ADMIN_TELEGRAM_IDS_STR:
             logging.warning(f"Не удалось преобразовать ID администратора в число: '{admin_id}'")
 # --- BOT-T CONFIG ---
 BOTT_SHOP_URL = "https://shopdigital.bot-t.com/shop"
+BOTT_API_BASE = "https://api.bot-t.com"  # 👈 ВОТ ЭТОЙ СТРОЧКИ НЕ ХВАТАЛО!
 BOTT_BOT_ID = "233790"
 BOTT_BOT_TOKEN = os.getenv("BOTT_BOT_TOKEN") 
 BOTT_SECRET_KEY = os.getenv("BOTT_SECRET_KEY")
@@ -2356,6 +2357,9 @@ global_shop_client: Optional[httpx.AsyncClient] = None # <--- ДОБАВИТЬ �
 # --- FastAPI app ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # ==========================================
+    # 1. ВЫПОЛНЯЕТСЯ ПРИ СТАРТЕ СЕРВЕРА
+    # ==========================================
     # Объявляем глобальные переменные
     global global_http_client 
     global global_shop_client # <--- ДОБАВИТЬ
@@ -2377,22 +2381,8 @@ async def lifespan(app: FastAPI):
     # Используем стандартные лимиты
     global_shop_client = httpx.AsyncClient(timeout=30.0)
     
-    yield # Приложение работает
-    
-    logging.info("👋 Приложение останавливается...")
-    
-    # Закрываем соединения
-    if global_http_client:
-        await global_http_client.aclose()
-        
-    if global_shop_client: # <--- ДОБАВИТЬ ЗАКРЫТИЕ
-        await global_shop_client.aclose()
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 1. Выполняется ПРИ СТАРТЕ сервера (до первых пользователей)
+    # До первых пользователей: холостой пинг, чтобы прогреть SSL-рукопожатие
     client = await get_supabase_client()
-    # Делаем холостой пинг, чтобы прогреть SSL-рукопожатие
     try:
         await client.get("/settings?limit=1")
         logging.info("🔥 Соединение с БД прогрето при старте сервера")
@@ -2401,12 +2391,26 @@ async def lifespan(app: FastAPI):
         
     yield # Здесь сервер работает и принимает запросы
     
-    # 2. Выполняется ПРИ ВЫКЛЮЧЕНИИ сервера
-    if _lazy_supabase_client is not None:
-         await _lazy_supabase_client.aclose()
-         logging.info("🔌 Клиент Supabase закрыт")
+    # ==========================================
+    # 2. ВЫПОЛНЯЕТСЯ ПРИ ВЫКЛЮЧЕНИИ СЕРВЕРА
+    # ==========================================
+    logging.info("👋 Приложение останавливается...")
+    
+    # Закрываем соединения HTTP клиентов
+    if global_http_client:
+        await global_http_client.aclose()
+        
+    if global_shop_client: # <--- ДОБАВИТЬ ЗАКРЫТИЕ
+        await global_shop_client.aclose()
 
-app = FastAPI(title="Quest Bot API")
+    # Закрываем соединение Supabase
+    if _lazy_supabase_client is not None:
+        await _lazy_supabase_client.aclose()
+        logging.info("🔌 Клиент Supabase закрыт")
+
+
+# Обязательно передаем lifespan=lifespan, чтобы FastAPI его вызвал при запуске:
+app = FastAPI(title="Quest Bot API", lifespan=lifespan)
 # app.mount("/public", StaticFiles(directory=TEMPLATES_DIR), name="public")
     
 # --- Middlewares ---
@@ -2479,13 +2483,12 @@ _lazy_supabase_client: Optional[httpx.AsyncClient] = None
 
 def get_bott_auth_payload() -> dict:
     """Формирует базовый словарь авторизации для API Bot-T."""
-    payload = {"bot_id": BOTT_BOT_ID}
+    payload = {"bot_id": int(BOTT_BOT_ID)}  # <- приводим к int
     if BOTT_BOT_TOKEN:
         payload["token"] = BOTT_BOT_TOKEN
     elif BOTT_SECRET_KEY:
         payload["secretKey"] = BOTT_SECRET_KEY
     return payload
-
 
 async def publish_bott_raffle_mailing(
     text: str,
