@@ -12,12 +12,14 @@
     :root {
       --bg: #0f1014;
       --card-bg: #1a1b20;
-      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.1);
       --gold: #FFD700;
       --blue: #0088cc;
       --red: #ff3b30;
       --green: #34c759;
-      --text-dim: #8e8e93;
+      --text-main: #ffffff;
+      --text-bright: #e5e7eb;
+      --text-dim: #9ca3af;
     }
 
     * { 
@@ -28,7 +30,7 @@
     body {
       margin: 0;
       padding: 16px;
-      padding-top: 10px; /* Дефолт для ПК, пересчитывается JS */
+      padding-top: 10px; /* Адаптируется скриптом под iOS/Android/PC */
       padding-bottom: 80px;
       background-color: var(--bg);
       color: #fff;
@@ -36,7 +38,7 @@
       min-height: 100vh;
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
-      /* Зум страницы (88% для компактного визуального стиля) */
+      /* Зум страницы для компактного вида */
       zoom: 0.88;
       -moz-transform: scale(0.88);
       -moz-transform-origin: 0 0;
@@ -64,13 +66,13 @@
     .back-btn:active { background: rgba(255,255,255,0.15); }
     .page-title { font-size: 18px; font-weight: 900; margin: 0; }
 
-    /* ГЛАВНАЯ КНОПКА ОТКРЫТИЯ МОДУЛЯ */
+    /* ГЛАВНАЯ КНОПКА ОТКРЫТИЯ МОДУЛЯ (ТОЛЬКО ЗАГОЛОВОК) */
     .module-hero-btn {
       width: 100%;
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(26, 27, 32, 0.95) 100%);
       border: 1px solid rgba(255, 215, 0, 0.4);
       border-radius: 14px;
-      padding: 16px;
+      padding: 18px 16px;
       display: flex; 
       align-items: center; 
       justify-content: space-between;
@@ -82,13 +84,12 @@
     .module-hero-btn:active { transform: scale(0.98); }
     .hero-btn-left { display: flex; align-items: center; gap: 12px; }
     .hero-btn-icon {
-      width: 42px; height: 42px; border-radius: 10px;
+      width: 44px; height: 44px; border-radius: 10px;
       background: rgba(255,215,0,0.2); color: var(--gold);
       display: flex; align-items: center; justify-content: center;
       font-size: 20px; border: 1px solid var(--gold);
     }
-    .hero-btn-text h2 { margin: 0; font-size: 14px; font-weight: 900; }
-    .hero-btn-text p { margin: 2px 0 0 0; font-size: 10px; color: var(--text-dim); }
+    .hero-btn-text h2 { margin: 0; font-size: 15px; font-weight: 900; letter-spacing: 0.5px; }
     .hero-btn-chevron { font-size: 14px; color: var(--gold); transition: transform 0.3s; }
     .hero-btn-chevron.open { transform: rotate(180deg); }
 
@@ -106,7 +107,7 @@
     }
     .sub-tab-btn.active { background: var(--blue); color: #fff; }
 
-    /* КАРТОЧКИ СТАТИСТИКИ */
+    /* КАРТОЧКИ СТАТИСТИКИ (НЕ ТРОНУТЫ) */
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .stat-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
@@ -118,12 +119,12 @@
     .stat-val.gold { color: var(--gold); }
     .stat-val.green { color: var(--green); }
 
-    /* КОМПАКТНЫЕ ПЛАШКИ ШАБЛОНОВ */
+    /* КАРТОЧКИ ЗАДАНИЙ (СВЕТЛЫЙ, КОНТРАСТНЫЙ ТЕКСТ) */
     .template-item-card {
-      background: var(--card-bg); 
-      border: 1px solid var(--card-border);
+      background: #191a20; 
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px; 
-      padding: 12px 14px; 
+      padding: 14px 16px; 
       margin-bottom: 10px;
       display: flex; 
       align-items: center; 
@@ -133,35 +134,31 @@
       transition: all 0.2s;
     }
     .template-item-card:hover {
-      border-color: rgba(255, 215, 0, 0.35);
-      background: #1f2026;
+      border-color: rgba(255, 215, 0, 0.4);
+      background: #20222a;
     }
-    .template-item-card.disabled { opacity: 0.5; }
+    .template-item-card.disabled { opacity: 0.45; }
     .template-item-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-      flex: 1;
+      display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;
     }
     .template-item-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: rgba(255, 215, 0, 0.12);
-      border: 1px solid rgba(255, 215, 0, 0.3);
+      width: 38px; height: 38px; border-radius: 8px;
+      background: rgba(255, 215, 0, 0.15);
+      border: 1px solid rgba(255, 215, 0, 0.4);
       color: var(--gold);
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
     }
     .template-item-info {
-      display: flex; flex-direction: column; gap: 2px;
-      min-width: 0; overflow: hidden;
+      display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden;
     }
     .template-item-title {
-      font-size: 13px; font-weight: 800; color: #fff;
+      font-size: 13px; font-weight: 800; color: #ffffff;
       white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
     }
+    /* СВЕТЛЫЙ ПОДЗАГОЛОВОК ЗАДАНИЯ */
     .template-item-sub {
-      font-size: 10px; color: var(--text-dim);
+      font-size: 11px; font-weight: 500; color: #e5e7eb;
       white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
     }
     .template-item-right {
@@ -169,15 +166,16 @@
     }
     .badge-reward {
       background: rgba(255, 215, 0, 0.15);
+      border: 1px solid rgba(255, 215, 0, 0.35);
       color: var(--gold);
       font-size: 11px;
       font-weight: 800;
-      padding: 4px 8px;
+      padding: 5px 9px;
       border-radius: 6px;
       font-family: monospace;
     }
 
-    /* ПОИСК И СПИСОК ИГРОКОВ */
+    /* ПОИСК И СПИСОК АКТИВНЫХ ИГРОКОВ */
     .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .btn-search {
       background: var(--blue); border: none; color: #fff; border-radius: 8px;
@@ -195,17 +193,17 @@
       align-items: center; justify-content: space-between;
     }
     .user-progress-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
+      background: #191a20; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px; padding: 12px; margin-bottom: 10px;
       display: flex; flex-direction: column; gap: 8px;
     }
     .u-card-header {
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; justify-content: space-between; align-items: flex-start;
     }
-    .u-card-name { font-size: 13px; font-weight: 800; color: #fff; }
-    .u-card-task { font-size: 11px; color: var(--text-dim); }
+    .u-card-name { font-size: 13px; font-weight: 800; color: #ffffff; }
+    .u-card-sub { font-size: 11px; color: #cbd5e1; margin-top: 2px; }
     .u-progress-track {
-      width: 100%; height: 6px; background: rgba(255,255,255,0.08);
+      width: 100%; height: 6px; background: rgba(255,255,255,0.12);
       border-radius: 3px; overflow: hidden; margin-top: 4px;
     }
     .u-progress-fill {
@@ -242,16 +240,16 @@
 
     .add-btn {
       width: 100%; padding: 14px; background: rgba(255,255,255,0.06);
-      border: 1px dashed #555; color: #ccc; border-radius: 12px;
+      border: 1px dashed #555; color: #fff; border-radius: 12px;
       cursor: pointer; font-weight: 700; font-size: 12px;
       display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .add-btn:active { background: rgba(255,255,255,0.1); }
 
-    /* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ / СОЗДАНИЯ ШАБЛОНА */
+    /* МОДАЛЬНОЕ ОКНО С КРЕСТИКОМ */
     .modal-backdrop {
       position: fixed; inset: 0; z-index: 99999;
-      background: rgba(0, 0, 0, 0.82);
+      background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       display: flex; align-items: center; justify-content: center;
       padding: 16px; opacity: 0; pointer-events: none;
@@ -275,23 +273,22 @@
 
     .modal-header {
       display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .modal-title { font-size: 14px; font-weight: 900; margin: 0; text-transform: uppercase; color: #fff; }
     
-    /* КРЕСТИК ЗАКРЫТИЯ */
     .modal-close-btn {
       width: 32px; height: 32px; border-radius: 50%;
       background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #fff; font-size: 15px; cursor: pointer;
+      color: #fff; font-size: 16px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.2s;
     }
-    .modal-close-btn:hover { background: rgba(255, 59, 48, 0.2); border-color: var(--red); color: var(--red); }
+    .modal-close-btn:hover { background: rgba(255, 59, 48, 0.25); border-color: var(--red); color: var(--red); }
     .modal-close-btn:active { transform: scale(0.9); }
 
     .input-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
-    .input-label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+    .input-label { font-size: 9px; font-weight: 700; color: #bbb; text-transform: uppercase; }
     .compact-input {
       background: #111; border: 1px solid #333; color: #fff;
       padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%;
@@ -324,13 +321,12 @@
     <div style="width: 50px;"></div>
   </div>
 
-  <!-- КНОПКА-АККОРДЕОН: ОТКРЫТИЕ ЧЕЛЛЕНДЖЕЙ -->
+  <!-- КНОПКА-АККОРДЕОН: ТОЛЬКО ЗАГОЛОВОК (БЕЗ ПОДЗАГОЛОВКА) -->
   <div class="module-hero-btn" onclick="toggleChallengeModule()">
     <div class="hero-btn-left">
       <div class="hero-btn-icon"><i class="fa-solid fa-bullseye"></i></div>
       <div class="hero-btn-text">
         <h2>ЕЖЕДНЕВНЫЕ ЧЕЛЛЕНДЖИ</h2>
-        <p>Статистика, шаблоны заданий (Tickets) и сброс игроку</p>
       </div>
     </div>
     <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-icon"></i>
@@ -380,29 +376,33 @@
 
     <!-- 2. ПОДРАЗДЕЛ: ШАБЛОНЫ ЗАДАНИЙ -->
     <div id="section-templates" class="hidden">
-      <div id="templates-list-container">Загрузка...</div>
+      <div id="templates-list-container">
+        <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка заданий...</p>
+      </div>
       <button class="add-btn" onclick="openNewTemplateModal()" style="margin-top:12px;">
         <i class="fa-solid fa-plus"></i> Создать новое задание
       </button>
     </div>
 
-    <!-- 3. ПОДРАЗДЕЛ: СБРОС ИГРОКУ И СПИСОК АКТИВНЫХ -->
+    <!-- 3. ПОДРАЗДЕЛ: СБРОС И СПИСОК АКТИВНЫХ ИГРОКОВ -->
     <div id="section-users" class="hidden">
       <div class="search-row">
-        <input type="number" id="inp-search-tg" class="compact-input" placeholder="Поиск по Telegram ID...">
+        <!-- ПОИСК И ПО TELEGRAM ID, И ПО TWITCH НИКУ -->
+        <input type="text" id="inp-search-user" class="compact-input" placeholder="Telegram ID или Twitch ник...">
         <button class="btn-search" onclick="searchUser()">Найти</button>
       </div>
 
       <!-- Индивидуальная карточка найденного -->
       <div id="user-result-box" class="hidden">
         <div class="user-info-card">
-          <div class="info-line"><span>Пользователь:</span><b id="res-user-name">-</b></div>
-          <div class="info-line"><span>Баланс билетов:</span><b id="res-user-tickets" style="color:var(--gold);">0</b></div>
-          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.06); margin:10px 0;">
-          <div class="info-line"><span>Сегодняшнее задание:</span><b id="res-task-title" style="color:var(--gold);">-</b></div>
-          <div class="info-line"><span>Прогресс:</span><span id="res-task-prog">0 / 0</span></div>
-          <div class="info-line"><span>Награда:</span><span id="res-task-reward">0 🎟️</span></div>
-          <div class="info-line"><span>Статус:</span><span id="res-task-status">-</span></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Пользователь:</span><b id="res-user-name">-</b></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Twitch:</span><b id="res-user-twitch" style="color:#a78bfa;">-</b></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Баланс билетов:</span><b id="res-user-tickets" style="color:var(--gold);">0</b></div>
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">
+          <div class="info-line"><span style="color:#cbd5e1;">Сегодняшнее задание:</span><b id="res-task-title" style="color:var(--gold);">-</b></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Прогресс:</span><span id="res-task-prog" style="font-weight:700;">0 / 0</span></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Награда:</span><span id="res-task-reward" style="font-weight:700;">0 🎟️</span></div>
+          <div class="info-line"><span style="color:#cbd5e1;">Статус:</span><span id="res-task-status">-</span></div>
 
           <button class="btn-reset-yellow" onclick="handleUserReset('reset_progress')">
             <i class="fa-solid fa-rotate-left"></i> Сбросить текущий прогресс на 0
@@ -419,17 +419,18 @@
         <button onclick="loadActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
       </div>
       <div id="active-users-list">
-        <p style="text-align:center; color:#777; font-size:11px;">Загрузка списка игроков...</p>
+        <p style="text-align:center; color:#cbd5e1; font-size:11px;">Загрузка списка игроков...</p>
       </div>
     </div>
 
   </div>
 
-  <!-- ДИАЛОГОВОЕ ОКНО РЕДАКТИРОВАНИЯ/СОЗДАНИЯ ЗАДАНИЯ -->
+  <!-- ДИАЛОГОВОЕ ОКНО РЕДАКТИРОВАНИЯ/СОЗДАНИЯ ЗАДАНИЯ С КРЕСТИКОМ -->
   <div id="template-modal-overlay" class="modal-backdrop" onclick="if(event.target===this) closeTemplateModal()">
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-heading">Настройка задания</h3>
+        <!-- КРЕСТИК ЗАКРЫТИЯ -->
         <button class="modal-close-btn" onclick="closeTemplateModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
@@ -438,7 +439,7 @@
       <div style="display:flex; gap:8px;">
         <div class="input-wrapper" style="flex:2;">
           <span class="input-label">Заголовок задания</span>
-          <input type="text" id="modal-tpl-title" class="compact-input" placeholder="Например: Разминка в чате">
+          <input type="text" id="modal-tpl-title" class="compact-input" placeholder="Например: Просмотр стрима">
         </div>
         <div class="input-wrapper" style="flex:1;">
           <span class="input-label">Иконка FA</span>
@@ -453,7 +454,7 @@
 
       <div class="input-wrapper">
         <span class="input-label">Описание для пользователя</span>
-        <input type="text" id="modal-tpl-desc" class="compact-input" placeholder="Отправьте 10 сообщений в чате">
+        <input type="text" id="modal-tpl-desc" class="compact-input" placeholder="Посмотри 30 минут стрим">
       </div>
 
       <div style="display:flex; gap:10px;">
@@ -469,7 +470,7 @@
 
       <div style="display:flex; align-items:center; gap:8px; margin: 4px 0;">
         <input type="checkbox" id="modal-tpl-active" style="width:16px; height:16px; cursor:pointer;" checked>
-        <label for="modal-tpl-active" style="font-size:12px; font-weight:700; cursor:pointer;">Задание активно (может выпадать игрокам)</label>
+        <label for="modal-tpl-active" style="font-size:12px; font-weight:700; cursor:pointer; color:#fff;">Задание активно (может выпадать игрокам)</label>
       </div>
 
       <div class="modal-actions-row">
@@ -486,33 +487,27 @@
       tg.enableClosingConfirmation();
     }
 
-    // =========================================================================
     // 1. АДАПТИВНЫЙ ВЕРХНИЙ ОТСТУП ПОД УСТРОЙСТВА
-    // =========================================================================
     function applyAdaptivePadding() {
       const platform = (tg?.platform || '').toLowerCase();
       const ua = navigator.userAgent || '';
-      let topPadding = '10px'; // ПК по умолчанию - прижат наверх
+      let topPadding = '10px'; // ПК: в самый верх
 
       if (platform === 'ios' || /iphone|ipad|ipod/i.test(ua)) {
-        // iOS: сдвигаем вниз с учетом safe-area
-        topPadding = 'calc(env(safe-area-inset-top, 20px) + 22px)';
+        // iOS: сдвиг вниз под Dynamic Island / чёлку
+        topPadding = 'calc(env(safe-area-inset-top, 20px) + 24px)';
       } else if (platform === 'android' || /android/i.test(ua)) {
-        // Android: сдвигаем чуточку вниз
+        // Android: аккуратный сдвиг под статус-бар
         topPadding = '26px';
-      } else if (platform === 'tdesktop' || platform === 'macos' || platform === 'web') {
-        topPadding = '10px';
       }
 
       document.body.style.paddingTop = topPadding;
     }
     applyAdaptivePadding();
 
-    // =========================================================================
-    // 2. ДАННЫЕ И ТАБЫ
-    // =========================================================================
     let isOpen = false;
     let templatesData = [];
+    let isTemplatesLoaded = false;
 
     const TASK_TYPES = [
       { key: "telegram_messages_session", label: "Сообщения в TG (сессия/день)" },
@@ -528,9 +523,7 @@
       document.getElementById('challenge-content-wrap').classList.toggle('hidden', !isOpen);
       document.getElementById('chevron-icon').classList.toggle('open', isOpen);
       if (isOpen) {
-        loadStats();
-        loadTemplates();
-        loadActiveUsers();
+        loadStats(); // Первой грузим только статистику
       }
     }
 
@@ -543,12 +536,15 @@
       document.getElementById('section-templates').classList.toggle('hidden', sec !== 'templates');
       document.getElementById('section-users').classList.toggle('hidden', sec !== 'users');
 
-      if (sec === 'users') loadActiveUsers();
+      // Ленивая быстрая подгрузка вкладок
+      if (sec === 'templates' && !isTemplatesLoaded) {
+        loadTemplates();
+      } else if (sec === 'users') {
+        loadActiveUsers();
+      }
     }
 
-    // =========================================================================
-    // 3. СТАТИСТИКА
-    // =========================================================================
+    // 2. СТАТИСТИКА
     async function loadStats() {
       try {
         const res = await fetch('/api/v1/admin/challenges/stats', {
@@ -570,10 +566,13 @@
       }
     }
 
-    // =========================================================================
-    // 4. ШАБЛОНЫ ЗАДАНИЙ (ЧЕРЕЗ КНОПКИ И ДИАЛОГОВОЕ ОКНО)
-    // =========================================================================
-    async function loadTemplates() {
+    // 3. БЫСТРАЯ ЗАГРУЗКА ЗАДАНИЙ С КЭШЕМ
+    async function loadTemplates(force = false) {
+      if (isTemplatesLoaded && !force && templatesData.length > 0) {
+        renderTemplatesList();
+        return;
+      }
+
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/list', {
           method: 'POST',
@@ -582,9 +581,11 @@
         });
         const d = await res.json();
         templatesData = d.templates || [];
+        isTemplatesLoaded = true;
         renderTemplatesList();
       } catch (e) {
-        console.error("Ошибка загрузки шаблонов:", e);
+        document.getElementById('templates-list-container').innerHTML = 
+          `<p style="color:red; text-align:center; font-size:12px;">Ошибка загрузки: ${e.message}</p>`;
       }
     }
 
@@ -593,7 +594,7 @@
       container.innerHTML = '';
 
       if (templatesData.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#777; font-size:12px; padding:15px 0;">Нет созданных заданий</p>';
+        container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:12px; padding:15px 0;">Нет созданных заданий</p>';
         return;
       }
 
@@ -604,18 +605,20 @@
 
         const taskTypeObj = TASK_TYPES.find(x => x.key === t.task_type);
         const typeLabel = taskTypeObj ? taskTypeObj.label : t.task_type;
+        const descText = t.description ? `${t.description} • ` : '';
 
         div.innerHTML = `
           <div class="template-item-left">
             <div class="template-item-icon"><i class="${t.icon || 'fa-solid fa-bolt'}"></i></div>
             <div class="template-item-info">
-              <span class="template-item-title">${t.title}</span>
-              <span class="template-item-sub">${typeLabel} • Цель: ${t.target_value}</span>
+              <span class="template-item-title">${escapeHTML(t.title)}</span>
+              <!-- ЯРКИЙ СВЕТЛЫЙ ТЕКСТ ОПИСАНИЯ -->
+              <span class="template-item-sub">${escapeHTML(descText)}${typeLabel} (Цель: ${t.target_value})</span>
             </div>
           </div>
           <div class="template-item-right">
             <span class="badge-reward">+${t.ticket_reward} 🎟️</span>
-            <i class="fa-solid fa-pen-to-square" style="color:#666; font-size:13px;"></i>
+            <i class="fa-solid fa-pen-to-square" style="color:#aaa; font-size:13px;"></i>
           </div>
         `;
         container.appendChild(div);
@@ -692,7 +695,7 @@
         const d = await res.json();
         if (d.status === 'success') {
           closeTemplateModal();
-          loadTemplates();
+          loadTemplates(true); // Форсированно обновляем список
         } else {
           alert('Ошибка: ' + d.detail);
         }
@@ -704,7 +707,7 @@
     async function submitDeleteTemplate() {
       const idVal = document.getElementById('modal-tpl-id').value;
       if (!idVal) return;
-      if (!confirm('Вы уверены, что хотите удалить это задание?')) return;
+      if (!confirm('Удалить это задание?')) return;
 
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/delete', {
@@ -713,15 +716,13 @@
           body: JSON.stringify({ initData: tg?.initData || '', template_id: parseInt(idVal) })
         });
         closeTemplateModal();
-        loadTemplates();
+        loadTemplates(true);
       } catch (e) {
         alert('Ошибка: ' + e.message);
       }
     }
 
-    // =========================================================================
-    // 5. СПИСОК АКТИВНЫХ ИГРОКОВ И СБРОС
-    // =========================================================================
+    // 4. СПИСОК АКТИВНЫХ ИГРОКОВ И ПОИСК ПО TG / TWITCH
     let foundUserId = null;
 
     async function loadActiveUsers() {
@@ -732,11 +733,17 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '' })
         });
+
+        if (res.status === 404) {
+          container.innerHTML = '<p style="text-align:center; color:red; font-size:11px;">Эндпоинт /active_users не найден на бэкенде. Проверьте регистрацию роута.</p>';
+          return;
+        }
+
         const d = await res.json();
         const users = d.users || [];
 
         if (users.length === 0) {
-          container.innerHTML = '<p style="text-align:center; color:#777; font-size:11px; padding:10px 0;">Сегодня еще никто не активировал задания</p>';
+          container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:11px; padding:12px 0;">Сегодня еще никто не активировал задания</p>';
           return;
         }
 
@@ -747,23 +754,25 @@
           const isClaimed = !!u.claimed_at;
           const isDone = !!u.is_completed || cur >= target;
 
-          let statusBadge = `<span style="color:#aaa; font-size:10px;">⏳ В процессе</span>`;
+          let statusBadge = `<span style="color:#cbd5e1; font-size:10px;">⏳ В процессе</span>`;
           if (isClaimed) {
             statusBadge = `<span style="color:var(--gold); font-size:10px; font-weight:800;">✅ Забрал</span>`;
           } else if (isDone) {
-            statusBadge = `<span style="color:var(--green); font-size:10px; font-weight:800;">🎉 Готово</span>`;
+            statusBadge = `<span style="color:var(--green); font-size:10px; font-weight:800;">🎉 Выполнено</span>`;
           }
+
+          const twitchTag = u.twitch_login ? `<span style="color:#a78bfa; font-weight:700;">[Twitch: ${escapeHTML(u.twitch_login)}]</span>` : '';
 
           return `
             <div class="user-progress-card">
               <div class="u-card-header">
                 <div>
-                  <span class="u-card-name">${escapeHTML(u.full_name || u.username || ('ID: ' + u.telegram_id))}</span>
-                  <div class="u-card-task">${escapeHTML(u.title || 'Челлендж')} (+${u.reward_amount} 🎟️)</div>
+                  <div class="u-card-name">${escapeHTML(u.full_name || u.username || ('ID: ' + u.telegram_id))} ${twitchTag}</div>
+                  <div class="u-card-sub">${escapeHTML(u.title || 'Челлендж')} (+${u.reward_amount} 🎟️)</div>
                 </div>
                 <div style="text-align:right;">
                   ${statusBadge}
-                  <div style="font-size:11px; font-weight:800; font-family:monospace; margin-top:2px;">${cur} / ${target}</div>
+                  <div style="font-size:11px; font-weight:800; font-family:monospace; margin-top:3px; color:#fff;">${cur} / ${target}</div>
                 </div>
               </div>
               <div class="u-progress-track">
@@ -781,28 +790,29 @@
           `;
         }).join('');
       } catch (e) {
-        container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка загрузки списка: ${e.message}</p>`;
+        container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка: ${e.message}</p>`;
       }
     }
 
     async function searchUser() {
-      const val = document.getElementById('inp-search-tg').value.trim();
-      if (!val) return alert('Введите Telegram ID');
-      foundUserId = parseInt(val);
+      const val = document.getElementById('inp-search-user').value.trim();
+      if (!val) return alert('Введите Telegram ID или Twitch ник');
 
       try {
-        const res = await fetch(`/api/v1/admin/challenges/user_lookup?target_id=${foundUserId}`, {
+        const res = await fetch('/api/v1/admin/challenges/user_lookup', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ initData: tg?.initData || '' })
+          body: JSON.stringify({ initData: tg?.initData || '', query: val })
         });
         const d = await res.json();
         if (d.status === 'success') {
           document.getElementById('user-result-box').classList.remove('hidden');
           const u = d.user;
           const ch = d.challenge;
+          foundUserId = u.telegram_id;
 
-          document.getElementById('res-user-name').textContent = u.full_name || u.username || ('ID: ' + foundUserId);
+          document.getElementById('res-user-name').textContent = u.full_name || u.username || ('ID: ' + u.telegram_id);
+          document.getElementById('res-user-twitch').textContent = u.twitch_login ? `@${u.twitch_login}` : 'Не привязан';
           document.getElementById('res-user-tickets').textContent = u.tickets + ' 🎟️';
 
           if (ch) {
@@ -830,8 +840,8 @@
     }
 
     async function quickUserAction(tgId, action) {
-      const actText = action === 'reset_progress' ? 'сбросить прогресс в 0' : 'перевыдать новое задание';
-      if (!confirm(`Вы действительно хотите ${actText} для пользователя ID ${tgId}?`)) return;
+      const actText = action === 'reset_progress' ? 'сбросить прогресс в 0' : 'перевыдать случайное задание';
+      if (!confirm(`Подтверждаете действие "${actText}" для пользователя ID ${tgId}?`)) return;
 
       try {
         const res = await fetch('/api/v1/admin/challenges/reset_user', {
