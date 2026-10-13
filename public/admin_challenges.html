@@ -2,399 +2,531 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Настройка ТГ Испытаний</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Управление Челленджами</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="admin.css"> 
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
   <style>
-      /* Сброс стилей для гарантии скролла */
-      html {
-          box-sizing: border-box;
-      }
-      *, *:before, *:after {
-          box-sizing: inherit;
-      }
+    :root {
+      --bg: #0f1014;
+      --card-bg: #1a1b20;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --gold: #FFD700;
+      --blue: #0088cc;
+      --red: #ff3b30;
+      --green: #34c759;
+      --text-dim: #8e8e93;
+    }
 
-      body { 
-          margin: 0;
-          padding: 15px; 
-          /* Большой отступ снизу, чтобы контент не заезжал под кнопку */
-          padding-bottom: 120px; 
-          background-color: #0f1014;
-          color: #fff;
-          font-family: 'Montserrat', sans-serif;
-          min-height: 100vh;
-          /* Важно: НЕ использовать overflow: hidden на body */
-          overflow-y: scroll; 
-          -webkit-overflow-scrolling: touch;
-      }
-      
-      .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-      .page-header-title { font-size: 20px; font-weight: 800; margin: 0; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 16px;
+      padding-bottom: 80px;
+      background-color: var(--bg);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
 
-      .tier-card {
-          background: #1a1b20;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px;
-          padding: 15px;
-          margin-bottom: 15px;
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      }
-      
-      .tier-top-row {
-          display: flex;
-          align-items: flex-end;
-          gap: 10px;
-      }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .back-btn {
+      color: #fff; text-decoration: none; font-size: 13px; font-weight: 700;
+      background: rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .page-title { font-size: 18px; font-weight: 900; margin: 0; }
 
-      .tier-index-badge {
-          background: rgba(255,255,255,0.1);
-          color: #ffd700;
-          font-weight: 700;
-          font-size: 11px;
-          padding: 6px 8px;
-          border-radius: 6px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          margin-bottom: 2px;
-      }
+    /* ГЛАВНАЯ КНОПКА ОТКРЫТИЯ МОДУЛЯ */
+    .module-hero-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(26, 27, 32, 0.95) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; margin-bottom: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+    }
+    .module-hero-btn:active { transform: scale(0.98); }
+    .hero-btn-left { display: flex; align-items: center; gap: 12px; }
+    .hero-btn-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: rgba(255,215,0,0.2); color: var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; border: 1px solid var(--gold);
+    }
+    .hero-btn-text h2 { margin: 0; font-size: 14px; font-weight: 900; }
+    .hero-btn-text p { margin: 2px 0 0 0; font-size: 10px; color: var(--text-dim); }
+    .hero-btn-chevron { font-size: 14px; color: var(--gold); transition: transform 0.3s; }
+    .hero-btn-chevron.open { transform: rotate(180deg); }
 
-      .input-wrapper {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-width: 0; 
-      }
-      
-      .input-label {
-          font-size: 10px;
-          color: #888;
-          margin-bottom: 4px;
-          text-transform: uppercase;
-          font-weight: 700;
-      }
+    /* ТАБЫ ПОДРАЗДЕЛОВ */
+    .sub-tabs {
+      display: flex; gap: 6px;
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 4px; margin-bottom: 16px;
+    }
+    .sub-tab-btn {
+      flex: 1; padding: 10px 6px; border: none; background: transparent;
+      color: #aaa; font-weight: 700; font-size: 11px; border-radius: 8px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 6px; transition: 0.2s;
+    }
+    .sub-tab-btn.active { background: var(--blue); color: #fff; }
 
-      .compact-input {
-          background: #111;
-          border: 1px solid #333;
-          color: #fff;
-          padding: 10px;
-          border-radius: 8px;
-          font-size: 14px;
-          outline: none;
-          width: 100%;
-          transition: border-color 0.2s;
-      }
-      .compact-input:focus { border-color: #0088cc; }
+    /* КАРТОЧКИ СТАТИСТИКИ */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-card.wide { grid-column: span 2; }
+    .stat-lbl { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+    .stat-val { font-size: 22px; font-weight: 900; color: #fff; font-family: monospace; }
+    .stat-val.gold { color: var(--gold); }
+    .stat-val.green { color: var(--green); }
 
-      .remove-btn {
-          background: rgba(255, 59, 48, 0.15);
-          color: #ff3b30;
-          border: none;
-          width: 38px; height: 38px;
-          border-radius: 8px;
-          cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 1px;
-          flex-shrink: 0;
-      }
+    /* КАРТОЧКА ШАБЛОНА */
+    .tier-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 14px; margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .tier-card.disabled { opacity: 0.5; }
+    .tier-top-row { display: flex; justify-content: space-between; align-items: center; }
 
-      .rewards-selector {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap; 
-      }
+    .input-wrapper { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .input-label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+    .compact-input {
+      background: #111; border: 1px solid #333; color: #fff;
+      padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%;
+      font-family: inherit;
+    }
+    .compact-input:focus { border-color: var(--blue); }
 
-      .reward-option {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          cursor: pointer;
-          user-select: none;
-          background: rgba(255,255,255,0.05);
-          padding: 10px;
-          border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.1);
-          flex: 1;
-          min-width: 80px;
-      }
-      .reward-option.active {
-          background: rgba(0, 136, 204, 0.2);
-          border-color: #0088cc;
-          color: #fff;
-      }
+    .ticket-reward-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3);
+      padding: 8px 12px; border-radius: 8px; color: var(--gold); font-weight: 800; font-size: 13px;
+    }
 
-      .reward-inputs {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap; 
-          background: rgba(0,0,0,0.2);
-          padding: 10px;
-          border-radius: 8px;
-      }
-      .reward-inputs .input-wrapper { min-width: 100px; }
+    .save-template-btn {
+      background: var(--blue); color: #fff; border: none; border-radius: 8px;
+      padding: 10px; font-weight: 800; font-size: 11px; cursor: pointer; text-transform: uppercase;
+    }
+    .delete-btn {
+      background: rgba(255,59,48,0.15); color: var(--red); border: 1px solid var(--red);
+      border-radius: 8px; padding: 10px 14px; font-size: 12px; cursor: pointer;
+    }
 
-      .hidden { display: none !important; }
+    /* ПОИСК И СБРОС */
+    .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn-search {
+      background: var(--blue); border: none; color: #fff; border-radius: 8px;
+      padding: 0 16px; font-weight: 800; font-size: 11px; cursor: pointer;
+    }
+    .user-info-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 14px;
+    }
+    .info-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
 
-      .add-btn {
-          width: 100%; padding: 14px;
-          background: rgba(255,255,255,0.08); 
-          border: 1px dashed #555;
-          color: #ccc; border-radius: 12px; 
-          cursor: pointer; font-weight: 600; font-size: 14px;
-          margin-top: 10px;
-      }
+    .btn-reset-yellow {
+      width: 100%; background: rgba(255, 215, 0, 0.15); border: 1px solid var(--gold);
+      color: var(--gold); border-radius: 8px; padding: 12px; font-weight: 800;
+      font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 10px;
+    }
+    .btn-reset-red {
+      width: 100%; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--red);
+      color: var(--red); border-radius: 8px; padding: 12px; font-weight: 800;
+      font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
+    }
 
-      /* Панель сохранения */
-      .save-bar {
-          position: fixed; 
-          bottom: 0; 
-          left: 0; 
-          width: 100%;
-          padding: 15px 20px 30px 20px; 
-          background: #1c1c1e; 
-          border-top: 1px solid #333;
-          z-index: 9999;
-          box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-      }
-      .save-btn {
-          width: 100%; padding: 16px;
-          background: #0088cc; color: #fff; border: none;
-          border-radius: 12px; font-weight: 800; font-size: 16px;
-          text-transform: uppercase;
-      }
-
-      /* Пустой блок в самом конце, чтобы контент прокручивался до конца */
-      #bottom-spacer {
-          height: 100px; 
-          width: 100%;
-          display: block;
-      }
+    .add-btn {
+      width: 100%; padding: 14px; background: rgba(255,255,255,0.06);
+      border: 1px dashed #555; color: #ccc; border-radius: 12px;
+      cursor: pointer; font-weight: 700; font-size: 12px;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-    <div class="page-header">
-        <a href="/admin" class="back-button"><i class="fa-solid fa-arrow-left"></i> Админка</a>
-        <h1 class="page-header-title">ТГ Испытания</h1>
-        <div style="width: 60px;"></div>
+  <div class="page-header">
+    <a href="/admin" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Назад</a>
+    <h1 class="page-title">Панель управления</h1>
+    <div style="width: 50px;"></div>
+  </div>
+
+  <!-- КНОПКА-АККОРДЕОН: ОТКРЫТИЕ ЧЕЛЛЕНДЖЕЙ -->
+  <div class="module-hero-btn" onclick="toggleChallengeModule()">
+    <div class="hero-btn-left">
+      <div class="hero-btn-icon"><i class="fa-solid fa-bullseye"></i></div>
+      <div class="hero-btn-text">
+        <h2>ЕЖЕДНЕВНЫЕ ЧЕЛЛЕНДЖИ</h2>
+        <p>Статистика, шаблоны заданий (Tickets) и сброс игроку</p>
+      </div>
+    </div>
+    <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-icon"></i>
+  </div>
+
+  <!-- ВНУТРЕННЕЕ МЕНЮ (ПОДРАЗДЕЛЫ) -->
+  <div id="challenge-content-wrap" class="hidden">
+    
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" id="tab-btn-stats" onclick="switchSection('stats')">
+        <i class="fa-solid fa-chart-line"></i> Статистика
+      </button>
+      <button class="sub-tab-btn" id="tab-btn-templates" onclick="switchSection('templates')">
+        <i class="fa-solid fa-list-check"></i> Задания
+      </button>
+      <button class="sub-tab-btn" id="tab-btn-users" onclick="switchSection('users')">
+        <i class="fa-solid fa-user-pen"></i> Сброс игроку
+      </button>
     </div>
 
-    <div id="tiers-container">
-        <p style="text-align: center; color: #666; margin-top: 30px;">Загрузка...</p>
+    <!-- 1. ПОДРАЗДЕЛ: СТАТИСТИКА -->
+    <div id="section-stats">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-lbl">Выдано сегодня</span>
+          <span class="stat-val" id="stat-total">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-lbl">В процессе</span>
+          <span class="stat-val" id="stat-progress">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-lbl">Выполнили</span>
+          <span class="stat-val green" id="stat-completed">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-lbl">Забрали награду</span>
+          <span class="stat-val gold" id="stat-claimed">0</span>
+        </div>
+        <div class="stat-card wide">
+          <span class="stat-lbl">Конверсия за день (Клейм / Выдано)</span>
+          <span class="stat-val gold" id="stat-conversion">0%</span>
+        </div>
+      </div>
+      <button class="add-btn" onclick="loadStats()"><i class="fa-solid fa-rotate-right"></i> Обновить сводку</button>
     </div>
 
-    <button class="add-btn" onclick="addTier()">
-        <i class="fa-solid fa-plus"></i> Добавить уровень
-    </button>
-
-    <div id="bottom-spacer"></div>
-
-    <div class="save-bar">
-        <button class="save-btn" onclick="saveAll()">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+    <!-- 2. ПОДРАЗДЕЛ: ШАБЛОНЫ ЗАДАНИЙ -->
+    <div id="section-templates" class="hidden">
+      <div id="templates-list-container">Загрузка...</div>
+      <button class="add-btn" onclick="addNewTemplateCard()" style="margin-top:12px;">
+        <i class="fa-solid fa-plus"></i> Создать новое задание
+      </button>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation(); // Чтобы случайно не закрыть свайпом
+    <!-- 3. ПОДРАЗДЕЛ: СБРОС ИГРОКУ -->
+    <div id="section-users" class="hidden">
+      <div class="search-row">
+        <input type="number" id="inp-search-tg" class="compact-input" placeholder="Telegram ID пользователя...">
+        <button class="btn-search" onclick="searchUser()">Найти</button>
+      </div>
 
-        let tiersData = [];
+      <div id="user-result-box" class="hidden">
+        <div class="user-info-card">
+          <div class="info-line"><span>Пользователь:</span><b id="res-user-name">-</b></div>
+          <div class="info-line"><span>Баланс билетов:</span><b id="res-user-tickets" style="color:var(--gold);">0</b></div>
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.06); margin:10px 0;">
+          <div class="info-line"><span>Сегодняшнее задание:</span><b id="res-task-title" style="color:var(--gold);">-</b></div>
+          <div class="info-line"><span>Прогресс:</span><span id="res-task-prog">0 / 0</span></div>
+          <div class="info-line"><span>Награда:</span><span id="res-task-reward">0 🎟️</span></div>
+          <div class="info-line"><span>Статус:</span><span id="res-task-status">-</span></div>
 
-        async function loadData() {
-            const container = document.getElementById('tiers-container');
-            try {
-                const res = await fetch('/api/v1/admin/tg_challenge/get_config', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ initData: tg.initData })
-                });
-                const data = await res.json();
-                
-                tiersData = (data && data.tiers) ? data.tiers : [];
-                
-                if (tiersData.length === 0) {
-                    tiersData = [{ target: 5, rewards: { tickets: 2 } }];
-                }
-                
-                render();
-            } catch (e) {
-                container.innerHTML = `<p style="color:red; text-align:center;">Ошибка: ${e.message}</p>`;
-            }
+          <button class="btn-reset-yellow" onclick="handleUserReset('reset_progress')">
+            <i class="fa-solid fa-rotate-left"></i> Сбросить текущий прогресс на 0
+          </button>
+          <button class="btn-reset-red" onclick="handleUserReset('reassign_random')">
+            <i class="fa-solid fa-dice"></i> Выдать другое случайное задание
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.expand();
+
+    let isOpen = false;
+    let templatesData = [];
+
+    // Список доступных условий из твоего SQL триггера
+    const TASK_TYPES = [
+      { key: "telegram_messages_session", label: "Сообщения в TG (сессия/день)" },
+      { key: "twitch_messages_session", label: "Сообщения в Twitch (сессия/день)" },
+      { key: "twitch_uptime_session", label: "Просмотр стрима Twitch (минуты)" },
+      { key: "telegram_messages", label: "Всего сообщений в TG" },
+      { key: "twitch_uptime_week", label: "Просмотр стрима (неделя, мин)" },
+      { key: "twitch_messages_week", label: "Сообщения в Twitch (неделя)" }
+    ];
+
+    function toggleChallengeModule() {
+      isOpen = !isOpen;
+      document.getElementById('challenge-content-wrap').classList.toggle('hidden', !isOpen);
+      document.getElementById('chevron-icon').classList.toggle('open', isOpen);
+      if (isOpen) {
+        loadStats();
+        loadTemplates();
+      }
+    }
+
+    function switchSection(sec) {
+      document.getElementById('tab-btn-stats').classList.toggle('active', sec === 'stats');
+      document.getElementById('tab-btn-templates').classList.toggle('active', sec === 'templates');
+      document.getElementById('tab-btn-users').classList.toggle('active', sec === 'users');
+
+      document.getElementById('section-stats').classList.toggle('hidden', sec !== 'stats');
+      document.getElementById('section-templates').classList.toggle('hidden', sec !== 'templates');
+      document.getElementById('section-users').classList.toggle('hidden', sec !== 'users');
+    }
+
+    // --- 1. СТАТИСТИКА ---
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/v1/admin/challenges/stats', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '' })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          const s = d.stats;
+          document.getElementById('stat-total').textContent = s.total_issued;
+          document.getElementById('stat-progress').textContent = s.in_progress;
+          document.getElementById('stat-completed').textContent = s.completed;
+          document.getElementById('stat-claimed').textContent = s.claimed;
+          document.getElementById('stat-conversion').textContent = s.conversion_pct + '%';
         }
+      } catch (e) {
+        console.error("Ошибка загрузки статистики:", e);
+      }
+    }
 
-        function render() {
-            const container = document.getElementById('tiers-container');
-            container.innerHTML = '';
+    // --- 2. ШАБЛОНЫ ---
+    async function loadTemplates() {
+      try {
+        const res = await fetch('/api/v1/admin/challenges/templates/list', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '' })
+        });
+        const d = await res.json();
+        templatesData = d.templates || [];
+        renderTemplates();
+      } catch (e) {
+        console.error("Ошибка загрузки шаблонов:", e);
+      }
+    }
 
-            tiersData.forEach((tier, index) => {
-                const div = document.createElement('div');
-                div.className = 'tier-card';
-                
-                // Нормализация данных
-                const rewards = tier.rewards || {};
-                if (tier.reward && tier.type) {
-                    if (tier.type === 'tickets') rewards.tickets = tier.reward;
-                    if (tier.type === 'coins') rewards.coins = tier.reward;
-                    if (tier.type === 'skin_random') rewards.skin = { min: tier.min_price, max: tier.max_price };
-                }
+    function renderTemplates() {
+      const container = document.getElementById('templates-list-container');
+      container.innerHTML = '';
 
-                const showTickets = rewards.tickets !== undefined;
-                const showCoins = rewards.coins !== undefined;
-                const showSkin = rewards.skin !== undefined;
+      if (templatesData.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#777;">Нет созданных шаблонов</p>';
+        return;
+      }
 
-                div.innerHTML = `
-                    <div class="tier-top-row">
-                        <div class="tier-index-badge">#${index + 1}</div>
-                        <div class="input-wrapper">
-                            <span class="input-label">Цель (Сообщений)</span>
-                            <input type="number" class="compact-input inp-target" value="${tier.target}" placeholder="50">
-                        </div>
-                        <button class="remove-btn" onclick="removeTier(${index})"><i class="fa-solid fa-trash"></i></button>
-                    </div>
+      templatesData.forEach((t, idx) => {
+        const card = document.createElement('div');
+        card.className = `tier-card ${t.is_active ? '' : 'disabled'}`;
+        card.id = `template-card-${idx}`;
 
-                    <div class="input-wrapper">
-                        <span class="input-label">Награды (Комбинация)</span>
-                        <div class="rewards-selector">
-                            <div class="reward-option ${showTickets ? 'active' : ''}" onclick="toggleReward(this, 'tickets')">
-                                <i class="fa-solid fa-ticket"></i> Билеты
-                            </div>
-                            <div class="reward-option ${showCoins ? 'active' : ''}" onclick="toggleReward(this, 'coins')">
-                                <i class="fa-solid fa-coins"></i> Монеты
-                            </div>
-                            <div class="reward-option ${showSkin ? 'active' : ''}" onclick="toggleReward(this, 'skin')">
-                                <i class="fa-solid fa-gift"></i> Скин
-                            </div>
-                        </div>
-                    </div>
+        const typeOptions = TASK_TYPES.map(opt => 
+          `<option value="${opt.key}" ${t.task_type === opt.key ? 'selected' : ''}>${opt.label}</option>`
+        ).join('');
 
-                    <div class="reward-inputs ${(!showTickets && !showCoins) ? 'hidden' : ''}" id="inputs-values-${index}">
-                        <div class="input-wrapper inp-tickets ${showTickets ? '' : 'hidden'}">
-                            <span class="input-label">Билетов</span>
-                            <input type="number" class="compact-input val-tickets" value="${rewards.tickets || ''}" placeholder="10">
-                        </div>
-                        <div class="input-wrapper inp-coins ${showCoins ? '' : 'hidden'}">
-                            <span class="input-label">Монет</span>
-                            <input type="number" class="compact-input val-coins" value="${rewards.coins || ''}" placeholder="100">
-                        </div>
-                    </div>
+        card.innerHTML = `
+          <div class="tier-top-row">
+            <span style="font-size:11px; font-weight:800; color:var(--gold);">#${t.id || 'NEW'}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:10px; cursor:pointer;">
+                <input type="checkbox" ${t.is_active ? 'checked' : ''} onchange="templatesData[${idx}].is_active = this.checked; renderTemplates();"> Активно
+              </label>
+              ${t.id ? `<button class="delete-btn" onclick="deleteTemplate(${t.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
+            </div>
+          </div>
 
-                    <div class="reward-inputs inp-skin ${showSkin ? '' : 'hidden'}" style="background: rgba(255, 215, 0, 0.05); border-color: rgba(255, 215, 0, 0.3);">
-                         <div class="input-wrapper">
-                            <span class="input-label" style="color:#ffd700">Мин. Цена</span>
-                            <input type="number" class="compact-input val-min" value="${rewards.skin?.min || 0}">
-                        </div>
-                        <div class="input-wrapper">
-                            <span class="input-label" style="color:#ffd700">Макс. Цена</span>
-                            <input type="number" class="compact-input val-max" value="${rewards.skin?.max || 500}">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+          <div style="display:flex; gap:8px;">
+            <div class="input-wrapper" style="flex:2;">
+              <span class="input-label">Заголовок задания</span>
+              <input type="text" class="compact-input" value="${t.title}" oninput="templatesData[${idx}].title = this.value">
+            </div>
+            <div class="input-wrapper" style="flex:1;">
+              <span class="input-label">Иконка FA</span>
+              <input type="text" class="compact-input" value="${t.icon || 'fa-solid fa-bolt'}" oninput="templatesData[${idx}].icon = this.value">
+            </div>
+          </div>
+
+          <div class="input-wrapper">
+            <span class="input-label">Условие из триггера (task_type)</span>
+            <select class="compact-input" onchange="templatesData[${idx}].task_type = this.value">
+              ${typeOptions}
+            </select>
+          </div>
+
+          <div class="input-wrapper">
+            <span class="input-label">Описание для пользователя</span>
+            <input type="text" class="compact-input" value="${t.description || ''}" oninput="templatesData[${idx}].description = this.value">
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:flex-end;">
+            <div class="input-wrapper">
+              <span class="input-label">Цель (кол-во)</span>
+              <input type="number" class="compact-input" value="${t.target_value}" oninput="templatesData[${idx}].target_value = parseInt(this.value) || 1">
+            </div>
+
+            <div class="input-wrapper">
+              <span class="input-label">Награда (Билетов)</span>
+              <input type="number" step="0.5" class="compact-input" value="${t.ticket_reward}" oninput="templatesData[${idx}].ticket_reward = parseFloat(this.value) || 1">
+            </div>
+          </div>
+
+          <button class="save-template-btn" onclick="saveTemplate(${idx})">
+            <i class="fa-solid fa-check"></i> Сохранить шаблон
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addNewTemplateCard() {
+      templatesData.push({
+        title: "НОВОЕ ЗАДАНИЕ",
+        description: "Напиши сообщения в чате",
+        icon: "fa-solid fa-bolt",
+        task_type: "telegram_messages_session",
+        target_value: 10,
+        ticket_reward: 2.0,
+        is_active: true
+      });
+      renderTemplates();
+    }
+
+    async function saveTemplate(idx) {
+      const item = templatesData[idx];
+      try {
+        const res = await fetch('/api/v1/admin/challenges/templates/save', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            initData: tg?.initData || '',
+            id: item.id || null,
+            title: item.title,
+            description: item.description,
+            icon: item.icon,
+            task_type: item.task_type,
+            target_value: item.target_value,
+            ticket_reward: item.ticket_reward,
+            is_active: item.is_active
+          })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          tg?.showAlert ? tg.showAlert('Шаблон сохранен!') : alert('Сохранено!');
+          loadTemplates();
+        } else {
+          alert('Ошибка: ' + d.detail);
         }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
 
-        window.toggleReward = (el, type) => {
-            el.classList.toggle('active');
-            const card = el.closest('.tier-card');
-            const isActive = el.classList.contains('active');
-            
-            const inputField = card.querySelector(`.inp-${type}`);
-            if(inputField) inputField.classList.toggle('hidden', !isActive);
+    async function deleteTemplate(id) {
+      if (!confirm('Удалить этот шаблон?')) return;
+      try {
+        const res = await fetch('/api/v1/admin/challenges/templates/delete', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '', template_id: id })
+        });
+        loadTemplates();
+      } catch(e) {
+        alert(e.message);
+      }
+    }
 
-            const ticketActive = card.querySelector('.reward-option[onclick*="tickets"]').classList.contains('active');
-            const coinActive = card.querySelector('.reward-option[onclick*="coins"]').classList.contains('active');
-            
-            const valuesContainer = card.querySelector('.reward-inputs:not(.inp-skin)');
-            if (valuesContainer) {
-                valuesContainer.classList.toggle('hidden', (!ticketActive && !coinActive));
-            }
+    // --- 3. ПОИСК И СБРОС ИГРОКУ ---
+    let foundUserId = null;
+
+    async function searchUser() {
+      const val = document.getElementById('inp-search-tg').value.trim();
+      if (!val) return alert('Введите Telegram ID');
+      foundUserId = parseInt(val);
+
+      try {
+        const res = await fetch(`/api/v1/admin/challenges/user_lookup?target_id=${foundUserId}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '' })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          document.getElementById('user-result-box').classList.remove('hidden');
+          const u = d.user;
+          const ch = d.challenge;
+
+          document.getElementById('res-user-name').textContent = u.full_name || u.username || ('ID: ' + foundUserId);
+          document.getElementById('res-user-tickets').textContent = u.tickets + ' 🎟️';
+
+          if (ch) {
+            document.getElementById('res-task-title').textContent = ch.title;
+            document.getElementById('res-task-prog').textContent = `${ch.current_value} / ${ch.target_value}`;
+            document.getElementById('res-task-reward').textContent = `+${ch.reward_amount} 🎟️`;
+            document.getElementById('res-task-status').textContent = ch.claimed_at ? '✅ Награда получена' : (ch.is_completed ? '🎉 Выполнено (ожидает клейма)' : '⏳ В процессе');
+          } else {
+            document.getElementById('res-task-title').textContent = 'Нет задания на сегодня';
+            document.getElementById('res-task-prog').textContent = '-';
+            document.getElementById('res-task-reward').textContent = '-';
+            document.getElementById('res-task-status').textContent = '-';
+          }
+        } else {
+          alert(d.detail || 'Пользователь не найден');
         }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
 
-        window.addTier = () => {
-            tiersData.push({ target: '', rewards: { tickets: 5 } });
-            render();
-            // Скролл вниз с небольшой задержкой, чтобы DOM обновился
-            setTimeout(() => {
-                const spacer = document.getElementById('bottom-spacer');
-                if(spacer) spacer.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+    async function handleUserReset(action) {
+      if (!foundUserId) return;
+      if (!confirm(`Выполнить "${action}" для пользователя ${foundUserId}?`)) return;
+
+      try {
+        const res = await fetch('/api/v1/admin/challenges/reset_user', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            initData: tg?.initData || '',
+            target_telegram_id: foundUserId,
+            action: action
+          })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          tg?.showAlert ? tg.showAlert(d.message) : alert(d.message);
+          searchUser(); // Перезагружаем карточку
         }
-
-        window.removeTier = (index) => {
-            if(confirm('Удалить этот этап?')) {
-                tiersData.splice(index, 1);
-                render();
-            }
-        }
-
-        window.saveAll = async () => {
-            const cards = document.querySelectorAll('.tier-card');
-            const newTiers = [];
-            let isValid = true;
-
-            cards.forEach(card => {
-                const target = parseInt(card.querySelector('.inp-target').value);
-                if (!target) isValid = false;
-
-                const rewards = {};
-                
-                if (!card.querySelector('.inp-tickets').classList.contains('hidden')) {
-                    const val = parseInt(card.querySelector('.val-tickets').value);
-                    if (val > 0) rewards.tickets = val;
-                }
-                if (!card.querySelector('.inp-coins').classList.contains('hidden')) {
-                    const val = parseInt(card.querySelector('.val-coins').value);
-                    if (val > 0) rewards.coins = val;
-                }
-                if (!card.querySelector('.inp-skin').classList.contains('hidden')) {
-                    const min = parseInt(card.querySelector('.val-min').value) || 0;
-                    const max = parseInt(card.querySelector('.val-max').value) || 500;
-                    rewards.skin = { min, max };
-                }
-
-                if (Object.keys(rewards).length === 0) isValid = false;
-
-                newTiers.push({ target, rewards });
-            });
-
-            if (!isValid) return tg.showAlert("Заполните цель и выберите хотя бы одну награду!");
-
-            newTiers.sort((a,b) => a.target - b.target);
-
-            const payload = {
-                mode: "tiered",
-                tiers: newTiers
-            };
-
-            try {
-                const btn = document.querySelector('.save-btn');
-                btn.textContent = "Сохранение...";
-                btn.disabled = true;
-
-                await fetch('/api/v1/admin/tg_challenge/save_config', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ initData: tg.initData, config: payload })
-                });
-
-                tg.showPopup({message: "Сохранено!"});
-            } catch(e) {
-                tg.showAlert("Ошибка: " + e.message);
-            } finally {
-                document.querySelector('.save-btn').textContent = "СОХРАНИТЬ ИЗМЕНЕНИЯ";
-                document.querySelector('.save-btn').disabled = false;
-            }
-        }
-
-        loadData();
-    </script>
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+  </script>
 </body>
 </html>
