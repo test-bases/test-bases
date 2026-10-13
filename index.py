@@ -20943,6 +20943,309 @@ async def buy_checkpoint_exp(req: BuyExpRequest, supabase: httpx.AsyncClient = D
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+from datetime import datetime, timezone
+from typing import Optional, List
+from pydantic import BaseModel
+from fastapi import HTTPException, Depends
+import httpx
+import random
+import logging
+
+# --- Pydantic Схемы ---
+class AdminBaseRequest(BaseModel):
+    initData: str
+
+class SaveTemplateRequest(AdminBaseRequest):
+    id: Optional[int] = None
+    title: str
+    description: Optional[str] = ""
+    icon: Optional[str] = "fa-solid fa-bolt"
+    task_type: str
+    target_value: int
+    ticket_reward: float  # Количество билетов
+    is_active: bool = True
+
+class DeleteTemplateRequest(AdminBaseRequest):
+    template_id: int
+
+class ResetUserChallengeRequest(AdminBaseRequest):
+    target_telegram_id: int
+    action: str  # 'reset_progress' или 'reassign_random'
+
+
+def verify_admin(init_data: str) -> int:
+    user_info = is_valid_init_data(init_data, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Не авторизован")
+    tg_id = user_info.get("id")
+    if tg_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    return tg_id
+
+
+# =====================================================================
+# 1. СТАТИСТИКА ЗА СЕГОДНЯ (по времени МСК)
+# =====================================================================
+@app.post("/api/v1/admin/challenges/stats")
+async def get_challenge_stats(
+    req: AdminBaseRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    # Текущая дата по МСК (как в default значении твоей таблицы)
+    # Запрашиваем записи на сегодня
+    res = await supabase.get(
+        "/user_daily_challenges",
+        params={
+            "challenge_date": f"eq.(CURRENT_DATE)",
+            "select": "id,is_completed,claimed_at,current_value,target_value,reward_amount"
+        }
+    )
+    
+    # Если eq.(CURRENT_DATE) не резолвится PostgREST напрямую, подставим дату сервером
+    if not res.is_success or not res.json():
+        from zoneinfo import ZoneInfo
+        today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
+        res = await supabase.get(
+            "/user_daily_challenges",
+            params={
+                "challenge_date": f"eq.{today_msk}",
+                "select": "id,is_completed,claimed_at,current_value,target_value,reward_amount"
+            }
+        )
+
+    items = res.json() if res.is_success and isinstance(res.json(), list) else []
+
+    total_issued = len(items)
+    in_progress = 0
+    completed = 0
+    claimed = 0
+    total_tickets_paid = 0.0
+
+    for ch in items:
+        is_claimed = bool(ch.get("claimed_at"))
+        is_done = bool(ch.get("is_completed")) or (ch.get("current_value", 0) >= ch.get("target_value", 1))
+
+        if is_claimed:
+            claimed += 1
+            completed += 1
+            total_tickets_paid += float(ch.get("reward_amount") or 0.0)
+        elif is_done:
+            completed += 1
+        else:
+            in_progress += 1
+
+    conversion = round((claimed / total_issued * 100), 1) if total_issued > 0 else 0.0
+
+    return {
+        "status": "success",
+        "stats": {
+            "total_issued": total_issued,
+            "in_progress": in_progress,
+            "completed": completed,
+            "claimed": claimed,
+            "conversion_pct": conversion,
+            "total_tickets_paid": total_tickets_paid
+        }
+    }
+
+
+# =====================================================================
+# 2. УПРАВЛЕНИЕ ШАБЛОНАМИ (challenge_templates)
+# =====================================================================
+@app.post("/api/v1/admin/challenges/templates/list")
+async def list_templates(
+    req: AdminBaseRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    res = await supabase.get(
+        "/challenge_templates",
+        params={"order": "id.asc"}
+    )
+    templates = res.json() if res.is_success and isinstance(res.json(), list) else []
+
+    # Приводим к удобному виду для фронтенда
+    formatted = []
+    for t in templates:
+        r_config = t.get("reward_config") or {}
+        # Достаем количество билетов из config
+        tickets = float(r_config.get("tickets") or r_config.get("amount") or 1.0)
+        formatted.append({
+            "id": t["id"],
+            "title": t["title"],
+            "description": t.get("description") or "",
+            "icon": t.get("icon") or "fa-solid fa-bolt",
+            "task_type": t["task_type"],
+            "target_value": t["target_value"],
+            "ticket_reward": tickets,
+            "is_active": t.get("is_active", True)
+        })
+
+    return {"status": "success", "templates": formatted}
+
+
+@app.post("/api/v1/admin/challenges/templates/save")
+async def save_template(
+    req: SaveTemplateRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    payload = {
+        "title": req.title,
+        "description": req.description,
+        "icon": req.icon,
+        "task_type": req.task_type,
+        "target_value": req.target_value,
+        "reward_type": "tickets",
+        "reward_config": {"tickets": req.ticket_reward},
+        "is_active": req.is_active
+    }
+
+    if req.id:
+        # Редактирование существующего
+        res = await supabase.patch(
+            "/challenge_templates",
+            params={"id": f"eq.{req.id}"},
+            json=payload,
+            headers={"Prefer": "return=representation"}
+        )
+    else:
+        # Создание нового
+        res = await supabase.post(
+            "/challenge_templates",
+            json=payload,
+            headers={"Prefer": "return=representation"}
+        )
+
+    if not res.is_success:
+        raise HTTPException(status_code=400, detail=f"Ошибка БД: {res.text}")
+
+    return {"status": "success", "template": res.json()[0]}
+
+
+@app.post("/api/v1/admin/challenges/templates/delete")
+async def delete_template(
+    req: DeleteTemplateRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    res = await supabase.delete(
+        "/challenge_templates",
+        params={"id": f"eq.{req.template_id}"}
+    )
+    if not res.is_success:
+        raise HTTPException(status_code=400, detail="Не удалось удалить шаблон")
+
+    return {"status": "success", "message": "Шаблон удален"}
+
+
+# =====================================================================
+# 3. ПОИСК И СБРОС ИСПЫТАНИЯ ПОЛЬЗОВАТЕЛЮ
+# =====================================================================
+@app.post("/api/v1/admin/challenges/user_lookup")
+async def user_challenge_lookup(
+    req: AdminBaseRequest,
+    target_id: int,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+
+    # 1. Достаем инфо о юзере
+    u_res = await supabase.get(
+        "/users",
+        params={"telegram_id": f"eq.{target_id}", "select": "telegram_id,username,full_name,tickets"}
+    )
+    user = u_res.json()[0] if u_res.is_success and u_res.json() else None
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # 2. Достаем актуальный челлендж
+    c_res = await supabase.get(
+        "/user_daily_challenges",
+        params={
+            "telegram_id": f"eq.{target_id}",
+            "order": "challenge_date.desc",
+            "limit": "1"
+        }
+    )
+    current_challenge = c_res.json()[0] if c_res.is_success and c_res.json() else None
+
+    return {
+        "status": "success",
+        "user": user,
+        "challenge": current_challenge
+    }
+
+
+@app.post("/api/v1/admin/challenges/reset_user")
+async def reset_user_challenge(
+    req: ResetUserChallengeRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(req.initData)
+    target_tg = req.target_telegram_id
+
+    from zoneinfo import ZoneInfo
+    today_msk = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
+
+    if req.action == "reset_progress":
+        # Сброс прогресса на 0 и снятие клейма
+        res = await supabase.patch(
+            "/user_daily_challenges",
+            params={"telegram_id": f"eq.{target_tg}", "challenge_date": f"eq.{today_msk}"},
+            json={"current_value": 0, "is_completed": False, "claimed_at": None}
+        )
+        return {"status": "success", "message": "Прогресс сброшен на 0!"}
+
+    elif req.action == "reassign_random":
+        # 1. Удаляем сегодняшнее задание
+        await supabase.delete(
+            "/user_daily_challenges",
+            params={"telegram_id": f"eq.{target_tg}", "challenge_date": f"eq.{today_msk}"}
+        )
+
+        # 2. Достаем активные шаблоны
+        t_res = await supabase.get("/challenge_templates", params={"is_active": "eq.true"})
+        templates = t_res.json() if t_res.is_success and t_res.json() else []
+        if not templates:
+            raise HTTPException(status_code=400, detail="Нет активных шаблонов для выдачи")
+
+        chosen = random.choice(templates)
+        r_config = chosen.get("reward_config") or {}
+        tickets_amt = float(r_config.get("tickets") or 1.0)
+
+        # 3. Создаем новое задание
+        new_row = {
+            "telegram_id": target_tg,
+            "template_id": chosen["id"],
+            "challenge_date": today_msk,
+            "task_type": chosen["task_type"],
+            "title": chosen["title"],
+            "description": chosen.get("description", ""),
+            "icon": chosen.get("icon", "fa-solid fa-bolt"),
+            "target_value": chosen["target_value"],
+            "current_value": 0,
+            "reward_type": "tickets",
+            "reward_amount": tickets_amt,
+            "reward_config": {"tickets": tickets_amt},
+            "is_completed": False,
+            "claimed_at": None
+        }
+
+        ins = await supabase.post("/user_daily_challenges", json=new_row, headers={"Prefer": "return=representation"})
+        return {
+            "status": "success",
+            "message": "Выдано новое случайное задание!",
+            "challenge": ins.json()[0] if ins.is_success and ins.json() else new_row
+        }
+
+    raise HTTPException(status_code=400, detail="Неверное действие")
+
 
 class ClaimDailyChallengeRequest(BaseModel):
     initData: str
