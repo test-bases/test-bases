@@ -2477,6 +2477,102 @@ async def sleep_mode_check(request: Request, call_next):
 # --- Глобальная переменная для ленивой инициализации ---
 _lazy_supabase_client: Optional[httpx.AsyncClient] = None
 
+def get_bott_auth_payload() -> dict:
+    """Формирует базовый словарь авторизации для API Bot-T."""
+    payload = {"bot_id": BOTT_BOT_ID}
+    if BOTT_BOT_TOKEN:
+        payload["token"] = BOTT_BOT_TOKEN
+    elif BOTT_SECRET_KEY:
+        payload["secretKey"] = BOTT_SECRET_KEY
+    return payload
+
+
+async def publish_bott_raffle_mailing(
+    text: str,
+    image_url: str | None = None,
+    button_url: str | None = None,
+    button_text: str = "Участвовать 🎲 (0)"
+) -> dict | None:
+    """
+    Создает рассылку подписчикам бота Bot-T, прикрепляет медиа/кнопку и запускает.
+    """
+    if not BOTT_BOT_TOKEN and not BOTT_SECRET_KEY:
+        print("⚠️ Bot-T: Не найден ни BOTT_BOT_TOKEN, ни BOTT_SECRET_KEY. Пропуск рассылки.")
+        return None
+
+    auth = get_bott_auth_payload()
+
+    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=15.0) as client:
+        # 1. Создаем рассылку (type: 1 для фото, 0 для обычного текста)
+        msg_type = 1 if image_url else 0
+        create_resp = await client.post(
+            "/v1/bot/mailing/mailing/create",
+            json={
+                **auth,
+                "type": msg_type,
+                "text": text
+            }
+        )
+        res = create_resp.json()
+        if not res.get("result"):
+            print(f"⚠️ Bot-T Create Error: {res.get('message')}")
+            return None
+
+        mailing_id = res["data"]["id"]
+        message_id = res["data"]["message"]["id"]
+        print(f"📦 Bot-T: Черновик рассылки создан [Mailing ID: {mailing_id}, Msg ID: {message_id}]")
+
+        # 2. Если есть картинка — привязываем к сообщению рассылки
+        if image_url:
+            try:
+                photo_resp = await client.post(
+                    "/v1/bot/manager/photos/assign",
+                    json={
+                        **auth,
+                        "id": message_id,
+                        "link": image_url
+                    }
+                )
+                photo_res = photo_resp.json()
+                if not photo_res.get("result"):
+                    print(f"⚠️ Bot-T Photo Warning: {photo_res.get('message')}")
+            except Exception as e:
+                print(f"⚠️ Bot-T Photo Assign Error: {e}")
+
+        # 3. Привязываем Inline-кнопку перехода в мини-апп
+        if button_url:
+            try:
+                btn_resp = await client.post(
+                    "/v1/bot/keyboard/inline-new/add-button-with-line",
+                    json={
+                        **auth,
+                        "message_id": message_id,
+                        "name": button_text,
+                        "link": button_url
+                    }
+                )
+                btn_res = btn_resp.json()
+                if not btn_res.get("result"):
+                    print(f"⚠️ Bot-T Button Warning: {btn_res.get('message')}")
+            except Exception as e:
+                print(f"⚠️ Bot-T Button Error: {e}")
+
+        # 4. Запускаем рассылку
+        start_resp = await client.post(
+            "/v1/bot/mailing/mailing/start",
+            json={
+                **auth,
+                "id": mailing_id
+            }
+        )
+        start_res = start_resp.json()
+        if not start_res.get("result"):
+            print(f"⚠️ Bot-T Start Warning: {start_res.get('message')}")
+        else:
+            print(f"🚀 Bot-T: Рассылка #{mailing_id} успешно запущена в работу!")
+
+        return res["data"]
+
 async def get_supabase_client() -> httpx.AsyncClient:
     global _lazy_supabase_client
     
@@ -27840,6 +27936,26 @@ async def create_raffle(
                     s['post_message_id'] = sent_msg.message_id
                     s['post_channel_id'] = str(channel_id)
                     await supabase.patch("/raffles", params={"id": f"eq.{new_id}"}, json={"settings": s})
+
+                # ========================================================
+                # 🤖 НОВОЕ: РАССЫЛКА ПОДПИСЧИКАМ В БОТЕ ЧЕРЕЗ BOT-T
+                # ========================================================
+                try:
+                    print(f"🚀 Запускаю мгновенную рассылку в боте через Bot-T для розыгрыша ID {new_id}...")
+                    bott_data = await publish_bott_raffle_mailing(
+                        text=txt,
+                        image_url=prize_img,
+                        button_url=url_btn,
+                        button_text="Участвовать 🎲 (0)"
+                    )
+                    if bott_data:
+                        s['bott_mailing_id'] = bott_data.get('id')
+                        s['bott_message_id'] = bott_data.get('message', {}).get('id')
+                        await supabase.patch("/raffles", params={"id": f"eq.{new_id}"}, json={"settings": s})
+                        print(f"✅ ID рассылки Bot-T успешно сохранен в БД для розыгрыша {new_id}")
+                except Exception as e_bott:
+                    print(f"⚠️ Ошибка при запуске рассылки в боте (Bot-T): {e_bott}")
+                # ========================================================
                     
             except Exception as e:
                 print(f"⚠️ Ошибка отправки поста: {e}")
@@ -27962,6 +28078,9 @@ async def get_raffle_participants(
 
     return resp.json()
 
+# ==========================================
+# 🚀 WEBHOOK ПУБЛИКАЦИИ РОЗЫГРЫША
+# ==========================================
 @app.post("/api/v1/webhook/publish_raffle")
 async def publish_raffle_webhook(
     req: FinalizeRequest,
@@ -28096,6 +28215,23 @@ async def publish_raffle_webhook(
                 
                 await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
                 print(f"⏱ [{time.time() - start_time:.2f}s] ID сообщения записан в БД")
+
+        # 🔥 ШАГ 4: Рассылка подписчикам в боте через Bot-T
+        try:
+            print(f"⏱ [{time.time() - start_time:.2f}s] Запускаю рассылку в боте через Bot-T...")
+            bott_data = await publish_bott_raffle_mailing(
+                text=txt,
+                image_url=post_img,
+                button_url=url_btn,
+                button_text="Участвовать 🎲 (0)"
+            )
+            if bott_data:
+                s['bott_mailing_id'] = bott_data.get('id')
+                s['bott_message_id'] = bott_data.get('message', {}).get('id')
+                await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
+                print(f"⏱ [{time.time() - start_time:.2f}s] ID рассылки Bot-T записан в БД")
+        except Exception as e_bott:
+            print(f"⚠️ Ошибка при запуске рассылки в боте (Bot-T): {e_bott}")
 
         print(f"✅ [{time.time() - start_time:.2f}s] Розыгрыш {req.raffle_id} полностью опубликован!")
         
