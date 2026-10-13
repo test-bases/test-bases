@@ -1161,14 +1161,14 @@
         // ⚙️ ПАНЕЛЬ РУЧНОЙ НАСТРОЙКИ ЧЕЛЛЕНДЖА
         // =========================================================================
         const CUSTOM_CHALLENGE = {
-            enabled: true,            // true: текст и награда берутся отсюда; false: брать с бэкенда
-            title: "РАЗМИНКА",        // Заголовок
+            enabled: false,           // 🔥 ВЫКЛЮЧЕНО: данные берутся напрямую из базы данных
+            title: "РАЗМИНКА",
             subtitle: "Личное задание на сегодня", 
-            taskName: "Актив в чате: 5 → 15 → 50 ...", // Текст задания
-            curVal: 0,                // Текущий прогресс
-            targetVal: 5,             // Цель
-            reward: 1,                // Количество монет или билетов
-            rewardType: "coins"       // "coins" (монета) или "tickets" (билет)
+            taskName: "Выполните условие",
+            curVal: 0,
+            targetVal: 1,
+            reward: 1,
+            rewardType: "tickets"
         };
 
         // ==========================================
@@ -1330,6 +1330,7 @@
 
             startDailyResetTimer();
 
+            // Если включен локальный тест, берем мок; иначе работаем строго с базой
             if (CUSTOM_CHALLENGE.enabled) {
                 challengeData = {
                     id: 9999,
@@ -1339,42 +1340,55 @@
                     target_value: CUSTOM_CHALLENGE.targetVal,
                     reward_amount: CUSTOM_CHALLENGE.reward,
                     reward_type: CUSTOM_CHALLENGE.rewardType,
-                    is_completed: CUSTOM_CHALLENGE.curVal >= CUSTOM_CHALLENGE.targetVal
+                    is_completed: CUSTOM_CHALLENGE.curVal >= CUSTOM_CHALLENGE.targetVal,
+                    claimed_at: null
                 };
             }
 
+            // Если задание еще не создано или не пришло
             if (!challengeData) {
-                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Ожидание задания...";
+                activeChallengeId = null;
+                if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = "ЧЕЛЛЕНДЖ";
+                if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = "Ожидание назначения...";
+                if (dom.challengeTaskName) dom.challengeTaskName.textContent = "Задание обновляется...";
                 if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = "0%";
                 if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = "0 / 0";
+                if (dom.challengeRewardVal) dom.challengeRewardVal.innerHTML = `+0 <i class="fa-solid fa-ticket"></i>`;
                 if (dom.claimChallengeBtn) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЖДЕМ</span>`;
-                    dom.claimChallengeBtn.classList.add('claimed');
+                    dom.claimChallengeBtn.className = "claimed";
                 }
                 return;
             }
 
+            // Запоминаем реальный ID из базы для последующего клейма
             activeChallengeId = challengeData.id;
-            const cur = challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0);
-            const target = challengeData.target_value || 1;
+
+            const cur = parseInt(challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0));
+            const target = parseInt(challengeData.target_value || 1);
             const pct = Math.min(100, Math.floor((cur / target) * 100));
             const isClaimed = !!challengeData.claimed_at;
-            const canClaim = (cur >= target || challengeData.is_completed) && !isClaimed;
+            const isCompleted = !!challengeData.is_completed || (cur >= target);
+            const canClaim = isCompleted && !isClaimed;
 
+            // Заголовок и описание
             if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
-            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = CUSTOM_CHALLENGE.enabled ? CUSTOM_CHALLENGE.subtitle : "Личное задание на сегодня";
-
+            if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = "Личное задание на сегодня";
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
 
+            // Прогресс-бар
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
 
-            const rewType = challengeData.reward_type || 'coins';
-            const rewIcon = rewType === 'tickets' ? '<i class="fa-solid fa-ticket"></i>' : '<i class="fa-solid fa-coins"></i>';
+            // Награда (по умолчанию билеты tickets)
+            const rewType = challengeData.reward_type || 'tickets';
+            const rewAmount = parseFloat(challengeData.reward_amount || 1);
+            const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
             if (dom.challengeRewardVal) {
-                dom.challengeRewardVal.innerHTML = `+${challengeData.reward_amount || 1} ${rewIcon}`;
+                dom.challengeRewardVal.innerHTML = `+${rewAmount} ${rewIcon}`;
             }
 
+            // Кнопка действия (ЗАБРАНО / ЗАБРАТЬ / В ПРОЦЕССЕ)
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
