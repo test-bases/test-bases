@@ -27429,6 +27429,110 @@ async def update_old_prices(
 
     return {"status": "success", "updated_posts": updated_count, "errors": errors_count}
 
+# Модель запроса (если у тебя уже есть RaffleDrawRequest, можно использовать её)
+class RaffleRemindRequest(BaseModel):
+    initData: str
+    raffle_id: int
+
+
+@app.post("/api/v1/admin/raffles/remind_bott")
+async def remind_raffle_bott(
+    req: RaffleRemindRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # 1. Проверка админа
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info['id'] not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    # 2. Достаем розыгрыш из БД
+    r_resp = await supabase.get("/raffles", params={"id": f"eq.{req.raffle_id}"})
+    if not r_resp.json():
+        raise HTTPException(status_code=404, detail="Розыгрыш не найден")
+
+    raffle = r_resp.json()[0]
+    s = raffle.get('settings', {})
+
+    # 3. Формируем текст поста (точно такой же, как при создании)
+    prize_name = s.get('prize_name', 'Приз')
+    quality = s.get('skin_quality', '')
+    desc = s.get('description', '')
+    prize_full = f"{prize_name} ({quality})" if quality else prize_name
+    price = s.get('price_rub') or s.get('price')
+
+    min_participants = int(s.get('min_participants', 0))
+    ticket_cost = int(s.get('ticket_cost', 0))
+    min_bp_level = int(s.get('min_bp_level', 0))
+    min_coins = float(s.get('min_coins', 0.0))
+    name_tag = s.get('required_name_tag')
+    sub_req = s.get('requires_telegram_sub', False)
+
+    min_msgs = int(s.get('min_messages') or s.get('min_daily_messages') or 0)
+    msg_period = s.get('message_period', 'daily')
+    period_map = {'daily': 'за стрим', 'weekly': 'за неделю', 'monthly': 'за месяц'}
+    period_str = period_map.get(msg_period, 'за стрим')
+
+    txt = f"🚀 <b>РОЗЫГРЫШ ДЛЯ МОИХ ПАЧАНОВ</b>\n\n"
+    if desc:
+        txt += f"<i>{desc}</i>\n\n"
+    txt += f"🏆 <b>Приз:</b> {prize_full}\n"
+    if price:
+        txt += f"💵 <b>Стоимость:</b> {round(float(price), 2)} ₽\n"
+        
+    txt += "\n📌 <b>Условия:</b>\n"
+    if sub_req:
+        txt += '└ Подписка на ТГ канал <a href="https://t.me/hatelove_ttv">HATElove_ttv</a>\n'
+    if ticket_cost > 0:
+        txt += f"└ Вход: {ticket_cost} билетов 🎫\n"
+    if min_participants > 0:
+        txt += f"└ Минимум участников: {min_participants} 👥\n"
+    if min_bp_level > 0:
+        txt += f"└ Уровень Battle Pass: {min_bp_level} ⭐️\n"
+    if min_coins > 0:
+        txt += f"└ Баланс в боте: {int(min_coins)} монет 💰\n"
+    if name_tag:
+        txt += f"└ Никнейм содержит: «{name_tag}» 🏷\n"
+    if min_msgs > 0:
+        txt += f"└ Активность на стриме ({min_msgs} сообщ. {period_str})\n"
+
+    if raffle.get('end_time'):
+        try:
+            dt_input = datetime.fromisoformat(raffle['end_time'].replace('Z', ''))
+            txt += f"\n⏳ <b>Итоги:</b> {dt_input.strftime('%d.%m.%Y %H:%M')} (МСК)\n"
+        except:
+            pass
+
+    txt += "\n👇 <b>Жми кнопку, чтобы поучаствовать!</b>"
+
+    url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{req.raffle_id}"
+    post_img = s.get('prize_image') or s.get('card_image')
+    parts_cnt = raffle.get('participants_count', 0)
+    button_title = f"Участвовать 🎲 ({parts_cnt})"
+
+    # 4. Отправляем в Bot-T
+    bott_data = await publish_bott_raffle_mailing(
+        text=txt,
+        image_url=post_img,
+        button_url=url_btn,
+        button_text=button_title
+    )
+
+    if not bott_data:
+        raise HTTPException(
+            status_code=400,
+            detail="Bot-T отклонил рассылку (проверь логи сервера: возможно, уже идет другая рассылка или лимит API)"
+        )
+
+    # 5. Сохраняем свежий ID рассылки в БД
+    s['bott_mailing_id'] = bott_data.get('id')
+    s['bott_message_id'] = bott_data.get('message', {}).get('id')
+    await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
+
+    return {
+        "status": "success",
+        "message": f"Рассылка #{bott_data.get('id')} успешно отправлена в Bot-T!"
+    }
+
 class ParticipantRemoveRequest(BaseModel):
     initData: str
     raffle_id: int
