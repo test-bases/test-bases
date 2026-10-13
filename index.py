@@ -4450,6 +4450,12 @@ async def sync_steam_inventory(
     MSK_TZ = timezone(timedelta(hours=3))
 
 async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncClient) -> dict:
+    """
+    1. Ищет активный квест на сегодня (по МСК).
+    2. Если нет — создает уникальный из challenge_templates.
+    3. Синхронизирует актуальные target_value и reward_amount из шаблона.
+    4. Подтягивает актуальный дневной/недельный прогресс напрямую из таблицы users.
+    """
     msk_tz = timezone(timedelta(hours=3))
     now_msk = datetime.now(msk_tz)
     today_date = now_msk.strftime('%Y-%m-%d')
@@ -4465,7 +4471,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     )
     user_challenge = res.json()[0] if res.is_success and res.json() else None
 
-    # 2. Если квеста нет — выбираем активный шаблон и создаем запись
+    # 2. Если квеста нет — выбираем случайный активный шаблон
     if not user_challenge:
         tpl_res = await supabase.get(
             "/challenge_templates",
@@ -4479,6 +4485,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
 
         chosen_tpl = random.choice(templates)
 
+        # Парсим reward_config (обрабатываем и строку, и dict)
         raw_config = chosen_tpl.get("reward_config", {})
         if isinstance(raw_config, str):
             try:
@@ -4488,9 +4495,8 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
         else:
             reward_config = raw_config or {}
 
-        # Достаем точное значение билетов
-        reward_amount = float(reward_config.get("tickets") or chosen_tpl.get("reward_amount") or 1.0)
-        # Гарантированно берем target_value из шаблона (например, 30)
+        # Достаем точную сумму билетов из reward_config
+        reward_amount = float(reward_config.get("tickets") or reward_config.get("amount") or 1.0)
         target_val = int(chosen_tpl.get("target_value") or 10)
 
         new_challenge_payload = {
@@ -4503,7 +4509,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
             "icon": chosen_tpl.get("icon") or "fa-solid fa-bolt",
             "target_value": target_val,
             "current_value": 0,
-            "reward_type": chosen_tpl.get("reward_type", "tickets"),
+            "reward_type": chosen_tpl.get("reward_type") or "tickets",
             "reward_amount": reward_amount,
             "reward_config": reward_config,
             "is_completed": False,
@@ -4531,28 +4537,63 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     if not user_challenge:
         return None
 
-    # 🔥 СИНХРОНИЗАЦИЯ: Если задание еще не забрано, а в шаблоне изменили target_value (например, на 30)
+    # 🔥 2.5 СИНХРОНИЗАЦИЯ: Если задание еще не забрано, подтягиваем актуальные target_value и reward_amount из шаблона
     template_id = user_challenge.get("template_id")
     if template_id and not user_challenge.get("claimed_at"):
         t_check = await supabase.get("/challenge_templates", params={"id": f"eq.{template_id}"})
         if t_check.is_success and t_check.json():
             cur_tpl = t_check.json()[0]
             tpl_target = int(cur_tpl.get("target_value") or 10)
-            
-            # Если в базе было 1, а в шаблоне 30 — мгновенно исправляем в базе
-            if int(user_challenge.get("target_value") or 0) != tpl_target:
+
+            # Парсим reward_config шаблона
+            t_cfg_raw = cur_tpl.get("reward_config", {})
+            if isinstance(t_cfg_raw, str):
+                try:
+                    t_cfg = json.loads(t_cfg_raw)
+                except Exception:
+                    t_cfg = {}
+            else:
+                t_cfg = t_cfg_raw or {}
+
+            tpl_reward = float(t_cfg.get("tickets") or t_cfg.get("amount") or 1.0)
+            tpl_reward_type = cur_tpl.get("reward_type") or "tickets"
+
+            cur_reward = float(user_challenge.get("reward_amount") or 0)
+            cur_target = int(user_challenge.get("target_value") or 0)
+
+            # Если изменилась цель, награда или текст — синхронизируем в базе
+            if cur_target != tpl_target or cur_reward != tpl_reward or user_challenge.get("title") != cur_tpl.get("title"):
                 user_challenge["target_value"] = tpl_target
+                user_challenge["reward_amount"] = tpl_reward
+                user_challenge["reward_type"] = tpl_reward_type
+                user_challenge["reward_config"] = t_cfg
                 user_challenge["title"] = cur_tpl.get("title")
                 user_challenge["description"] = cur_tpl.get("description")
+
                 await supabase.patch(
                     "/user_daily_challenges",
                     params={"id": f"eq.{user_challenge['id']}"},
                     json={
                         "target_value": tpl_target,
+                        "reward_amount": tpl_reward,
+                        "reward_type": tpl_reward_type,
+                        "reward_config": t_cfg,
                         "title": cur_tpl.get("title"),
                         "description": cur_tpl.get("description")
                     }
                 )
+
+    # Гарантируем, что reward_amount всегда float в ответе
+    if not user_challenge.get("reward_amount"):
+        cfg = user_challenge.get("reward_config")
+        if isinstance(cfg, str):
+            try:
+                cfg = json.loads(cfg)
+            except Exception:
+                cfg = {}
+        user_challenge["reward_amount"] = float(cfg.get("tickets") or 1.0) if isinstance(cfg, dict) else 1.0
+    else:
+        user_challenge["reward_amount"] = float(user_challenge["reward_amount"])
 
     # 3. Синхронизируем текущий прогресс из таблицы users
     task_type = user_challenge.get("task_type")
