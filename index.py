@@ -4450,11 +4450,6 @@ async def sync_steam_inventory(
     MSK_TZ = timezone(timedelta(hours=3))
 
 async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncClient) -> dict:
-    """
-    1. Ищет активный квест на сегодня (по МСК).
-    2. Если нет — создает уникальный из challenge_templates.
-    3. Подтягивает актуальный дневной/недельный прогресс напрямую из таблицы users.
-    """
     msk_tz = timezone(timedelta(hours=3))
     now_msk = datetime.now(msk_tz)
     today_date = now_msk.strftime('%Y-%m-%d')
@@ -4470,7 +4465,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     )
     user_challenge = res.json()[0] if res.is_success and res.json() else None
 
-    # 2. Если квеста нет — выбираем случайный активный шаблон
+    # 2. Если квеста нет — выбираем активный шаблон и создаем запись
     if not user_challenge:
         tpl_res = await supabase.get(
             "/challenge_templates",
@@ -4482,10 +4477,8 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
             logging.warning("[CHALLENGE] В challenge_templates нет активных шаблонов!")
             return None
 
-        # Выбираем случайный шаблон
         chosen_tpl = random.choice(templates)
 
-        # Парсим reward_config
         raw_config = chosen_tpl.get("reward_config", {})
         if isinstance(raw_config, str):
             try:
@@ -4495,19 +4488,10 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
         else:
             reward_config = raw_config or {}
 
-        # Определяем награду (билеты из админки / тиры / дефолт)
-        reward_amount = 1.0
-        if "tickets" in reward_config:
-            reward_amount = float(reward_config["tickets"])
-        elif "amount" in reward_config:
-            reward_amount = float(reward_config["amount"])
-        elif reward_config.get("mode") == "tiered":
-            tiers = reward_config.get("tiers", [])
-            if tiers:
-                first_tier_rewards = tiers[0].get("rewards", {})
-                reward_amount = float(first_tier_rewards.get("tickets") or first_tier_rewards.get("coins") or 1.0)
-        elif chosen_tpl.get("reward_amount"):
-            reward_amount = float(chosen_tpl["reward_amount"])
+        # Достаем точное значение билетов
+        reward_amount = float(reward_config.get("tickets") or chosen_tpl.get("reward_amount") or 1.0)
+        # Гарантированно берем target_value из шаблона (например, 30)
+        target_val = int(chosen_tpl.get("target_value") or 10)
 
         new_challenge_payload = {
             "telegram_id": telegram_id,
@@ -4517,7 +4501,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
             "title": chosen_tpl.get("title"),
             "description": chosen_tpl.get("description") or "",
             "icon": chosen_tpl.get("icon") or "fa-solid fa-bolt",
-            "target_value": int(chosen_tpl.get("target_value", 10)),
+            "target_value": target_val,
             "current_value": 0,
             "reward_type": chosen_tpl.get("reward_type", "tickets"),
             "reward_amount": reward_amount,
@@ -4535,7 +4519,6 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
         if insert_res.is_success and insert_res.json():
             user_challenge = insert_res.json()[0]
         elif insert_res.status_code == 409:
-            # Страховка от гонки потоков при параллельных запросах
             re_get = await supabase.get(
                 "/user_daily_challenges",
                 params={"telegram_id": f"eq.{telegram_id}", "challenge_date": f"eq.{today_date}", "limit": 1}
@@ -4548,9 +4531,31 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     if not user_challenge:
         return None
 
+    # 🔥 СИНХРОНИЗАЦИЯ: Если задание еще не забрано, а в шаблоне изменили target_value (например, на 30)
+    template_id = user_challenge.get("template_id")
+    if template_id and not user_challenge.get("claimed_at"):
+        t_check = await supabase.get("/challenge_templates", params={"id": f"eq.{template_id}"})
+        if t_check.is_success and t_check.json():
+            cur_tpl = t_check.json()[0]
+            tpl_target = int(cur_tpl.get("target_value") or 10)
+            
+            # Если в базе было 1, а в шаблоне 30 — мгновенно исправляем в базе
+            if int(user_challenge.get("target_value") or 0) != tpl_target:
+                user_challenge["target_value"] = tpl_target
+                user_challenge["title"] = cur_tpl.get("title")
+                user_challenge["description"] = cur_tpl.get("description")
+                await supabase.patch(
+                    "/user_daily_challenges",
+                    params={"id": f"eq.{user_challenge['id']}"},
+                    json={
+                        "target_value": tpl_target,
+                        "title": cur_tpl.get("title"),
+                        "description": cur_tpl.get("description")
+                    }
+                )
+
     # 3. Синхронизируем текущий прогресс из таблицы users
     task_type = user_challenge.get("task_type")
-
     u_res = await supabase.get(
         "/users",
         params={
@@ -4561,34 +4566,27 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     user_stats = u_res.json()[0] if u_res.is_success and u_res.json() else {}
 
     real_current = 0
-    # Telegram сообщения
     if task_type in ["telegram_messages_session", "tg_messages", "telegram_messages"]:
         real_current = int(user_stats.get("telegram_daily_message_count") or 0)
     elif task_type in ["telegram_messages_week"]:
         real_current = int(user_stats.get("telegram_weekly_message_count") or 0)
     elif task_type in ["telegram_total_messages", "telegram_messages_total"]:
         real_current = int(user_stats.get("telegram_total_message_count") or 0)
-
-    # Twitch сообщения
     elif task_type in ["twitch_messages_session", "twitch_messages", "stream_chat"]:
         real_current = int(user_stats.get("daily_message_count") or 0)
     elif task_type in ["twitch_messages_week"]:
         real_current = int(user_stats.get("weekly_message_count") or 0)
-
-    # Twitch время стрима
     elif task_type in ["twitch_uptime_session", "twitch_uptime", "stream_uptime"]:
         real_current = int(user_stats.get("daily_uptime_minutes") or 0)
     elif task_type in ["twitch_uptime_week"]:
         real_current = int(user_stats.get("weekly_uptime_minutes") or 0)
-
     else:
-        # Для других типов оставляем текущее накопленное значение
         real_current = int(user_challenge.get("current_value") or 0)
 
     target_val = int(user_challenge.get("target_value") or 1)
     is_completed = bool(user_challenge.get("is_completed")) or (real_current >= target_val)
 
-    # 4. Обновляем в базе, если значения изменились
+    # 4. Обновляем в базе прогресс
     if real_current != user_challenge.get("current_value") or is_completed != user_challenge.get("is_completed"):
         await supabase.patch(
             "/user_daily_challenges",
