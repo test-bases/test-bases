@@ -4453,9 +4453,8 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     """
     1. Ищет активный квест на сегодня (по МСК).
     2. Если нет — создает уникальный из challenge_templates.
-    3. Подтягивает актуальный дневной прогресс напрямую из таблицы users.
+    3. Подтягивает актуальный дневной/недельный прогресс напрямую из таблицы users.
     """
-    # Гарантированное объявление часового пояса МСК внутри функции
     msk_tz = timezone(timedelta(hours=3))
     now_msk = datetime.now(msk_tz)
     today_date = now_msk.strftime('%Y-%m-%d')
@@ -4486,7 +4485,7 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
         # Выбираем случайный шаблон
         chosen_tpl = random.choice(templates)
 
-        # Парсим reward_config (на случай, если из базы пришла строка)
+        # Парсим reward_config
         raw_config = chosen_tpl.get("reward_config", {})
         if isinstance(raw_config, str):
             try:
@@ -4494,17 +4493,21 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
             except Exception:
                 reward_config = {}
         else:
-            reward_config = raw_config
+            reward_config = raw_config or {}
 
-        # Определяем базовую награду (из tiered конфига или дефолт)
-        reward_amount = 2.0
-        if reward_config.get("mode") == "tiered":
+        # Определяем награду (билеты из админки / тиры / дефолт)
+        reward_amount = 1.0
+        if "tickets" in reward_config:
+            reward_amount = float(reward_config["tickets"])
+        elif "amount" in reward_config:
+            reward_amount = float(reward_config["amount"])
+        elif reward_config.get("mode") == "tiered":
             tiers = reward_config.get("tiers", [])
             if tiers:
                 first_tier_rewards = tiers[0].get("rewards", {})
-                reward_amount = float(first_tier_rewards.get("tickets") or first_tier_rewards.get("coins") or 2)
-        elif chosen_tpl.get("target_value"):
-            reward_amount = 2.0
+                reward_amount = float(first_tier_rewards.get("tickets") or first_tier_rewards.get("coins") or 1.0)
+        elif chosen_tpl.get("reward_amount"):
+            reward_amount = float(chosen_tpl["reward_amount"])
 
         new_challenge_payload = {
             "telegram_id": telegram_id,
@@ -4512,14 +4515,15 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
             "challenge_date": today_date,
             "task_type": chosen_tpl.get("task_type"),
             "title": chosen_tpl.get("title"),
-            "description": chosen_tpl.get("description"),
+            "description": chosen_tpl.get("description") or "",
             "icon": chosen_tpl.get("icon") or "fa-solid fa-bolt",
-            "target_value": chosen_tpl.get("target_value", 10),
+            "target_value": int(chosen_tpl.get("target_value", 10)),
             "current_value": 0,
             "reward_type": chosen_tpl.get("reward_type", "tickets"),
             "reward_amount": reward_amount,
             "reward_config": reward_config,
-            "is_completed": False
+            "is_completed": False,
+            "claimed_at": None
         }
 
         insert_res = await supabase.post(
@@ -4546,29 +4550,43 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
 
     # 3. Синхронизируем текущий прогресс из таблицы users
     task_type = user_challenge.get("task_type")
-    
+
     u_res = await supabase.get(
         "/users",
         params={
             "telegram_id": f"eq.{telegram_id}",
-            "select": "telegram_daily_message_count,daily_message_count,daily_uptime_minutes"
+            "select": "telegram_daily_message_count,daily_message_count,daily_uptime_minutes,telegram_weekly_message_count,weekly_message_count,weekly_uptime_minutes,telegram_total_message_count"
         }
     )
     user_stats = u_res.json()[0] if u_res.is_success and u_res.json() else {}
 
     real_current = 0
-    if task_type in ["tg_messages", "telegram_messages"]:
+    # Telegram сообщения
+    if task_type in ["telegram_messages_session", "tg_messages", "telegram_messages"]:
         real_current = int(user_stats.get("telegram_daily_message_count") or 0)
-    elif task_type in ["twitch_messages", "stream_chat"]:
+    elif task_type in ["telegram_messages_week"]:
+        real_current = int(user_stats.get("telegram_weekly_message_count") or 0)
+    elif task_type in ["telegram_total_messages", "telegram_messages_total"]:
+        real_current = int(user_stats.get("telegram_total_message_count") or 0)
+
+    # Twitch сообщения
+    elif task_type in ["twitch_messages_session", "twitch_messages", "stream_chat"]:
         real_current = int(user_stats.get("daily_message_count") or 0)
-    elif task_type in ["twitch_uptime", "stream_uptime"]:
+    elif task_type in ["twitch_messages_week"]:
+        real_current = int(user_stats.get("weekly_message_count") or 0)
+
+    # Twitch время стрима
+    elif task_type in ["twitch_uptime_session", "twitch_uptime", "stream_uptime"]:
         real_current = int(user_stats.get("daily_uptime_minutes") or 0)
+    elif task_type in ["twitch_uptime_week"]:
+        real_current = int(user_stats.get("weekly_uptime_minutes") or 0)
+
     else:
         # Для других типов оставляем текущее накопленное значение
-        real_current = user_challenge.get("current_value", 0)
+        real_current = int(user_challenge.get("current_value") or 0)
 
-    target_val = int(user_challenge.get("target_value", 1))
-    is_completed = real_current >= target_val
+    target_val = int(user_challenge.get("target_value") or 1)
+    is_completed = bool(user_challenge.get("is_completed")) or (real_current >= target_val)
 
     # 4. Обновляем в базе, если значения изменились
     if real_current != user_challenge.get("current_value") or is_completed != user_challenge.get("is_completed"):
@@ -4584,7 +4602,6 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
         user_challenge["is_completed"] = is_completed
 
     return user_challenge
-
 
 # =======================================================================
     # 🚀 СУПЕР-БЫСТРАЯ ЗАГРУЗКА БЕЗ ОГРАНИЧЕНИЙ ПО ЦЕНЕ (ОТ 0 КОПЕЕК) 🚀
