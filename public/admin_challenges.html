@@ -20,10 +20,15 @@
       --text-dim: #8e8e93;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent; 
+    }
+
     body {
       margin: 0;
       padding: 16px;
+      padding-top: 10px; /* Дефолт для ПК, пересчитывается JS */
       padding-bottom: 80px;
       background-color: var(--bg);
       color: #fff;
@@ -31,17 +36,32 @@
       min-height: 100vh;
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
+      /* Зум страницы (88% для компактного визуального стиля) */
+      zoom: 0.88;
+      -moz-transform: scale(0.88);
+      -moz-transform-origin: 0 0;
     }
 
     .page-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
       margin-bottom: 16px;
     }
     .back-btn {
-      color: #fff; text-decoration: none; font-size: 13px; font-weight: 700;
-      background: rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 8px;
-      display: flex; align-items: center; gap: 6px;
+      color: #fff; 
+      text-decoration: none; 
+      font-size: 13px; 
+      font-weight: 700;
+      background: rgba(255,255,255,0.08); 
+      padding: 8px 12px; 
+      border-radius: 8px;
+      display: flex; 
+      align-items: center; 
+      gap: 6px;
+      transition: background 0.2s;
     }
+    .back-btn:active { background: rgba(255,255,255,0.15); }
     .page-title { font-size: 18px; font-weight: 900; margin: 0; }
 
     /* ГЛАВНАЯ КНОПКА ОТКРЫТИЯ МОДУЛЯ */
@@ -51,8 +71,11 @@
       border: 1px solid rgba(255, 215, 0, 0.4);
       border-radius: 14px;
       padding: 16px;
-      display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer; margin-bottom: 16px;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      cursor: pointer; 
+      margin-bottom: 16px;
       box-shadow: 0 4px 18px rgba(0,0,0,0.4);
       transition: all 0.2s;
     }
@@ -95,40 +118,66 @@
     .stat-val.gold { color: var(--gold); }
     .stat-val.green { color: var(--green); }
 
-    /* КАРТОЧКА ШАБЛОНА */
-    .tier-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; padding: 14px; margin-bottom: 12px;
-      display: flex; flex-direction: column; gap: 10px;
+    /* КОМПАКТНЫЕ ПЛАШКИ ШАБЛОНОВ */
+    .template-item-card {
+      background: var(--card-bg); 
+      border: 1px solid var(--card-border);
+      border-radius: 12px; 
+      padding: 12px 14px; 
+      margin-bottom: 10px;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .tier-card.disabled { opacity: 0.5; }
-    .tier-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .template-item-card:hover {
+      border-color: rgba(255, 215, 0, 0.35);
+      background: #1f2026;
+    }
+    .template-item-card.disabled { opacity: 0.5; }
+    .template-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .template-item-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      color: var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .template-item-info {
+      display: flex; flex-direction: column; gap: 2px;
+      min-width: 0; overflow: hidden;
+    }
+    .template-item-title {
+      font-size: 13px; font-weight: 800; color: #fff;
+      white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+    }
+    .template-item-sub {
+      font-size: 10px; color: var(--text-dim);
+      white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+    }
+    .template-item-right {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .badge-reward {
+      background: rgba(255, 215, 0, 0.15);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
 
-    .input-wrapper { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-    .input-label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
-    .compact-input {
-      background: #111; border: 1px solid #333; color: #fff;
-      padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%;
-      font-family: inherit;
-    }
-    .compact-input:focus { border-color: var(--blue); }
-
-    .ticket-reward-badge {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3);
-      padding: 8px 12px; border-radius: 8px; color: var(--gold); font-weight: 800; font-size: 13px;
-    }
-
-    .save-template-btn {
-      background: var(--blue); color: #fff; border: none; border-radius: 8px;
-      padding: 10px; font-weight: 800; font-size: 11px; cursor: pointer; text-transform: uppercase;
-    }
-    .delete-btn {
-      background: rgba(255,59,48,0.15); color: var(--red); border: 1px solid var(--red);
-      border-radius: 8px; padding: 10px 14px; font-size: 12px; cursor: pointer;
-    }
-
-    /* ПОИСК И СБРОС */
+    /* ПОИСК И СПИСОК ИГРОКОВ */
     .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .btn-search {
       background: var(--blue); border: none; color: #fff; border-radius: 8px;
@@ -136,9 +185,49 @@
     }
     .user-info-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; padding: 14px;
+      border-radius: 12px; padding: 14px; margin-bottom: 14px;
     }
     .info-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+
+    .users-list-title {
+      font-size: 12px; font-weight: 800; text-transform: uppercase;
+      color: var(--gold); margin: 16px 0 10px 0; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .user-progress-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 12px; margin-bottom: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .u-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .u-card-name { font-size: 13px; font-weight: 800; color: #fff; }
+    .u-card-task { font-size: 11px; color: var(--text-dim); }
+    .u-progress-track {
+      width: 100%; height: 6px; background: rgba(255,255,255,0.08);
+      border-radius: 3px; overflow: hidden; margin-top: 4px;
+    }
+    .u-progress-fill {
+      height: 100%; background: var(--gold); border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .u-card-actions {
+      display: flex; gap: 8px; margin-top: 4px;
+    }
+    .u-action-btn {
+      flex: 1; padding: 8px; border-radius: 6px; font-size: 10px;
+      font-weight: 800; text-transform: uppercase; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .u-action-reset {
+      background: rgba(255, 215, 0, 0.12); border: 1px solid rgba(255, 215, 0, 0.3);
+      color: var(--gold);
+    }
+    .u-action-reassign {
+      background: rgba(255, 59, 48, 0.12); border: 1px solid rgba(255, 59, 48, 0.3);
+      color: var(--red);
+    }
 
     .btn-reset-yellow {
       width: 100%; background: rgba(255, 215, 0, 0.15); border: 1px solid var(--gold);
@@ -155,7 +244,75 @@
       width: 100%; padding: 14px; background: rgba(255,255,255,0.06);
       border: 1px dashed #555; color: #ccc; border-radius: 12px;
       cursor: pointer; font-weight: 700; font-size: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
+    .add-btn:active { background: rgba(255,255,255,0.1); }
+
+    /* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ / СОЗДАНИЯ ШАБЛОНА */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-backdrop.show {
+      opacity: 1; pointer-events: auto;
+    }
+    .modal-card {
+      width: 100%; max-width: 420px;
+      background: #18191f;
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.85);
+      max-height: 90vh; overflow-y: auto;
+      transform: scale(0.96); transition: transform 0.25s ease;
+    }
+    .modal-backdrop.show .modal-card { transform: scale(1); }
+
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-title { font-size: 14px; font-weight: 900; margin: 0; text-transform: uppercase; color: #fff; }
+    
+    /* КРЕСТИК ЗАКРЫТИЯ */
+    .modal-close-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff; font-size: 15px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close-btn:hover { background: rgba(255, 59, 48, 0.2); border-color: var(--red); color: var(--red); }
+    .modal-close-btn:active { transform: scale(0.9); }
+
+    .input-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .input-label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+    .compact-input {
+      background: #111; border: 1px solid #333; color: #fff;
+      padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%;
+      font-family: inherit;
+    }
+    .compact-input:focus { border-color: var(--blue); }
+
+    .modal-actions-row {
+      display: flex; gap: 8px; margin-top: 6px;
+    }
+    .btn-save-modal {
+      flex: 2; padding: 12px; background: var(--blue); color: #fff;
+      border: none; border-radius: 10px; font-weight: 800; font-size: 12px;
+      text-transform: uppercase; cursor: pointer;
+    }
+    .btn-delete-modal {
+      flex: 1; padding: 12px; background: rgba(255,59,48,0.15); border: 1px solid var(--red);
+      color: var(--red); border-radius: 10px; font-weight: 800; font-size: 12px;
+      cursor: pointer;
+    }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -194,7 +351,7 @@
       </button>
     </div>
 
-    <!-- 1. ПОДРАЗДЕЛ: СТАТИСТИКА -->
+    <!-- 1. ПОДРАЗДЕЛ: СТАТИСТИКА (НЕ ТРОГАЕМ) -->
     <div id="section-stats">
       <div class="stats-grid">
         <div class="stat-card">
@@ -224,18 +381,19 @@
     <!-- 2. ПОДРАЗДЕЛ: ШАБЛОНЫ ЗАДАНИЙ -->
     <div id="section-templates" class="hidden">
       <div id="templates-list-container">Загрузка...</div>
-      <button class="add-btn" onclick="addNewTemplateCard()" style="margin-top:12px;">
+      <button class="add-btn" onclick="openNewTemplateModal()" style="margin-top:12px;">
         <i class="fa-solid fa-plus"></i> Создать новое задание
       </button>
     </div>
 
-    <!-- 3. ПОДРАЗДЕЛ: СБРОС ИГРОКУ -->
+    <!-- 3. ПОДРАЗДЕЛ: СБРОС ИГРОКУ И СПИСОК АКТИВНЫХ -->
     <div id="section-users" class="hidden">
       <div class="search-row">
-        <input type="number" id="inp-search-tg" class="compact-input" placeholder="Telegram ID пользователя...">
+        <input type="number" id="inp-search-tg" class="compact-input" placeholder="Поиск по Telegram ID...">
         <button class="btn-search" onclick="searchUser()">Найти</button>
       </div>
 
+      <!-- Индивидуальная карточка найденного -->
       <div id="user-result-box" class="hidden">
         <div class="user-info-card">
           <div class="info-line"><span>Пользователь:</span><b id="res-user-name">-</b></div>
@@ -254,18 +412,108 @@
           </button>
         </div>
       </div>
+
+      <!-- Список активных пользователей за сегодня -->
+      <div class="users-list-title">
+        <span>Активные задания за сегодня</span>
+        <button onclick="loadActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
+      </div>
+      <div id="active-users-list">
+        <p style="text-align:center; color:#777; font-size:11px;">Загрузка списка игроков...</p>
+      </div>
     </div>
 
   </div>
 
+  <!-- ДИАЛОГОВОЕ ОКНО РЕДАКТИРОВАНИЯ/СОЗДАНИЯ ЗАДАНИЯ -->
+  <div id="template-modal-overlay" class="modal-backdrop" onclick="if(event.target===this) closeTemplateModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-heading">Настройка задания</h3>
+        <button class="modal-close-btn" onclick="closeTemplateModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <input type="hidden" id="modal-tpl-id">
+
+      <div style="display:flex; gap:8px;">
+        <div class="input-wrapper" style="flex:2;">
+          <span class="input-label">Заголовок задания</span>
+          <input type="text" id="modal-tpl-title" class="compact-input" placeholder="Например: Разминка в чате">
+        </div>
+        <div class="input-wrapper" style="flex:1;">
+          <span class="input-label">Иконка FA</span>
+          <input type="text" id="modal-tpl-icon" class="compact-input" value="fa-solid fa-bolt">
+        </div>
+      </div>
+
+      <div class="input-wrapper">
+        <span class="input-label">Условие из триггера (task_type)</span>
+        <select id="modal-tpl-task-type" class="compact-input"></select>
+      </div>
+
+      <div class="input-wrapper">
+        <span class="input-label">Описание для пользователя</span>
+        <input type="text" id="modal-tpl-desc" class="compact-input" placeholder="Отправьте 10 сообщений в чате">
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="input-wrapper">
+          <span class="input-label">Цель (кол-во)</span>
+          <input type="number" id="modal-tpl-target" class="compact-input" value="10">
+        </div>
+        <div class="input-wrapper">
+          <span class="input-label">Награда (Билетов)</span>
+          <input type="number" step="0.5" id="modal-tpl-reward" class="compact-input" value="1">
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; margin: 4px 0;">
+        <input type="checkbox" id="modal-tpl-active" style="width:16px; height:16px; cursor:pointer;" checked>
+        <label for="modal-tpl-active" style="font-size:12px; font-weight:700; cursor:pointer;">Задание активно (может выпадать игрокам)</label>
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn-save-modal" onclick="submitTemplateModal()"><i class="fa-solid fa-check"></i> Сохранить</button>
+        <button class="btn-delete-modal hidden" id="modal-tpl-delete-btn" onclick="submitDeleteTemplate()"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const tg = window.Telegram?.WebApp;
-    if (tg) tg.expand();
+    if (tg) {
+      tg.expand();
+      tg.enableClosingConfirmation();
+    }
 
+    // =========================================================================
+    // 1. АДАПТИВНЫЙ ВЕРХНИЙ ОТСТУП ПОД УСТРОЙСТВА
+    // =========================================================================
+    function applyAdaptivePadding() {
+      const platform = (tg?.platform || '').toLowerCase();
+      const ua = navigator.userAgent || '';
+      let topPadding = '10px'; // ПК по умолчанию - прижат наверх
+
+      if (platform === 'ios' || /iphone|ipad|ipod/i.test(ua)) {
+        // iOS: сдвигаем вниз с учетом safe-area
+        topPadding = 'calc(env(safe-area-inset-top, 20px) + 22px)';
+      } else if (platform === 'android' || /android/i.test(ua)) {
+        // Android: сдвигаем чуточку вниз
+        topPadding = '26px';
+      } else if (platform === 'tdesktop' || platform === 'macos' || platform === 'web') {
+        topPadding = '10px';
+      }
+
+      document.body.style.paddingTop = topPadding;
+    }
+    applyAdaptivePadding();
+
+    // =========================================================================
+    // 2. ДАННЫЕ И ТАБЫ
+    // =========================================================================
     let isOpen = false;
     let templatesData = [];
 
-    // Список доступных условий из твоего SQL триггера
     const TASK_TYPES = [
       { key: "telegram_messages_session", label: "Сообщения в TG (сессия/день)" },
       { key: "twitch_messages_session", label: "Сообщения в Twitch (сессия/день)" },
@@ -282,6 +530,7 @@
       if (isOpen) {
         loadStats();
         loadTemplates();
+        loadActiveUsers();
       }
     }
 
@@ -293,9 +542,13 @@
       document.getElementById('section-stats').classList.toggle('hidden', sec !== 'stats');
       document.getElementById('section-templates').classList.toggle('hidden', sec !== 'templates');
       document.getElementById('section-users').classList.toggle('hidden', sec !== 'users');
+
+      if (sec === 'users') loadActiveUsers();
     }
 
-    // --- 1. СТАТИСТИКА ---
+    // =========================================================================
+    // 3. СТАТИСТИКА
+    // =========================================================================
     async function loadStats() {
       try {
         const res = await fetch('/api/v1/admin/challenges/stats', {
@@ -313,11 +566,13 @@
           document.getElementById('stat-conversion').textContent = s.conversion_pct + '%';
         }
       } catch (e) {
-        console.error("Ошибка загрузки статистики:", e);
+        console.error("Ошибка статистики:", e);
       }
     }
 
-    // --- 2. ШАБЛОНЫ ---
+    // =========================================================================
+    // 4. ШАБЛОНЫ ЗАДАНИЙ (ЧЕРЕЗ КНОПКИ И ДИАЛОГОВОЕ ОКНО)
+    // =========================================================================
     async function loadTemplates() {
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/list', {
@@ -327,143 +582,208 @@
         });
         const d = await res.json();
         templatesData = d.templates || [];
-        renderTemplates();
+        renderTemplatesList();
       } catch (e) {
         console.error("Ошибка загрузки шаблонов:", e);
       }
     }
 
-    function renderTemplates() {
+    function renderTemplatesList() {
       const container = document.getElementById('templates-list-container');
       container.innerHTML = '';
 
       if (templatesData.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#777;">Нет созданных шаблонов</p>';
+        container.innerHTML = '<p style="text-align:center; color:#777; font-size:12px; padding:15px 0;">Нет созданных заданий</p>';
         return;
       }
 
       templatesData.forEach((t, idx) => {
-        const card = document.createElement('div');
-        card.className = `tier-card ${t.is_active ? '' : 'disabled'}`;
-        card.id = `template-card-${idx}`;
+        const div = document.createElement('div');
+        div.className = `template-item-card ${t.is_active ? '' : 'disabled'}`;
+        div.onclick = () => openEditTemplateModal(idx);
 
-        const typeOptions = TASK_TYPES.map(opt => 
-          `<option value="${opt.key}" ${t.task_type === opt.key ? 'selected' : ''}>${opt.label}</option>`
-        ).join('');
+        const taskTypeObj = TASK_TYPES.find(x => x.key === t.task_type);
+        const typeLabel = taskTypeObj ? taskTypeObj.label : t.task_type;
 
-        card.innerHTML = `
-          <div class="tier-top-row">
-            <span style="font-size:11px; font-weight:800; color:var(--gold);">#${t.id || 'NEW'}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <label style="font-size:10px; cursor:pointer;">
-                <input type="checkbox" ${t.is_active ? 'checked' : ''} onchange="templatesData[${idx}].is_active = this.checked; renderTemplates();"> Активно
-              </label>
-              ${t.id ? `<button class="delete-btn" onclick="deleteTemplate(${t.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
+        div.innerHTML = `
+          <div class="template-item-left">
+            <div class="template-item-icon"><i class="${t.icon || 'fa-solid fa-bolt'}"></i></div>
+            <div class="template-item-info">
+              <span class="template-item-title">${t.title}</span>
+              <span class="template-item-sub">${typeLabel} • Цель: ${t.target_value}</span>
             </div>
           </div>
-
-          <div style="display:flex; gap:8px;">
-            <div class="input-wrapper" style="flex:2;">
-              <span class="input-label">Заголовок задания</span>
-              <input type="text" class="compact-input" value="${t.title}" oninput="templatesData[${idx}].title = this.value">
-            </div>
-            <div class="input-wrapper" style="flex:1;">
-              <span class="input-label">Иконка FA</span>
-              <input type="text" class="compact-input" value="${t.icon || 'fa-solid fa-bolt'}" oninput="templatesData[${idx}].icon = this.value">
-            </div>
+          <div class="template-item-right">
+            <span class="badge-reward">+${t.ticket_reward} 🎟️</span>
+            <i class="fa-solid fa-pen-to-square" style="color:#666; font-size:13px;"></i>
           </div>
-
-          <div class="input-wrapper">
-            <span class="input-label">Условие из триггера (task_type)</span>
-            <select class="compact-input" onchange="templatesData[${idx}].task_type = this.value">
-              ${typeOptions}
-            </select>
-          </div>
-
-          <div class="input-wrapper">
-            <span class="input-label">Описание для пользователя</span>
-            <input type="text" class="compact-input" value="${t.description || ''}" oninput="templatesData[${idx}].description = this.value">
-          </div>
-
-          <div style="display:flex; gap:10px; align-items:flex-end;">
-            <div class="input-wrapper">
-              <span class="input-label">Цель (кол-во)</span>
-              <input type="number" class="compact-input" value="${t.target_value}" oninput="templatesData[${idx}].target_value = parseInt(this.value) || 1">
-            </div>
-
-            <div class="input-wrapper">
-              <span class="input-label">Награда (Билетов)</span>
-              <input type="number" step="0.5" class="compact-input" value="${t.ticket_reward}" oninput="templatesData[${idx}].ticket_reward = parseFloat(this.value) || 1">
-            </div>
-          </div>
-
-          <button class="save-template-btn" onclick="saveTemplate(${idx})">
-            <i class="fa-solid fa-check"></i> Сохранить шаблон
-          </button>
         `;
-        container.appendChild(card);
+        container.appendChild(div);
       });
     }
 
-    function addNewTemplateCard() {
-      templatesData.push({
-        title: "НОВОЕ ЗАДАНИЕ",
-        description: "Напиши сообщения в чате",
-        icon: "fa-solid fa-bolt",
-        task_type: "telegram_messages_session",
-        target_value: 10,
-        ticket_reward: 2.0,
-        is_active: true
-      });
-      renderTemplates();
+    function initTaskTypeSelect(selectedKey) {
+      const select = document.getElementById('modal-tpl-task-type');
+      select.innerHTML = TASK_TYPES.map(opt => 
+        `<option value="${opt.key}" ${opt.key === selectedKey ? 'selected' : ''}>${opt.label}</option>`
+      ).join('');
     }
 
-    async function saveTemplate(idx) {
-      const item = templatesData[idx];
+    function openNewTemplateModal() {
+      document.getElementById('modal-heading').textContent = 'Создание задания';
+      document.getElementById('modal-tpl-id').value = '';
+      document.getElementById('modal-tpl-title').value = '';
+      document.getElementById('modal-tpl-desc').value = '';
+      document.getElementById('modal-tpl-icon').value = 'fa-solid fa-bolt';
+      document.getElementById('modal-tpl-target').value = 10;
+      document.getElementById('modal-tpl-reward').value = 1.0;
+      document.getElementById('modal-tpl-active').checked = true;
+      document.getElementById('modal-tpl-delete-btn').classList.add('hidden');
+
+      initTaskTypeSelect('telegram_messages_session');
+      document.getElementById('template-modal-overlay').classList.add('show');
+    }
+
+    function openEditTemplateModal(idx) {
+      const t = templatesData[idx];
+      if (!t) return;
+
+      document.getElementById('modal-heading').textContent = `Задание #${t.id}`;
+      document.getElementById('modal-tpl-id').value = t.id;
+      document.getElementById('modal-tpl-title').value = t.title;
+      document.getElementById('modal-tpl-desc').value = t.description || '';
+      document.getElementById('modal-tpl-icon').value = t.icon || 'fa-solid fa-bolt';
+      document.getElementById('modal-tpl-target').value = t.target_value;
+      document.getElementById('modal-tpl-reward').value = t.ticket_reward;
+      document.getElementById('modal-tpl-active').checked = !!t.is_active;
+      document.getElementById('modal-tpl-delete-btn').classList.remove('hidden');
+
+      initTaskTypeSelect(t.task_type);
+      document.getElementById('template-modal-overlay').classList.add('show');
+    }
+
+    function closeTemplateModal() {
+      document.getElementById('template-modal-overlay').classList.remove('show');
+    }
+
+    async function submitTemplateModal() {
+      const idVal = document.getElementById('modal-tpl-id').value;
+      const title = document.getElementById('modal-tpl-title').value.trim();
+      if (!title) return alert('Введите заголовок задания');
+
+      const payload = {
+        initData: tg?.initData || '',
+        id: idVal ? parseInt(idVal) : null,
+        title: title,
+        description: document.getElementById('modal-tpl-desc').value.trim(),
+        icon: document.getElementById('modal-tpl-icon').value.trim() || 'fa-solid fa-bolt',
+        task_type: document.getElementById('modal-tpl-task-type').value,
+        target_value: parseInt(document.getElementById('modal-tpl-target').value) || 1,
+        ticket_reward: parseFloat(document.getElementById('modal-tpl-reward').value) || 1.0,
+        is_active: document.getElementById('modal-tpl-active').checked
+      };
+
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/save', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            initData: tg?.initData || '',
-            id: item.id || null,
-            title: item.title,
-            description: item.description,
-            icon: item.icon,
-            task_type: item.task_type,
-            target_value: item.target_value,
-            ticket_reward: item.ticket_reward,
-            is_active: item.is_active
-          })
+          body: JSON.stringify(payload)
         });
         const d = await res.json();
         if (d.status === 'success') {
-          tg?.showAlert ? tg.showAlert('Шаблон сохранен!') : alert('Сохранено!');
+          closeTemplateModal();
           loadTemplates();
         } else {
           alert('Ошибка: ' + d.detail);
         }
       } catch (e) {
-        alert('Ошибка: ' + e.message);
+        alert('Ошибка при сохранении: ' + e.message);
       }
     }
 
-    async function deleteTemplate(id) {
-      if (!confirm('Удалить этот шаблон?')) return;
+    async function submitDeleteTemplate() {
+      const idVal = document.getElementById('modal-tpl-id').value;
+      if (!idVal) return;
+      if (!confirm('Вы уверены, что хотите удалить это задание?')) return;
+
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/delete', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ initData: tg?.initData || '', template_id: id })
+          body: JSON.stringify({ initData: tg?.initData || '', template_id: parseInt(idVal) })
         });
+        closeTemplateModal();
         loadTemplates();
-      } catch(e) {
-        alert(e.message);
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
       }
     }
 
-    // --- 3. ПОИСК И СБРОС ИГРОКУ ---
+    // =========================================================================
+    // 5. СПИСОК АКТИВНЫХ ИГРОКОВ И СБРОС
+    // =========================================================================
     let foundUserId = null;
+
+    async function loadActiveUsers() {
+      const container = document.getElementById('active-users-list');
+      try {
+        const res = await fetch('/api/v1/admin/challenges/active_users', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '' })
+        });
+        const d = await res.json();
+        const users = d.users || [];
+
+        if (users.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#777; font-size:11px; padding:10px 0;">Сегодня еще никто не активировал задания</p>';
+          return;
+        }
+
+        container.innerHTML = users.map(u => {
+          const cur = u.current_value || 0;
+          const target = u.target_value || 1;
+          const pct = Math.min(100, Math.round((cur / target) * 100));
+          const isClaimed = !!u.claimed_at;
+          const isDone = !!u.is_completed || cur >= target;
+
+          let statusBadge = `<span style="color:#aaa; font-size:10px;">⏳ В процессе</span>`;
+          if (isClaimed) {
+            statusBadge = `<span style="color:var(--gold); font-size:10px; font-weight:800;">✅ Забрал</span>`;
+          } else if (isDone) {
+            statusBadge = `<span style="color:var(--green); font-size:10px; font-weight:800;">🎉 Готово</span>`;
+          }
+
+          return `
+            <div class="user-progress-card">
+              <div class="u-card-header">
+                <div>
+                  <span class="u-card-name">${escapeHTML(u.full_name || u.username || ('ID: ' + u.telegram_id))}</span>
+                  <div class="u-card-task">${escapeHTML(u.title || 'Челлендж')} (+${u.reward_amount} 🎟️)</div>
+                </div>
+                <div style="text-align:right;">
+                  ${statusBadge}
+                  <div style="font-size:11px; font-weight:800; font-family:monospace; margin-top:2px;">${cur} / ${target}</div>
+                </div>
+              </div>
+              <div class="u-progress-track">
+                <div class="u-progress-fill" style="width: ${pct}%;"></div>
+              </div>
+              <div class="u-card-actions">
+                <button class="u-action-btn u-action-reset" onclick="quickUserAction(${u.telegram_id}, 'reset_progress')">
+                  <i class="fa-solid fa-rotate-left"></i> Сбросить в 0
+                </button>
+                <button class="u-action-btn u-action-reassign" onclick="quickUserAction(${u.telegram_id}, 'reassign_random')">
+                  <i class="fa-solid fa-dice"></i> Перевыдать
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка загрузки списка: ${e.message}</p>`;
+      }
+    }
 
     async function searchUser() {
       const val = document.getElementById('inp-search-tg').value.trim();
@@ -506,7 +826,12 @@
 
     async function handleUserReset(action) {
       if (!foundUserId) return;
-      if (!confirm(`Выполнить "${action}" для пользователя ${foundUserId}?`)) return;
+      quickUserAction(foundUserId, action);
+    }
+
+    async function quickUserAction(tgId, action) {
+      const actText = action === 'reset_progress' ? 'сбросить прогресс в 0' : 'перевыдать новое задание';
+      if (!confirm(`Вы действительно хотите ${actText} для пользователя ID ${tgId}?`)) return;
 
       try {
         const res = await fetch('/api/v1/admin/challenges/reset_user', {
@@ -514,18 +839,29 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             initData: tg?.initData || '',
-            target_telegram_id: foundUserId,
+            target_telegram_id: tgId,
             action: action
           })
         });
         const d = await res.json();
         if (d.status === 'success') {
           tg?.showAlert ? tg.showAlert(d.message) : alert(d.message);
-          searchUser(); // Перезагружаем карточку
+          if (foundUserId === tgId) searchUser();
+          loadActiveUsers();
+          loadStats();
+        } else {
+          alert('Ошибка: ' + d.detail);
         }
       } catch (e) {
         alert(e.message);
       }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
     }
   </script>
 </body>
