@@ -1382,7 +1382,17 @@
 
             // Награда (по умолчанию билеты tickets)
             const rewType = challengeData.reward_type || 'tickets';
-            const rewAmount = parseFloat(challengeData.reward_amount || 1);
+            
+            // Если reward_amount пустой или 0, пытаемся взять tickets из reward_config
+            let rawRew = challengeData.reward_amount;
+            if (!rawRew && challengeData.reward_config) {
+                const cfg = typeof challengeData.reward_config === 'string' 
+                    ? JSON.parse(challengeData.reward_config) 
+                    : challengeData.reward_config;
+                rawRew = cfg.tickets || cfg.amount;
+            }
+            const rewAmount = parseFloat(rawRew || 1);
+
             const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
             if (dom.challengeRewardVal) {
                 dom.challengeRewardVal.innerHTML = `+${rewAmount} ${rewIcon}`;
