@@ -200,18 +200,18 @@
            5. ТАБЫ (ОБНОВЛЕННЫЕ - 3 Вкладки)
            ========================================== */
         .cs-tabs {
-    display: flex;
-    gap: 4px;
-    background: var(--card-bg);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid var(--card-border);
-    border-radius: 30px;
-    padding: 4px;
-    margin-bottom: 2px;
-    width: 100%;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
+            display: flex;
+            gap: 4px;
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--card-border);
+            border-radius: 30px;
+            padding: 4px;
+            margin-bottom: 2px;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
         .cs-tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
             background: transparent; border: 1px solid transparent; border-radius: 20px;
@@ -291,19 +291,19 @@
            7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ХОЛСТ И ПОЗИЦИИ)
            ========================================== */
         .challenge-card-canvas {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 960 / 410;
-    min-height: 165px;
-    background-image: url(/public/static/pepe_challenge.webp);
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
-    margin-bottom: 3px;
-    border-radius: 20px;
-    overflow: hidden;
-    user-select: none;
-}
+            position: relative;
+            width: 100%;
+            aspect-ratio: 960 / 410;
+            min-height: 165px;
+            background-image: url(/public/static/pepe_challenge.webp);
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin-bottom: 3px;
+            border-radius: 20px;
+            overflow: hidden;
+            user-select: none;
+        }
 
         /* 📍 1. ЗАГОЛОВОК И ПОДЗАГОЛОВОК */
         .canvas-title-group {
@@ -317,7 +317,7 @@
         }
         .canvas-main-title {
             margin: 0;
-            font-size: clamp(9px, 2.6vw, 11.5px); /* Уменьшенный аккуратный шрифт */
+            font-size: clamp(9px, 2.6vw, 11.5px);
             font-weight: 900;
             color: #FFFFFF;
             text-transform: uppercase;
@@ -336,24 +336,24 @@
             position: relative;
             top: -2px;
             left: 0px;
-        } /* ДОБАВЛЕНА ЗАКРЫВАЮЩАЯ СКОБКА */
+        }
 
         /* 📍 2. ТАЙМЕР */
         .canvas-timer-text {
-    position: absolute;
-    top: 12%;
-    right: 5%;
-    width: 14%;
-    height: 11%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(11px, 2.6vw, 15px);
-    font-weight: 800;
-    font-family: monospace;
-    color: #FFFFFF;
-    line-height: 1;
-}
+            position: absolute;
+            top: 12%;
+            right: 5%;
+            width: 14%;
+            height: 11%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(11px, 2.6vw, 15px);
+            font-weight: 800;
+            font-family: monospace;
+            color: #FFFFFF;
+            line-height: 1;
+        }
 
         /* 📍 3. ЦЕНТРАЛЬНАЯ ПЛАШКА ЗАДАНИЯ */
         .canvas-task-box {
@@ -407,8 +407,8 @@
         /* 📍 4. ОКНО НАГРАДЫ */
         .canvas-reward-box {
             position: absolute;
-            top: 63.5%;   /* ⬅️ ДВИГАТЬ ВСЮ НАГРАДУ ВВЕРХ/ВНИЗ */
-            left: 35.5%;  /* ⬅️ ДВИГАТЬ ВСЮ НАГРАДУ ВЛЕВО/ВПРАВО */
+            top: 63.5%;
+            left: 35.5%;
             width: 25.5%;
             height: 24.5%;
             display: flex;
@@ -418,51 +418,51 @@
             gap: 1px;
         }
         .canvas-reward-label {
-    font-size: clamp(7.5px, 2.1vw, 9px);
-    color: rgba(255, 255, 255, 1.65);
-    font-weight: 600;
-    line-height: 1;
-    transform: translate(18px, -5px);
-}
+            font-size: clamp(7.5px, 2.1vw, 9px);
+            color: rgba(255, 255, 255, 1.65);
+            font-weight: 600;
+            line-height: 1;
+            transform: translate(18px, -5px);
+        }
         .canvas-reward-val {
-    font-size: clamp(12px, 3.4vw, 15px);
-    font-weight: 900;
-    color: #FFD700;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    line-height: 1;
-    transform: translate(16px, 0px);
-}
+            font-size: clamp(12px, 3.4vw, 15px);
+            font-weight: 900;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1;
+            transform: translate(16px, 0px);
+        }
 
         /* 📍 5. КНОПКА */
         #claim-challenge-btn {
-    position: absolute !important;
-    top: 63.5% !important;
-    right: 2.2% !important;
-    width: 34% !important;
-    height: 24.5% !important;
-    border: none !important;
-    background: transparent !important;
-    border-radius: 999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    color: #140f02 !important;
-    font-family: 'Inter', sans-serif !important;
-    font-size: clamp(9px, 2.7vw, 11.5px) !important;
-    font-weight: 900 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.4px !important;
-    cursor: pointer !important;
-    line-height: 1 !important;
-    box-shadow: none !important;
-    outline: none !important;
-    z-index: 10 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
+            position: absolute !important;
+            top: 62.5% !important;
+            right: 2.2% !important;
+            width: 34% !important;
+            height: 24.5% !important;
+            border: none !important;
+            background: transparent !important;
+            border-radius: 999px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            color: #140f02 !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: clamp(9px, 2.7vw, 11.5px) !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.4px !important;
+            cursor: pointer !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            z-index: 10 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
         #claim-challenge-btn i {
             font-size: clamp(9px, 2.7vw, 11px) !important;
@@ -812,12 +812,10 @@
             color: var(--text-dark); font-size: 10px; font-weight: 800; padding: 10px; border-radius: 8px; cursor: pointer;
         }
 
-        
-
         /* ==========================================
            12. СТИЛИ LIQUID GLASS, ПРОГРЕСС-БАРОВ И МОДАЛКИ 1в1
            ========================================== */
-        .info-link- inline, .task-info-trigger {
+        .task-info-trigger {
             color: #0a84ff;
             cursor: pointer;
             text-decoration: underline;
@@ -1963,7 +1961,7 @@
         };
 
         window.openConstructorModal = function(forceModal = false) {
-            // Если контракт уже активен — при клике на конструктор сразу открываем страницу «Активное»
+            // Если контракт уже активен — при клике на конструктор сразу открываем вкладку «Активное»
             if (isContractActive && !forceModal) {
                 switchMainTab('contract');
                 return;
@@ -2245,7 +2243,7 @@
                 dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
             }
 
-            // Обновляем карточку конструктора на главной вкладке, чтобы было видно что контракт в работе
+            // Обновляем карточку конструктора на главной вкладке, чтобы при клике открывалась вкладка «Активное»
             const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
             const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
             if (constructorTitleEl) constructorTitleEl.textContent = "КОНТРАКТ В РАБОТЕ";
@@ -2254,150 +2252,10 @@
             // Включаем 2 вкладку "Активное" (Контракт)
             if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
 
-            // Отрисовываем выбранные задания с прогресс-барами
+            // Отрисовываем выбранные задания с прогресс-барами во вкладке «Активное»
             renderActiveContractUI();
 
-            // Сразу перекидываем пользователя на эту вкладку
-            switchMainTab('contract');
-
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        };
-
-        window.selectChip = function(key, index) {
-            const config = constructorConfig[key];
-            if (!config) return;
-            config.selectedIdx = index;
-
-            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
-            if (rowEl) {
-                const chips = rowEl.querySelectorAll('.target-chip');
-                chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
-            }
-
-            // Если задание было выключено — автоматически включаем его при выборе значения
-            if (!config.enabled) {
-                toggleConstructorRow(key, true);
-                return;
-            }
-
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            recalcConstructorTotal();
-        };
-
-        window.toggleConstructorRow = function(key, isEnabled) {
-            const config = constructorConfig[key];
-            if (!config) return;
-            config.enabled = isEnabled;
-
-            const rowId = key.replace('_', '-');
-            const rowEl = document.getElementById(`row-${rowId}`);
-            const statusText = document.getElementById(`status-${rowId}`);
-
-            if (rowEl) {
-                rowEl.classList.toggle('row-disabled', !isEnabled);
-                const checkbox = rowEl.querySelector('input[type="checkbox"]');
-                if (checkbox && checkbox.checked !== isEnabled) {
-                    checkbox.checked = isEnabled;
-                }
-            }
-            if (statusText) {
-                statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
-                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            recalcConstructorTotal();
-        };
-
-        function recalcConstructorTotal() {
-            let total = 0; 
-            let anyEnabled = false;
-            Object.values(constructorConfig).forEach(slot => {
-                if (slot.enabled) {
-                    anyEnabled = true;
-                    total += slot.rewardOptions[slot.selectedIdx];
-                }
-            });
-            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
-            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
-        }
-
-        function renderActiveContractUI() {
-            const container = document.getElementById('active-contract-list');
-            if(!container) return;
-            container.innerHTML = '';
-            
-            let totalRew = 0;
-            Object.keys(constructorConfig).forEach(key => {
-                const slot = constructorConfig[key];
-                if(slot.enabled) {
-                    const rew = slot.rewardOptions[slot.selectedIdx];
-                    totalRew += rew;
-                    
-                    let title = ""; let icon = ""; let targetText = "";
-                    
-                    if(key === 'twitch_chat') { 
-                        title = "Twitch Чат"; icon = "fa-brands fa-twitch"; 
-                        targetText = ["25 сообщений", "50 сообщений", "100 сообщений"][slot.selectedIdx];
-                    }
-                    if(key === 'twitch_uptime') { 
-                        title = "Стрим (Время)"; icon = "fa-solid fa-play"; 
-                        targetText = ["30 мин", "60 мин", "120 мин"][slot.selectedIdx];
-                    }
-                    if(key === 'telegram_chat') { 
-                        title = "Telegram Чат"; icon = "fa-brands fa-telegram"; 
-                        targetText = ["15 сообщений", "30 сообщений", "60 сообщений"][slot.selectedIdx];
-                    }
-                    if(key === 'personal_quest') { 
-                        title = "Персональный квест"; icon = "fa-solid fa-crosshairs"; 
-                        targetText = ["10 кейсов", "50 слов", "3 друга"][slot.selectedIdx];
-                    }
-
-                    container.innerHTML += `
-                        <div class="manual-quest-card">
-                            <div class="manual-quest-head">
-                                <div class="manual-quest-icon"><i class="${icon}"></i></div>
-                                <div class="manual-quest-info">
-                                    <h3 class="manual-quest-title">${title}</h3>
-                                    <p class="manual-quest-desc">Цель: ${targetText}</p>
-                                </div>
-                            </div>
-                            <div class="manual-quest-footer">
-                                <div class="manual-reward-pill">+${rew} <i class="fa-solid fa-ticket"></i></div>
-                                <div class="manual-actions-wrap">
-                                    <button class="perform-quest-button" style="background: rgba(255,255,255,0.1); color: var(--gold-primary); pointer-events:none; box-shadow: none;">В ПРОЦЕССЕ</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-
-            container.innerHTML += `
-                <div class="premium-card" style="margin-top: 10px; padding: 16px; text-align: center; border-color: var(--card-border-gold); background: rgba(212, 175, 55, 0.05);">
-                    <div style="font-size: 10px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; font-weight:700;">Общая награда контракта</div>
-                    <div style="font-size: 22px; font-weight: 900; color: var(--gold-primary);">+${totalRew} <i class="fa-solid fa-ticket"></i></div>
-                </div>
-            `;
-        }
-
-        window.submitConstructorContract = function() {
-            let activeSlots = 0;
-            Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
-            if (activeSlots === 0) return;
-
-            closeConstructorModal();
-            customAlert("Сложный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
-            if (dom.weeklyLimitCount) {
-                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
-            }
-            
-            // Включаем 2 вкладку "Активное" (Контракт)
-            if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
-            
-            // Отрисовываем выбранные задания
-            renderActiveContractUI();
-            
-            // Сразу перекидываем пользователя на эту вкладку
+            // Сразу перекидываем пользователя на вкладку «Активное»
             switchMainTab('contract');
 
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -2487,6 +2345,8 @@
             if (window.Telegram?.WebApp?.BackButton) {
                 Telegram.WebApp.BackButton.show();
                 Telegram.WebApp.BackButton.onClick(() => {
+                    const infoModal = document.getElementById('tg-task-info-modal');
+                    if (infoModal?.classList.contains('visible')) { closeTgTaskInfoModal(); return; }
                     if (dom.constructorModalOverlay?.classList.contains('show')) { closeConstructorModal(); return; }
                     if (dom.promptOverlay?.classList.contains('show')) { closePromptModal(); return; }
                     if (dom.scheduleModal?.classList.contains('show')) { dom.scheduleModal.classList.remove('show'); return; }
