@@ -812,6 +812,221 @@
             color: var(--text-dark); font-size: 10px; font-weight: 800; padding: 10px; border-radius: 8px; cursor: pointer;
         }
 
+        
+
+        /* ==========================================
+           12. СТИЛИ LIQUID GLASS, ПРОГРЕСС-БАРОВ И МОДАЛКИ 1в1
+           ========================================== */
+        .info-link- inline, .task-info-trigger {
+            color: #0a84ff;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 4px;
+            font-size: 9.5px;
+            font-weight: 700;
+            white-space: nowrap;
+            line-height: 1.2;
+            pointer-events: auto;
+        }
+        .task-info-trigger:active { opacity: 0.7; }
+
+        /* Liquid Glass карточка для активных заданий */
+        .glass-card-contract {
+            background: rgba(20, 20, 22, 0.55);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            padding: 12px 14px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .glass-card-contract.summary-card {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.08) 0%, rgba(20, 20, 22, 0.65) 100%);
+            border-color: rgba(255, 215, 0, 0.28);
+        }
+
+        .contract-task-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            width: 100%;
+        }
+        .contract-task-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .contract-task-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .contract-task-top-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .contract-task-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.1;
+        }
+        .contract-ext-link {
+            font-size: 9px;
+            color: #0a84ff;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-weight: 800;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .contract-task-desc {
+            font-size: 10px;
+            color: #d1d1d6;
+            line-height: 1.3;
+            font-weight: 500;
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            column-gap: 4px;
+        }
+
+        /* Красивый прогресс-бар */
+        .contract-progress-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+        .contract-progress-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9.5px;
+            font-weight: 700;
+        }
+        .contract-progress-status {
+            color: #8e8e93;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .contract-progress-nums {
+            font-family: 'SF Mono', monospace;
+            font-weight: 900;
+            color: #ffffff;
+            font-size: 10px;
+        }
+        .contract-progress-track {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .contract-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #F9D877 0%, #FFD700 100%);
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
+            transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Кнопки и модалка 1в1 со второй страницы */
+        .premium-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        .premium-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(255, 255, 255, 0.1); }
+        .premium-btn.active-state {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+        }
+        .premium-btn.task-claim-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #FFD700;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 100010;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .bottom-sheet {
+            background: rgba(20, 20, 22, 0.4);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 320px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            text-align: left;
+            padding: 20px 18px;
+        }
+        .tour-close-btn {
+            background: none;
+            border: none;
+            color: #8e8e93;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .tour-close-btn:active { color: #fff; }
+
         .hidden { display: none !important; }
 
         /* Лоадер */
@@ -1078,7 +1293,7 @@
     <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
         <div class="cs-modal-card large-modal">
             <div class="modal-head">
-                <h2>КОНСТРУКТОР ЗАДАНИЙ</h2>
+                <h2>КОНСТРУКТОР КОНТРАКТА</h2>
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
@@ -1090,7 +1305,7 @@
                             <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
                             <div class="c-titles">
                                 <b>Twitch Чат</b>
-                                <span>Сообщений в чате</span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_chat')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1115,7 +1330,7 @@
                             <div class="c-icon"><i class="fa-solid fa-play"></i></div>
                             <div class="c-titles">
                                 <b>Стрим</b>
-                                <span>Время просмотра</span>
+                                <span>Время просмотра <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_uptime')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1140,7 +1355,7 @@
                             <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
                             <div class="c-titles">
                                 <b>Telegram Чат</b>
-                                <span>Сообщений в чате</span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('telegram_chat')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1165,7 +1380,7 @@
                             <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
                             <div class="c-titles">
                                 <b>Персональный</b>
-                                <span>Игровая цель</span>
+                                <span>Игровая цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('personal_quest')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1191,6 +1406,26 @@
                 </div>
                 <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
             </div>
+        </div>
+    </div>
+
+    <!-- === МОДАЛКА ПОДРОБНОСТЕЙ ЗАДАНИЯ (1в1 КАК В ГРИНДЕ) === -->
+    <div id="tg-task-info-modal" class="modal-overlay" onclick="if(event.target===this) closeTgTaskInfoModal()">
+        <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px 18px; text-align: left;">
+            <!-- Шапка -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i id="tg-info-icon" class="fa-solid fa-circle-info" style="color: var(--gold-primary); font-size: 15px;"></i>
+                    <h3 id="tg-info-title" style="margin: 0; font-size: 14px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">О задании</h3>
+                </div>
+                <button class="tour-close-btn" onclick="closeTgTaskInfoModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Чистые строки без рамок и фонов -->
+            <div id="tg-info-content" style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px;"></div>
+
+            <!-- Кнопка ПОНЯТНО -->
+            <button class="premium-btn active-state" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
         </div>
     </div>
 
@@ -1668,15 +1903,364 @@
         };
 
         // ==========================================
-        // 6. КОНСТРУКТОР + ВЫВОД АКТИВНОГО
+        // 6. КОНСТРУКТОР + ВЫВОД АКТИВНОГО + ПОДРОБНЕЕ (1в1)
         // ==========================================
-        window.openConstructorModal = function() {
+        let isContractActive = false;
+
+        const SLOT_DETAILS = {
+            twitch_chat: {
+                title: "Twitch Чат",
+                icon: "fa-brands fa-twitch",
+                color: "#a970ff",
+                targets: [25, 50, 100],
+                targetLabels: ["25 сообщений", "50 сообщений", "100 сообщений"],
+                unit: "сообщений",
+                linkUrl: "https://www.twitch.tv/hatelove_ttv",
+                linkText: "Открыть чат",
+                isTelegramLink: false,
+                howTo: "Пишите осмысленные сообщения в чате канала на Twitch",
+                checkType: "Автоматически ботом"
+            },
+            twitch_uptime: {
+                title: "Просмотр стрима",
+                icon: "fa-solid fa-play",
+                color: "#ff3b30",
+                targets: [30, 60, 120],
+                targetLabels: ["30 минут", "60 минут", "120 минут"],
+                unit: "мин.",
+                linkUrl: "https://www.twitch.tv/hatelove_ttv",
+                linkText: "На стрим",
+                isTelegramLink: false,
+                howTo: "Присутствуйте на активной трансляции с привязанным аккаунтом",
+                checkType: "Каждую минуту на эфире"
+            },
+            telegram_chat: {
+                title: "Telegram Чат",
+                icon: "fa-brands fa-telegram",
+                color: "#2AABEE",
+                targets: [15, 30, 60],
+                targetLabels: ["15 сообщений", "30 сообщений", "60 сообщений"],
+                unit: "сообщений",
+                linkUrl: "https://t.me/hatelove_ttv",
+                linkText: "Открыть чат",
+                isTelegramLink: true,
+                howTo: "Общайтесь с участниками в нашем Telegram-чате",
+                checkType: "Мгновенно ботом"
+            },
+            personal_quest: {
+                title: "Персональный квест",
+                icon: "fa-solid fa-crosshairs",
+                color: "#FFD700",
+                targets: [10, 50, 3],
+                targetLabels: ["10 кейсов", "50 слов", "3 друга"],
+                unit: "ед.",
+                linkUrl: "",
+                linkText: "",
+                isTelegramLink: false,
+                howTo: "Выполните выбранную личную цель в экосистеме приложения",
+                checkType: "Автоматически системой"
+            }
+        };
+
+        window.openConstructorModal = function(forceModal = false) {
+            // Если контракт уже активен — при клике на конструктор сразу открываем страницу «Активное»
+            if (isContractActive && !forceModal) {
+                switchMainTab('contract');
+                return;
+            }
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
         };
 
         window.closeConstructorModal = function() {
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
+        };
+
+        // Модалка «Подробнее» 1в1 как на странице Бонусов и Наград
+        window.openTgTaskInfoModal = function(key) {
+            const modal = document.getElementById('tg-task-info-modal');
+            if (!modal) return;
+
+            const titleEl = document.getElementById('tg-info-title');
+            const iconEl = document.getElementById('tg-info-icon');
+            const contentEl = document.getElementById('tg-info-content');
+
+            if (key === 'contract_general') {
+                let activeCount = 0;
+                let totalRew = 0;
+                Object.keys(constructorConfig).forEach(k => {
+                    const s = constructorConfig[k];
+                    if (s.enabled) {
+                        activeCount++;
+                        totalRew += s.rewardOptions[s.selectedIdx];
+                    }
+                });
+
+                if (titleEl) titleEl.textContent = "Активный контракт";
+                if (iconEl) {
+                    iconEl.className = "fa-solid fa-file-signature";
+                    iconEl.style.color = "#FFD700";
+                }
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Выбрано заданий:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">${activeCount} шт.</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Итоговая награда:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">+${totalRew} 🎟️</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Выплата билетов:</span>
+                            <span style="color: #34c759; font-weight: 800;">При 100% выполнении</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Лимит контрактов:</span>
+                            <span style="color: #ffffff; font-weight: 700;">До 5 в неделю</span>
+                        </div>
+                    `;
+                }
+            } else {
+                const slot = constructorConfig[key];
+                const meta = SLOT_DETAILS[key];
+                if (!slot || !meta) return;
+
+                const targetLabel = meta.targetLabels[slot.selectedIdx];
+                const rew = slot.rewardOptions[slot.selectedIdx];
+                const cur = slot.currentProgress || 0;
+                const targetNum = meta.targets[slot.selectedIdx];
+
+                if (titleEl) titleEl.textContent = meta.title;
+                if (iconEl) {
+                    iconEl.className = meta.icon;
+                    iconEl.style.color = meta.color;
+                }
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Выбранная цель:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">${targetLabel}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Награда слота:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">+${rew} 🎟️</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Текущий прогресс:</span>
+                            <span style="color: #ffffff; font-weight: 800; font-family: 'SF Mono', monospace;">${cur} / ${targetNum}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Проверка:</span>
+                            <span style="color: #34c759; font-weight: 800;">${meta.checkType}</span>
+                        </div>
+                        <div style="font-size: 10px; color: #b0b0b8; line-height: 1.35; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
+                            ${meta.howTo}
+                        </div>
+                    `;
+                }
+            }
+
+            modal.classList.add('visible');
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
+
+        window.closeTgTaskInfoModal = function() {
+            const modal = document.getElementById('tg-task-info-modal');
+            if (modal) modal.classList.remove('visible');
+        };
+
+        window.selectChip = function(key, index) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.selectedIdx = index;
+
+            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+            if (rowEl) {
+                const chips = rowEl.querySelectorAll('.target-chip');
+                chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
+            }
+
+            // Если задание было выключено — автоматически включаем его при выборе значения
+            if (!config.enabled) {
+                toggleConstructorRow(key, true);
+                return;
+            }
+
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
+
+        window.toggleConstructorRow = function(key, isEnabled) {
+            const config = constructorConfig[key];
+            if (!config) return;
+            config.enabled = isEnabled;
+
+            const rowId = key.replace('_', '-');
+            const rowEl = document.getElementById(`row-${rowId}`);
+            const statusText = document.getElementById(`status-${rowId}`);
+
+            if (rowEl) {
+                rowEl.classList.toggle('row-disabled', !isEnabled);
+                const checkbox = rowEl.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked !== isEnabled) {
+                    checkbox.checked = isEnabled;
+                }
+            }
+            if (statusText) {
+                statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
+                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            recalcConstructorTotal();
+        };
+
+        function recalcConstructorTotal() {
+            let total = 0; 
+            let anyEnabled = false;
+            Object.values(constructorConfig).forEach(slot => {
+                if (slot.enabled) {
+                    anyEnabled = true;
+                    total += slot.rewardOptions[slot.selectedIdx];
+                }
+            });
+            if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
+            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
+        }
+
+        function renderActiveContractUI() {
+            const container = document.getElementById('active-contract-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let totalRew = 0;
+            let activeTasksCount = 0;
+            let completedTasksCount = 0;
+            let totalPctSum = 0;
+            let cardsHtml = '';
+
+            Object.keys(constructorConfig).forEach(key => {
+                const slot = constructorConfig[key];
+                const meta = SLOT_DETAILS[key];
+                if (slot.enabled && meta) {
+                    activeTasksCount++;
+                    const rew = slot.rewardOptions[slot.selectedIdx];
+                    totalRew += rew;
+
+                    const targetVal = meta.targets[slot.selectedIdx];
+                    const targetLabel = meta.targetLabels[slot.selectedIdx];
+                    const curVal = slot.currentProgress || 0;
+                    const pct = Math.min(100, Math.floor((curVal / targetVal) * 100));
+                    totalPctSum += pct;
+                    if (pct >= 100) completedTasksCount++;
+
+                    let actionLinkHtml = '';
+                    if (meta.linkUrl) {
+                        const openCall = meta.isTelegramLink
+                            ? `if(window.Telegram?.WebApp) Telegram.WebApp.openTelegramLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`
+                            : `if(window.Telegram?.WebApp) Telegram.WebApp.openLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`;
+                        actionLinkHtml = `<span class="contract-ext-link" onclick="${openCall}">${meta.linkText} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
+                    }
+
+                    cardsHtml += `
+                        <div class="glass-card-contract">
+                            <div class="contract-task-header">
+                                <div class="contract-task-icon" style="color: ${meta.color}; text-shadow: 0 0 10px ${meta.color}80;">
+                                    <i class="${meta.icon}"></i>
+                                </div>
+                                <div class="contract-task-text">
+                                    <div class="contract-task-top-line">
+                                        <span class="contract-task-title">${meta.title}</span>
+                                        ${actionLinkHtml}
+                                    </div>
+                                    <div class="contract-task-desc">
+                                        <span>Цель: <b style="color:#fff;">${targetLabel}</b> • Награда: <b style="color:var(--gold-primary);">+${rew} 🎟️</b></span>
+                                        <span class="task-info-trigger" onclick="openTgTaskInfoModal('${key}')">(подробнее)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="contract-progress-wrap">
+                                <div class="contract-progress-meta">
+                                    <span class="contract-progress-status">
+                                        <i class="fa-solid ${pct >= 100 ? 'fa-circle-check' : 'fa-spinner fa-spin'}" style="color: ${pct >= 100 ? '#34c759' : 'var(--gold-primary)'}; font-size: 9px;"></i>
+                                        ${pct >= 100 ? 'Выполнено' : 'В процессе выполнения'}
+                                    </span>
+                                    <span class="contract-progress-nums">${curVal} / ${targetVal} (${pct}%)</span>
+                                </div>
+                                <div class="contract-progress-track">
+                                    <div class="contract-progress-fill" style="width: ${pct}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            const overallPct = activeTasksCount > 0 ? Math.floor(totalPctSum / activeTasksCount) : 0;
+
+            const summaryHtml = `
+                <div class="glass-card-contract summary-card">
+                    <div class="contract-task-header">
+                        <div class="contract-task-icon" style="color: var(--gold-primary); border-color: rgba(255,215,0,0.3); text-shadow: 0 0 10px rgba(255,215,0,0.5);">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div class="contract-task-text">
+                            <div class="contract-task-top-line">
+                                <span class="contract-task-title">Сводка контракта</span>
+                                <span style="font-size: 12px; font-weight: 900; color: var(--gold-primary); font-family: 'SF Mono', monospace;">+${totalRew} <i class="fa-solid fa-ticket"></i></span>
+                            </div>
+                            <div class="contract-task-desc">
+                                <span>Заданий закрыто: <b style="color:#fff;">${completedTasksCount} из ${activeTasksCount}</b></span>
+                                <span class="task-info-trigger" onclick="openTgTaskInfoModal('contract_general')">(подробнее)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="contract-progress-wrap">
+                        <div class="contract-progress-meta">
+                            <span class="contract-progress-status">Общий прогресс контракта</span>
+                            <span class="contract-progress-nums" style="color: var(--gold-primary);">${overallPct}%</span>
+                        </div>
+                        <div class="contract-progress-track">
+                            <div class="contract-progress-fill" style="width: ${overallPct}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = summaryHtml + cardsHtml;
+        }
+
+        window.submitConstructorContract = function() {
+            let activeSlots = 0;
+            Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
+            if (activeSlots === 0) return;
+
+            isContractActive = true;
+            closeConstructorModal();
+            customAlert("Сложный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
+
+            if (dom.weeklyLimitCount) {
+                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
+            }
+
+            // Обновляем карточку конструктора на главной вкладке, чтобы было видно что контракт в работе
+            const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
+            const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
+            if (constructorTitleEl) constructorTitleEl.textContent = "КОНТРАКТ В РАБОТЕ";
+            if (constructorDescEl) constructorDescEl.textContent = "Нажми, чтобы открыть прогресс активных заданий";
+
+            // Включаем 2 вкладку "Активное" (Контракт)
+            if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
+
+            // Отрисовываем выбранные задания с прогресс-барами
+            renderActiveContractUI();
+
+            // Сразу перекидываем пользователя на эту вкладку
+            switchMainTab('contract');
+
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         };
 
         window.selectChip = function(key, index) {
