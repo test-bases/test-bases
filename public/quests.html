@@ -687,48 +687,90 @@
         
         .cs-modal-card.large-modal { 
             width: 100%; max-width: 380px; 
-            background: var(--card-bg); border: 1px solid var(--card-border-gold); 
-            border-radius: var(--radius-xl); box-shadow: 0 10px 50px rgba(0,0,0,0.8); 
-            display: flex; flex-direction: column; max-height: 90vh;
+            background: rgba(14, 14, 18, 0.96); border: 1px solid var(--card-border-gold); 
+            border-radius: var(--radius-xl); box-shadow: 0 12px 50px rgba(0,0,0,0.85); 
+            display: flex; flex-direction: column; max-height: 96vh; overflow: hidden;
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
         }
 
-        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; }
-        .close-btn { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 0;}
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: 0.5px; color: var(--gold-primary); }
+        .close-btn { background: rgba(255,255,255,0.06); border: none; color: #fff; width: 24px; height: 24px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; padding: 0; }
 
-        .constructor-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+        .constructor-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; flex: 1; }
 
-        .c-row { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 10px; transition: 0.3s; }
-        .c-row.row-disabled { opacity: 0.5; }
-        .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;}
-        .c-icon { width: 30px; height: 30px; flex-shrink: 0; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;}
-        .c-titles { display: flex; flex-direction: column; gap: 2px; overflow: hidden;}
-        .c-titles b { font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;}
-        .c-titles span { font-size: 9px; color: var(--text-dim); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.9;}
-
-        .c-toggle-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;}
-        .ios-switch { position: relative; display: inline-block; width: 34px; height: 20px; }
-        .ios-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--gold-primary); }
-        input:checked + .slider:before { transform: translateX(14px); background-color: #000; }
-        .toggle-lbl { font-size: 8px; font-weight: 800; color: #fff; opacity: 0.9; }
-
-        .chips-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .target-chip { 
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); 
-            border-radius: var(--radius-md); padding: 8px 0; display: flex; 
-            flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
-            cursor: pointer; transition: 0.2s; color: #fff; 
+        .c-row { 
+            background: linear-gradient(145deg, rgba(212, 175, 55, 0.1) 0%, rgba(20, 20, 24, 0.95) 100%); 
+            border: 1px solid rgba(255, 215, 0, 0.35); 
+            border-radius: 12px; padding: 7px 10px; 
+            transition: all 0.22s ease; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 215, 0, 0.12);
         }
-        .target-chip.active { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.5); box-shadow: inset 0 0 10px rgba(212,175,55,0.1); }
-        .target-chip .val { font-size: 10px; font-weight: 800; text-align: center; line-height: 1.1;}
-        .target-chip .rew { font-size: 9px; font-weight: 700; color: var(--gold-primary); display: flex; align-items: center; gap: 2px; }
+        .c-row.row-disabled { 
+            background: rgba(255, 255, 255, 0.02); 
+            border-color: rgba(255, 255, 255, 0.07); 
+            box-shadow: none;
+        }
+        .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+        .c-icon { 
+            width: 26px; height: 26px; flex-shrink: 0; 
+            background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.4); 
+            border-radius: 7px; display: flex; align-items: center; justify-content: center; 
+            font-size: 11px; color: var(--gold-primary); transition: 0.2s;
+        }
+        .c-row.row-disabled .c-icon {
+            background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.45);
+        }
+        .c-titles { display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+        .c-titles b { font-size: 11px; line-height: 1.1; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; transition: 0.2s; }
+        .c-row.row-disabled .c-titles b { color: rgba(255, 255, 255, 0.7); }
+        .c-titles span { font-size: 9px; line-height: 1.1; color: rgba(255, 255, 255, 0.5); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 
-        .modal-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
+        .c-toggle-block { display: flex; flex-direction: row-reverse; align-items: center; gap: 6px; flex-shrink: 0; }
+        .ios-switch { position: relative; display: inline-block; width: 32px; height: 18px; }
+        .ios-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .25s; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: rgba(255,255,255,0.7); transition: .25s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold-primary); border-color: var(--gold-primary); box-shadow: 0 0 8px rgba(255, 215, 0, 0.35); }
+        input:checked + .slider:before { transform: translateX(14px); background-color: #140f02; }
+        .toggle-lbl { font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.4); letter-spacing: 0.3px; }
+
+        .chips-3 { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; 
+            background: rgba(0, 0, 0, 0.55); padding: 3px; 
+            border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .target-chip { 
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 7px; padding: 5px 4px; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center; gap: 3px; 
+            cursor: pointer; transition: all 0.18s ease; color: #fff; 
+        }
+        .target-chip:active { transform: scale(0.96); }
+        .target-chip .val { font-size: 10.5px; font-weight: 800; color: rgba(255,255,255,0.75); text-align: center; line-height: 1; transition: 0.18s; }
+        .target-chip .rew { 
+            font-size: 8.5px; font-weight: 800; color: var(--gold-primary); 
+            background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 1.5px 6px; border-radius: 99px;
+            display: flex; align-items: center; gap: 3px; line-height: 1; transition: 0.18s;
+        }
+
+        /* Активный чип подсвечивается только когда включено само задание */
+        .c-row:not(.row-disabled) .target-chip.active { 
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.22) 0%, rgba(212, 175, 55, 0.08) 100%); 
+            border-color: var(--gold-primary); 
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2); 
+        }
+        .c-row:not(.row-disabled) .target-chip.active .val { 
+            color: #FFFFFF; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); 
+        }
+        .c-row:not(.row-disabled) .target-chip.active .rew { 
+            background: var(--gold-grad); color: #140f02; border-color: transparent;
+            box-shadow: 0 1px 5px rgba(255, 215, 0, 0.35);
+        }
+
+        .modal-footer { padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
         .sum-box { display: flex; flex-direction: column; gap: 4px; }
         .sum-box span { font-size: 9px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; opacity: 0.9;}
         .sum-val { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
@@ -1641,11 +1683,19 @@
             const config = constructorConfig[key];
             if (!config) return;
             config.selectedIdx = index;
+
             const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
             if (rowEl) {
                 const chips = rowEl.querySelectorAll('.target-chip');
                 chips.forEach((c, idx) => c.classList.toggle('active', idx === index));
             }
+
+            // Если задание было выключено — автоматически включаем его при выборе значения
+            if (!config.enabled) {
+                toggleConstructorRow(key, true);
+                return;
+            }
+
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
             recalcConstructorTotal();
         };
@@ -1654,12 +1704,21 @@
             const config = constructorConfig[key];
             if (!config) return;
             config.enabled = isEnabled;
-            const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
-            const statusText = document.getElementById(`status-${key.replace('_', '-')}`);
-            if (rowEl) rowEl.classList.toggle('row-disabled', !isEnabled);
+
+            const rowId = key.replace('_', '-');
+            const rowEl = document.getElementById(`row-${rowId}`);
+            const statusText = document.getElementById(`status-${rowId}`);
+
+            if (rowEl) {
+                rowEl.classList.toggle('row-disabled', !isEnabled);
+                const checkbox = rowEl.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked !== isEnabled) {
+                    checkbox.checked = isEnabled;
+                }
+            }
             if (statusText) {
                 statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
-                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'var(--text-dim)';
+                statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
             }
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
             recalcConstructorTotal();
