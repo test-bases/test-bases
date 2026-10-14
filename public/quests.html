@@ -2137,7 +2137,7 @@
             let totalPctSum = 0;
             let cardsHtml = '';
 
-            Object.keys(constructorConfig).forEach(key => {
+            ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
                 const slot = constructorConfig[key];
                 const meta = SLOT_DETAILS[key];
                 if (slot.enabled && meta) {
