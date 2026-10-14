@@ -27507,30 +27507,102 @@ async def remind_raffle_bott(
     url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{req.raffle_id}"
     post_img = s.get('prize_image') or s.get('card_image')
     parts_cnt = raffle.get('participants_count', 0)
-    button_title = f"Участвовать 🎲 ({parts_cnt})"
+    clean_btn_name = f"Участвовать ({parts_cnt})"
 
-    # 4. Отправляем в Bot-T
-    bott_data = await publish_bott_raffle_mailing(
-        text=txt,
-        image_url=post_img,
-        button_url=url_btn,
-        button_text=button_title
-    )
+    # 4. Отправляем в Bot-T по рабочей схеме через шаблон #7529886
+    TEMPLATE_MESSAGE_ID = 7529886
+    auth = get_bott_auth_payload()
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-    if not bott_data:
-        raise HTTPException(
-            status_code=400,
-            detail="Bot-T отклонил рассылку (проверь логи сервера: возможно, уже идет другая рассылка или лимит API)"
+    mailing_id = None
+    message_id = None
+
+    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=25.0, follow_redirects=True, headers=headers) as client:
+        # ШАГ А: Создаем рассылку из шаблона с картинкой
+        create_resp = await client.post(
+            "/v1/bot/mailing/mailing/create-from-message",
+            json={**auth, "message_id": int(TEMPLATE_MESSAGE_ID)}
         )
+        c_res = create_resp.json()
+        if not c_res.get("result"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Bot-T ошибка создания рассылки: {c_res.get('message')}"
+            )
+
+        mailing_id = c_res["data"]["id"]
+        message_id = c_res["data"]["message"]["id"]
+        print(f"📦 Bot-T Remind: Рассылка #{mailing_id} создана из шаблона #{TEMPLATE_MESSAGE_ID}, message_id: {message_id}")
+
+        # ШАГ Б: Обновляем текст (подпись к картинке)
+        upd_text_resp = await client.post(
+            "/v1/bot/mailing/mailing/update-text",
+            json={**auth, "id": mailing_id, "text": txt}
+        )
+        if not upd_text_resp.json().get("result"):
+            print(f"⚠️ Bot-T ошибка обновления текста: {upd_text_resp.text}")
+
+        # ШАГ В: Инициализируем inline-меню
+        menu_id = None
+        try:
+            menu_init_resp = await client.post(
+                "/v1/bot/messagenew/message/add-inline-menu",
+                json={**auth, "message_id": int(message_id)}
+            )
+            if menu_init_resp.status_code == 200:
+                m_data = menu_init_resp.json()
+                menu_obj = m_data.get("data", {}).get("menu") or {}
+                menu_id = menu_obj.get("id")
+                print(f"🎯 Bot-T Remind: Инициализировано inline-меню ID: {menu_id}")
+        except Exception as e_menu:
+            print(f"❌ Bot-T ошибка вызова add-inline-menu: {e_menu}")
+
+        # ШАГ Г: Привязываем URL-кнопку перехода в Mini App (type: 0)
+        try:
+            btn_payload = {
+                **auth,
+                "menu_id": int(menu_id) if menu_id else int(message_id),
+                "type": 0,
+                "text": clean_btn_name,
+                "action": str(url_btn),
+                "link": str(url_btn),
+                "name": clean_btn_name,
+                "url": str(url_btn)
+            }
+            btn_resp = await client.post(
+                "/v1/bot/keyboard/inline-new/add-button-with-line",
+                json=btn_payload
+            )
+            if btn_resp.status_code == 200 and btn_resp.json().get("result"):
+                print(f"🔘 Bot-T Button OK: кнопка-ссылка '{clean_btn_name}' привязана к меню #{menu_id}!")
+            else:
+                print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
+        except Exception as e_btn:
+            print(f"⚠️ Bot-T ошибка запроса кнопки: {e_btn}")
+
+        # ШАГ Д: Запускаем рассылку на всех пользователей бота
+        start_resp = await client.post(
+            "/v1/bot/mailing/mailing/start",
+            json={**auth, "id": mailing_id}
+        )
+        s_res = start_resp.json()
+        if not s_res.get("result"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Bot-T отклонил запуск рассылки: {s_res.get('message')}"
+            )
+
+        print(f"🚀 Bot-T Remind: Рассылка #{mailing_id} успешно запущена!")
 
     # 5. Сохраняем свежий ID рассылки в БД
-    s['bott_mailing_id'] = bott_data.get('id')
-    s['bott_message_id'] = bott_data.get('message', {}).get('id')
+    s['bott_mailing_id'] = mailing_id
+    s['bott_message_id'] = message_id
+    s['bott_image_link'] = "rozygrysh.jpg"
     await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
 
     return {
         "status": "success",
-        "message": f"Рассылка #{bott_data.get('id')} успешно отправлена в Bot-T!"
+        "message": f"Рассылка #{mailing_id} успешно отправлена в Bot-T!"
     }
 
 class ParticipantRemoveRequest(BaseModel):
@@ -28049,17 +28121,86 @@ async def create_raffle(
                 # ========================================================
                 try:
                     print(f"🚀 Запускаю мгновенную рассылку в боте через Bot-T для розыгрыша ID {new_id}...")
-                    bott_data = await publish_bott_raffle_mailing(
-                        text=txt,
-                        image_url=prize_img,
-                        button_url=url_btn,
-                        button_text="Участвовать 🎲 (0)"
-                    )
-                    if bott_data:
-                        s['bott_mailing_id'] = bott_data.get('id')
-                        s['bott_message_id'] = bott_data.get('message', {}).get('id')
-                        await supabase.patch("/raffles", params={"id": f"eq.{new_id}"}, json={"settings": s})
-                        print(f"✅ ID рассылки Bot-T успешно сохранен в БД для розыгрыша {new_id}")
+                    TEMPLATE_MESSAGE_ID = 7529886
+                    clean_btn_name = "Участвовать (0)"
+                    auth = get_bott_auth_payload()
+                    bott_headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+                    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=25.0, follow_redirects=True, headers=bott_headers) as bott_client:
+                        # 1. Создаем рассылку из шаблона с картинкой
+                        create_resp = await bott_client.post(
+                            "/v1/bot/mailing/mailing/create-from-message",
+                            json={**auth, "message_id": int(TEMPLATE_MESSAGE_ID)}
+                        )
+                        c_res = create_resp.json()
+                        if c_res.get("result"):
+                            mailing_id = c_res["data"]["id"]
+                            message_id = c_res["data"]["message"]["id"]
+                            print(f"📦 Bot-T: Рассылка #{mailing_id} создана из шаблона #{TEMPLATE_MESSAGE_ID}, message_id: {message_id}")
+
+                            # 2. Обновляем текст (подпись к картинке)
+                            upd_text_resp = await bott_client.post(
+                                "/v1/bot/mailing/mailing/update-text",
+                                json={**auth, "id": mailing_id, "text": txt}
+                            )
+                            if not upd_text_resp.json().get("result"):
+                                print(f"⚠️ Bot-T ошибка обновления текста: {upd_text_resp.text}")
+
+                            # 3. Инициализируем inline-меню
+                            menu_id = None
+                            try:
+                                menu_init_resp = await bott_client.post(
+                                    "/v1/bot/messagenew/message/add-inline-menu",
+                                    json={**auth, "message_id": int(message_id)}
+                                )
+                                if menu_init_resp.status_code == 200:
+                                    m_data = menu_init_resp.json()
+                                    menu_obj = m_data.get("data", {}).get("menu") or {}
+                                    menu_id = menu_obj.get("id")
+                                    print(f"🎯 Bot-T: Инициализировано inline-меню ID: {menu_id}")
+                            except Exception as e_menu:
+                                print(f"❌ Bot-T ошибка вызова add-inline-menu: {e_menu}")
+
+                            # 4. Привязываем URL-кнопку перехода в Mini App (type: 0)
+                            try:
+                                btn_payload = {
+                                    **auth,
+                                    "menu_id": int(menu_id) if menu_id else int(message_id),
+                                    "type": 0,
+                                    "text": clean_btn_name,
+                                    "action": str(url_btn),
+                                    "link": str(url_btn),
+                                    "name": clean_btn_name,
+                                    "url": str(url_btn)
+                                }
+                                btn_resp = await bott_client.post(
+                                    "/v1/bot/keyboard/inline-new/add-button-with-line",
+                                    json=btn_payload
+                                )
+                                if btn_resp.status_code == 200 and btn_resp.json().get("result"):
+                                    print(f"🔘 Bot-T Button OK: кнопка-ссылка '{clean_btn_name}' привязана к меню #{menu_id}!")
+                                else:
+                                    print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
+                            except Exception as e_btn:
+                                print(f"⚠️ Bot-T ошибка запроса кнопки: {e_btn}")
+
+                            # 5. Запускаем рассылку на всех пользователей бота
+                            start_resp = await bott_client.post(
+                                "/v1/bot/mailing/mailing/start",
+                                json={**auth, "id": mailing_id}
+                            )
+                            s_res = start_resp.json()
+                            if s_res.get("result"):
+                                print(f"🚀 Bot-T: Рассылка #{mailing_id} успешно запущена!")
+                                s['bott_mailing_id'] = mailing_id
+                                s['bott_message_id'] = message_id
+                                s['bott_image_link'] = "rozygrysh.jpg"
+                                await supabase.patch("/raffles", params={"id": f"eq.{new_id}"}, json={"settings": s})
+                                print(f"✅ ID рассылки Bot-T успешно сохранен в БД для розыгрыша {new_id}")
+                            else:
+                                print(f"⚠️ Bot-T ошибка запуска: {s_res.get('message')}")
+                        else:
+                            print(f"⚠️ Bot-T ошибка создания рассылки: {c_res.get('message')}")
                 except Exception as e_bott:
                     print(f"⚠️ Ошибка при запуске рассылки в боте (Bot-T): {e_bott}")
                 # ========================================================
@@ -28326,17 +28467,86 @@ async def publish_raffle_webhook(
         # 🔥 ШАГ 4: Рассылка подписчикам в боте через Bot-T
         try:
             print(f"⏱ [{time.time() - start_time:.2f}s] Запускаю рассылку в боте через Bot-T...")
-            bott_data = await publish_bott_raffle_mailing(
-                text=txt,
-                image_url=post_img,
-                button_url=url_btn,
-                button_text="Участвовать 🎲 (0)"
-            )
-            if bott_data:
-                s['bott_mailing_id'] = bott_data.get('id')
-                s['bott_message_id'] = bott_data.get('message', {}).get('id')
-                await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
-                print(f"⏱ [{time.time() - start_time:.2f}s] ID рассылки Bot-T записан в БД")
+            TEMPLATE_MESSAGE_ID = 7529886
+            parts_cnt = raffle.get('participants_count', 0)
+            clean_btn_name = f"Участвовать ({parts_cnt})"
+            auth = get_bott_auth_payload()
+            bott_headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+            async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=25.0, follow_redirects=True, headers=bott_headers) as bott_client:
+                # 1. Создаем рассылку из шаблона с картинкой
+                create_resp = await bott_client.post(
+                    "/v1/bot/mailing/mailing/create-from-message",
+                    json={**auth, "message_id": int(TEMPLATE_MESSAGE_ID)}
+                )
+                c_res = create_resp.json()
+                if c_res.get("result"):
+                    mailing_id = c_res["data"]["id"]
+                    message_id = c_res["data"]["message"]["id"]
+                    print(f"📦 Bot-T: Рассылка #{mailing_id} создана из шаблона #{TEMPLATE_MESSAGE_ID}, message_id: {message_id}")
+
+                    # 2. Обновляем текст (подпись к картинке)
+                    upd_text_resp = await bott_client.post(
+                        "/v1/bot/mailing/mailing/update-text",
+                        json={**auth, "id": mailing_id, "text": txt}
+                    )
+                    if not upd_text_resp.json().get("result"):
+                        print(f"⚠️ Bot-T ошибка обновления текста: {upd_text_resp.text}")
+
+                    # 3. Инициализируем inline-меню
+                    menu_id = None
+                    try:
+                        menu_init_resp = await bott_client.post(
+                            "/v1/bot/messagenew/message/add-inline-menu",
+                            json={**auth, "message_id": int(message_id)}
+                        )
+                        if menu_init_resp.status_code == 200:
+                            m_data = menu_init_resp.json()
+                            menu_obj = m_data.get("data", {}).get("menu") or {}
+                            menu_id = menu_obj.get("id")
+                            print(f"🎯 Bot-T: Инициализировано inline-меню ID: {menu_id}")
+                    except Exception as e_menu:
+                        print(f"❌ Bot-T ошибка вызова add-inline-menu: {e_menu}")
+
+                    # 4. Привязываем URL-кнопку перехода в Mini App (type: 0)
+                    try:
+                        btn_payload = {
+                            **auth,
+                            "menu_id": int(menu_id) if menu_id else int(message_id),
+                            "type": 0,
+                            "text": clean_btn_name,
+                            "action": str(url_btn),
+                            "link": str(url_btn),
+                            "name": clean_btn_name,
+                            "url": str(url_btn)
+                        }
+                        btn_resp = await bott_client.post(
+                            "/v1/bot/keyboard/inline-new/add-button-with-line",
+                            json=btn_payload
+                        )
+                        if btn_resp.status_code == 200 and btn_resp.json().get("result"):
+                            print(f"🔘 Bot-T Button OK: кнопка-ссылка '{clean_btn_name}' привязана к меню #{menu_id}!")
+                        else:
+                            print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
+                    except Exception as e_btn:
+                        print(f"⚠️ Bot-T ошибка запроса кнопки: {e_btn}")
+
+                    # 5. Запускаем рассылку на всех пользователей бота
+                    start_resp = await bott_client.post(
+                        "/v1/bot/mailing/mailing/start",
+                        json={**auth, "id": mailing_id}
+                    )
+                    s_res = start_resp.json()
+                    if s_res.get("result"):
+                        s['bott_mailing_id'] = mailing_id
+                        s['bott_message_id'] = message_id
+                        s['bott_image_link'] = "rozygrysh.jpg"
+                        await supabase.patch("/raffles", params={"id": f"eq.{req.raffle_id}"}, json={"settings": s})
+                        print(f"⏱ [{time.time() - start_time:.2f}s] ID рассылки Bot-T #{mailing_id} записан в БД")
+                    else:
+                        print(f"⚠️ Bot-T ошибка запуска: {s_res.get('message')}")
+                else:
+                    print(f"⚠️ Bot-T ошибка создания рассылки: {c_res.get('message')}")
         except Exception as e_bott:
             print(f"⚠️ Ошибка при запуске рассылки в боте (Bot-T): {e_bott}")
 
@@ -28370,6 +28580,7 @@ async def test_raffle_pm(
     supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
     MY_TELEGRAM_ID = 477521935
+    TEMPLATE_MESSAGE_ID = 7529886  # ID свободного сообщения с картинкой из панели Bot-T[cite: 1]
 
     # 1. Проверяем права админа
     user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
@@ -28436,40 +28647,60 @@ async def test_raffle_pm(
 
     txt += "\n👇 <b>Жми кнопку, чтобы поучаствовать!</b>"
 
-    post_img = s.get('prize_image') or s.get('card_image')
-    # Скрытая ссылка для автоматического баннера-превью Telegram
-    if post_img and post_img.startswith("http"):
-        txt = f'<a href="{post_img}">&#8203;</a>' + txt
-
     parts_cnt = raffle.get('participants_count', 0)
     url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{req.raffle_id}"
-    btn_text = f"Участвовать 🎲 ({parts_cnt})"
+    clean_btn_name = f"Участвовать ({parts_cnt})"
+
+    # Задаем загруженное в Bot-T изображение
+    image_filename = "rozygrysh.jpg"
+    full_image_url = "https://storage.bot-t.com/bot/233790/photos/rozygrysh.jpg"
+
+    # Сохраняем имя файла в настройках Supabase для кэша
+    if s.get("bott_image_link") != image_filename:
+        s["bott_image_link"] = image_filename
+        try:
+            await supabase.patch(
+                "/raffles",
+                params={"id": f"eq.{req.raffle_id}"},
+                json={"settings": s}
+            )
+        except Exception as e_sup:
+            print(f"⚠️ Ошибка сохранения bott_image_link в Supabase: {e_sup}")
 
     # 4. ОТПРАВЛЯЕМ ЧЕРЕЗ BOT-T СТРОГО НА ID АДМИНА
     auth = get_bott_auth_payload()
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=20.0, follow_redirects=True, headers=headers) as client:
-        # ШАГ А: Находим или создаем тестовый сегмент только с твоим ID
+    async with httpx.AsyncClient(base_url=BOTT_API_BASE, timeout=25.0, follow_redirects=True, headers=headers) as client:
+        # Проверяем тестовый сегмент
+        group_id = os.getenv("BOTT_TEST_GROUP_ID")
+        if group_id:
+            group_id = int(group_id)
+
         target_group_name = f"Admin_Test_{MY_TELEGRAM_ID}"
-        group_id = None
 
-        try:
-            groups_resp = await client.post("/v1/bot/group/index", json=auth)
-            if groups_resp.status_code == 200 and groups_resp.json().get("result"):
-                for g in groups_resp.json().get("data", []):
-                    if g.get("name") == target_group_name:
-                        group_id = g.get("id")
-                        break
-        except Exception as e:
-            print(f"⚠️ Ошибка проверки сегментов Bot-T: {e}")
+        # ШАГ А: Ищем существующий сегмент
+        if not group_id:
+            try:
+                groups_resp = await client.post("/v1/bot/group/group/index", json=auth)
+                if groups_resp.status_code == 200 and groups_resp.json().get("result"):
+                    for g in groups_resp.json().get("data", []):
+                        g_title = g.get("title") or g.get("name")
+                        if g_title == target_group_name:
+                            group_id = g.get("id")
+                            print(f"🔍 Bot-T: Найден существующий тестовый сегмент ID: {group_id}")
+                            break
+            except Exception as e:
+                print(f"⚠️ Ошибка поиска сегментов Bot-T: {e}")
 
+        # ШАГ Б: Создаем сегмент, если не найден
         if not group_id:
             try:
                 create_grp_resp = await client.post(
-                    "/v1/bot/group/create-with-users",
+                    "/v1/bot/group/group/create-with-users",
                     json={
                         **auth,
+                        "title": target_group_name,
                         "name": target_group_name,
                         "users": [MY_TELEGRAM_ID]
                     }
@@ -28483,17 +28714,18 @@ async def test_raffle_pm(
             except Exception as e:
                 print(f"⚠️ Ошибка создания сегмента в Bot-T: {e}")
 
-        # СТРАХОВКА: Если сегмент не определен, НИ В КОЕМ СЛУЧАЕ не шлем рассылку всем!
         if not group_id:
             raise HTTPException(
                 status_code=500,
-                detail="Не удалось создать персональный сегмент в Bot-T. Рассылка отменена для защиты от отправки всем."
+                detail="Не удалось получить тестовый сегмент Bot-T. Рассылка остановлена во избежание отправки всем."
             )
 
-        # ШАГ Б: Создаем черновик рассылки
+        # ========================================================
+        # ШАГ В: СОЗДАЕМ РАССЫЛКУ ИЗ ШАБЛОНА С КАРТИНКОЙ
+        # ========================================================
         create_resp = await client.post(
-            "/v1/bot/mailing/mailing/create",
-            json={**auth, "type": 0, "text": txt}
+            "/v1/bot/mailing/mailing/create-from-message",
+            json={**auth, "message_id": int(TEMPLATE_MESSAGE_ID)}
         )
         c_res = create_resp.json()
         if not c_res.get("result"):
@@ -28501,32 +28733,68 @@ async def test_raffle_pm(
 
         mailing_id = c_res["data"]["id"]
         message_id = c_res["data"]["message"]["id"]
+        print(f"📦 Рассылка #{mailing_id} успешно создана из шаблона #{TEMPLATE_MESSAGE_ID}, message_id: {message_id}")
 
-        # ШАГ В: Привязываем сегмент (СТРОГО ТОЛЬКО ТЫ!)
+        # ========================================================
+        # ШАГ В.1: ОБНОВЛЯЕМ ТЕКСТ (ПОДПИСЬ К УЖЕ ПРИКРЕПЛЕННОЙ КАРТИНКЕ)
+        # ========================================================
+        upd_text_resp = await client.post(
+            "/v1/bot/mailing/mailing/update-text",
+            json={**auth, "id": mailing_id, "text": txt}
+        )
+        if not upd_text_resp.json().get("result"):
+            print(f"⚠️ Ошибка обновления текста: {upd_text_resp.text}")
+
+        # ШАГ Г: Привязываем сегмент (ТОЛЬКО ТВОЙ ID!)
         set_grp_resp = await client.post(
             "/v1/bot/mailing/mailing/set-group",
             json={**auth, "id": mailing_id, "group_id": group_id}
         )
         grp_bind_res = set_grp_resp.json()
         if not grp_bind_res.get("result"):
-            # Если сегмент не привязался — прерываем процесс!
             raise HTTPException(status_code=500, detail=f"Bot-T: Не удалось привязать сегмент #{group_id}")
 
-        # ШАГ Г: Привязываем Inline-кнопку
-        btn_resp = await client.post(
-            "/v1/bot/keyboard/inline-new/add-button-with-line",
-            json={
-                **auth,
-                "message_id": message_id,
-                "name": btn_text,
-                "link": url_btn
-            }
-        )
-        b_res = btn_resp.json()
-        if not b_res.get("result"):
-            print(f"⚠️ Bot-T Button Warning: {b_res.get('message')}")
+        # ========================================================
+        # ШАГ Д: ИНИЦИАЛИЗАЦИЯ ИНЛАЙН-МЕНЮ И ПРИВЯЗКА КНОПКИ-ССЫЛКИ
+        # ========================================================
+        menu_id = None
+        try:
+            menu_init_resp = await client.post(
+                "/v1/bot/messagenew/message/add-inline-menu",
+                json={**auth, "message_id": int(message_id)}
+            )
+            if menu_init_resp.status_code == 200:
+                m_data = menu_init_resp.json()
+                menu_obj = m_data.get("data", {}).get("menu") or {}
+                menu_id = menu_obj.get("id")
+                print(f"🎯 Инициализировано inline-меню ID: {menu_id}")
+        except Exception as e_menu:
+            print(f"❌ Ошибка вызова add-inline-menu: {e_menu}")
 
-        # ШАГ Д: Запускаем рассылку (улетит ТОЛЬКО в твой сегмент!)
+        # Привязываем URL-кнопку перехода в Mini App (type: 0)
+        try:
+            btn_payload = {
+                **auth,
+                "menu_id": int(menu_id) if menu_id else int(message_id),
+                "type": 0,
+                "text": clean_btn_name,
+                "action": str(url_btn),
+                "link": str(url_btn),
+                "name": clean_btn_name,
+                "url": str(url_btn)
+            }
+            btn_resp = await client.post(
+                "/v1/bot/keyboard/inline-new/add-button-with-line",
+                json=btn_payload
+            )
+            if btn_resp.status_code == 200 and btn_resp.json().get("result"):
+                print(f"🔘 Bot-T Button OK: кнопка-ссылка '{clean_btn_name}' привязана к меню #{menu_id}!")
+            else:
+                print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
+        except Exception as e_btn:
+            print(f"⚠️ Ошибка запроса кнопки: {e_btn}")
+
+        # ШАГ Е: Запускаем рассылку
         start_resp = await client.post(
             "/v1/bot/mailing/mailing/start",
             json={**auth, "id": mailing_id}
@@ -28535,7 +28803,7 @@ async def test_raffle_pm(
         if not s_res.get("result"):
             raise HTTPException(status_code=500, detail=f"Bot-T ошибка запуска: {s_res.get('message')}")
 
-        print(f"🚀 Bot-T: Тестовая рассылка #{mailing_id} запущена только на ID {MY_TELEGRAM_ID}!")
+        print(f"🚀 Bot-T: Тестовая рассылка #{mailing_id} успешно запущена на сегмент #{group_id}!")
 
     return {"status": "success", "message": f"Тест отправлен через Bot-T на твой ID #{MY_TELEGRAM_ID}!"}
 
