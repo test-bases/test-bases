@@ -1291,7 +1291,7 @@
     <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
         <div class="cs-modal-card large-modal">
             <div class="modal-head">
-                <h2>КОНСТРУКТОР КОНТРАКТА</h2>
+                <h2>КОНСТРУКТОР ЗАДАНИЙ</h2>
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
@@ -1994,7 +1994,7 @@
                     }
                 });
 
-                if (titleEl) titleEl.textContent = "Активный контракт";
+                if (titleEl) titleEl.textContent = "Активные задания";
                 if (iconEl) {
                     iconEl.className = "fa-solid fa-file-signature";
                     iconEl.style.color = "#FFD700";
@@ -2014,7 +2014,7 @@
                             <span style="color: #34c759; font-weight: 800;">При 100% выполнении</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
-                            <span>Лимит контрактов:</span>
+                            <span>Лимит заданий:</span>
                             <span style="color: #ffffff; font-weight: 700;">До 5 в неделю</span>
                         </div>
                     `;
@@ -2205,7 +2205,7 @@
                         </div>
                         <div class="contract-task-text">
                             <div class="contract-task-top-line">
-                                <span class="contract-task-title">Сводка контракта</span>
+                                <span class="contract-task-title">Сводка заданий</span>
                                 <span style="font-size: 12px; font-weight: 900; color: var(--gold-primary); font-family: 'SF Mono', monospace;">+${totalRew} <i class="fa-solid fa-ticket"></i></span>
                             </div>
                             <div class="contract-task-desc">
@@ -2217,7 +2217,7 @@
 
                     <div class="contract-progress-wrap">
                         <div class="contract-progress-meta">
-                            <span class="contract-progress-status">Общий прогресс контракта</span>
+                            <span class="contract-progress-status">Общий прогресс заданий</span>
                             <span class="contract-progress-nums" style="color: var(--gold-primary);">${overallPct}%</span>
                         </div>
                         <div class="contract-progress-track">
@@ -2237,7 +2237,7 @@
 
             isContractActive = true;
             closeConstructorModal();
-            customAlert("Сложный контракт принят к исполнению!", "КОНТРАКТ АКТИВИРОВАН");
+            customAlert("Ваши задания активированы!");
 
             if (dom.weeklyLimitCount) {
                 dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
@@ -2246,7 +2246,7 @@
             // Обновляем карточку конструктора на главной вкладке, чтобы при клике открывалась вкладка «Активное»
             const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
             const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
-            if (constructorTitleEl) constructorTitleEl.textContent = "КОНТРАКТ В РАБОТЕ";
+            if (constructorTitleEl) constructorTitleEl.textContent = "ЗАДАНИЯ В РАБОТЕ";
             if (constructorDescEl) constructorDescEl.textContent = "Нажми, чтобы открыть прогресс активных заданий";
 
             // Включаем 2 вкладку "Активное" (Контракт)
