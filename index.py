@@ -21422,6 +21422,30 @@ async def get_constructor_state_endpoint(
     resp.raise_for_status()
     return resp.json()
 
+@app.post("/api/v1/constructor/cancel")
+async def cancel_constructor_contract_endpoint(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    """Платная отмена активного контракта за билеты (10 -> 25 -> 50 -> 75 -> 100)."""
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Неверные данные аутентификации.")
+
+    telegram_id = user_info["id"]
+    try:
+        resp = await supabase.post(
+            "/rpc/cancel_constructor_contract",
+            json={"p_user_id": telegram_id}
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", "Не удалось отменить контракт") if e.response else str(e)
+        raise HTTPException(status_code=400, detail=err)
+    except Exception as e:
+        logging.error(f"Ошибка отмены контракта конструктора: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка сервера при отмене")
 
 @app.post("/api/v1/constructor/start")
 async def start_constructor_contract_endpoint(
