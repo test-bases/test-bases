@@ -1130,7 +1130,7 @@
         .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
         .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
         /* ==========================================
-           13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (LIQUID GLASS 1в1)
+           13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (ЧИСТЫЙ ВИД)
            ========================================== */
         .tour-help-btn {
             background: rgba(255, 255, 255, 0.08);
@@ -1153,13 +1153,13 @@
             background: rgba(255, 215, 0, 0.2);
         }
 
-        /* 💥 КЛЮЧЕВОЙ ФИКС: сбрасываем z-index у родителей, чтобы активная карточка вылезла поверх черного фона */
+        /* Снимаем жесткие контексты наложения, чтобы элементы пробивали фон */
         body.tour-mode .mobile-wrapper,
         body.tour-mode .main-content {
             z-index: auto !important;
         }
 
-        /* Затемняющий фоновый щит */
+        /* Затемняющий фоновый слой */
         .tour-backdrop {
             display: none;
             position: fixed;
@@ -1172,7 +1172,7 @@
         }
         body.tour-mode .tour-backdrop { display: block; }
 
-        /* Приглушение неактивных элементов */
+        /* Приглушение неактивных блоков */
         body.tour-mode .premium-card,
         body.tour-mode .challenge-card-canvas,
         body.tour-mode .constructor-card,
@@ -1185,19 +1185,7 @@
             pointer-events: none !important;
         }
 
-        /* 🌟 АНИМАЦИЯ ПУЛЬСИРУЮЩЕГО ЗОЛОТОГО НЕОНА */
-        @keyframes tourTargetPulse {
-            0%, 100% {
-                border-color: rgba(255, 215, 0, 0.85);
-                box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.95);
-            }
-            50% {
-                border-color: #ffffff;
-                box-shadow: 0 0 35px rgba(255, 215, 0, 0.8), 0 16px 45px rgba(0, 0, 0, 1);
-            }
-        }
-
-        /* 🔥 ПОДСВЕТКА АКТИВНОЙ ЦЕЛИ С АНИМАЦИЕЙ */
+        /* Аккуратная подсветка БЕЗ перетирания фоновых картинок */
         body.tour-mode .tour-target-active {
             opacity: 1 !important;
             filter: none !important;
@@ -1205,21 +1193,43 @@
             position: relative !important;
             z-index: 99995 !important;
             pointer-events: none !important;
-            border: 1.5px solid var(--gold-primary) !important;
-            background: rgba(18, 18, 22, 0.98) !important;
-            animation: tourTargetPulse 2s ease-in-out infinite !important;
+            border-color: var(--gold-primary) !important;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.8) !important;
         }
 
-        /* Исключения под конкретные карточки */
+        /* Фон задаем только тем блокам, где нет своего арта */
+        body.tour-mode .premium-card.tour-target-active,
+        body.tour-mode .constructor-card.tour-target-active {
+            background-color: rgba(18, 18, 22, 0.98) !important;
+        }
+
+        /* Челлендж: железно сохраняем фоновое изображение на месте */
         body.tour-mode #challenge-card-box.tour-target-active {
-            background-color: transparent !important;
-        }
-        body.tour-mode .limit-pill.tour-target-active {
-            background: rgba(24, 24, 28, 0.98) !important;
-            padding: 6px 12px !important;
+            background-image: url(/public/static/pepe_challenge.webp) !important;
+            background-size: 100% 100% !important;
+            background-repeat: no-repeat !important;
         }
 
-        /* Нижнее всплывающее окно гида */
+        /* Лимит: сохраняем нативные компактные размеры (без раздувания) */
+        body.tour-mode .limit-pill.tour-target-active {
+            padding: 4px 8px !important;
+            background: rgba(24, 24, 28, 0.98) !important;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
+        }
+
+        /* Статичный персонаж без покачиваний */
+        .tour-img {
+            max-height: 170px;
+            max-width: 240px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            animation: none !important;
+            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+        }
+
+        /* Окно карточки гида */
         .tour-card {
             position: fixed;
             bottom: 14px;
@@ -1264,7 +1274,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Парящая сцена с маской дымки */
         .tour-levitate-stage {
             display: flex;
             justify-content: center;
@@ -1288,23 +1297,6 @@
             -webkit-filter: blur(14px);
             pointer-events: none;
             z-index: 1;
-        }
-
-        /* 🐸 АНИМАЦИЯ ПАРЕНИЯ ПЕРСОНАЖА */
-        @keyframes tourFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-7px); }
-        }
-
-        .tour-img {
-            max-height: 170px;
-            max-width: 240px;
-            object-fit: contain;
-            position: relative;
-            z-index: 2;
-            animation: tourFloat 3s ease-in-out infinite !important;
-            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
-            mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
         }
 
         .tour-card-body {
