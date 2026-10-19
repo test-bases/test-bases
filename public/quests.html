@@ -1129,6 +1129,178 @@
         .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
         .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
         .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+        /* ==========================================
+           13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (LIQUID GLASS)
+           ========================================== */
+        .tour-help-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--gold-primary);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .tour-help-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        /* Затемняющий фоновый щит */
+        .tour-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.78);
+            z-index: 99990;
+            pointer-events: auto;
+        }
+        body.tour-mode .tour-backdrop { display: block; }
+
+        /* Приглушение неактивных элементов */
+        body.tour-mode .premium-card,
+        body.tour-mode .challenge-card-canvas,
+        body.tour-mode .constructor-card,
+        body.tour-mode .cs-tabs,
+        body.tour-mode .limit-pill {
+            opacity: 0.25;
+            filter: blur(4px);
+            -webkit-filter: blur(4px);
+            transition: opacity 0.3s ease, filter 0.3s ease;
+            pointer-events: none !important;
+        }
+
+        /* Подсветка активной цели тура */
+        body.tour-mode .tour-target-active {
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            border-color: rgba(255, 215, 0, 0.8) !important;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+            position: relative;
+            z-index: 99995 !important;
+            pointer-events: none !important;
+        }
+
+        /* Нижнее всплывающее окно гида */
+        .tour-card {
+            position: fixed;
+            bottom: 14px;
+            left: 12px;
+            right: 12px;
+            max-width: 410px;
+            margin: 0 auto;
+            background: rgba(14, 14, 18, 0.85);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.08), 0 20px 60px rgba(0, 0, 0, 0.95);
+            border-radius: 24px;
+            padding: 14px 16px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            animation: tourSlideUp 0.3s ease;
+        }
+
+        @keyframes tourSlideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .tour-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+        .tour-step-badge {
+            font-size: 9px;
+            font-weight: 800;
+            color: #000;
+            background: var(--gold-primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Парящая сцена с маской дымки */
+        .tour-levitate-stage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: -85px;
+            margin-bottom: 2px;
+            height: 120px;
+            pointer-events: none;
+            position: relative;
+        }
+        .tour-levitate-stage::before {
+            content: '';
+            position: absolute;
+            width: 180px;
+            height: 120px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -48%);
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 45%, transparent 75%);
+            filter: blur(14px);
+            -webkit-filter: blur(14px);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .tour-img {
+            max-height: 170px;
+            max-width: 240px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+        }
+
+        .tour-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+            z-index: 5;
+        }
+        .tour-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: #fff;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+        }
+        .tour-text {
+            font-size: 11px;
+            color: #b0b0b8;
+            line-height: 1.4;
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+        }
+        .tour-text b { color: #fff; }
+        .tour-text span.gold { color: var(--gold-primary); font-weight: 700; }
+
+        .tour-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -1195,9 +1367,10 @@
                         <span class="gold-text">АКТИВНОСТЬ ГОТОВ</span><br>
                         ВЫПОЛНЯТЬ
                     </h1>
-                    <div class="hero-meta">
+                   <div class="hero-meta">
                         <i class="fa-regular fa-calendar-days" style="color: var(--gold-primary);"></i>
                         <span>Недельные испытания</span>
+                        <button class="tour-help-btn" onclick="startMatrixTour()" title="Обучение"><i class="fa-solid fa-question"></i></button>
                     </div>
                 </div>
                 
@@ -1519,6 +1692,31 @@
 
             <!-- Кнопка ПОНЯТНО -->
             <button class="premium-btn active-state" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
+        </div>
+    </div>
+
+    <!-- ОВЕРЛЕЙ ЗАТЕМНЕНИЯ ТУРА -->
+    <div id="tour-backdrop" class="tour-backdrop"></div>
+
+    <!-- ДИАЛОГОВОЕ ОКНО ГИДА -->
+    <div id="tour-card" class="tour-card" style="display: none;">
+        <div class="tour-card-header">
+            <span class="tour-step-badge" id="tour-step-badge">Шаг 1 из 5</span>
+            <button class="close-btn" onclick="closeMatrixTour()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="tour-levitate-stage" id="tour-img-stage">
+            <img id="tour-img" class="tour-img" src="/static/grind_intro.png" alt="Гид">
+        </div>
+
+        <div class="tour-card-body">
+            <h4 class="tour-title" id="tour-title">Ежедневный Челлендж</h4>
+            <p class="tour-text" id="tour-text">Описание шага...</p>
+        </div>
+
+        <div class="tour-actions">
+            <button class="premium-btn" id="tour-prev-btn" style="flex: 1;" onclick="prevTourStep()">Назад</button>
+            <button class="cs-gold-btn" id="tour-next-btn" style="flex: 1.5; justify-content: center;" onclick="nextTourStep()">Далее ➔</button>
         </div>
     </div>
 
@@ -2913,6 +3111,172 @@
                     Telegram.WebApp.expand();
                 }
             }
+        }
+
+        // ==========================================
+        // 🎓 ИНТЕРАКТИВНЫЙ ТУР-ГИД
+        // ==========================================
+        let currentTourStep = 0;
+        let tourStepTimeout = null;
+        let tourScrollRaf = null;
+
+        // Плавная прокрутка для window / documentElement
+        function smoothScrollTour(targetY, duration = 500) {
+            if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
+            const startY = window.pageYOffset || document.documentElement.scrollTop;
+            const diff = targetY - startY;
+            if (Math.abs(diff) < 2) return;
+            const startTime = performance.now();
+
+            function stepScroll(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                window.scrollTo(0, startY + diff * ease);
+                if (progress < 1) {
+                    tourScrollRaf = requestAnimationFrame(stepScroll);
+                } else {
+                    tourScrollRaf = null;
+                }
+            }
+            tourScrollRaf = requestAnimationFrame(stepScroll);
+        }
+
+        const matrixTourSteps = [
+            {
+                title: "Ежедневный вызов",
+                text: "Каждый день тебе выдается персональное задание на активность в чатах. Выполняй его и нажимай <span class='gold'>«ЗАБРАТЬ»</span> до сброса таймера!",
+                img: "/static/grind_intro.png",
+                tab: "weekly",
+                highlightSelector: "#challenge-card-box"
+            },
+            {
+                title: "Конструктор заданий",
+                text: "Собирай контракты сам! Выбирай удобную активность (сообщения Twitch/TG, время стрима), регулируй цели и активируй свой набор.",
+                img: "/static/grind_tasks.png",
+                tab: "weekly",
+                highlightSelector: ".constructor-card"
+            },
+            {
+                title: "Идеальная серия",
+                text: "Не пропускай недели! За каждую закрытую неделю растет твой стрик: получай кейсы, секретные скины, а на 4 неделе — <span class='gold'>Тайный скин или Нож</span>!",
+                img: "/static/grind_shop.png",
+                tab: "weekly",
+                highlightSelector: ".streak-card"
+            },
+            {
+                title: "Недельный лимит",
+                text: "Сверху отображается твой лимит выполненных наборов. В неделю доступно <b>до 5 контрактов</b>. Сброс лимитов происходит каждый понедельник в 00:00 МСК.",
+                img: "/static/grind_tickets.png",
+                tab: "weekly",
+                highlightSelector: ".limit-pill"
+            },
+            {
+                title: "Доп. задания",
+                text: "Во вкладке <b>«Доп. задания»</b> доступны разовые квесты от администрации. Выполняй их, прикрепляй ссылку или ник и забирай билеты!",
+                img: "/static/grind_tasks.png",
+                tab: "manual",
+                highlightSelector: "#tab-btn-manual"
+            }
+        ];
+
+        window.startMatrixTour = function() {
+            currentTourStep = 0;
+            document.body.classList.add('tour-mode');
+            const card = document.getElementById('tour-card');
+            if (card) card.style.display = 'flex';
+            renderCurrentTourStep();
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        };
+
+        window.closeMatrixTour = function() {
+            document.body.classList.remove('tour-mode');
+            const card = document.getElementById('tour-card');
+            if (card) card.style.display = 'none';
+            document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
+            switchMainTab('weekly');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        };
+
+        window.nextTourStep = function() {
+            if (currentTourStep < matrixTourSteps.length - 1) {
+                currentTourStep++;
+                renderCurrentTourStep();
+                if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            } else {
+                closeMatrixTour();
+            }
+        };
+
+        window.prevTourStep = function() {
+            if (currentTourStep > 0) {
+                currentTourStep--;
+                renderCurrentTourStep();
+                if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        };
+
+        function renderCurrentTourStep() {
+            const step = matrixTourSteps[currentTourStep];
+            if (!step) return;
+
+            // 1. Переключение таба (План / Доп. задания)
+            if (step.tab) {
+                switchMainTab(step.tab);
+            }
+
+            // 2. Снимаем старое выделение
+            document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
+
+            // 3. Заполняем карточку
+            document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${matrixTourSteps.length}`;
+            document.getElementById('tour-title').textContent = step.title;
+            document.getElementById('tour-text').innerHTML = step.text;
+
+            const stageEl = document.getElementById('tour-img-stage');
+            const imgEl = document.getElementById('tour-img');
+            if (step.img) {
+                stageEl.style.display = 'flex';
+                imgEl.src = step.img;
+            } else {
+                stageEl.style.display = 'none';
+            }
+
+            // 4. Кнопки
+            const prevBtn = document.getElementById('tour-prev-btn');
+            const nextBtn = document.getElementById('tour-next-btn');
+            if (prevBtn) prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
+            if (nextBtn) nextBtn.textContent = currentTourStep === matrixTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
+
+            // 5. Позиционирование и регулировка скролла
+            if (tourStepTimeout) clearTimeout(tourStepTimeout);
+            if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
+
+            tourStepTimeout = setTimeout(() => {
+                const target = document.querySelector(step.highlightSelector);
+                if (target) {
+                    target.classList.add('tour-target-active');
+
+                    // =========================================================================
+                    // ⚙️ ТОЧНАЯ РЕГУЛИРОВКА СКРОЛЛА (в пикселях)
+                    // Чем больше число — тем ВЫШЕ поднимается карточка на экране.
+                    // =========================================================================
+                    const STEP_SCROLL_CONFIG = {
+                        0: 0,    // Шаг 1: Ежедневный челлендж (прижат к верху)
+                        1: 90,   // Шаг 2: Конструктор заданий
+                        2: 240,  // Шаг 3: Идеальная серия
+                        3: 0,    // Шаг 4: Лимит в шапке (в самом верху)
+                        4: 0     // Шаг 5: Кнопка ручных заданий
+                    };
+
+                    const targetY = STEP_SCROLL_CONFIG[currentTourStep] !== undefined
+                        ? STEP_SCROLL_CONFIG[currentTourStep]
+                        : Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - 120);
+
+                    smoothScrollTour(targetY, 450);
+                }
+            }, 120);
         }
 
         setupEventListeners();
