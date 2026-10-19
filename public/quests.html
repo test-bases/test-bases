@@ -1130,7 +1130,7 @@
         .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
         .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
         /* ==========================================
-           13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (LIQUID GLASS)
+           13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (LIQUID GLASS 1в1)
            ========================================== */
         .tour-help-btn {
             background: rgba(255, 255, 255, 0.08);
@@ -1153,14 +1153,22 @@
             background: rgba(255, 215, 0, 0.2);
         }
 
+        /* 💥 КЛЮЧЕВОЙ ФИКС: сбрасываем z-index у родителей, чтобы активная карточка вылезла поверх черного фона */
+        body.tour-mode .mobile-wrapper,
+        body.tour-mode .main-content {
+            z-index: auto !important;
+        }
+
         /* Затемняющий фоновый щит */
         .tour-backdrop {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.78);
+            background: rgba(0, 0, 0, 0.82);
             z-index: 99990;
             pointer-events: auto;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
         }
         body.tour-mode .tour-backdrop { display: block; }
 
@@ -1177,16 +1185,38 @@
             pointer-events: none !important;
         }
 
-        /* Подсветка активной цели тура */
+        /* 🌟 АНИМАЦИЯ ПУЛЬСИРУЮЩЕГО ЗОЛОТОГО НЕОНА */
+        @keyframes tourTargetPulse {
+            0%, 100% {
+                border-color: rgba(255, 215, 0, 0.85);
+                box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.95);
+            }
+            50% {
+                border-color: #ffffff;
+                box-shadow: 0 0 35px rgba(255, 215, 0, 0.8), 0 16px 45px rgba(0, 0, 0, 1);
+            }
+        }
+
+        /* 🔥 ПОДСВЕТКА АКТИВНОЙ ЦЕЛИ С АНИМАЦИЕЙ */
         body.tour-mode .tour-target-active {
             opacity: 1 !important;
             filter: none !important;
             -webkit-filter: none !important;
-            border-color: rgba(255, 215, 0, 0.8) !important;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
-            position: relative;
+            position: relative !important;
             z-index: 99995 !important;
             pointer-events: none !important;
+            border: 1.5px solid var(--gold-primary) !important;
+            background: rgba(18, 18, 22, 0.98) !important;
+            animation: tourTargetPulse 2s ease-in-out infinite !important;
+        }
+
+        /* Исключения под конкретные карточки */
+        body.tour-mode #challenge-card-box.tour-target-active {
+            background-color: transparent !important;
+        }
+        body.tour-mode .limit-pill.tour-target-active {
+            background: rgba(24, 24, 28, 0.98) !important;
+            padding: 6px 12px !important;
         }
 
         /* Нижнее всплывающее окно гида */
@@ -1259,12 +1289,20 @@
             pointer-events: none;
             z-index: 1;
         }
+
+        /* 🐸 АНИМАЦИЯ ПАРЕНИЯ ПЕРСОНАЖА */
+        @keyframes tourFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-7px); }
+        }
+
         .tour-img {
             max-height: 170px;
             max-width: 240px;
             object-fit: contain;
             position: relative;
             z-index: 2;
+            animation: tourFloat 3s ease-in-out infinite !important;
             -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
             mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
         }
@@ -3221,15 +3259,15 @@
             const step = matrixTourSteps[currentTourStep];
             if (!step) return;
 
-            // 1. Переключение таба (План / Доп. задания)
+            // 1. Переключение табов
             if (step.tab) {
                 switchMainTab(step.tab);
             }
 
-            // 2. Снимаем старое выделение
+            // 2. Снимаем предыдущую подсветку
             document.querySelectorAll('.tour-target-active').forEach(el => el.classList.remove('tour-target-active'));
 
-            // 3. Заполняем карточку
+            // 3. Заполняем диалог гида
             document.getElementById('tour-step-badge').textContent = `Шаг ${currentTourStep + 1} из ${matrixTourSteps.length}`;
             document.getElementById('tour-title').textContent = step.title;
             document.getElementById('tour-text').innerHTML = step.text;
@@ -3243,13 +3281,13 @@
                 stageEl.style.display = 'none';
             }
 
-            // 4. Кнопки
+            // 4. Кнопки навигации
             const prevBtn = document.getElementById('tour-prev-btn');
             const nextBtn = document.getElementById('tour-next-btn');
             if (prevBtn) prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
             if (nextBtn) nextBtn.textContent = currentTourStep === matrixTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
 
-            // 5. Позиционирование и регулировка скролла
+            // 5. Позиционирование и скролл
             if (tourStepTimeout) clearTimeout(tourStepTimeout);
             if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
 
@@ -3257,25 +3295,22 @@
                 const target = document.querySelector(step.highlightSelector);
                 if (target) {
                     target.classList.add('tour-target-active');
-
-                    // =========================================================================
-                    // ⚙️ ТОЧНАЯ РЕГУЛИРОВКА СКРОЛЛА (в пикселях)
-                    // Чем больше число — тем ВЫШЕ поднимается карточка на экране.
-                    // =========================================================================
-                    const STEP_SCROLL_CONFIG = {
-                        0: 0,    // Шаг 1: Ежедневный челлендж (прижат к верху)
-                        1: 90,   // Шаг 2: Конструктор заданий
-                        2: 240,  // Шаг 3: Идеальная серия
-                        3: 0,    // Шаг 4: Лимит в шапке (в самом верху)
-                        4: 0     // Шаг 5: Кнопка ручных заданий
-                    };
-
-                    const targetY = STEP_SCROLL_CONFIG[currentTourStep] !== undefined
-                        ? STEP_SCROLL_CONFIG[currentTourStep]
-                        : Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - 120);
-
-                    smoothScrollTour(targetY, 450);
                 }
+
+                // ⚙️ ТОЧНАЯ НАСТРОЙКА ВЫСОТЫ СКРОЛЛА (в px от верха страницы)
+                const STEP_SCROLL_CONFIG = {
+                    0: 0,    // Шаг 1: Разминка (в самом верху)
+                    1: 110,  // Шаг 2: Конструктор заданий
+                    2: 240,  // Шаг 3: Идеальная серия
+                    3: 0,    // Шаг 4: Лимит в шапке
+                    4: 0     // Шаг 5: Доп. задания
+                };
+
+                const targetY = STEP_SCROLL_CONFIG[currentTourStep] !== undefined 
+                    ? STEP_SCROLL_CONFIG[currentTourStep] 
+                    : 0;
+
+                smoothScrollTour(targetY, 400);
             }, 120);
         }
 
