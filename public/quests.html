@@ -1597,6 +1597,7 @@
                 if (!isSilent && dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden');
             }
         }
+        window.makeApiRequest = makeApiRequest;
 
         function startDailyResetTimer() {
             const timerEl = dom.challengeResetTimer || document.getElementById('challenge-reset-timer');
@@ -2575,7 +2576,7 @@
             }
         }
 
-        window.submitConstructorContract = function() {
+        window.submitConstructorContract = async function() {
             let activeSlots = 0;
             const selectedQuestIds = [];
 
