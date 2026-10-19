@@ -983,6 +983,28 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: #FFD700;
         }
+        .btn-cancel-contract {
+            background: rgba(255, 59, 48, 0.08);
+            border: 1px solid rgba(255, 59, 48, 0.25);
+            color: #ff453a;
+            border-radius: 10px;
+            padding: 9px;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+        .btn-cancel-contract:active {
+            transform: scale(0.97);
+            background: rgba(255, 59, 48, 0.16);
+            border-color: rgba(255, 59, 48, 0.45);
+        }
         .premium-btn:disabled, .premium-btn.locked-state {
             background: rgba(0, 0, 0, 0.4) !important;
             border: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -2047,6 +2069,11 @@
             // 2. Проверяем, есть ли активный контракт в работе
             serverActiveSlots = Array.isArray(state.active_slots) ? state.active_slots : [];
             isContractActive = Boolean(state.is_active && serverActiveSlots.length > 0);
+            currentCancelCost = state.cancel_cost || 10;
+            contractExpiresAtIso = state.expires_at || null;
+            if (isContractActive && contractExpiresAtIso) {
+                startContractExpirationTimer(contractExpiresAtIso);
+            }
 
             const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
             const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
@@ -2279,6 +2306,79 @@
             if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
         }
 
+        let contractCountdownTimer = null;
+        let contractExpiresAtIso = null;
+        let currentCancelCost = 10;
+
+        function startContractExpirationTimer(expiresAtIso) {
+            contractExpiresAtIso = expiresAtIso;
+            if (contractCountdownTimer) clearInterval(contractCountdownTimer);
+            if (!expiresAtIso) return;
+
+            const updateTimer = () => {
+                const el = document.getElementById('contract-countdown-val');
+                if (!el) return;
+
+                const diff = new Date(expiresAtIso).getTime() - Date.now();
+                if (diff <= 0) {
+                    clearInterval(contractCountdownTimer);
+                    el.textContent = "Сгорел";
+                    customAlert("Срок выполнения контракта (5 дней) истек.", "КОНТРАКТ СГОРЕЛ");
+                    setTimeout(() => window.location.reload(), 1500);
+                    return;
+                }
+
+                const d = Math.floor(diff / (24 * 3600000));
+                const h = Math.floor((diff % (24 * 3600000)) / 3600000).toString().padStart(2, '0');
+                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+
+                el.textContent = d > 0 ? `${d}д ${h}:${m}:${s}` : `${h}:${m}:${s}`;
+            };
+
+            updateTimer();
+            contractCountdownTimer = setInterval(updateTimer, 1000);
+        }
+
+        // Платная отмена контракта за билеты
+        window.cancelActiveConstructorContract = async function() {
+            const cost = currentCancelCost || 10;
+
+            const confirmAction = async () => {
+                try {
+                    const res = await makeApiRequest('/api/v1/constructor/cancel', {}, 'POST');
+                    if (res && res.status === 'success') {
+                        if (contractCountdownTimer) clearInterval(contractCountdownTimer);
+                        isContractActive = false;
+                        serverActiveSlots = [];
+
+                        customAlert(res.message || `Контракт отменен. Списано ${cost} 🎟️`, "ОТМЕНЕНО");
+
+                        // Запрашиваем обновленный стейт и открываем вкладку сборки
+                        const fresh = await makeApiRequest('/api/v1/constructor/state', {}, 'POST', true);
+                        if (fresh) syncConstructorFromBackend(fresh);
+                        switchMainTab('weekly');
+
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+                        }
+                    }
+                } catch (e) {
+                    customAlert(e.message || "Не удалось отменить контракт", "ОШИБКА");
+                }
+            };
+
+            if (window.Telegram?.WebApp?.showConfirm) {
+                Telegram.WebApp.showConfirm(`Отменить текущее задание?\nБудет списано ${cost} билетов. Задания будут сняты, и вы сможете собрать новый набор.`, (ok) => {
+                    if (ok) confirmAction();
+                });
+            } else {
+                if (confirm(`Отменить текущее задание?\nБудет списано ${cost} билетов. Задания будут сняты, и вы сможете собрать новый набор.`)) {
+                    confirmAction();
+                }
+            }
+        };
+
         function renderActiveContractUI() {
             const container = document.getElementById('active-contract-list');
             if (!container) return;
@@ -2290,7 +2390,7 @@
             let totalPctSum = 0;
             let cardsHtml = '';
 
-            // Вариант А: Отрисовка реальных активных слотов из БД (Персональный квест всегда первый под сводкой)
+            // Вариант А: Отрисовка из базы данных
             if (serverActiveSlots && serverActiveSlots.length > 0) {
                 const priorityOrder = { personal_quest: 1, twitch_chat: 2, twitch_uptime: 3, telegram_chat: 4 };
                 const sortedSlots = [...serverActiveSlots].sort((a, b) => {
@@ -2361,7 +2461,7 @@
                     `;
                 });
             } else {
-                // Вариант Б: Локальный фоллбэк (если тестируется без заполненной БД)
+                // Вариант Б: Локальный фоллбэк
                 ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
                     const slot = constructorConfig[key];
                     const meta = SLOT_DETAILS[key];
@@ -2423,6 +2523,7 @@
 
             const overallPct = activeTasksCount > 0 ? Math.floor(totalPctSum / activeTasksCount) : 0;
             const isAllCompleted = activeTasksCount > 0 && completedTasksCount === activeTasksCount;
+            const cost = currentCancelCost || 10;
 
             const summaryHtml = `
                 <div class="glass-card-contract summary-card">
@@ -2444,7 +2545,10 @@
 
                     <div class="contract-progress-wrap">
                         <div class="contract-progress-meta">
-                            <span class="contract-progress-status">Общий прогресс заданий</span>
+                            <span class="contract-progress-status">
+                                <i class="fa-regular fa-clock" style="color: var(--gold-primary); font-size: 10px;"></i>
+                                Сгорит через: <b id="contract-countdown-val" style="color:#fff; font-family:'SF Mono',monospace; margin-left:3px;">--:--:--</b>
+                            </span>
                             <span class="contract-progress-nums" style="color: var(--gold-primary);">${overallPct}%</span>
                         </div>
                         <div class="contract-progress-track">
@@ -2452,16 +2556,26 @@
                         </div>
                     </div>
 
-                    <button class="premium-btn ${isAllCompleted ? 'active-state' : 'locked-state'}" ${isAllCompleted ? '' : 'disabled'} onclick="claimConstructorContractReward()">
-                        ${isAllCompleted ? `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ +${totalRew} 🎟️` : `<i class="fa-solid fa-lock"></i> ВЫПОЛНЕНО ${completedTasksCount} ИЗ ${activeTasksCount}`}
-                    </button>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:2px;">
+                        <button class="premium-btn ${isAllCompleted ? 'active-state' : 'locked-state'}" ${isAllCompleted ? '' : 'disabled'} onclick="claimConstructorContractReward()">
+                            ${isAllCompleted ? `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ +${totalRew} 🎟️` : `<i class="fa-solid fa-lock"></i> ВЫПОЛНЕНО ${completedTasksCount} ИЗ ${activeTasksCount}`}
+                        </button>
+                        <button class="btn-cancel-contract" onclick="cancelActiveConstructorContract()">
+                            <i class="fa-solid fa-rotate-left"></i> Отменить задание (${cost} 🎟️)
+                        </button>
+                    </div>
                 </div>
             `;
 
             container.innerHTML = summaryHtml + cardsHtml;
+
+            // Запускаем таймер сгорания, если дата получена
+            if (contractExpiresAtIso) {
+                startContractExpirationTimer(contractExpiresAtIso);
+            }
         }
 
-        window.submitConstructorContract = async function() {
+        window.submitConstructorContract = function() {
             let activeSlots = 0;
             const selectedQuestIds = [];
 
