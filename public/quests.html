@@ -1732,7 +1732,7 @@
     <div id="tour-card" class="tour-card" style="display: none;">
         <div class="tour-card-header">
             <span class="tour-step-badge" id="tour-step-badge">Шаг 1 из 5</span>
-            <button class="close-btn" onclick="closeMatrixTour()"><i class="fa-solid fa-xmark"></i></button>
+            <button class="tour-close-btn" onclick="closeMatrixTour()"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <div class="tour-levitate-stage" id="tour-img-stage">
@@ -1746,7 +1746,7 @@
 
         <div class="tour-actions">
             <button class="premium-btn" id="tour-prev-btn" style="flex: 1;" onclick="prevTourStep()">Назад</button>
-            <button class="cs-gold-btn" id="tour-next-btn" style="flex: 1.5; justify-content: center;" onclick="nextTourStep()">Далее ➔</button>
+            <button class="premium-btn active-state" id="tour-next-btn" style="flex: 1.5;" onclick="nextTourStep()">Далее</button>
         </div>
     </div>
 
@@ -3273,11 +3273,14 @@
                 stageEl.style.display = 'none';
             }
 
-            // 4. Кнопки навигации
+            // 4. Кнопки навигации (1в1 как в гринде)
             const prevBtn = document.getElementById('tour-prev-btn');
             const nextBtn = document.getElementById('tour-next-btn');
             if (prevBtn) prevBtn.style.visibility = currentTourStep === 0 ? 'hidden' : 'visible';
-            if (nextBtn) nextBtn.textContent = currentTourStep === matrixTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
+            if (nextBtn) {
+                nextBtn.className = "premium-btn active-state";
+                nextBtn.textContent = currentTourStep === matrixTourSteps.length - 1 ? 'ПОНЯТНО 👍' : 'ДАЛЕЕ ➔';
+            }
 
             // 5. Позиционирование и скролл
             if (tourStepTimeout) clearTimeout(tourStepTimeout);
