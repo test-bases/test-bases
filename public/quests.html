@@ -192,6 +192,16 @@
             border-radius: 10px; 
             backdrop-filter: blur(20px); 
             -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .limit-pill:active {
+            transform: scale(0.94);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(212, 175, 55, 0.4);
         }
         .limit-pill i { color: var(--gold-primary); font-size: 14px; transform: rotate(-10deg); }
         .limit-texts { display: flex; flex-direction: column; }
@@ -1194,7 +1204,7 @@
                     </div>
                 </div>
                 
-                <div class="limit-pill">
+                <div class="limit-pill" onclick="openWeeklyLimitInfo()">
                     <i class="fa-solid fa-bolt"></i>
                     <div class="limit-texts">
                         <span class="limit-lbl">Лимит:</span>
@@ -2717,24 +2727,46 @@
         // 7. ПЕРЕКЛЮЧЕНИЕ ТАБОВ И ПОПАПЫ
         // ==========================================
         window.switchMainTab = function(tab) {
-    const isWeekly = tab === 'weekly';
-    const isContract = tab === 'contract';
-    const isManual = tab === 'manual';
+            const isWeekly = tab === 'weekly';
+            const isContract = tab === 'contract';
+            const isManual = tab === 'manual';
 
-    if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
-    if (dom.tabBtnContract) dom.tabBtnContract.classList.toggle('active', isContract);
-    if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', isManual);
+            if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
+            if (dom.tabBtnContract) dom.tabBtnContract.classList.toggle('active', isContract);
+            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', isManual);
 
-    if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
-    if (dom.sectionContract) dom.sectionContract.classList.toggle('hidden', !isContract);
-    if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', !isManual);
-    
-    // Скроллим в самый верх страницы
-    scrollToTop();
+            if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
+            if (dom.sectionContract) dom.sectionContract.classList.toggle('hidden', !isContract);
+            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', !isManual);
+            
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+            if (isManual) loadManualQuests();
+        };
 
-    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-    if (isManual) loadManualQuests();
-};
+        window.openWeeklyLimitInfo = function() {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+
+            const used = serverUsedLimits || 0;
+            const max = serverMaxLimits || 5;
+            const remaining = Math.max(0, max - used);
+
+            const infoHtml = `
+                <div style="margin-bottom: 8px; font-size: 11px;">
+                    Выполнено: <b style="color: var(--gold-primary); font-family: monospace;">${used} из ${max}</b>
+                </div>
+                <div style="margin-bottom: 12px; font-size: 11px;">
+                    Доступно на этой неделе: <b style="color: #34c759; font-family: monospace;">${remaining}</b>
+                </div>
+                <div style="font-size: 9.5px; opacity: 0.85; line-height: 1.4; text-align: center;">
+                    В неделю можно активировать и выполнить до <b>${max} наборов заданий</b> из Конструктора.<br><br>
+                    Сброс лимитов происходит каждый <b>понедельник в 00:00 (МСК)</b>.
+                </div>
+            `;
+
+            customAlert(infoHtml, "НЕДЕЛЬНЫЙ ЛИМИТ");
+        };
 
         window.customAlert = function(text, title = 'ВНИМАНИЕ') {
             const old = document.getElementById('custom-cs-alert');
