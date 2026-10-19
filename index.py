@@ -5069,11 +5069,18 @@ async def get_bootstrap_data(
         settings_task = supabase.get("/settings")
         # 👇 ДОБАВЛЕНО ДЛЯ ГАРАНТА 👇
         counters_task = supabase.post("/rpc/get_user_case_counters", json={"p_user_id": telegram_id})
+        # 👇 ДОБАВЛЕНО ДЛЯ КОНСТРУКТОРА ЗАДАНИЙ 👇
+        constructor_task = supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": telegram_id})
 
         # Добавь coupons_task и coupons_res в этот список
-        db_res, notifs_res, p2p_res, balance_res, auctions_res, matrix_res, coupons_res, settings_res, equipped_ach_res, counters_res = await asyncio.gather(
-            rpc_task, notifs_task, p2p_task, balance_task, auctions_task, matrix_task, coupons_task, settings_task, equipped_ach_task, counters_task, return_exceptions=True
+        db_res, notifs_res, p2p_res, balance_res, auctions_res, matrix_res, coupons_res, settings_res, equipped_ach_res, counters_res, constructor_res = await asyncio.gather(
+            rpc_task, notifs_task, p2p_task, balance_task, auctions_task, matrix_task, coupons_task, settings_task, equipped_ach_task, counters_task, constructor_task, return_exceptions=True
         )
+
+        # Распаковываем Конструктор Заданий
+        constructor_state = None
+        if not isinstance(constructor_res, Exception) and getattr(constructor_res, 'status_code', 500) == 200:
+            constructor_state = constructor_res.json()
         
         # Распаковываем Матрицу
         matrix_state = None
@@ -5230,12 +5237,13 @@ async def get_bootstrap_data(
         return {
             "user": user_data,
             "challenge": user_data.get('challenge'), # 👈 Добавлено для прямого доступа на фронтенде
+            "constructor": constructor_state,        # 👈 Состояние конструктора заданий (слоты, лимит 0/5, активное)
             "menu": menu_content,
             "quests": quests_list,
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
             "auctions": auctions_list, 
-            "raffles": db_data.get('raffles', []),                  
+            "raffles": db_data.get('raffles', []),                   
             "my_active_cases": my_active_cases,
             "unread_notifications": unread_count,
             "gift_available": gift_available,
@@ -21093,6 +21101,384 @@ async def buy_checkpoint_exp(req: BuyExpRequest, supabase: httpx.AsyncClient = D
         raise HTTPException(status_code=500, detail="Ошибка выдачи EXP. Обратитесь к администратору.")
 
     return {"status": "success", "message": f"Прокачано до {target_level} уровня"}
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЕ ЗАДАНИЯ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЕ ЗАДАНИЯ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЕ ЗАДАНИЯ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# =========================================================================
+# 📦 PYDANTIC МОДЕЛИ ДЛЯ КОНСТРУКТОРА ЗАДАНИЙ
+# =========================================================================
+class ConstructorQuestSaveRequest(BaseModel):
+    initData: str
+    id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    quest_type: str
+    target_value: int = 1
+    reward_amount: int = 1
+    duration_hours: int = 120
+    sort_order: int = 1
+    icon_url: Optional[str] = ""
+    action_url: Optional[str] = None
+    is_active: bool = True
+
+class ConstructorQuestDeleteRequest(BaseModel):
+    initData: str
+    quest_id: int
+
+class ConstructorUserLookupRequest(BaseModel):
+    initData: str
+    query: str
+
+class ConstructorUserResetRequest(BaseModel):
+    initData: str
+    target_telegram_id: int
+    action: str  # 'reset_progress' | 'clear_active' | 'reset_limits'
+
+class ConstructorStartRequest(BaseModel):
+    initData: str
+    quest_ids: List[int]
+
+
+# =========================================================================
+# 🛠 АДМИН-ЭНДПОИНТЫ КОНСТРУКТОРА (/api/v1/admin/constructor/...)
+# =========================================================================
+
+@app.post("/api/v1/admin/constructor/stats")
+async def admin_constructor_stats(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        resp = await supabase.get(
+            "/user_constructor_progress",
+            params={"select": "user_id,run_number,week_code,current_progress,target_value,reward_amount,claimed_at,expires_at"}
+        )
+        resp.raise_for_status()
+        rows = resp.json() if isinstance(resp.json(), list) else []
+
+        # Группируем по подходам (user_id + week_code + run_number)
+        runs = {}
+        for r in rows:
+            key = f"{r.get('user_id')}_{r.get('week_code')}_{r.get('run_number')}"
+            if key not in runs:
+                runs[key] = {"slots": [], "claimed": bool(r.get("claimed_at"))}
+            runs[key]["slots"].append(r)
+
+        total_runs = len(runs)
+        in_progress = 0
+        completed = 0
+        claimed = 0
+        tickets_rewarded = 0
+
+        for run_data in runs.values():
+            slots = run_data["slots"]
+            all_done = all((s.get("current_progress") or 0) >= (s.get("target_value") or 1) for s in slots)
+            run_reward = sum((s.get("reward_amount") or 0) for s in slots)
+
+            if run_data["claimed"]:
+                claimed += 1
+                completed += 1
+                tickets_rewarded += run_reward
+            elif all_done:
+                completed += 1
+            else:
+                in_progress += 1
+
+        return {
+            "status": "success",
+            "stats": {
+                "total_runs": total_runs,
+                "in_progress": in_progress,
+                "completed": completed,
+                "claimed": claimed,
+                "tickets_rewarded": tickets_rewarded
+            }
+        }
+    except Exception as e:
+        logging.error(f"Ошибка статистики конструктора: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/admin/constructor/quests/list")
+async def admin_constructor_quests_list(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        resp = await supabase.get(
+            "/quests",
+            params={
+                "or": "(quest_type.like.automatic_twitch_%,quest_type.like.automatic_telegram_%,quest_type.like.personal_%)",
+                "order": "sort_order.asc.nullslast,id.asc"
+            }
+        )
+        resp.raise_for_status()
+        return {"status": "success", "quests": resp.json()}
+    except Exception as e:
+        logging.error(f"Ошибка загрузки слотов конструктора: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/admin/constructor/quests/save")
+async def admin_constructor_quests_save(
+    request_data: ConstructorQuestSaveRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    payload = {
+        "title": request_data.title,
+        "description": request_data.description,
+        "quest_type": request_data.quest_type,
+        "target_value": request_data.target_value,
+        "reward_amount": request_data.reward_amount,
+        "duration_hours": request_data.duration_hours,
+        "sort_order": request_data.sort_order,
+        "icon_url": request_data.icon_url,
+        "action_url": request_data.action_url,
+        "is_active": request_data.is_active,
+        "is_repeatable": True
+    }
+
+    try:
+        if request_data.id:
+            resp = await supabase.patch(
+                "/quests",
+                params={"id": f"eq.{request_data.id}"},
+                json=payload
+            )
+        else:
+            resp = await supabase.post("/quests", json=payload)
+
+        resp.raise_for_status()
+        return {"status": "success", "message": "Задание конструктора сохранено."}
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", e.response.text) if e.response else str(e)
+        raise HTTPException(status_code=400, detail=f"Ошибка БД: {err}")
+
+
+@app.post("/api/v1/admin/constructor/quests/delete")
+async def admin_constructor_quests_delete(
+    request_data: ConstructorQuestDeleteRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        resp = await supabase.delete("/quests", params={"id": f"eq.{request_data.quest_id}"})
+        resp.raise_for_status()
+        return {"status": "success", "message": "Задание удалено из public.quests."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/v1/admin/constructor/active_users")
+async def admin_constructor_active_users(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        resp = await supabase.get(
+            "/user_constructor_progress",
+            params={
+                "claimed_at": "is.null",
+                "select": "user_id,run_number,week_code,current_progress,target_value,reward_amount,users(telegram_id,full_name,username,twitch_login)",
+                "order": "started_at.desc"
+            }
+        )
+        resp.raise_for_status()
+        rows = resp.json() if isinstance(resp.json(), list) else []
+
+        grouped = {}
+        for r in rows:
+            uid = r.get("user_id")
+            if uid not in grouped:
+                u_info = r.get("users") or {}
+                grouped[uid] = {
+                    "telegram_id": uid,
+                    "full_name": u_info.get("full_name"),
+                    "username": u_info.get("username"),
+                    "twitch_login": u_info.get("twitch_login"),
+                    "run_number": r.get("run_number", 1),
+                    "used_limits": max(0, (r.get("run_number", 1) - 1)),
+                    "slots_count": 0,
+                    "total_reward": 0,
+                    "pct_sum": 0
+                }
+            g = grouped[uid]
+            g["slots_count"] += 1
+            g["total_reward"] += (r.get("reward_amount") or 0)
+            cur = r.get("current_progress") or 0
+            tgt = max(1, r.get("target_value") or 1)
+            g["pct_sum"] += min(100, int((cur / tgt) * 100))
+
+        result_users = []
+        for g in grouped.values():
+            g["overall_pct"] = int(g["pct_sum"] / max(1, g["slots_count"]))
+            result_users.append(g)
+
+        return {"status": "success", "users": result_users}
+    except Exception as e:
+        logging.error(f"Ошибка active_users конструктора: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/admin/constructor/user_lookup")
+async def admin_constructor_user_lookup(
+    request_data: ConstructorUserLookupRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    q = request_data.query.strip().lstrip("@")
+    try:
+        if q.isdigit():
+            u_resp = await supabase.get("/users", params={"telegram_id": f"eq.{q}", "limit": 1})
+        else:
+            u_resp = await supabase.get("/users", params={"or": f"(twitch_login.ilike.{q},username.ilike.{q})", "limit": 1})
+
+        u_resp.raise_for_status()
+        users_found = u_resp.json()
+        if not users_found:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+        target_user = users_found[0]
+        tg_id = target_user["telegram_id"]
+
+        state_resp = await supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": tg_id})
+        state_resp.raise_for_status()
+        state_data = state_resp.json() or {}
+
+        return {
+            "status": "success",
+            "user": target_user,
+            "used_limits": state_data.get("used_limits", 0),
+            "active_slots": state_data.get("active_slots", [])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/admin/constructor/reset_user")
+async def admin_constructor_reset_user(
+    request_data: ConstructorUserResetRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        resp = await supabase.post(
+            "/rpc/admin_constructor_user_action",
+            json={
+                "p_user_id": request_data.target_telegram_id,
+                "p_action": request_data.action
+            }
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", e.response.text) if e.response else str(e)
+        raise HTTPException(status_code=400, detail=err)
+
+
+# =========================================================================
+# 🎮 КЛИЕНТСКИЕ ЭНДПОИНТЫ КОНСТРУКТОРА ДЛЯ ИГРОКОВ (/api/v1/constructor/...)
+# =========================================================================
+
+@app.post("/api/v1/constructor/state")
+async def get_constructor_state_endpoint(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Неверные данные аутентификации.")
+
+    resp = await supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": user_info["id"]})
+    resp.raise_for_status()
+    return resp.json()
+
+
+@app.post("/api/v1/constructor/start")
+async def start_constructor_contract_endpoint(
+    request_data: ConstructorStartRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Неверные данные аутентификации.")
+
+    telegram_id = user_info["id"]
+    if not request_data.quest_ids:
+        raise HTTPException(status_code=400, detail="Выберите хотя бы одно задание.")
+
+    try:
+        # Проверяем, не выбрал ли игрок Twitch-слот без привязанного Twitch-аккаунта
+        q_ids_str = ",".join(str(qid) for qid in request_data.quest_ids)
+        q_resp = await supabase.get("/quests", params={"id": f"in.({q_ids_str})", "select": "id,quest_type"})
+        if q_resp.status_code == 200:
+            selected_quests = q_resp.json()
+            needs_twitch = any("twitch" in (q.get("quest_type") or "") for q in selected_quests)
+            if needs_twitch:
+                u_resp = await supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_id,twitch_login"})
+                u_list = u_resp.json() if u_resp.status_code == 200 else []
+                if not u_list or not (u_list[0].get("twitch_id") or u_list[0].get("twitch_login")):
+                    raise HTTPException(status_code=400, detail="Для выбора заданий Twitch сначала привяжите свой Twitch-аккаунт в Профиле!")
+
+        resp = await supabase.post(
+            "/rpc/start_constructor_contract",
+            json={"p_user_id": telegram_id, "p_quest_ids": request_data.quest_ids}
+        )
+        resp.raise_for_status()
+        return {"status": "success", "constructor": resp.json()}
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", "Ошибка запуска конструктора") if e.response else str(e)
+        raise HTTPException(status_code=400, detail=err)
+
+
+@app.post("/api/v1/constructor/claim")
+async def claim_constructor_contract_endpoint(
+    request_data: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Неверные данные аутентификации.")
+
+    telegram_id = user_info["id"]
+    try:
+        resp = await supabase.post("/rpc/claim_constructor_contract", json={"p_user_id": telegram_id})
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", "Условия ещё не выполнены") if e.response else str(e)
+        raise HTTPException(status_code=400, detail=err)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
