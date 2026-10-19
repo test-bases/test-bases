@@ -212,8 +212,12 @@ body.tour-mode #universal-top-header {
     /* Отключаем fadeIn-анимацию на время обучения, чтобы не блокировать снятие блюра на мобильных */
     body.tour-mode .tab-content {
       padding-top: 35px !important;
-      padding-bottom: 350px !important; /* Дает свободный запас для скролла на коротких вкладках */
       animation: none !important;
+    }
+
+    /* Запас высоты даем ТОЛЬКО короткой вкладке с билетом, чтобы магазин не улетал */
+    body.tour-mode #tab-free {
+      padding-bottom: 350px !important;
     }
 
     /* 🛡️ БЛОКИРУЮЩИЙ СЛОЙ: закрывает верхнюю шапку и вкладки */
