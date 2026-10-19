@@ -56,16 +56,16 @@
         }
 
         html, body {
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: var(--bg-deep); 
-            font-family: 'Inter', sans-serif; 
-            color: var(--text-main); 
-            overflow-x: hidden; 
-            -webkit-font-smoothing: antialiased;
-        }
+    margin: 0; 
+    padding: 0; 
+    width: 100%; 
+    min-height: 100%; /* Убрали жесткий height: 100%, теперь страница свободно скроллится */
+    background-color: var(--bg-deep); 
+    font-family: 'Inter', sans-serif; 
+    color: var(--text-main); 
+    overflow-x: hidden; 
+    -webkit-font-smoothing: antialiased;
+}
 
         ::-webkit-scrollbar { display: none; }
 
@@ -1187,7 +1187,7 @@
 
         /* 🚀 ДАЕМ СВОБОДНЫЙ ХОД СКРОЛЛУ: чтобы страница могла легко подниматься на любые 160-300px */
         body.tour-mode .main-content {
-            padding-bottom: 80vh !important;
+            padding-bottom: 90vh !important; /* Огромный запас хода вниз, чтобы карточки легко улетали вверх */
         }
 
         /* Аккуратная подсветка БЕЗ перетирания фоновых картинок */
@@ -1336,17 +1336,6 @@
             gap: 8px;
             margin-top: 6px;
         }
-        /* 🚀 СНИМАЕМ ЗАМОК ВЫСОТЫ И ДАЕМ ХОД СКРОЛЛУ */
-body.tour-mode, 
-body.tour-mode html {
-    height: auto !important;
-    min-height: 100% !important;
-    overflow-y: auto !important;
-}
-
-body.tour-mode .main-content {
-    padding-bottom: 70vh !important; /* Дает свободное место внизу, чтобы карточка могла уехать выше */
-}
     </style>
 </head>
 <body>
@@ -3167,9 +3156,13 @@ body.tour-mode .main-content {
         let tourScrollRaf = null;
 
         // Плавная прокрутка для window / documentElement
-        function smoothScrollTour(targetY, duration = 500) {
+        // 🚀 ВСЕЯДНЫЙ СКРОЛЛ ДЛЯ ТЕЛЕФОНОВ И ПК
+        function smoothScrollTour(targetY, duration = 400) {
             if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
-            const startY = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // Считываем позицию с любого доступного источника
+            const getScrollTop = () => window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            const startY = getScrollTop();
             const diff = targetY - startY;
             if (Math.abs(diff) < 2) return;
             const startTime = performance.now();
@@ -3178,7 +3171,13 @@ body.tour-mode .main-content {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-                window.scrollTo(0, startY + diff * ease);
+                const currentY = startY + diff * ease;
+
+                // Крутим сразу все уровни: window, documentElement и body
+                window.scrollTo(0, currentY);
+                document.documentElement.scrollTop = currentY;
+                document.body.scrollTop = currentY;
+
                 if (progress < 1) {
                     tourScrollRaf = requestAnimationFrame(stepScroll);
                 } else {
@@ -3310,9 +3309,9 @@ body.tour-mode .main-content {
 
                 // ⚙️ ТОЧНАЯ НАСТРОЙКА ВЫСОТЫ СКРОЛЛА (в px от верха страницы)
                 const STEP_SCROLL_CONFIG = {
-                    0: 160,    // Шаг 1: Разминка (в самом верху)
-                    1: 180,  // Шаг 2: Конструктор заданий
-                    2: 240,  // Шаг 3: Идеальная серия
+                    0: 175,  // Шаг 1: Челлендж встает ровно под верхний бар, а лягушонок теперь ниже и не задевает его!
+                    1: 290,  // Шаг 2: Конструктор заданий
+                    2: 380,  // Шаг 3: Идеальная серия
                     3: 0,    // Шаг 4: Лимит в шапке
                     4: 0     // Шаг 5: Доп. задания
                 };
