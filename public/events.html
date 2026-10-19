@@ -4054,11 +4054,13 @@ window.closeSuccessModal = function() {
             if (target && scrollArea) {
                 target.classList.add('tour-target-active');
 
-                // Шаги 1 и 2 (Серия и Статус в шапке): всегда прижаты к верху
-                if (currentTourStep <= 1 || step.highlightSelector.includes('user-status')) {
-                    smoothScrollTour(scrollArea, 0, 400);
-                    return;
-                }
+                // Шаг 1 (Ежедневная серия): поднимаем карточку выше
+if (currentTourStep === 0) {
+    // ⬅️ РЕГУЛИРУЙ ЭТО ЧИСЛО: чем больше значение (например, 70, 90, 120), тем ВЫШЕ поднимется серия
+    const customOffset = 80; 
+    smoothScrollTour(scrollArea, customOffset, 400);
+    return;
+}
 
                 // 🔥 Шаги 3 и 5 (Задания и Витрина скинов): одинаковый плавный спуск вниз
                 if (step.highlightSelector.includes('tg-tasks-list') || step.highlightSelector.includes('shop-container')) {
