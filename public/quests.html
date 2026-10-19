@@ -983,6 +983,14 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: #FFD700;
         }
+        .premium-btn:disabled, .premium-btn.locked-state {
+            background: rgba(0, 0, 0, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+            color: #8e8e93 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
 
         .modal-overlay {
             position: fixed;
@@ -1901,9 +1909,12 @@
         };
 
         // ==========================================
-        // 6. КОНСТРУКТОР + ВЫВОД АКТИВНОГО + ПОДРОБНЕЕ (1в1)
+        // 6. КОНСТРУКТОР + ВЫВОД АКТИВНОГО + ПОДРОБНЕЕ (1в1 С БД)
         // ==========================================
         let isContractActive = false;
+        let serverActiveSlots = [];
+        let serverUsedLimits = 0;
+        let serverMaxLimits = 5;
 
         const SLOT_DETAILS = {
             twitch_chat: {
@@ -1912,6 +1923,9 @@
                 color: "#a970ff",
                 targets: [25, 50, 100],
                 targetLabels: ["25 сообщений", "50 сообщений", "100 сообщений"],
+                chipLabels: ["25", "50", "100"],
+                questIds: [null, null, null],
+                descriptions: [],
                 unit: "сообщений",
                 linkUrl: "https://www.twitch.tv/hatelove_ttv",
                 linkText: "Открыть чат",
@@ -1925,6 +1939,9 @@
                 color: "#ff3b30",
                 targets: [30, 60, 120],
                 targetLabels: ["30 минут", "60 минут", "120 минут"],
+                chipLabels: ["30 мин", "60 мин", "120 мин"],
+                questIds: [null, null, null],
+                descriptions: [],
                 unit: "мин.",
                 linkUrl: "https://www.twitch.tv/hatelove_ttv",
                 linkText: "На стрим",
@@ -1938,6 +1955,9 @@
                 color: "#2AABEE",
                 targets: [15, 30, 60],
                 targetLabels: ["15 сообщений", "30 сообщений", "60 сообщений"],
+                chipLabels: ["15", "30", "60"],
+                questIds: [null, null, null],
+                descriptions: [],
                 unit: "сообщений",
                 linkUrl: "https://t.me/hatelove_ttv",
                 linkText: "Открыть чат",
@@ -1951,6 +1971,9 @@
                 color: "#FFD700",
                 targets: [10, 50, 3],
                 targetLabels: ["10 кейсов", "50 слов", "3 друга"],
+                chipLabels: ["10 кейсов", "50 слов", "3 друга"],
+                questIds: [null, null, null],
+                descriptions: [],
                 unit: "ед.",
                 linkUrl: "",
                 linkText: "",
@@ -1960,10 +1983,94 @@
             }
         };
 
+        function getSlotKeyByQuestType(questType) {
+            const qt = (questType || '').toLowerCase();
+            if (qt.includes('twitch_messages')) return 'twitch_chat';
+            if (qt.includes('twitch_uptime')) return 'twitch_uptime';
+            if (qt.includes('telegram_messages')) return 'telegram_chat';
+            return 'personal_quest';
+        }
+
+        // Синхронизация слотов, лимитов 0/5 и активных заданий из БД
+        function syncConstructorFromBackend(state) {
+            if (!state) return;
+
+            serverUsedLimits = state.used_limits || 0;
+            serverMaxLimits = state.max_limits || 5;
+            if (dom.weeklyLimitCount) {
+                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">${serverUsedLimits}</span> / ${serverMaxLimits}`;
+            }
+
+            // 1. Обновляем чипы выбора в модалке из таблицы public.quests (если они созданы в админке)
+            if (state.available_slots) {
+                Object.keys(SLOT_DETAILS).forEach(key => {
+                    const dbList = state.available_slots[key];
+                    if (Array.isArray(dbList) && dbList.length > 0) {
+                        const meta = SLOT_DETAILS[key];
+                        const cfg = constructorConfig[key];
+
+                        cfg.rewardOptions = dbList.map(q => Number(q.reward_amount || 1));
+                        meta.targets = dbList.map(q => Number(q.target_value || 1));
+                        meta.questIds = dbList.map(q => q.id);
+                        meta.descriptions = dbList.map(q => q.description || meta.howTo);
+
+                        meta.targetLabels = dbList.map(q => {
+                            if (key === 'twitch_uptime') return `${q.target_value} минут`;
+                            if (key === 'twitch_chat' || key === 'telegram_chat') return `${q.target_value} сообщений`;
+                            return q.title || `${q.target_value} ед.`;
+                        });
+
+                        meta.chipLabels = dbList.map(q => {
+                            if (key === 'twitch_uptime') return `${q.target_value} мин`;
+                            if (key === 'twitch_chat' || key === 'telegram_chat') return `${q.target_value}`;
+                            return q.title ? (q.title.length > 12 ? `${q.target_value} ед.` : q.title) : `${q.target_value}`;
+                        });
+
+                        if (cfg.selectedIdx >= dbList.length) cfg.selectedIdx = 0;
+
+                        // Перерисовываем чипы внутри строки модалки
+                        const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
+                        const chipsWrap = rowEl ? rowEl.querySelector('.chips-3') : null;
+                        if (chipsWrap) {
+                            chipsWrap.innerHTML = dbList.map((q, idx) => `
+                                <button class="target-chip ${idx === cfg.selectedIdx ? 'active' : ''}" onclick="selectChip('${key}', ${idx})">
+                                    <span class="val">${escapeHTML(meta.chipLabels[idx])}</span>
+                                    <span class="rew"><i class="fa-solid fa-ticket"></i> +${cfg.rewardOptions[idx]}</span>
+                                </button>
+                            `).join('');
+                        }
+                    }
+                });
+                recalcConstructorTotal();
+            }
+
+            // 2. Проверяем, есть ли активный контракт в работе
+            serverActiveSlots = Array.isArray(state.active_slots) ? state.active_slots : [];
+            isContractActive = Boolean(state.is_active && serverActiveSlots.length > 0);
+
+            const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
+            const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
+
+            if (isContractActive) {
+                if (constructorTitleEl) constructorTitleEl.textContent = "ЗАДАНИЯ В РАБОТЕ";
+                if (constructorDescEl) constructorDescEl.textContent = "Нажми, чтобы открыть прогресс активных заданий";
+                if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
+                renderActiveContractUI();
+            } else {
+                if (constructorTitleEl) constructorTitleEl.textContent = "КОНСТРУКТОР ЗАДАНИЙ";
+                if (constructorDescEl) constructorDescEl.textContent = "Собери задание по своей активности!";
+                if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'none';
+            }
+        }
+
         window.openConstructorModal = function(forceModal = false) {
             // Если контракт уже активен — при клике на конструктор сразу открываем вкладку «Активное»
             if (isContractActive && !forceModal) {
                 switchMainTab('contract');
+                return;
+            }
+            if (serverUsedLimits >= serverMaxLimits && !isContractActive) {
+                customAlert("Вы уже выполнили максимум заданий на этой неделе (5 / 5). Новые лимиты откроются в понедельник!", "ЛИМИТ ИСЧЕРПАН");
                 return;
             }
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
@@ -1974,7 +2081,7 @@
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
         };
 
-        // Модалка «Подробнее» 1в1 как на странице Бонусов и Наград
+        // Модалка «Подробнее» 1в1 (работает и для слотов конструктора, и для активных заданий из БД)
         window.openTgTaskInfoModal = function(key) {
             const modal = document.getElementById('tg-task-info-modal');
             if (!modal) return;
@@ -1986,13 +2093,18 @@
             if (key === 'contract_general') {
                 let activeCount = 0;
                 let totalRew = 0;
-                Object.keys(constructorConfig).forEach(k => {
-                    const s = constructorConfig[k];
-                    if (s.enabled) {
-                        activeCount++;
-                        totalRew += s.rewardOptions[s.selectedIdx];
-                    }
-                });
+                if (isContractActive && serverActiveSlots.length > 0) {
+                    activeCount = serverActiveSlots.length;
+                    totalRew = serverActiveSlots.reduce((acc, s) => acc + Number(s.reward_amount || 0), 0);
+                } else {
+                    Object.keys(constructorConfig).forEach(k => {
+                        const s = constructorConfig[k];
+                        if (s.enabled) {
+                            activeCount++;
+                            totalRew += s.rewardOptions[s.selectedIdx];
+                        }
+                    });
+                }
 
                 if (titleEl) titleEl.textContent = "Активные задания";
                 if (iconEl) {
@@ -2010,12 +2122,52 @@
                             <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">+${totalRew} 🎟️</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Срок выполнения:</span>
+                            <span style="color: #ffffff; font-weight: 800;">До 5 дней (с 0)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                             <span>Выплата билетов:</span>
                             <span style="color: #34c759; font-weight: 800;">При 100% выполнении</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                             <span>Лимит заданий:</span>
-                            <span style="color: #ffffff; font-weight: 700;">До 5 в неделю</span>
+                            <span style="color: #ffffff; font-weight: 700;">${serverUsedLimits} / ${serverMaxLimits} в неделю</span>
+                        </div>
+                    `;
+                }
+            } else if (String(key).startsWith('active_')) {
+                const idx = parseInt(String(key).replace('active_', ''), 10);
+                const activeItem = serverActiveSlots[idx];
+                if (!activeItem) return;
+
+                const slotKey = getSlotKeyByQuestType(activeItem.quest_type);
+                const meta = SLOT_DETAILS[slotKey] || SLOT_DETAILS.personal_quest;
+
+                if (titleEl) titleEl.textContent = activeItem.title || meta.title;
+                if (iconEl) {
+                    iconEl.className = activeItem.icon_url || meta.icon;
+                    iconEl.style.color = meta.color;
+                }
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Выбранная цель:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">${activeItem.target_value} ${meta.unit}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Награда слота:</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">+${activeItem.reward_amount} 🎟️</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Текущий прогресс:</span>
+                            <span style="color: #ffffff; font-weight: 800; font-family: 'SF Mono', monospace;">${activeItem.current_progress || 0} / ${activeItem.target_value}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
+                            <span>Проверка:</span>
+                            <span style="color: #34c759; font-weight: 800;">${meta.checkType}</span>
+                        </div>
+                        <div style="font-size: 10px; color: #b0b0b8; line-height: 1.35; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
+                            ${escapeHTML(activeItem.description || meta.howTo)}
                         </div>
                     `;
                 }
@@ -2028,6 +2180,7 @@
                 const rew = slot.rewardOptions[slot.selectedIdx];
                 const cur = slot.currentProgress || 0;
                 const targetNum = meta.targets[slot.selectedIdx];
+                const customDesc = (meta.descriptions && meta.descriptions[slot.selectedIdx]) ? meta.descriptions[slot.selectedIdx] : meta.howTo;
 
                 if (titleEl) titleEl.textContent = meta.title;
                 if (iconEl) {
@@ -2038,7 +2191,7 @@
                     contentEl.innerHTML = `
                         <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                             <span>Выбранная цель:</span>
-                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">${targetLabel}</span>
+                            <span style="color: #FFD700; font-weight: 800; font-family: 'SF Mono', monospace;">${escapeHTML(targetLabel)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 11px; color: #ffffff;">
                             <span>Награда слота:</span>
@@ -2053,7 +2206,7 @@
                             <span style="color: #34c759; font-weight: 800;">${meta.checkType}</span>
                         </div>
                         <div style="font-size: 10px; color: #b0b0b8; line-height: 1.35; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
-                            ${meta.howTo}
+                            ${escapeHTML(customDesc)}
                         </div>
                     `;
                 }
@@ -2137,43 +2290,57 @@
             let totalPctSum = 0;
             let cardsHtml = '';
 
-            ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
-                const slot = constructorConfig[key];
-                const meta = SLOT_DETAILS[key];
-                if (slot.enabled && meta) {
+            // Вариант А: Отрисовка реальных активных слотов из БД (Персональный квест всегда первый под сводкой)
+            if (serverActiveSlots && serverActiveSlots.length > 0) {
+                const priorityOrder = { personal_quest: 1, twitch_chat: 2, twitch_uptime: 3, telegram_chat: 4 };
+                const sortedSlots = [...serverActiveSlots].sort((a, b) => {
+                    const kA = getSlotKeyByQuestType(a.quest_type);
+                    const kB = getSlotKeyByQuestType(b.quest_type);
+                    return (priorityOrder[kA] || 99) - (priorityOrder[kB] || 99);
+                });
+
+                serverActiveSlots = sortedSlots;
+
+                sortedSlots.forEach((item, idx) => {
                     activeTasksCount++;
-                    const rew = slot.rewardOptions[slot.selectedIdx];
+                    const slotKey = getSlotKeyByQuestType(item.quest_type);
+                    const meta = SLOT_DETAILS[slotKey] || SLOT_DETAILS.personal_quest;
+
+                    const rew = Number(item.reward_amount || 1);
                     totalRew += rew;
 
-                    const targetVal = meta.targets[slot.selectedIdx];
-                    const targetLabel = meta.targetLabels[slot.selectedIdx];
-                    const curVal = slot.currentProgress || 0;
+                    const targetVal = Math.max(1, Number(item.target_value || 1));
+                    const curVal = Number(item.current_progress || 0);
                     const pct = Math.min(100, Math.floor((curVal / targetVal) * 100));
                     totalPctSum += pct;
                     if (pct >= 100) completedTasksCount++;
 
+                    const linkUrl = item.action_url || meta.linkUrl;
                     let actionLinkHtml = '';
-                    if (meta.linkUrl) {
-                        const openCall = meta.isTelegramLink
-                            ? `if(window.Telegram?.WebApp) Telegram.WebApp.openTelegramLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`
-                            : `if(window.Telegram?.WebApp) Telegram.WebApp.openLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`;
-                        actionLinkHtml = `<span class="contract-ext-link" onclick="${openCall}">${meta.linkText} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
+                    if (linkUrl) {
+                        const isTg = linkUrl.includes('t.me');
+                        const openCall = isTg
+                            ? `if(window.Telegram?.WebApp) Telegram.WebApp.openTelegramLink('${escapeHTML(linkUrl)}'); else window.open('${escapeHTML(linkUrl)}', '_blank');`
+                            : `if(window.Telegram?.WebApp) Telegram.WebApp.openLink('${escapeHTML(linkUrl)}'); else window.open('${escapeHTML(linkUrl)}', '_blank');`;
+                        actionLinkHtml = `<span class="contract-ext-link" onclick="${openCall}">${meta.linkText || 'Перейти'} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
                     }
+
+                    const iconClass = (item.icon_url && item.icon_url.trim() !== '') ? item.icon_url : meta.icon;
 
                     cardsHtml += `
                         <div class="glass-card-contract">
                             <div class="contract-task-header">
                                 <div class="contract-task-icon" style="color: ${meta.color}; text-shadow: 0 0 10px ${meta.color}80;">
-                                    <i class="${meta.icon}"></i>
+                                    <i class="${escapeHTML(iconClass)}"></i>
                                 </div>
                                 <div class="contract-task-text">
                                     <div class="contract-task-top-line">
-                                        <span class="contract-task-title">${meta.title}</span>
+                                        <span class="contract-task-title">${escapeHTML(item.title || meta.title)}</span>
                                         ${actionLinkHtml}
                                     </div>
                                     <div class="contract-task-desc">
-                                        <span>Цель: <b style="color:#fff;">${targetLabel}</b> • Награда: <b style="color:var(--gold-primary);">+${rew} 🎟️</b></span>
-                                        <span class="task-info-trigger" onclick="openTgTaskInfoModal('${key}')">(подробнее)</span>
+                                        <span>Цель: <b style="color:#fff;">${targetVal} ${meta.unit}</b> • Награда: <b style="color:var(--gold-primary);">+${rew} 🎟️</b></span>
+                                        <span class="task-info-trigger" onclick="openTgTaskInfoModal('active_${idx}')">(подробнее)</span>
                                     </div>
                                 </div>
                             </div>
@@ -2192,10 +2359,70 @@
                             </div>
                         </div>
                     `;
-                }
-            });
+                });
+            } else {
+                // Вариант Б: Локальный фоллбэк (если тестируется без заполненной БД)
+                ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
+                    const slot = constructorConfig[key];
+                    const meta = SLOT_DETAILS[key];
+                    if (slot.enabled && meta) {
+                        activeTasksCount++;
+                        const rew = slot.rewardOptions[slot.selectedIdx];
+                        totalRew += rew;
+
+                        const targetVal = meta.targets[slot.selectedIdx];
+                        const targetLabel = meta.targetLabels[slot.selectedIdx];
+                        const curVal = slot.currentProgress || 0;
+                        const pct = Math.min(100, Math.floor((curVal / targetVal) * 100));
+                        totalPctSum += pct;
+                        if (pct >= 100) completedTasksCount++;
+
+                        let actionLinkHtml = '';
+                        if (meta.linkUrl) {
+                            const openCall = meta.isTelegramLink
+                                ? `if(window.Telegram?.WebApp) Telegram.WebApp.openTelegramLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`
+                                : `if(window.Telegram?.WebApp) Telegram.WebApp.openLink('${meta.linkUrl}'); else window.open('${meta.linkUrl}', '_blank');`;
+                            actionLinkHtml = `<span class="contract-ext-link" onclick="${openCall}">${meta.linkText} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></span>`;
+                        }
+
+                        cardsHtml += `
+                            <div class="glass-card-contract">
+                                <div class="contract-task-header">
+                                    <div class="contract-task-icon" style="color: ${meta.color}; text-shadow: 0 0 10px ${meta.color}80;">
+                                        <i class="${meta.icon}"></i>
+                                    </div>
+                                    <div class="contract-task-text">
+                                        <div class="contract-task-top-line">
+                                            <span class="contract-task-title">${meta.title}</span>
+                                            ${actionLinkHtml}
+                                        </div>
+                                        <div class="contract-task-desc">
+                                            <span>Цель: <b style="color:#fff;">${targetLabel}</b> • Награда: <b style="color:var(--gold-primary);">+${rew} 🎟️</b></span>
+                                            <span class="task-info-trigger" onclick="openTgTaskInfoModal('${key}')">(подробнее)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="contract-progress-wrap">
+                                    <div class="contract-progress-meta">
+                                        <span class="contract-progress-status">
+                                            <i class="fa-solid ${pct >= 100 ? 'fa-circle-check' : 'fa-spinner fa-spin'}" style="color: ${pct >= 100 ? '#34c759' : 'var(--gold-primary)'}; font-size: 9px;"></i>
+                                            ${pct >= 100 ? 'Выполнено' : 'В процессе выполнения'}
+                                        </span>
+                                        <span class="contract-progress-nums">${curVal} / ${targetVal} (${pct}%)</span>
+                                    </div>
+                                    <div class="contract-progress-track">
+                                        <div class="contract-progress-fill" style="width: ${pct}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
 
             const overallPct = activeTasksCount > 0 ? Math.floor(totalPctSum / activeTasksCount) : 0;
+            const isAllCompleted = activeTasksCount > 0 && completedTasksCount === activeTasksCount;
 
             const summaryHtml = `
                 <div class="glass-card-contract summary-card">
@@ -2224,41 +2451,78 @@
                             <div class="contract-progress-fill" style="width: ${overallPct}%;"></div>
                         </div>
                     </div>
+
+                    <button class="premium-btn ${isAllCompleted ? 'active-state' : 'locked-state'}" ${isAllCompleted ? '' : 'disabled'} onclick="claimConstructorContractReward()">
+                        ${isAllCompleted ? `<i class="fa-solid fa-gift"></i> ЗАБРАТЬ +${totalRew} 🎟️` : `<i class="fa-solid fa-lock"></i> ВЫПОЛНЕНО ${completedTasksCount} ИЗ ${activeTasksCount}`}
+                    </button>
                 </div>
             `;
 
             container.innerHTML = summaryHtml + cardsHtml;
         }
 
-        window.submitConstructorContract = function() {
+        window.submitConstructorContract = async function() {
             let activeSlots = 0;
-            Object.values(constructorConfig).forEach(s => { if (s.enabled) activeSlots++; });
+            const selectedQuestIds = [];
+
+            ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
+                const s = constructorConfig[key];
+                const meta = SLOT_DETAILS[key];
+                if (s.enabled) {
+                    activeSlots++;
+                    const qId = meta?.questIds ? meta.questIds[s.selectedIdx] : null;
+                    if (qId) selectedQuestIds.push(Number(qId));
+                }
+            });
+
             if (activeSlots === 0) return;
 
+            // Если слоты подгружены из public.quests — сохраняем контракт в БД со стартом с 0
+            if (selectedQuestIds.length > 0) {
+                try {
+                    const res = await makeApiRequest('/api/v1/constructor/start', { quest_ids: selectedQuestIds }, 'POST');
+                    if (res && res.status === 'success' && res.constructor) {
+                        closeConstructorModal();
+                        syncConstructorFromBackend(res.constructor);
+                        customAlert("Ваши задания активированы! Отсчёт статистики начат с 0.", "В РАБОТЕ");
+                        switchMainTab('contract');
+                        if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                } catch (e) {
+                    console.error("Ошибка старта конструктора:", e);
+                }
+                return;
+            }
+
+            // Фоллбэк, если в БД ещё не созданы шаблоны
             isContractActive = true;
             closeConstructorModal();
             customAlert("Ваши задания активированы!");
 
-            if (dom.weeklyLimitCount) {
-                dom.weeklyLimitCount.innerHTML = `<span style="color:var(--gold-primary)">1</span> / 5`;
-            }
-
-            // Обновляем карточку конструктора на главной вкладке, чтобы при клике открывалась вкладка «Активное»
             const constructorTitleEl = document.querySelector('.constructor-card .constructor-title');
             const constructorDescEl = document.querySelector('.constructor-card .constructor-desc');
             if (constructorTitleEl) constructorTitleEl.textContent = "ЗАДАНИЯ В РАБОТЕ";
             if (constructorDescEl) constructorDescEl.textContent = "Нажми, чтобы открыть прогресс активных заданий";
 
-            // Включаем 2 вкладку "Активное" (Контракт)
             if (dom.tabBtnContract) dom.tabBtnContract.style.display = 'flex';
-
-            // Отрисовываем выбранные задания с прогресс-барами во вкладке «Активное»
             renderActiveContractUI();
-
-            // Сразу перекидываем пользователя на вкладку «Активное»
             switchMainTab('contract');
 
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        };
+
+        window.claimConstructorContractReward = async function() {
+            try {
+                const res = await makeApiRequest('/api/v1/constructor/claim', {}, 'POST');
+                if (res && res.status === 'success') {
+                    injectRewardPopup(res.reward_amount || 1, "Все задания выполнены! Награда начислена.");
+                    const freshState = await makeApiRequest('/api/v1/constructor/state', {}, 'POST', true);
+                    if (freshState) syncConstructorFromBackend(freshState);
+                    switchMainTab('weekly');
+                }
+            } catch (e) {
+                console.error("Ошибка получения награды конструктора:", e);
+            }
         };
 
         // ==========================================
@@ -2406,6 +2670,9 @@
                     userData = bootstrapData.user || {};
                     allQuests = bootstrapData.quests || [];
                     renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
+                    if (bootstrapData.constructor) {
+                        syncConstructorFromBackend(bootstrapData.constructor);
+                    }
                 }
 
                 const currentChallenge = bootstrapData?.challenge || userData?.challenge || null;
