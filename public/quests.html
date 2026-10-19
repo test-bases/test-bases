@@ -192,8 +192,6 @@
             border-radius: 10px; 
             backdrop-filter: blur(20px); 
             -webkit-backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
             padding: 4px 8px;
             cursor: pointer;
             transition: all 0.18s ease;
@@ -742,10 +740,9 @@
         
         .cs-modal-card.large-modal { 
             width: 100%; max-width: 380px; 
-            background: rgba(14, 14, 18, 0.96); border: 1px solid var(--card-border-gold); 
-            border-radius: var(--radius-xl); box-shadow: 0 12px 50px rgba(0,0,0,0.85); 
+            border-radius: var(--radius-xl);
             display: flex; flex-direction: column; max-height: 96vh; overflow: hidden;
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
         }
 
         .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
