@@ -721,11 +721,14 @@
            11. МОДАЛКИ (КОНСТРУКТОР + ВВОД ДАННЫХ)
            ========================================== */
         .cs-modal-backdrop { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
-            z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .cs-modal-backdrop.show { opacity: 1; pointer-events: auto; }
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
+    z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
+    opacity: 0; pointer-events: none; visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.cs-modal-backdrop.show { 
+    opacity: 1; pointer-events: auto; visibility: visible; 
+}
         
         .cs-modal-card.large-modal { 
             width: 100%; max-width: 380px; 
@@ -876,7 +879,6 @@
             font-weight: 700;
             white-space: nowrap;
             line-height: 1.2;
-            pointer-events: auto;
         }
         .task-info-trigger:active { opacity: 0.7; }
 
@@ -1069,24 +1071,26 @@
         }
 
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            z-index: 100010;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            padding: 20px;
-        }
-        .modal-overlay.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 100010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 20px;
+}
+.modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
         .bottom-sheet {
             background: rgba(20, 20, 22, 0.4);
             backdrop-filter: blur(35px);
@@ -1387,7 +1391,7 @@
                             <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
                             <div class="c-titles">
                                 <b>Twitch Чат</b>
-                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_chat')">(подробнее)</span></span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1412,7 +1416,7 @@
                             <div class="c-icon"><i class="fa-solid fa-play"></i></div>
                             <div class="c-titles">
                                 <b>Стрим</b>
-                                <span>Время просмотра <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_uptime')">(подробнее)</span></span>
+                                <span>Время просмотра <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1437,7 +1441,7 @@
                             <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
                             <div class="c-titles">
                                 <b>Telegram Чат</b>
-                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('telegram_chat')">(подробнее)</span></span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1462,7 +1466,7 @@
                             <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
                             <div class="c-titles">
                                 <b>Персональный</b>
-                                <span>Игровая цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('personal_quest')">(подробнее)</span></span>
+                                <span>Игровая цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1516,6 +1520,19 @@
 
     <!-- ================= 8. JS ЛОГИКА ================= -->
     <script>
+
+        function scrollToTop(smooth = false) {
+    const scroll = () => {
+        window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        if (dom.mainContent) dom.mainContent.scrollTop = 0;
+        const wrapper = document.querySelector('.mobile-wrapper');
+        if (wrapper) wrapper.scrollTop = 0;
+    };
+    scroll();
+    requestAnimationFrame(scroll);
+}
         // =========================================================================
         // ⚙️ ПАНЕЛЬ РУЧНОЙ НАСТРОЙКИ ЧЕЛЛЕНДЖА
         // =========================================================================
@@ -2146,18 +2163,19 @@
         }
 
         window.openConstructorModal = function(forceModal = false) {
-            // Если контракт уже активен — при клике на конструктор сразу открываем вкладку «Активное»
-            if (isContractActive && !forceModal) {
-                switchMainTab('contract');
-                return;
-            }
-            if (serverUsedLimits >= serverMaxLimits && !isContractActive) {
-                customAlert("Вы уже выполнили максимум заданий на этой неделе (5 / 5). Новые лимиты откроются в понедельник!", "ЛИМИТ ИСЧЕРПАН");
-                return;
-            }
-            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-        };
+    // Если контракт уже активен — сразу переходим во вкладку «Активное» и скроллим в самый верх
+    if (isContractActive && !forceModal) {
+        switchMainTab('contract');
+        scrollToTop();
+        return;
+    }
+    if (serverUsedLimits >= serverMaxLimits && !isContractActive) {
+        customAlert("Вы уже выполнили максимум заданий на этой неделе (5 / 5). Новые лимиты откроются в понедельник!", "ЛИМИТ ИСЧЕРПАН");
+        return;
+    }
+    if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
+    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+};
 
         window.closeConstructorModal = function() {
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
@@ -2699,21 +2717,24 @@
         // 7. ПЕРЕКЛЮЧЕНИЕ ТАБОВ И ПОПАПЫ
         // ==========================================
         window.switchMainTab = function(tab) {
-            const isWeekly = tab === 'weekly';
-            const isContract = tab === 'contract';
-            const isManual = tab === 'manual';
+    const isWeekly = tab === 'weekly';
+    const isContract = tab === 'contract';
+    const isManual = tab === 'manual';
 
-            if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
-            if (dom.tabBtnContract) dom.tabBtnContract.classList.toggle('active', isContract);
-            if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', isManual);
+    if (dom.tabBtnWeekly) dom.tabBtnWeekly.classList.toggle('active', isWeekly);
+    if (dom.tabBtnContract) dom.tabBtnContract.classList.toggle('active', isContract);
+    if (dom.tabBtnManual) dom.tabBtnManual.classList.toggle('active', isManual);
 
-            if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
-            if (dom.sectionContract) dom.sectionContract.classList.toggle('hidden', !isContract);
-            if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', !isManual);
-            
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-            if (isManual) loadManualQuests();
-        };
+    if (dom.sectionWeekly) dom.sectionWeekly.classList.toggle('hidden', !isWeekly);
+    if (dom.sectionContract) dom.sectionContract.classList.toggle('hidden', !isContract);
+    if (dom.sectionManual) dom.sectionManual.classList.toggle('hidden', !isManual);
+    
+    // Скроллим в самый верх страницы
+    scrollToTop();
+
+    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+    if (isManual) loadManualQuests();
+};
 
         window.customAlert = function(text, title = 'ВНИМАНИЕ') {
             const old = document.getElementById('custom-cs-alert');
