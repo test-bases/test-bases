@@ -304,26 +304,20 @@
         /* ==========================================
            7. ЕЖЕДНЕВНЫЙ ЧЕЛЛЕНДЖ (ХОЛСТ И ПОЗИЦИИ)
            ========================================== */
-        /* Добавляем градиентную маску для создания расплывчатого нижнего края */
-.challenge-card-canvas {
-    /* Ваши текущие свойства остаются... */
-    position: relative;
-    width: 100%;
-    aspect-ratio: 960 / 410;
-    min-height: 165px;
-    background-image: url(/public/static/pepe_challenge.webp);
-    background-size: cover; 
-    background-position: center top; 
-    background-repeat: no-repeat;
-    margin-bottom: 3px;
-    border-radius: 20px;
-    overflow: hidden;
-    user-select: none;
-    
-    /* НОВЫЙ КОД: Маска, которая делает нижние 15% прозрачными */
-    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-}
+        .challenge-card-canvas {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 960 / 410;
+            min-height: 165px;
+            background-image: url(/public/static/pepe_challenge.webp);
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin-bottom: 3px;
+            border-radius: 20px;
+            overflow: hidden;
+            user-select: none;
+        }
 
         /* 📍 1. ЗАГОЛОВОК И ПОДЗАГОЛОВОК */
         .canvas-title-group {
@@ -1433,7 +1427,7 @@ body.tour-mode .limit-pill.tour-target-active {
     background: rgba(24, 24, 28, 0.98) !important;
     box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
 }
-/* Если внутри табов есть подсвеченный элемент, снимаем блюр с самой панели табов */
+        /* Если внутри табов есть подсвеченный элемент, снимаем блюр с самой панели табов */
 body.tour-mode .cs-tabs:has(.tour-target-active) {
     filter: none !important;
     -webkit-filter: none !important;
@@ -1443,21 +1437,11 @@ body.tour-mode .cs-tabs:has(.tour-target-active) {
     box-shadow: none !important;
 }
 
-/* Приглушаем неактивные вкладки, оставляя активную четкой */
-body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn {
+/* При этом соседние неактивные вкладки (План, Активное) мы приглушаем */
+body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-active) {
     opacity: 0.25;
     filter: blur(2px);
     -webkit-filter: blur(2px);
-}
-
-/* Возвращаем четкость ТОЛЬКО той вкладке, которая сейчас подсвечена туром */
-body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn.tour-target-active {
-    opacity: 1 !important;
-    filter: none !important;
-    -webkit-filter: none !important;
-    /* Можно добавить фон, чтобы она лучше выделялась без родительской плашки */
-    background: rgba(18, 18, 22, 0.98) !important;
-    border: 1px solid var(--gold-primary) !important;
 }
 
         /* Статичный персонаж без покачиваний */
