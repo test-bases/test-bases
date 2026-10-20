@@ -950,6 +950,15 @@
             border-color: var(--gold-primary);
             color: var(--gold-primary);
         }
+        .c-reroll-btn.locked {
+            opacity: 0.45 !important;
+            cursor: not-allowed !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            color: #8e8e93 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
         .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
         /* Иконка слота внутри строки */
@@ -1784,7 +1793,8 @@
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- СЛОТ 1 (ПРИОРИТЕТ): ПЕРСОНАЛЬНЫЙ ВЫЗОВ С РАНДОМОМ -->
+            <div class="constructor-list">
+                <!-- СЛОТ 1 (ПРИОРИТЕТ): ПЕРСОНАЛЬНЫЙ ВЫЗОВ С РАНДОМОМ -->
                 <div class="c-row row-disabled priority-row" id="row-personal-quest">
                     <div class="c-row-top">
                         <div class="c-info-block">
@@ -2097,8 +2107,8 @@
                 return result;
             } catch (e) {
                 if (e.name === 'AbortError') e.message = "Превышено время ожидания ответа.";
-                if (!isSilent && window.Telegram?.WebApp?.showAlert) {
-                    Telegram.WebApp.showAlert(`Ошибка: ${e.message}`);
+                if (!isSilent && typeof customAlert === 'function') {
+                    customAlert(e.message || "Произошла ошибка при выполнении запроса", "ОШИБКА", { isDanger: true });
                 }
                 throw e;
             } finally {
@@ -2219,10 +2229,10 @@
                     dom.claimChallengeBtn.className = "claimed";
                 } else if (canClaim) {
                     dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-gift"></i> <span>ЗАБРАТЬ</span> <i class="fa-solid fa-angles-right"></i>`;
-                    dom.claimChallengeBtn.className = "";
+                    dom.claimChallengeBtn.className = "ready";
                 } else {
                     dom.claimChallengeBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> <span>В ПРОЦЕССЕ</span> <i class="fa-solid fa-angles-right"></i>`;
-                    dom.claimChallengeBtn.className = "";
+                    dom.claimChallengeBtn.className = "in-progress";
                 }
             }
         }
@@ -2230,8 +2240,17 @@
         window.claimActiveStreamChallenge = async function() {
             if (!activeChallengeId) return;
 
+            // Если задание уже забрано или ещё выполняется — не отправляем пустой запрос на бэкенд
+            if (dom.claimChallengeBtn) {
+                if (dom.claimChallengeBtn.classList.contains('claimed')) return;
+                if (dom.claimChallengeBtn.classList.contains('in-progress')) {
+                    customAlert("Задание ещё выполняется. Достигните цели, чтобы забрать награду!", "В ПРОЦЕССЕ");
+                    return;
+                }
+            }
+
             try {
-                const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST');
+                const res = await makeApiRequest('/api/v1/daily_challenge/claim', { challenge_id: activeChallengeId }, 'POST', true);
                 if (res && res.status === 'success') {
                     injectRewardPopup(res.reward_amount || 1, "Задание дня выполнено! Награда начислена.");
                     if (dom.claimChallengeBtn) {
@@ -2243,6 +2262,7 @@
                 }
             } catch (e) {
                 console.error("Ошибка при получении награды челленджа:", e);
+                customAlert(e.message || "Условия задания ещё не выполнены", "ВЫЗОВ");
             }
         };
 
@@ -2780,6 +2800,9 @@
             recalcConstructorTotal();
         };
 
+        let personalRerollsRemaining = 2; // Всего 2 замены (на 3-й попытке фиксация)
+        let personalQuestInitialized = false;
+
         window.toggleConstructorRow = function(key, isEnabled) {
             const config = constructorConfig[key];
             if (!config) return;
@@ -2801,10 +2824,16 @@
                 statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
             }
 
-            // Если включили Персональный вызов — сразу генерируем случайную цель
+            // При первом включении тумблера выбираем 1-ю попытку без траты замен
             if (key === 'personal_quest') {
                 if (isEnabled) {
-                    rollPersonalQuestRandom();
+                    if (!personalQuestInitialized) {
+                        personalQuestInitialized = true;
+                        const meta = SLOT_DETAILS.personal_quest;
+                        const total = (meta.questIds && meta.questIds.length > 0) ? meta.questIds.length : (meta.targets ? meta.targets.length : 3);
+                        config.selectedIdx = Math.floor(Math.random() * total);
+                    }
+                    updatePersonalRandomUI();
                 } else {
                     updatePersonalRandomUI();
                 }
@@ -2814,16 +2843,22 @@
             recalcConstructorTotal();
         };
 
-        // Бросок кубика рандома для Персонального вызова
+        // Бросок кубика рандома (максимум 2 замены, на 3-й попытке фиксируется)
         window.rollPersonalQuestRandom = function(e) {
             if (e) e.stopPropagation();
             const config = constructorConfig.personal_quest;
             const meta = SLOT_DETAILS.personal_quest;
             if (!config || !meta) return;
 
-            // Если тумблер был выключен — автоматически включаем его
+            // Если тумблер был выключен — включаем его
             if (!config.enabled) {
                 toggleConstructorRow('personal_quest', true);
+                return;
+            }
+
+            // Если попытки исчерпаны — выдаем предупреждение и блокируем
+            if (personalRerollsRemaining <= 0) {
+                customAlert("Все попытки использованы! Цель персонального вызова окончательно зафиксирована.", "ЗАФИКСИРОВАНО");
                 return;
             }
 
@@ -2836,6 +2871,8 @@
                 config.selectedIdx = newIdx;
             }
 
+            personalRerollsRemaining--;
+
             // Анимация вращения кубика
             const dice = document.getElementById('personal-dice-icon');
             if (dice) {
@@ -2847,7 +2884,7 @@
             recalcConstructorTotal();
 
             if (window.Telegram?.WebApp?.HapticFeedback) {
-                Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                Telegram.WebApp.HapticFeedback.impactOccurred(personalRerollsRemaining === 0 ? 'heavy' : 'medium');
             }
         };
 
@@ -2859,6 +2896,7 @@
             const targetEl = document.getElementById('personal-random-target');
             const descEl = document.getElementById('personal-random-desc');
             const rewEl = document.getElementById('personal-random-reward');
+            const rerollBtn = document.getElementById('personal-reroll-btn');
 
             const idx = config.selectedIdx || 0;
             const label = (meta.targetLabels && meta.targetLabels[idx]) || "Случайный квест";
@@ -2866,8 +2904,30 @@
             const desc = (meta.descriptions && meta.descriptions[idx]) || meta.howTo || "Случайная личная цель";
 
             if (targetEl) targetEl.textContent = config.enabled ? label : "Включите тумблер для рандома";
-            if (descEl) descEl.textContent = config.enabled ? desc : "Случайная личная цель";
+
+            if (descEl) {
+                if (!config.enabled) {
+                    descEl.textContent = "Случайная личная цель (до 2 замен)";
+                } else if (personalRerollsRemaining > 0) {
+                    descEl.innerHTML = `${desc} • <span style="color:var(--gold-primary); font-weight:700;">Замен: ${personalRerollsRemaining}</span>`;
+                } else {
+                    descEl.innerHTML = `${desc} • <span style="color:#ff3b30; font-weight:800;"><i class="fa-solid fa-lock"></i> Зафиксировано</span>`;
+                }
+            }
+
             if (rewEl) rewEl.innerHTML = `<i class="fa-solid fa-ticket"></i> +${config.enabled ? rew : 0}`;
+
+            if (rerollBtn) {
+                if (config.enabled && personalRerollsRemaining <= 0) {
+                    rerollBtn.classList.add('locked');
+                    rerollBtn.innerHTML = `<i class="fa-solid fa-lock"></i>`;
+                    rerollBtn.title = "Попытки исчерпаны, цель зафиксирована";
+                } else {
+                    rerollBtn.classList.remove('locked');
+                    rerollBtn.innerHTML = `<i class="fa-solid fa-rotate"></i>`;
+                    rerollBtn.title = `Заменить цель (осталось замен: ${personalRerollsRemaining})`;
+                }
+            }
         }
 
         function recalcConstructorTotal() {
@@ -3182,6 +3242,8 @@
                 try {
                     const res = await makeApiRequest('/api/v1/constructor/start', { quest_ids: selectedQuestIds }, 'POST');
                     if (res && res.status === 'success' && res.constructor) {
+                        personalRerollsRemaining = 2;
+                        personalQuestInitialized = false;
                         closeConstructorModal();
                         syncConstructorFromBackend(res.constructor);
                         customAlert("Ваши задания активированы! Отсчёт статистики начат с 0.", "В РАБОТЕ");
