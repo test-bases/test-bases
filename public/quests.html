@@ -1414,7 +1414,8 @@
         /* Челлендж: железно сохраняем фоновое изображение на месте */
         body.tour-mode #challenge-card-box.tour-target-active {
             background-image: url(/public/static/pepe_challenge.webp) !important;
-            background-size: 100% 100% !important;
+            background-size: cover !important; /* Вместо 100% 100% */
+           background-position: center top !important; /* Теперь картинка послушно сдвинется */
             background-repeat: no-repeat !important;
         }
 
@@ -3675,34 +3676,42 @@
         // Плавная прокрутка для window / documentElement
         // 🚀 ВСЕЯДНЫЙ СКРОЛЛ ДЛЯ ТЕЛЕФОНОВ И ПК
         function smoothScrollTour(targetY, duration = 400) {
-            if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
-            
-            // Считываем позицию с любого доступного источника
-            const getScrollTop = () => window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            const startY = getScrollTop();
-            const diff = targetY - startY;
-            if (Math.abs(diff) < 2) return;
-            const startTime = performance.now();
+    if (tourScrollRaf) cancelAnimationFrame(tourScrollRaf);
+    
+    // Находим ваши главные обертки
+    const wrapper = document.querySelector('.mobile-wrapper');
+    const main = document.getElementById('main-content');
+    
+    // Считываем позицию со ВСЕХ возможных контейнеров
+    const getScrollTop = () => window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || (wrapper ? wrapper.scrollTop : 0) || (main ? main.scrollTop : 0) || 0;
+    
+    const startY = getScrollTop();
+    const diff = targetY - startY;
+    if (Math.abs(diff) < 2) return;
+    const startTime = performance.now();
 
-            function stepScroll(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-                const currentY = startY + diff * ease;
+    function stepScroll(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Плавность (ease-in-out)
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+        const currentY = startY + diff * ease;
 
-                // Крутим сразу все уровни: window, documentElement и body
-                window.scrollTo(0, currentY);
-                document.documentElement.scrollTop = currentY;
-                document.body.scrollTop = currentY;
+        // Применяем скролл ко ВСЕМ уровням, чтобы 100% сработало в Telegram WebApp
+        window.scrollTo(0, currentY);
+        document.documentElement.scrollTop = currentY;
+        document.body.scrollTop = currentY;
+        if (wrapper) wrapper.scrollTop = currentY;
+        if (main) main.scrollTop = currentY;
 
-                if (progress < 1) {
-                    tourScrollRaf = requestAnimationFrame(stepScroll);
-                } else {
-                    tourScrollRaf = null;
-                }
-            }
+        if (progress < 1) {
             tourScrollRaf = requestAnimationFrame(stepScroll);
+        } else {
+            tourScrollRaf = null;
         }
+    }
+    tourScrollRaf = requestAnimationFrame(stepScroll);
+}
 
         const matrixTourSteps = [
             {
