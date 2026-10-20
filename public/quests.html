@@ -516,6 +516,69 @@
            9. ИДЕАЛЬНАЯ СЕРИЯ 
            ========================================== */
         .ghost-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        /* ==========================================
+           ЕДИНЫЙ ДИЗАЙН КАСТОМНЫХ ДИАЛОГОВЫХ ОКОН
+           ========================================== */
+        .custom-dialog-card {
+            width: 100%;
+            max-width: 320px;
+            background: rgba(18, 18, 22, 0.92);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 215, 0, 0.1);
+            border-radius: 20px;
+            padding: 20px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 10px;
+            animation: tourSlideUp 0.25s ease;
+        }
+        .custom-dialog-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 215, 0, 0.12);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: var(--gold-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 2px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+        .custom-dialog-icon.danger {
+            background: rgba(255, 59, 48, 0.15);
+            border-color: rgba(255, 59, 48, 0.35);
+            color: #ff453a;
+            box-shadow: 0 0 15px rgba(255, 59, 48, 0.2);
+        }
+        .custom-dialog-title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .custom-dialog-text {
+            margin: 0;
+            font-size: 11px;
+            color: #d1d1d6;
+            line-height: 1.45;
+            font-weight: 500;
+        }
+        .custom-dialog-text b { color: #fff; }
+        .custom-dialog-actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            margin-top: 6px;
+        }
         .streak-body { padding: 0 14px 14px 14px; }
         .streak-segments { display: flex; gap: 4px; margin-bottom: 10px; }
         .seg { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -1721,17 +1784,13 @@
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="constructor-list">
-                <!-- СЛОТ 1 (ПРИОРИТЕТ): ПЕРСОНАЛЬНЫЙ ВЫЗОВ С РАНДОМОМ -->
+            <!-- СЛОТ 1 (ПРИОРИТЕТ): ПЕРСОНАЛЬНЫЙ ВЫЗОВ С РАНДОМОМ -->
                 <div class="c-row row-disabled priority-row" id="row-personal-quest">
                     <div class="c-row-top">
                         <div class="c-info-block">
                             <div class="c-icon gold-icon"><i class="fa-solid fa-dice"></i></div>
                             <div class="c-titles">
-                                <b style="display:flex; align-items:center; gap:5px;">
-                                    Персональный вызов
-                                    <span class="priority-badge">⭐ ТОП</span>
-                                </b>
+                                <b>Персональный вызов</b>
                                 <span>Случайная цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('personal_quest')">(подробнее)</span></span>
                             </div>
                         </div>
@@ -1841,7 +1900,9 @@
                     <span>Итоговая награда</span>
                     <div class="sum-val"><i class="fa-solid fa-ticket" style="color:var(--gold-primary);"></i> <span id="constructor-total-reward">0</span></div>
                 </div>
-                <button id="activate-contract-btn" class="cs-gold-btn disabled" onclick="submitConstructorContract()">ПРИНЯТЬ <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                <button id="activate-contract-btn" class="premium-btn active-state locked-state" disabled onclick="submitConstructorContract()" style="width: auto; padding: 10px 18px;">
+                    ПРИНЯТЬ <i class="fa-solid fa-angles-right"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -2819,7 +2880,10 @@
                 }
             });
             if (dom.constructorTotalReward) dom.constructorTotalReward.textContent = String(total);
-            if (dom.activateContractBtn) dom.activateContractBtn.classList.toggle('disabled', !anyEnabled);
+            if (dom.activateContractBtn) {
+                dom.activateContractBtn.disabled = !anyEnabled;
+                dom.activateContractBtn.classList.toggle('locked-state', !anyEnabled);
+            }
         }
 
         let contractCountdownTimer = null;
@@ -2884,14 +2948,19 @@
                 }
             };
 
-            if (window.Telegram?.WebApp?.showConfirm) {
-                Telegram.WebApp.showConfirm(`Отменить текущее задание?\nБудет списано ${cost} билетов. Задания будут сняты, и вы сможете собрать новый набор.`, (ok) => {
-                    if (ok) confirmAction();
-                });
-            } else {
-                if (confirm(`Отменить текущее задание?\nБудет списано ${cost} билетов. Задания будут сняты, и вы сможете собрать новый набор.`)) {
-                    confirmAction();
+            const isConfirmed = await customConfirm(
+                `Будет списано <b style="color:var(--gold-primary); font-family:monospace;">${cost} 🎟️</b>.<br>Все активные цели будут сняты, и вы сможете собрать новый контракт с нуля.`,
+                "ОТМЕНА ЗАДАНИЯ",
+                {
+                    icon: "fa-solid fa-rotate-left",
+                    isDanger: true,
+                    confirmText: "ДА, ОТМЕНИТЬ",
+                    cancelText: "НАЗАД"
                 }
+            );
+
+            if (isConfirmed) {
+                await confirmAction();
             }
         };
 
@@ -3201,23 +3270,97 @@
             customAlert(infoHtml, "НЕДЕЛЬНЫЙ ЛИМИТ");
         };
 
-        window.customAlert = function(text, title = 'ВНИМАНИЕ') {
-            const old = document.getElementById('custom-cs-alert');
-            if (old) old.remove();
+        // Универсальное кастомное диалоговое окно (ALERT)
+        window.customAlert = function(text, title = 'ВНИМАНИЕ', options = {}) {
+            return new Promise((resolve) => {
+                const old = document.getElementById('custom-cs-dialog');
+                if (old) old.remove();
 
-            const overlay = document.createElement('div');
-            overlay.id = 'custom-cs-alert';
-            overlay.className = 'cs-modal-backdrop show';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-            overlay.innerHTML = `
-                <div class="cs-modal-card large-modal" style="text-align: center; padding: 20px; max-width: 280px; align-items: center;">
-                    <h3 style="color:var(--gold-primary); margin-top: 0; font-size: 13px; font-weight: 800; text-transform: uppercase;">${title}</h3>
-                    <p style="color:#FFF; font-size: 10px; line-height: 1.4; margin-bottom: 16px; opacity: 0.9;">${text}</p>
-                    <button class="cs-gold-btn" style="width: 100%; justify-content: center;" onclick="this.closest('.cs-modal-backdrop').remove()">ОТЛИЧНО</button>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+                const icon = options.icon || (options.isDanger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info');
+                const btnText = options.btnText || 'ПОНЯТНО';
+                const iconClass = options.isDanger ? 'custom-dialog-icon danger' : 'custom-dialog-icon';
+
+                const overlay = document.createElement('div');
+                overlay.id = 'custom-cs-dialog';
+                overlay.className = 'cs-modal-backdrop show';
+                overlay.innerHTML = `
+                    <div class="custom-dialog-card">
+                        <div class="${iconClass}">
+                            <i class="${icon}"></i>
+                        </div>
+                        <h3 class="custom-dialog-title">${escapeHTML(title)}</h3>
+                        <div class="custom-dialog-text">${text}</div>
+                        <div class="custom-dialog-actions">
+                            <button class="premium-btn active-state" id="dialog-confirm-btn" style="width: 100%;">
+                                ${escapeHTML(btnText)}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                const closeDialog = () => {
+                    overlay.classList.remove('show');
+                    setTimeout(() => overlay.remove(), 250);
+                    resolve(true);
+                };
+
+                overlay.onclick = (e) => { if (e.target === overlay) closeDialog(); };
+                overlay.querySelector('#dialog-confirm-btn').onclick = closeDialog;
+
+                document.body.appendChild(overlay);
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred(options.isDanger ? 'error' : 'warning');
+                }
+            });
+        };
+
+        // Универсальное кастомное диалоговое окно с подтверждением (CONFIRM)
+        window.customConfirm = function(text, title = 'ПОДТВЕРЖДЕНИЕ', options = {}) {
+            return new Promise((resolve) => {
+                const old = document.getElementById('custom-cs-dialog');
+                if (old) old.remove();
+
+                const icon = options.icon || (options.isDanger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-question');
+                const confirmText = options.confirmText || 'ПОДТВЕРДИТЬ';
+                const cancelText = options.cancelText || 'ОТМЕНА';
+                const iconClass = options.isDanger ? 'custom-dialog-icon danger' : 'custom-dialog-icon';
+
+                const overlay = document.createElement('div');
+                overlay.id = 'custom-cs-dialog';
+                overlay.className = 'cs-modal-backdrop show';
+                overlay.innerHTML = `
+                    <div class="custom-dialog-card">
+                        <div class="${iconClass}">
+                            <i class="${icon}"></i>
+                        </div>
+                        <h3 class="custom-dialog-title">${escapeHTML(title)}</h3>
+                        <div class="custom-dialog-text">${text}</div>
+                        <div class="custom-dialog-actions">
+                            <button class="premium-btn" id="dialog-cancel-btn" style="flex: 1;">
+                                ${escapeHTML(cancelText)}
+                            </button>
+                            <button class="premium-btn active-state" id="dialog-confirm-btn" style="flex: 1.3;">
+                                ${escapeHTML(confirmText)}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                const cleanUp = (result) => {
+                    overlay.classList.remove('show');
+                    setTimeout(() => overlay.remove(), 250);
+                    resolve(result);
+                };
+
+                overlay.onclick = (e) => { if (e.target === overlay) cleanUp(false); };
+                overlay.querySelector('#dialog-cancel-btn').onclick = () => cleanUp(false);
+                overlay.querySelector('#dialog-confirm-btn').onclick = () => cleanUp(true);
+
+                document.body.appendChild(overlay);
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            });
         };
 
         function injectRewardPopup(amount, text = "Задание выполнено!", reloadOnClose = false) {
