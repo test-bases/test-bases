@@ -661,6 +661,13 @@
             align-items: center;
             justify-content: space-between;
             user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: rgba(18, 18, 22, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         .quest-category-header::-webkit-details-marker { display: none; }
         .quest-category-header::after {
@@ -3516,13 +3523,52 @@
             });
 
             // Автодоводка экрана при открытии аккордеона заданий
+            // Мягкая анимация плавной доводки экрана к открытому аккордеону
+            let accordionScrollRaf = null;
             document.addEventListener('toggle', (e) => {
                 const details = e.target;
                 if (details && details.classList && details.classList.contains('quest-category-accordion')) {
                     if (details.open) {
+                        if (accordionScrollRaf) cancelAnimationFrame(accordionScrollRaf);
+
+                        // Даем браузеру 120мс на мягкое разворачивание контента перед началом движения
                         setTimeout(() => {
-                            details.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 60);
+                            const rect = details.getBoundingClientRect();
+                            const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                            
+                            // Целевая позиция ровно под верхний край экрана (sticky-шапка зафиксируется там же)
+                            const targetY = Math.max(0, currentScrollY + rect.top - 8);
+                            const startY = currentScrollY;
+                            const diff = targetY - startY;
+
+                            // Если элемент уже хорошо виден вверху — не дергаем лишний раз
+                            if (Math.abs(diff) < 15) return;
+
+                            const duration = 500; // 500мс для бархатного, неспешного скольжения
+                            const startTime = performance.now();
+
+                            function step(now) {
+                                const elapsed = now - startTime;
+                                const progress = Math.min(elapsed / duration, 1);
+
+                                // Плавное замедление к концу (cubic ease-out)
+                                const easeOut = 1 - Math.pow(1 - progress, 3);
+                                const newY = startY + diff * easeOut;
+
+                                window.scrollTo(0, newY);
+                                document.documentElement.scrollTop = newY;
+                                document.body.scrollTop = newY;
+
+                                if (progress < 1) {
+                                    accordionScrollRaf = requestAnimationFrame(step);
+                                } else {
+                                    accordionScrollRaf = null;
+                                }
+                            }
+
+                            accordionScrollRaf = requestAnimationFrame(step);
+                        }, 120);
+
                         if (window.Telegram?.WebApp?.HapticFeedback) {
                             Telegram.WebApp.HapticFeedback.selectionChanged();
                         }
