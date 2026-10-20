@@ -1420,11 +1420,29 @@
         }
 
         /* Лимит: сохраняем нативные компактные размеры (без раздувания) */
-        body.tour-mode .limit-pill.tour-target-active {
-            padding: 4px 8px !important;
-            background: rgba(24, 24, 28, 0.98) !important;
-            box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
-        }
+        /* Лимит: сохраняем нативные компактные размеры (без раздувания) */
+body.tour-mode .limit-pill.tour-target-active {
+    position: absolute !important; /* <--- ДОБАВИТЬ ЭТО */
+    padding: 4px 8px !important;
+    background: rgba(24, 24, 28, 0.98) !important;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
+}
+        /* Если внутри табов есть подсвеченный элемент, снимаем блюр с самой панели табов */
+body.tour-mode .cs-tabs:has(.tour-target-active) {
+    filter: none !important;
+    -webkit-filter: none !important;
+    opacity: 1 !important;
+    background: transparent !important; 
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* При этом соседние неактивные вкладки (План, Активное) мы приглушаем */
+body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-active) {
+    opacity: 0.25;
+    filter: blur(2px);
+    -webkit-filter: blur(2px);
+}
 
         /* Статичный персонаж без покачиваний */
         .tour-img {
