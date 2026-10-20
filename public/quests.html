@@ -2800,8 +2800,50 @@
             recalcConstructorTotal();
         };
 
-        let personalRerollsRemaining = 2; // Всего 2 замены (на 3-й попытке фиксация)
+        let personalRerollsRemaining = 2; // До 2 замен (на 3-й попытке фиксация)
         let personalQuestInitialized = false;
+
+        // Генерация уникального ключа сохранения под конкретного юзера и текущий заход
+        function getPersonalStorageKey() {
+            const uid = userData?.telegram_id || 'guest';
+            const week = userData?.constructor_week || 'curr';
+            const run = serverUsedLimits || 0;
+            return `cs_personal_state_${uid}_${week}_run_${run}`;
+        }
+
+        // Загрузка сохранённого состояния из localStorage
+        function loadPersonalQuestState() {
+            try {
+                const raw = localStorage.getItem(getPersonalStorageKey());
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (typeof data.remaining === 'number') personalRerollsRemaining = data.remaining;
+                if (typeof data.selectedIdx === 'number') constructorConfig.personal_quest.selectedIdx = data.selectedIdx;
+                personalQuestInitialized = true;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Сохранение текущего состояния в localStorage
+        function savePersonalQuestState() {
+            try {
+                localStorage.setItem(getPersonalStorageKey(), JSON.stringify({
+                    remaining: personalRerollsRemaining,
+                    selectedIdx: constructorConfig.personal_quest.selectedIdx || 0
+                }));
+            } catch (e) {}
+        }
+
+        // Очистка при завершении контракта
+        function clearPersonalQuestState() {
+            try {
+                localStorage.removeItem(getPersonalStorageKey());
+                personalRerollsRemaining = 2;
+                personalQuestInitialized = false;
+            } catch (e) {}
+        }
 
         window.toggleConstructorRow = function(key, isEnabled) {
             const config = constructorConfig[key];
@@ -2824,14 +2866,15 @@
                 statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
             }
 
-            // При первом включении тумблера выбираем 1-ю попытку без траты замен
+            // При включении тумблера: проверяем, было ли уже зафиксировано в памяти
             if (key === 'personal_quest') {
                 if (isEnabled) {
-                    if (!personalQuestInitialized) {
+                    if (!loadPersonalQuestState() && !personalQuestInitialized) {
                         personalQuestInitialized = true;
                         const meta = SLOT_DETAILS.personal_quest;
                         const total = (meta.questIds && meta.questIds.length > 0) ? meta.questIds.length : (meta.targets ? meta.targets.length : 3);
                         config.selectedIdx = Math.floor(Math.random() * total);
+                        savePersonalQuestState();
                     }
                     updatePersonalRandomUI();
                 } else {
@@ -2843,7 +2886,7 @@
             recalcConstructorTotal();
         };
 
-        // Бросок кубика рандома (максимум 2 замены, на 3-й попытке фиксируется)
+        // Бросок кубика рандома (максимум 2 замены, сохраняется между перезагрузками)
         window.rollPersonalQuestRandom = function(e) {
             if (e) e.stopPropagation();
             const config = constructorConfig.personal_quest;
@@ -2856,7 +2899,10 @@
                 return;
             }
 
-            // Если попытки исчерпаны — выдаем предупреждение и блокируем
+            // Подгружаем сохранённое состояние на случай, если страница только открылась
+            loadPersonalQuestState();
+
+            // Если попытки исчерпаны — блокируем
             if (personalRerollsRemaining <= 0) {
                 customAlert("Все попытки использованы! Цель персонального вызова окончательно зафиксирована.", "ЗАФИКСИРОВАНО");
                 return;
@@ -2872,6 +2918,7 @@
             }
 
             personalRerollsRemaining--;
+            savePersonalQuestState(); // Железно фиксируем в памяти
 
             // Анимация вращения кубика
             const dice = document.getElementById('personal-dice-icon');
@@ -2989,6 +3036,7 @@
                     const res = await makeApiRequest('/api/v1/constructor/cancel', {}, 'POST');
                     if (res && res.status === 'success') {
                         if (contractCountdownTimer) clearInterval(contractCountdownTimer);
+                        clearPersonalQuestState();
                         isContractActive = false;
                         serverActiveSlots = [];
 
@@ -3242,8 +3290,7 @@
                 try {
                     const res = await makeApiRequest('/api/v1/constructor/start', { quest_ids: selectedQuestIds }, 'POST');
                     if (res && res.status === 'success' && res.constructor) {
-                        personalRerollsRemaining = 2;
-                        personalQuestInitialized = false;
+                        clearPersonalQuestState();
                         closeConstructorModal();
                         syncConstructorFromBackend(res.constructor);
                         customAlert("Ваши задания активированы! Отсчёт статистики начат с 0.", "В РАБОТЕ");
