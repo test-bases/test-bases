@@ -642,6 +642,7 @@
             overflow: hidden;
             margin-bottom: 10px;
             transition: border-color 0.3s;
+            scroll-margin-top: 16px; /* Запас сверху при автоскролле, чтобы не липло к верху */
         }
         .quest-category-accordion[open] {
             border-color: var(--card-border-gold);
@@ -3513,6 +3514,21 @@
                     openPromptModal(target.dataset.id, target.dataset.title);
                 }
             });
+
+            // Автодоводка экрана при открытии аккордеона заданий
+            document.addEventListener('toggle', (e) => {
+                const details = e.target;
+                if (details && details.classList && details.classList.contains('quest-category-accordion')) {
+                    if (details.open) {
+                        setTimeout(() => {
+                            details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 60);
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            Telegram.WebApp.HapticFeedback.selectionChanged();
+                        }
+                    }
+                }
+            }, true);
 
             if (window.Telegram?.WebApp?.BackButton) {
                 Telegram.WebApp.BackButton.show();
