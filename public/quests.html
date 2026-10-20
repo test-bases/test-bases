@@ -740,9 +740,13 @@
         
         .cs-modal-card.large-modal { 
             width: 100%; max-width: 380px; 
+            background: rgba(14, 14, 18, 0.96);
+            border: 1px solid var(--card-border-gold);
+            box-shadow: 0 12px 50px rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             border-radius: var(--radius-xl);
             display: flex; flex-direction: column; max-height: 96vh; overflow: hidden;
-            -webkit-backdrop-filter: blur(25px);
         }
 
         .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
@@ -1828,32 +1832,6 @@
                         <button class="target-chip" onclick="selectChip('telegram_chat', 0)"><span class="val">15</span><span class="rew"><i class="fa-solid fa-ticket"></i> +1</span></button>
                         <button class="target-chip active" onclick="selectChip('telegram_chat', 1)"><span class="val">30</span><span class="rew"><i class="fa-solid fa-ticket"></i> +2</span></button>
                         <button class="target-chip" onclick="selectChip('telegram_chat', 2)"><span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span></button>
-                    </div>
-                </div>
-            </div>
-
-                <!-- СЛОТ 4 -->
-                <div class="c-row row-disabled" id="row-personal-quest">
-                    <div class="c-row-top">
-                        <div class="c-info-block">
-                            <div class="c-icon"><i class="fa-solid fa-crosshairs"></i></div>
-                            <div class="c-titles">
-                                <b>Персональный</b>
-                                <span>Игровая цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
-                            </div>
-                        </div>
-                        <div class="c-toggle-block">
-                            <label class="ios-switch">
-                                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
-                        </div>
-                    </div>
-                    <div class="c-row-bottom chips-3">
-                        <button class="target-chip" onclick="selectChip('personal_quest', 0)"><span class="val">10 кейсов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +5</span></button>
-                        <button class="target-chip active" onclick="selectChip('personal_quest', 1)"><span class="val">50 слов</span><span class="rew"><i class="fa-solid fa-ticket"></i> +6</span></button>
-                        <button class="target-chip" onclick="selectChip('personal_quest', 2)"><span class="val">3 друга</span><span class="rew"><i class="fa-solid fa-ticket"></i> +8</span></button>
                     </div>
                 </div>
             </div>
