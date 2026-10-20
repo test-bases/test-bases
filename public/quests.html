@@ -764,6 +764,125 @@
             border-color: rgba(255, 255, 255, 0.07); 
             box-shadow: none;
         }
+
+        /* Приоритетный слот #1 (Персональный вызов) */
+        .c-row.priority-row {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.09) 0%, rgba(20, 20, 26, 0.96) 100%);
+            border: 1px solid rgba(255, 215, 0, 0.35);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 215, 0, 0.15);
+        }
+        .c-row.priority-row.row-disabled {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+        }
+        .priority-badge {
+            font-size: 8px;
+            font-weight: 800;
+            color: #140f02;
+            background: var(--gold-grad);
+            padding: 1.5px 5px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            line-height: 1;
+        }
+        .c-icon.gold-icon {
+            color: var(--gold-primary);
+            background: rgba(255, 215, 0, 0.15);
+            border-color: rgba(255, 215, 0, 0.35);
+        }
+        .c-random-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 7px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s ease;
+        }
+        .c-row:not(.row-disabled) .c-random-box {
+            border-color: rgba(255, 215, 0, 0.3);
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .c-random-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex: 1;
+        }
+        .c-dice-icon {
+            font-size: 17px;
+            color: var(--gold-primary);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            flex-shrink: 0;
+        }
+        .c-random-text-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            overflow: hidden;
+        }
+        .c-random-target {
+            font-size: 11px;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .c-random-sub {
+            font-size: 8.5px;
+            color: rgba(255, 255, 255, 0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.1;
+        }
+        .c-random-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .c-random-reward {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--gold-primary);
+            background: rgba(255, 215, 0, 0.12);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            padding: 3px 7px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-family: monospace;
+        }
+        .c-reroll-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        .c-reroll-btn:active {
+            transform: scale(0.9) rotate(90deg);
+            background: rgba(255, 215, 0, 0.25);
+            border-color: var(--gold-primary);
+            color: var(--gold-primary);
+        }
         .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
         /* Иконка слота внутри строки */
@@ -1599,14 +1718,52 @@
             </div>
 
             <div class="constructor-list">
-                <!-- СЛОТ 1 -->
+                <!-- СЛОТ 1 (ПРИОРИТЕТ): ПЕРСОНАЛЬНЫЙ ВЫЗОВ С РАНДОМОМ -->
+                <div class="c-row row-disabled priority-row" id="row-personal-quest">
+                    <div class="c-row-top">
+                        <div class="c-info-block">
+                            <div class="c-icon gold-icon"><i class="fa-solid fa-dice"></i></div>
+                            <div class="c-titles">
+                                <b style="display:flex; align-items:center; gap:5px;">
+                                    Персональный вызов
+                                    <span class="priority-badge">⭐ ТОП</span>
+                                </b>
+                                <span>Случайная цель <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('personal_quest')">(подробнее)</span></span>
+                            </div>
+                        </div>
+                        <div class="c-toggle-block">
+                            <label class="ios-switch">
+                                <input type="checkbox" onchange="toggleConstructorRow('personal_quest', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-lbl" id="status-personal-quest">ВЫКЛ</span>
+                        </div>
+                    </div>
+                    <div class="c-random-box" id="personal-random-container">
+                        <div class="c-random-info" onclick="rollPersonalQuestRandom(event)" style="cursor:pointer;">
+                            <i class="fa-solid fa-dice-d20 c-dice-icon" id="personal-dice-icon"></i>
+                            <div class="c-random-text-wrap">
+                                <span class="c-random-target" id="personal-random-target">Включите тумблер для рандома</span>
+                                <span class="c-random-sub" id="personal-random-desc">Случайная личная цель</span>
+                            </div>
+                        </div>
+                        <div class="c-random-right">
+                            <span class="c-random-reward" id="personal-random-reward"><i class="fa-solid fa-ticket"></i> +0</span>
+                            <button type="button" class="c-reroll-btn" id="personal-reroll-btn" onclick="rollPersonalQuestRandom(event)" title="Испытать удачу / Другая цель">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СЛОТ 2: TWITCH ЧАТ -->
                 <div class="c-row row-disabled" id="row-twitch-chat">
                     <div class="c-row-top">
                         <div class="c-info-block">
                             <div class="c-icon"><i class="fa-brands fa-twitch"></i></div>
                             <div class="c-titles">
                                 <b>Twitch Чат</b>
-                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_chat')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1624,14 +1781,14 @@
                     </div>
                 </div>
 
-                <!-- СЛОТ 2 -->
+                <!-- СЛОТ 3: СТРИМ -->
                 <div class="c-row row-disabled" id="row-twitch-uptime">
                     <div class="c-row-top">
                         <div class="c-info-block">
                             <div class="c-icon"><i class="fa-solid fa-play"></i></div>
                             <div class="c-titles">
                                 <b>Стрим</b>
-                                <span>Время просмотра <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
+                                <span>Время просмотра <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('twitch_uptime')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1649,14 +1806,14 @@
                     </div>
                 </div>
 
-                <!-- СЛОТ 3 -->
+                <!-- СЛОТ 4: TELEGRAM ЧАТ -->
                 <div class="c-row row-disabled" id="row-telegram-chat">
                     <div class="c-row-top">
                         <div class="c-info-block">
                             <div class="c-icon"><i class="fa-brands fa-telegram"></i></div>
                             <div class="c-titles">
                                 <b>Telegram Чат</b>
-                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('active_${idx}')">(подробнее)</span></span>
+                                <span>Сообщений в чате <span class="task-info-trigger" onclick="event.stopPropagation(); openTgTaskInfoModal('telegram_chat')">(подробнее)</span></span>
                             </div>
                         </div>
                         <div class="c-toggle-block">
@@ -1673,6 +1830,7 @@
                         <button class="target-chip" onclick="selectChip('telegram_chat', 2)"><span class="val">60</span><span class="rew"><i class="fa-solid fa-ticket"></i> +3</span></button>
                     </div>
                 </div>
+            </div>
 
                 <!-- СЛОТ 4 -->
                 <div class="c-row row-disabled" id="row-personal-quest">
@@ -2362,10 +2520,10 @@
 
                         if (cfg.selectedIdx >= dbList.length) cfg.selectedIdx = 0;
 
-                        // Перерисовываем чипы внутри строки модалки
+                        // Перерисовываем чипы внутри строки модалки (для слотов со статичными чипами)
                         const rowEl = document.getElementById(`row-${key.replace('_', '-')}`);
                         const chipsWrap = rowEl ? rowEl.querySelector('.chips-3') : null;
-                        if (chipsWrap) {
+                        if (chipsWrap && key !== 'personal_quest') {
                             chipsWrap.innerHTML = dbList.map((q, idx) => `
                                 <button class="target-chip ${idx === cfg.selectedIdx ? 'active' : ''}" onclick="selectChip('${key}', ${idx})">
                                     <span class="val">${escapeHTML(meta.chipLabels[idx])}</span>
@@ -2375,6 +2533,7 @@
                         }
                     }
                 });
+                updatePersonalRandomUI();
                 recalcConstructorTotal();
             }
 
@@ -2602,9 +2761,75 @@
                 statusText.textContent = isEnabled ? 'ВКЛ' : 'ВЫКЛ';
                 statusText.style.color = isEnabled ? 'var(--gold-primary)' : 'rgba(255,255,255,0.4)';
             }
+
+            // Если включили Персональный вызов — сразу генерируем случайную цель
+            if (key === 'personal_quest') {
+                if (isEnabled) {
+                    rollPersonalQuestRandom();
+                } else {
+                    updatePersonalRandomUI();
+                }
+            }
+
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
             recalcConstructorTotal();
         };
+
+        // Бросок кубика рандома для Персонального вызова
+        window.rollPersonalQuestRandom = function(e) {
+            if (e) e.stopPropagation();
+            const config = constructorConfig.personal_quest;
+            const meta = SLOT_DETAILS.personal_quest;
+            if (!config || !meta) return;
+
+            // Если тумблер был выключен — автоматически включаем его
+            if (!config.enabled) {
+                toggleConstructorRow('personal_quest', true);
+                return;
+            }
+
+            const total = (meta.questIds && meta.questIds.length > 0) ? meta.questIds.length : (meta.targets ? meta.targets.length : 3);
+            if (total > 1) {
+                let newIdx = Math.floor(Math.random() * total);
+                if (newIdx === config.selectedIdx) {
+                    newIdx = (newIdx + 1) % total;
+                }
+                config.selectedIdx = newIdx;
+            }
+
+            // Анимация вращения кубика
+            const dice = document.getElementById('personal-dice-icon');
+            if (dice) {
+                dice.style.transform = 'rotate(360deg) scale(1.25)';
+                setTimeout(() => { if (dice) dice.style.transform = ''; }, 350);
+            }
+
+            updatePersonalRandomUI();
+            recalcConstructorTotal();
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+        };
+
+        function updatePersonalRandomUI() {
+            const config = constructorConfig.personal_quest;
+            const meta = SLOT_DETAILS.personal_quest;
+            if (!config || !meta) return;
+
+            const targetEl = document.getElementById('personal-random-target');
+            const descEl = document.getElementById('personal-random-desc');
+            const rewEl = document.getElementById('personal-random-reward');
+
+            const idx = config.selectedIdx || 0;
+            const label = (meta.targetLabels && meta.targetLabels[idx]) || "Случайный квест";
+            const rew = (config.rewardOptions && config.rewardOptions[idx]) || 5;
+            const desc = (meta.descriptions && meta.descriptions[idx]) || meta.howTo || "Случайная личная цель";
+
+            if (targetEl) targetEl.textContent = config.enabled ? label : "Включите тумблер для рандома";
+            if (descEl) descEl.textContent = config.enabled ? desc : "Случайная личная цель";
+            if (rewEl) rewEl.innerHTML = `<i class="fa-solid fa-ticket"></i> +${config.enabled ? rew : 0}`;
+        }
 
         function recalcConstructorTotal() {
             let total = 0; 
