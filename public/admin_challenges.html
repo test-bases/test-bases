@@ -359,6 +359,42 @@
     }
 
     .hidden { display: none !important; }
+
+    /* ==========================================
+       МОДУЛЬ 3: ИДЕАЛЬНАЯ СЕРИЯ (АДМИНКА)
+       ========================================== */
+    .streak-reward-card {
+      background: #191a20; 
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 12px; 
+      padding: 14px 16px; 
+      margin-bottom: 10px;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .streak-reward-card:hover {
+      border-color: rgba(255, 215, 0, 0.5);
+      background: #20222a;
+    }
+    .streak-img-box {
+      width: 44px; height: 44px; border-radius: 8px;
+      background-size: cover; background-position: center;
+      background-color: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .streak-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .streak-title { font-size: 13px; font-weight: 800; color: #fff; }
+    .streak-desc { font-size: 11px; color: #aaa; }
+    .streak-step-badge {
+      background: var(--gold); color: #000; font-size: 11px; font-weight: 900;
+      padding: 4px 8px; border-radius: 6px;
+    }
+    
   </style>
 </head>
 <body>
@@ -1561,6 +1597,67 @@
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
       );
     }
+    <!-- =========================================================
+       МОДУЛЬ 3: ИДЕАЛЬНАЯ СЕРИЯ (НАСТРОЙКА КУПОНОВ)
+       ========================================================= -->
+  <div class="module-hero-btn" onclick="toggleStreakModule()">
+    <div class="hero-btn-left">
+      <div class="hero-btn-icon"><i class="fa-solid fa-fire"></i></div>
+      <div class="hero-btn-text">
+        <h2>ИДЕАЛЬНАЯ СЕРИЯ</h2>
+      </div>
+    </div>
+    <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-streak-icon"></i>
+  </div>
+
+  <div id="streak-content-wrap" class="hidden">
+    <div class="slot-hint-box" style="border-color: var(--gold); background: rgba(255,215,0,0.05);">
+      <b>🔥 Как работает Идеальная серия?</b><br>
+      Игрок получает +1 к серии, если закрыл хотя бы 1 контракт за календарную неделю. Настрой здесь, какие кейсы выдавать за каждую ступень (например: за 1 нед, 2 нед, 3 нед, 4 нед).
+    </div>
+
+    <div id="streak-rewards-container">
+      <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка наград...</p>
+    </div>
+
+    <button class="add-btn" onclick="openStreakModal()" style="margin-top:12px;">
+      <i class="fa-solid fa-plus"></i> Добавить ступень наград
+    </button>
+  </div>
+
+  <!-- ДИАЛОГОВОЕ ОКНО: НАСТРОЙКА НАГРАДЫ ЗА СЕРИЮ -->
+  <div id="streak-modal-overlay" class="modal-backdrop" onclick="if(event.target===this) closeStreakModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="streak-modal-heading">Ступень серии</h3>
+        <button class="modal-close-btn" onclick="closeStreakModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <input type="hidden" id="streak-id">
+
+      <div class="input-wrapper">
+        <span class="input-label">Требуется недель (step_target)</span>
+        <input type="number" id="streak-target" class="compact-input" value="1" min="1">
+      </div>
+
+      <div class="input-wrapper">
+        <span class="input-label">Приз: Выберите кейс из магазина</span>
+        <select id="streak-case-select" class="compact-input">
+            <option value="">Загрузка кейсов...</option>
+        </select>
+      </div>
+
+      <div class="input-wrapper">
+        <span class="input-label">Кастомная картинка (URL, опционально)</span>
+        <input type="text" id="streak-custom-img" class="compact-input" placeholder="Если пусто, подтянется из кейса">
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn-save-modal" onclick="submitStreakModal()"><i class="fa-solid fa-check"></i> Сохранить</button>
+        <button class="btn-delete-modal hidden" id="streak-delete-btn" onclick="deleteStreak()"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
   </script>
 </body>
 </html>
