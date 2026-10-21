@@ -828,6 +828,8 @@
            СТИЛИ ДЛЯ ПАНЕЛИ УПРАВЛЕНИЯ КОНСТРУКТОРОМ
            ========================================== */
         .constructor-controls {
+            display: flex;
+            gap: 8px;
             padding: 10px 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             margin-bottom: 6px;
@@ -1864,7 +1866,10 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
 
             <div class="constructor-controls">
                 <button id="btn-repeat-last" class="c-ctrl-btn" disabled onclick="repeatLastConstructor()">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Повторить прошлый набор
+                    <i class="fa-solid fa-clock-rotate-left"></i> Повторить
+                </button>
+                <button id="btn-auto-select" class="c-ctrl-btn" onclick="toggleAutoSelect()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Авто-выбор
                 </button>
             </div>
 
@@ -3438,6 +3443,34 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 }
             } catch (e) {
                 console.error("Ошибка при восстановлении прошлого конфига", e);
+            }
+        };
+
+        window.toggleAutoSelect = async function() {
+            // Здесь в будущем будет запрос к API:
+            // const res = await makeApiRequest('/api/v1/constructor/toggle_auto', {}, 'POST');
+            
+            // А пока делаем красивую заглушку-объяснение для пользователя
+            const isConfirmed = await customConfirm(
+                `Активировать <b>Автоматический менеджер</b>?<br><br>Система будет сама подбирать контракты каждую неделю на основе твоей активности. Тебе останется только лутать награды!`,
+                "АВТО-ВЫБОР",
+                {
+                    icon: "fa-solid fa-wand-magic-sparkles",
+                    confirmText: "ВКЛЮЧИТЬ",
+                    cancelText: "ЗАКРЫТЬ"
+                }
+            );
+
+            if (isConfirmed) {
+                // Имитация успешного включения
+                customAlert("Авто-выбор успешно активирован! Завтра бот сам назначит тебе контракт.", "ГОТОВО");
+                
+                // Меняем стиль кнопки, чтобы показать, что функция активна
+                const autoBtn = document.getElementById('btn-auto-select');
+                if (autoBtn) {
+                    autoBtn.classList.add('active-state');
+                    autoBtn.innerHTML = `<i class="fa-solid fa-check"></i> Авто-выбор Вкл`;
+                }
             }
         };
 
