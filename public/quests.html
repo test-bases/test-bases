@@ -824,6 +824,47 @@
         .modal-head h2 { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: 0.5px; color: var(--gold-primary); }
         .close-btn { background: rgba(255,255,255,0.06); border: none; color: #fff; width: 24px; height: 24px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; padding: 0; }
 
+        /* ==========================================
+           СТИЛИ ДЛЯ ПАНЕЛИ УПРАВЛЕНИЯ КОНСТРУКТОРОМ
+           ========================================== */
+        .constructor-controls {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 6px;
+        }
+
+        .c-ctrl-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .c-ctrl-btn:active:not(:disabled) {
+            transform: scale(0.98);
+            background: rgba(255, 215, 0, 0.15);
+            border-color: rgba(255, 215, 0, 0.4);
+            color: var(--gold-primary);
+        }
+
+        .c-ctrl-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
         .constructor-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; flex: 1; }
 
         .c-row { 
@@ -1815,9 +1856,16 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
     <!-- МОДАЛКА: КОНСТРУКТОР -->
     <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
         <div class="cs-modal-card large-modal">
-            <div class="modal-head">
+            <!-- Убрали нижнюю рамку у шапки (border-bottom: none), так как рамка теперь будет под кнопкой -->
+            <div class="modal-head" style="border-bottom: none; padding-bottom: 8px;">
                 <h2>КОНСТРУКТОР ЗАДАНИЙ</h2>
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="constructor-controls">
+                <button id="btn-repeat-last" class="c-ctrl-btn" disabled onclick="repeatLastConstructor()">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Повторить прошлый набор
+                </button>
             </div>
 
             <div class="constructor-list">
@@ -2647,6 +2695,9 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             }
         }
 
+        // Константа для ключа в localStorage
+        const LAST_CONFIG_KEY = 'cs_last_constructor_config';
+
         window.openConstructorModal = function(forceModal = false) {
     // Если контракт уже активен — сразу переходим во вкладку «Активное» и скроллим в самый верх
     if (isContractActive && !forceModal) {
@@ -2659,6 +2710,13 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
         return;
     }
     if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
+    
+    // Активируем кнопку "Повторить", если есть сохраненный конфиг
+    const btnLast = document.getElementById('btn-repeat-last');
+    if (btnLast) {
+        btnLast.disabled = !localStorage.getItem(LAST_CONFIG_KEY);
+    }
+    
     if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
 };
 
@@ -3299,16 +3357,24 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
         window.submitConstructorContract = async function() {
             let activeSlots = 0;
             const selectedQuestIds = [];
+            const stateToSave = {};
 
             ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'].forEach(key => {
                 const s = constructorConfig[key];
                 const meta = SLOT_DETAILS[key];
+                
+                // Сохраняем состояние для истории
+                stateToSave[key] = { enabled: s.enabled, selectedIdx: s.selectedIdx };
+
                 if (s.enabled) {
                     activeSlots++;
                     const qId = meta?.questIds ? meta.questIds[s.selectedIdx] : null;
                     if (qId) selectedQuestIds.push(Number(qId));
                 }
             });
+
+            // Записываем успешную сборку в локальное хранилище
+            localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(stateToSave));
 
             if (activeSlots === 0) return;
 
@@ -3345,6 +3411,34 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             switchMainTab('contract');
 
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        };
+
+        window.repeatLastConstructor = function() {
+            try {
+                const savedRaw = localStorage.getItem(LAST_CONFIG_KEY);
+                if (!savedRaw) return;
+                
+                const saved = JSON.parse(savedRaw);
+                const keys = ['personal_quest', 'twitch_chat', 'twitch_uptime', 'telegram_chat'];
+                
+                keys.forEach(key => {
+                    if (saved[key]) {
+                        // Включаем или выключаем тумблер
+                        toggleConstructorRow(key, saved[key].enabled);
+                        
+                        // Прокликиваем нужный чип (уровень)
+                        if (saved[key].enabled) {
+                            selectChip(key, saved[key].selectedIdx);
+                        }
+                    }
+                });
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            } catch (e) {
+                console.error("Ошибка при восстановлении прошлого конфига", e);
+            }
         };
 
         window.claimConstructorContractReward = async function() {
