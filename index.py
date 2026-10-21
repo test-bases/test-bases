@@ -21447,6 +21447,153 @@ async def cancel_constructor_contract_endpoint(
         logging.error(f"Ошибка отмены контракта конструктора: {e}")
         raise HTTPException(status_code=500, detail="Ошибка сервера при отмене")
 
+# --- ДОБАВЛЯЕМ НОВЫЕ СХЕМЫ ---
+class ToggleAutoAssignRequest(BaseModel):
+    initData: str
+    is_auto_assign: bool
+
+# =========================================================================
+# 🎮 КЛИЕНТСКИЙ ЭНДПОИНТ: ВКЛ/ВЫКЛ АВТО-МЕНЕДЖЕРА
+# =========================================================================
+@app.post("/api/v1/constructor/toggle_auto")
+async def toggle_auto_constructor_endpoint(
+    req: ToggleAutoAssignRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or "id" not in user_info:
+        raise HTTPException(status_code=401, detail="Неверные данные аутентификации.")
+
+    telegram_id = user_info["id"]
+
+    try:
+        # Предполагается, что в таблице `users` есть колонка `auto_constructor` (boolean)
+        # Если ее нет, тебе нужно будет ее добавить в Supabase (alter table users add column auto_constructor boolean default false;)
+        resp = await supabase.patch(
+            "/users",
+            params={"telegram_id": f"eq.{telegram_id}"},
+            json={"auto_constructor": req.is_auto_assign}
+        )
+        resp.raise_for_status()
+        
+        status_text = "включен" if req.is_auto_assign else "выключен"
+        return {"status": "success", "message": f"Автоматический менеджер контрактов {status_text}!"}
+    except httpx.HTTPStatusError as e:
+        err = e.response.json().get("message", e.response.text) if e.response else str(e)
+        raise HTTPException(status_code=400, detail=f"Ошибка БД: {err}")
+
+
+# =========================================================================
+# 🚀 CRON-ЭНДПОИНТ: АВТОМАТИЧЕСКАЯ ВЫДАЧА КОНТРАКТОВ VIP-ЮЗЕРАМ
+# =========================================================================
+@app.get("/api/cron/constructor/auto_assign")
+async def cron_auto_assign_constructors(
+    secret: str = None,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    # Проверка секретного ключа из параметров URL (?secret=...)
+    cron_secret = os.getenv("CRON_SECRET")
+    if not cron_secret or secret != cron_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid secret")
+
+    logging.info("🚀 CRON: Запуск автоматического менеджера контрактов...")
+
+    try:
+        # 1. Находим всех пользователей, у которых включен авто-менеджер
+        users_resp = await supabase.get(
+            "/users",
+            params={
+                "auto_constructor": "eq.true", 
+                "select": "telegram_id,twitch_id"
+            }
+        )
+        if not users_resp.is_success:
+            logging.error(f"CRON AutoAssign: Ошибка получения юзеров - {users_resp.text}")
+            return JSONResponse(status_code=500, content={"error": "Database error fetching users"})
+
+        auto_users = users_resp.json()
+        if not auto_users:
+            logging.info("CRON: Нет пользователей с включенным авто-выбором.")
+            return {"message": "No users to process"}
+
+        # 2. Получаем все доступные шаблоны конструктора (доступные слоты)
+        quests_resp = await supabase.get(
+            "/quests",
+            params={
+                "or": "(quest_type.like.automatic_twitch_%,quest_type.like.automatic_telegram_%,quest_type.like.personal_%)",
+                "is_active": "eq.true"
+            }
+        )
+        available_quests = quests_resp.json() if quests_resp.is_success else []
+        if not available_quests:
+            logging.warning("CRON: Нет активных заданий в таблице quests.")
+            return {"message": "No active quests found"}
+
+        assigned_count = 0
+
+        # 3. Идем по каждому юзеру и пытаемся назначить квест
+        for user in auto_users:
+            tg_id = user["telegram_id"]
+            has_twitch = bool(user.get("twitch_id"))
+
+            # Проверяем стейт юзера (лимиты и есть ли уже активный контракт)
+            state_resp = await supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": tg_id})
+            if not state_resp.is_success:
+                continue
+            
+            user_state = state_resp.json() or {}
+            
+            # Если контракт УЖЕ активен - пропускаем
+            if user_state.get("is_active") and user_state.get("active_slots"):
+                continue
+            
+            # Если лимиты на неделю исчерпаны - пропускаем
+            used_limits = user_state.get("used_limits", 0)
+            max_limits = user_state.get("max_limits", 5)
+            if used_limits >= max_limits:
+                continue
+
+            # Фильтруем квесты: если нет twitch_id, убираем твитч-квесты
+            valid_quests = [
+                q for q in available_quests 
+                if has_twitch or "twitch" not in str(q.get("quest_type", ""))
+            ]
+
+            if not valid_quests:
+                continue
+
+            # Определяем случайное количество заданий (от 1 до 3)
+            num_to_assign = min(len(valid_quests), random.randint(1, 3))
+            
+            # Рандомно выбираем квесты
+            selected_quests = random.sample(valid_quests, num_to_assign)
+            selected_ids = [q["id"] for q in selected_quests]
+
+            # Вызываем RPC для старта контракта
+            start_resp = await supabase.post(
+                "/rpc/start_constructor_contract",
+                json={"p_user_id": tg_id, "p_quest_ids": selected_ids}
+            )
+
+            if start_resp.is_success:
+                assigned_count += 1
+                logging.info(f"CRON: Авто-контракт назначен пользователю {tg_id}")
+                
+                # Отправляем уведомление юзеру (если нужно)
+                try:
+                    message_text = "🪄 <b>Твой авто-менеджер собрал новый контракт!</b>\n\nЗадания уже активированы и ждут выполнения. Заходи в матрицу, чтобы проверить прогресс!"
+                    await bot.send_message(tg_id, message_text)
+                except Exception as e:
+                    logging.warning(f"CRON: Не удалось отправить уведомление {tg_id}: {e}")
+            else:
+                logging.error(f"CRON: Ошибка назначения контракта юзеру {tg_id} - {start_resp.text}")
+
+        return {"message": f"Auto-assign completed. Assigned to {assigned_count} users."}
+
+    except Exception as e:
+        logging.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА в cron-задаче auto_assign: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/api/v1/constructor/start")
 async def start_constructor_contract_endpoint(
     request_data: ConstructorStartRequest,
