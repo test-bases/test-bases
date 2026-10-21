@@ -1763,35 +1763,15 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                     </div>
 
                     <div class="streak-body">
-                        <div class="streak-segments">
-                            <div class="seg active" id="streak-seg-1"></div>
-                            <div class="seg" id="streak-seg-2"></div>
-                            <div class="seg" id="streak-seg-3"></div>
-                            <div class="seg" id="streak-seg-4"></div>
+                        <!-- Сюда скрипт вставит полоски прогресса -->
+                        <div class="streak-segments" id="streak-segments-container">
+                            <p style="font-size:10px; color:#aaa; width:100%; text-align:center;">Загрузка...</p>
                         </div>
 
-                        <div class="streak-grid">
-                            <div class="s-item active">
-                                <div class="s-img case-img"></div>
-                                <b>1 неделя</b>
-                                <span>Армейский<br>или кейс</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-1"></div>
-                                <b>2 недели</b>
-                                <span>Запрещ.<br>+10 бил.</span>
-                            </div>
-                            <div class="s-item">
-                                <div class="s-img wp-img-2"></div>
-                                <b>3 недели</b>
-                                <span>Засекреч.<br>скин</span>
-                            </div>
-                            <div class="s-item gold-tier">
-                                <div class="s-img knife-img"></div>
-                                <b class="gold-text">4 недели</b>
-                                <span>Тайный<br>или нож</span>
-                            </div>
+                        <!-- Сюда скрипт вставит сами карточки с купонами -->
+                        <div class="streak-grid" id="streak-grid-container">
                         </div>
+                    </div>
                     </div>
                 </div>
 
@@ -2420,6 +2400,113 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 }
             } catch (e) {
                 console.error("Ошибка claimMatrixReward:", e);
+            }
+        };
+
+        // ==========================================
+        // ОТРИСОВКА ИДЕАЛЬНОЙ СЕРИИ
+        // ==========================================
+        function renderStreak(streakRewards, userStreakInfo) {
+            const gridContainer = document.getElementById('streak-grid-container');
+            const segContainer = document.getElementById('streak-segments-container');
+            const textEl = document.getElementById('streak-counter-text');
+            
+            if (!gridContainer || !segContainer) return;
+
+            // Если из базы (админки) не пришел конфиг, показываем заглушку
+            if (!streakRewards || streakRewards.length === 0) {
+                segContainer.innerHTML = '';
+                gridContainer.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:10px; width:100%;">Награды в процессе настройки...</p>';
+                return;
+            }
+
+            // userStreakInfo должен приходить из бэкенда. Например: { total_streak: 2, visual_tier: 2 }
+            // Если его нет (пока бэкенд не готов), ставим 0
+            const currentTier = userStreakInfo?.visual_tier || 0;
+            const totalStreak = userStreakInfo?.total_streak || 0;
+            
+            // Сортируем настройки (1 нед, 2 нед, 3 нед...)
+            const sortedRewards = [...streakRewards].sort((a, b) => a.step_target - b.step_target);
+            const totalSteps = sortedRewards.length;
+
+            if (textEl) {
+                textEl.textContent = `${currentTier} / ${totalSteps} (Всего: ${totalStreak})`;
+            }
+
+            // 1. Отрисовка полосок (сегментов)
+            let segHtml = '';
+            for (let i = 1; i <= totalSteps; i++) {
+                const isActive = i <= currentTier ? 'active' : '';
+                segHtml += `<div class="seg ${isActive}" id="streak-seg-${i}"></div>`;
+            }
+            segContainer.innerHTML = segHtml;
+
+            // 2. Отрисовка карточек с наградами (кейсами)
+            let gridHtml = '';
+            sortedRewards.forEach((item, idx) => {
+                const step = idx + 1;
+                // Карточка активна, если юзер дошел до этого уровня или превысил его
+                const isActive = step <= currentTier ? 'active' : '';
+                
+                // Если это последняя (самая ценная) награда - даем ей золотой класс
+                const isGoldTier = step === totalSteps ? 'gold-tier' : '';
+                const titleColor = step === totalSteps ? 'gold-text' : '';
+
+                // Картинка: берем либо custom_image, либо image_url (от кейса)
+                const imgUrl = item.custom_image || item.image_url || '';
+
+                gridHtml += `
+                    <div class="s-item ${isActive} ${isGoldTier}" onclick="claimStreak(${step}, event)" style="cursor: pointer;">
+                        <div class="s-img" style="background-image: url('${escapeHTML(imgUrl)}');"></div>
+                        <b class="${titleColor}">${item.step_target} нед.</b>
+                        <span>${escapeHTML(item.reward_name).replace('Кейс | ', '')}</span>
+                    </div>
+                `;
+            });
+            
+            // Задаем сетке правильное количество колонок (по умолчанию у нас было 4, но вдруг в админке настроят 3 или 5)
+            gridContainer.style.gridTemplateColumns = `repeat(${totalSteps}, 1fr)`;
+            gridContainer.innerHTML = gridHtml;
+        }
+
+        // Логика клика по карточке (Отправка запроса за купоном)
+        window.claimStreak = async function(weekTier, event) {
+            if (event) event.stopPropagation();
+
+            try {
+                // Вызываем бэкенд, который ты просил пока не писать, 
+                // но фронт уже должен уметь туда стучаться:
+                const res = await makeApiRequest('/api/v1/streak/claim', { week_tier: weekTier }, 'POST');
+                
+                if (res && res.status === 'success') {
+                    // Генерируем красивую модалку с промокодом
+                    const couponHtml = `
+                        <div style="text-align: center;">
+                            <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">Вы достигли отметки <b>${weekTier} нед.</b> без пропусков!</p>
+                            
+                            <div style="background: rgba(255, 215, 0, 0.1); border: 1px dashed var(--gold-primary); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                                <div style="font-size: 10px; color: #fff; margin-bottom: 6px; text-transform: uppercase;">Ваш уникальный код:</div>
+                                <div style="font-size: 18px; font-weight: 900; color: var(--gold-primary); font-family: monospace; letter-spacing: 2px; user-select: all;">
+                                    ${res.coupon_code}
+                                </div>
+                            </div>
+
+                            <p style="font-size: 9px; color: rgba(255,255,255,0.5); line-height: 1.4;">
+                                Скопируйте этот код и используйте его при открытии товара <b>«${res.reward_name}»</b> в магазине. Лимиты активности на него не действуют.
+                            </p>
+                        </div>
+                    `;
+
+                    await customAlert(couponHtml, "НАГРАДА ЗА СЕРИЮ", { icon: "fa-solid fa-ticket", isDanger: false });
+                    
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                } else {
+                    customAlert(res?.detail || "Условия ещё не выполнены", "СЕРИЯ");
+                }
+            } catch (e) {
+                customAlert(e.message || "Условия для получения награды ещё не выполнены.", "СЕРИЯ");
             }
         };
 
@@ -3782,13 +3869,17 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
 
                 updateLoading(65);
 
-                if (bootstrapData) {
+               if (bootstrapData) {
                     userData = bootstrapData.user || {};
                     allQuests = bootstrapData.quests || [];
                     renderMatrixTracker(bootstrapData.matrix_quest || null, userData);
                     if (bootstrapData.constructor) {
                         syncConstructorFromBackend(bootstrapData.constructor);
                     }
+                    
+                    // ДОБАВЛЯЕМ ВЫЗОВ ОТРИСОВКИ СЕРИИ:
+                    // Бэкенд должен прислать массив streak_config и объект user_streak
+                    renderStreak(bootstrapData.streak_config, bootstrapData.user_streak);
                 }
 
                 const currentChallenge = bootstrapData?.challenge || userData?.challenge || null;
