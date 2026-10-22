@@ -21611,26 +21611,44 @@ async def start_constructor_contract_endpoint(
         # Проверяем, не выбрал ли игрок Twitch-слот без привязанного Twitch-аккаунта
         q_ids_str = ",".join(str(qid) for qid in request_data.quest_ids)
         q_resp = await supabase.get("/quests", params={"id": f"in.({q_ids_str})", "select": "id,quest_type"})
+        
         if q_resp.status_code == 200:
             selected_quests = q_resp.json()
             needs_twitch = any("twitch" in (q.get("quest_type") or "") for q in selected_quests)
+            
             if needs_twitch:
                 u_resp = await supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "twitch_id,twitch_login"})
                 u_list = u_resp.json() if u_resp.status_code == 200 else []
                 if not u_list or not (u_list[0].get("twitch_id") or u_list[0].get("twitch_login")):
                     raise HTTPException(status_code=400, detail="Для выбора заданий Twitch сначала привяжите свой Twitch-аккаунт в Профиле!")
 
+        # Вызов хранимой процедуры в Supabase
         resp = await supabase.post(
             "/rpc/start_constructor_contract",
             json={"p_user_id": telegram_id, "p_quest_ids": request_data.quest_ids}
         )
         resp.raise_for_status()
         return {"status": "success", "constructor": resp.json()}
+        
     except HTTPException:
-        raise
+        raise  # Прокидываем уже сформированные 400 ошибки выше
+        
     except httpx.HTTPStatusError as e:
-        err = e.response.json().get("message", "Ошибка запуска конструктора") if e.response else str(e)
-        raise HTTPException(status_code=400, detail=err)
+        # 🔥 Безопасное извлечение ошибки из базы данных
+        err_detail = "Ошибка запуска конструктора"
+        if e.response:
+            try:
+                err_data = e.response.json()
+                err_detail = err_data.get("message", err_detail)
+            except Exception:
+                err_detail = e.response.text or err_detail
+                
+        raise HTTPException(status_code=400, detail=err_detail)
+        
+    except Exception as e:
+        # Отлов любых других непредвиденных сбоев (вернут 500)
+        logging.error(f"Критическая ошибка запуска конструктора: {e}")
+        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
 
 
 @app.post("/api/v1/constructor/claim")
@@ -21650,6 +21668,102 @@ async def claim_constructor_contract_endpoint(
     except httpx.HTTPStatusError as e:
         err = e.response.json().get("message", "Условия ещё не выполнены") if e.response else str(e)
         raise HTTPException(status_code=400, detail=err)
+
+# =========================================================================
+# 🔥 АДМИНКА: НАСТРОЙКА ИДЕАЛЬНОЙ СЕРИИ И КЕЙСОВ
+# =========================================================================
+
+class StreakConfigSaveRequest(BaseModel):
+    initData: str
+    id: Optional[int] = None
+    step_target: int
+    reward_name: str
+    image_url: Optional[str] = None
+    custom_image: Optional[str] = None
+
+class StreakConfigDeleteRequest(BaseModel):
+    initData: str
+    id: int
+
+@app.post("/api/v1/admin/shop/cases")
+async def admin_shop_cases(
+    request_data: AdminBaseRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    """Отдает список кейсов из shop_cache для выпадающего списка в админке"""
+    verify_admin(request_data.initData)
+    try:
+        # Стучимся в shop_cache за категорией кейсов (ID 2716312)
+        res = await supabase.get("/shop_cache", params={"category_id": "eq.2716312", "select": "data"})
+        res.raise_for_status()
+        
+        data = res.json()
+        if not data or not data[0].get("data"):
+            return {"status": "success", "cases": []}
+            
+        cases = data[0]["data"]
+        if isinstance(cases, str):
+            import json
+            cases = json.loads(cases)
+            
+        return {"status": "success", "cases": cases}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/admin/streak/list")
+async def admin_streak_list(
+    request_data: AdminBaseRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(request_data.initData)
+    try:
+        res = await supabase.get("/streak_rewards_config", params={"order": "step_target.asc"})
+        res.raise_for_status()
+        return {"status": "success", "rewards": res.json()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/admin/streak/save")
+async def admin_streak_save(
+    request_data: StreakConfigSaveRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(request_data.initData)
+    
+    payload = {
+        "step_target": request_data.step_target,
+        "reward_name": request_data.reward_name,
+        "image_url": request_data.image_url,
+        "custom_image": request_data.custom_image
+    }
+
+    try:
+        if request_data.id:
+            res = await supabase.patch(
+                "/streak_rewards_config",
+                params={"id": f"eq.{request_data.id}"},
+                json=payload
+            )
+        else:
+            res = await supabase.post("/streak_rewards_config", json=payload)
+            
+        res.raise_for_status()
+        return {"status": "success", "message": "Настройка серии сохранена"}
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=400, detail="Ошибка базы данных (возможно, шаг с таким номером уже существует)")
+
+@app.post("/api/v1/admin/streak/delete")
+async def admin_streak_delete(
+    request_data: StreakConfigDeleteRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    verify_admin(request_data.initData)
+    try:
+        res = await supabase.delete("/streak_rewards_config", params={"id": f"eq.{request_data.id}"})
+        res.raise_for_status()
+        return {"status": "success", "message": "Настройка удалена"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # НОВЫЙ ЧЕЛЛЕНДЖ # # # # # # # # # # # # # # # # # # # # # # # # # # # #
