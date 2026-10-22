@@ -4920,6 +4920,62 @@ async def get_or_sync_daily_challenge(telegram_id: int, supabase: httpx.AsyncCli
     }
     
 # Новый эндпоинт для быстрой загрузки всего сразу
+# ДОБАВЬ ЭТУ ФУНКЦИЮ ПЕРЕД @app.post("/api/v1/bootstrap")
+async def calculate_user_streak(telegram_id: int, supabase) -> dict:
+    """ Вычисляет текущую непрерывную серию недель пользователя """
+    resp = await supabase.get(
+        "/user_constructor_progress",
+        params={
+            "user_id": f"eq.{telegram_id}",
+            "claimed_at": "not.is.null",
+            "select": "week_code"
+        }
+    )
+    
+    if not resp.is_success:
+        return {"total_streak": 0, "visual_tier": 0, "current_week_str": ""}
+
+    claimed_weeks = set(row.get("week_code") for row in resp.json() if row.get("week_code"))
+    now_msk = datetime.now(ZoneInfo("Europe/Moscow"))
+    
+    streak = 0
+    check_date = now_msk
+    
+    y, w, _ = check_date.isocalendar()
+    current_week_str = f"{y}-{w:02d}"
+    
+    # Проверяем эту неделю
+    if current_week_str in claimed_weeks:
+        streak += 1
+        check_date -= timedelta(days=7)
+    else:
+        # Если на этой неделе еще не было контракта, проверяем прошлую
+        check_date -= timedelta(days=7)
+    
+    # Идем назад в прошлое
+    while True:
+        y, w, _ = check_date.isocalendar()
+        week_str = f"{y}-{w:02d}"
+        
+        if week_str in claimed_weeks:
+            streak += 1
+            check_date -= timedelta(days=7)
+        else:
+            break
+
+    visual_tier = streak % 4
+    if visual_tier == 0 and streak > 0:
+        visual_tier = 4
+
+    return {
+        "total_streak": streak,
+        "visual_tier": visual_tier,
+        "current_week_str": current_week_str
+    }
+
+# =================================================================
+# ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ)
+# =================================================================
 @app.post("/api/v1/bootstrap")
 async def get_bootstrap_data(
     request: Request,
@@ -4940,8 +4996,11 @@ async def get_bootstrap_data(
         raffles_task = supabase.get("/raffles", params={"status": "eq.active"})
         auctions_task = supabase.post("/rpc/get_public_auctions_for_user", json={"p_user_id": 0})
         
-        s_res, admin_res, c_res, r_res, a_res = await asyncio.gather(
-            settings_task, admin_task, cauldron_task, raffles_task, auctions_task, return_exceptions=True
+        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 Загружаем конфиг для гостя тоже
+        streak_config_task = supabase.get("/streak_rewards_config", params={"order": "step_target.asc"})
+        
+        s_res, admin_res, c_res, r_res, a_res, streak_conf_res = await asyncio.gather(
+            settings_task, admin_task, cauldron_task, raffles_task, auctions_task, streak_config_task, return_exceptions=True
         )
         
         # 1. Парсим настройки (Монетки и базовые тумблеры)
@@ -4977,6 +5036,9 @@ async def get_bootstrap_data(
         raffles_list = r_res.json() if not isinstance(r_res, Exception) and getattr(r_res, 'status_code', 500) == 200 else []
         auctions_list = a_res.json() if not isinstance(a_res, Exception) and getattr(a_res, 'status_code', 500) == 200 else []
 
+        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 
+        streak_config = streak_conf_res.json() if not isinstance(streak_conf_res, Exception) and getattr(streak_conf_res, 'status_code', 500) == 200 else []
+
         # Отдаем профиль Гостя, но с ПОЛНЫМИ массивами ивентов!
         return {
             "user": {
@@ -5004,7 +5066,9 @@ async def get_bootstrap_data(
             "unread_notifications": 0,
             "gift_available": False,
             "p2p_trades": [],
-            "matrix_quest": None 
+            "matrix_quest": None,
+            "streak_config": streak_config,  # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
+            "user_streak": {"total_streak": 0, "visual_tier": 0, "current_week_str": ""} # У гостя серия 0
         }
 
     # =================================================================
@@ -5059,7 +5123,7 @@ async def get_bootstrap_data(
         coupons_task = supabase.get("/cs_codes", params={
             "or": f"(activated_by_ids.cs.{{{telegram_id}}},assigned_to.eq.{telegram_id})",
             "is_active": "eq.true",
-            "select": "code, target_case_name, activated_by_ids, used_by_ids, assigned_to, bypass_lock" # ⚡ ДОБАВИЛИ СЮДА
+            "select": "code, target_case_name, activated_by_ids, used_by_ids, assigned_to, bypass_lock" 
         })
         
         equipped_ach_task = supabase.get("/user_achievements", params={
@@ -5071,10 +5135,12 @@ async def get_bootstrap_data(
         counters_task = supabase.post("/rpc/get_user_case_counters", json={"p_user_id": telegram_id})
         # 👇 ДОБАВЛЕНО ДЛЯ КОНСТРУКТОРА ЗАДАНИЙ 👇
         constructor_task = supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": telegram_id})
+        
+        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 
+        streak_config_task = supabase.get("/streak_rewards_config", params={"order": "step_target.asc"})
 
-        # Добавь coupons_task и coupons_res в этот список
-        db_res, notifs_res, p2p_res, balance_res, auctions_res, matrix_res, coupons_res, settings_res, equipped_ach_res, counters_res, constructor_res = await asyncio.gather(
-            rpc_task, notifs_task, p2p_task, balance_task, auctions_task, matrix_task, coupons_task, settings_task, equipped_ach_task, counters_task, constructor_task, return_exceptions=True
+        db_res, notifs_res, p2p_res, balance_res, auctions_res, matrix_res, coupons_res, settings_res, equipped_ach_res, counters_res, constructor_res, streak_conf_res = await asyncio.gather(
+            rpc_task, notifs_task, p2p_task, balance_task, auctions_task, matrix_task, coupons_task, settings_task, equipped_ach_task, counters_task, constructor_task, streak_config_task, return_exceptions=True
         )
 
         # Распаковываем Конструктор Заданий
@@ -5084,24 +5150,24 @@ async def get_bootstrap_data(
         
         # Распаковываем Матрицу
         matrix_state = None
-        if not isinstance(matrix_res, Exception) and matrix_res.status_code == 200:
+        if not isinstance(matrix_res, Exception) and getattr(matrix_res, 'status_code', 500) == 200:
             m_data = matrix_res.json()
             if isinstance(m_data, list) and len(m_data) > 0:
                 matrix_state = m_data[0]
                 
         # Распаковываем глобальные настройки (Key-Value)
         global_settings = {}
-        if not isinstance(settings_res, Exception) and settings_res.status_code == 200:
+        if not isinstance(settings_res, Exception) and getattr(settings_res, 'status_code', 500) == 200:
             s_data = settings_res.json()
             if isinstance(s_data, list):
                 global_settings = {item.get('key'): item.get('value') for item in s_data if 'key' in item}
 
         # 👇 РАСПАКОВЫВАЕМ СЧЕТЧИКИ ГАРАНТА 👇
         case_counters = {}
-        if not isinstance(counters_res, Exception) and counters_res.status_code == 200:
+        if not isinstance(counters_res, Exception) and getattr(counters_res, 'status_code', 500) == 200:
             case_counters = counters_res.json()
         
-        if isinstance(db_res, Exception) or db_res.status_code != 200:
+        if isinstance(db_res, Exception) or getattr(db_res, 'status_code', 500) != 200:
             raise Exception(f"Database RPC Error: {getattr(db_res, 'text', str(db_res))}")
 
         db_data = db_res.json()
@@ -5159,7 +5225,7 @@ async def get_bootstrap_data(
             
             'bp_quests': db_data.get('bp_quests', []), 
             'checkpoint_level': user_data.get('checkpoint_level', 0),
-            'case_counters': case_counters, # 👈 ДОБАВЛЕНО
+            'case_counters': case_counters, 
             
             **db_data.get('user_extra', {}),
             **db_data.get('user_settings', {}) 
@@ -5177,7 +5243,7 @@ async def get_bootstrap_data(
         user_data['equipped_title'] = None
         user_data['equipped_glow'] = None
         
-        if not isinstance(equipped_ach_res, Exception) and equipped_ach_res.status_code == 200:
+        if not isinstance(equipped_ach_res, Exception) and getattr(equipped_ach_res, 'status_code', 500) == 200:
             ach_data = equipped_ach_res.json()
             if isinstance(ach_data, list):
                 active_ach = next((a for a in ach_data if a.get("is_equipped") is True), None)
@@ -5188,7 +5254,7 @@ async def get_bootstrap_data(
                         user_data['equipped_glow'] = inner_ach.get("glow_color")
 
         gift_available = True
-        if not isinstance(balance_res, Exception) and balance_res.status_code == 200:
+        if not isinstance(balance_res, Exception) and getattr(balance_res, 'status_code', 500) == 200:
             b_data = balance_res.json()
             if b_data:
                 user_data["balance"] = b_data[0].get("bot_t_coins", 0) / 100.0
@@ -5207,19 +5273,19 @@ async def get_bootstrap_data(
                         gift_available = False
 
         unread_count = 0
-        if not isinstance(notifs_res, Exception) and notifs_res.status_code == 200:
+        if not isinstance(notifs_res, Exception) and getattr(notifs_res, 'status_code', 500) == 200:
             n_data = notifs_res.json()
             if isinstance(n_data, list):
                 unread_count = len(n_data)
 
         p2p_trades = []
-        if not isinstance(p2p_res, Exception) and p2p_res.status_code == 200:
+        if not isinstance(p2p_res, Exception) and getattr(p2p_res, 'status_code', 500) == 200:
             p_data = p2p_res.json()
             if isinstance(p_data, list):
                 p2p_trades = p_data
 
         auctions_list = []
-        if not isinstance(auctions_res, Exception) and auctions_res.status_code == 200:
+        if not isinstance(auctions_res, Exception) and getattr(auctions_res, 'status_code', 500) == 200:
             auctions_list = auctions_res.json()
 
         quests_list = db_data.get('quests', [])
@@ -5231,24 +5297,36 @@ async def get_bootstrap_data(
         cauldron_data = db_data.get('cauldron', {"is_visible_to_users": False})
 
         my_active_cases = []
-        if not isinstance(coupons_res, Exception) and coupons_res.status_code == 200:
+        if not isinstance(coupons_res, Exception) and getattr(coupons_res, 'status_code', 500) == 200:
             my_active_cases = coupons_res.json()
+
+        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 Вытаскиваем распаршенные данные
+        streak_config = streak_conf_res.json() if not isinstance(streak_conf_res, Exception) and getattr(streak_conf_res, 'status_code', 500) == 200 else []
+        
+        # Считаем текущий стрик юзера
+        try:
+            user_streak = await calculate_user_streak(telegram_id, supabase)
+        except Exception as e:
+            logging.error(f"[STREAK] Ошибка расчета серии: {e}")
+            user_streak = {"total_streak": 0, "visual_tier": 0, "current_week_str": ""}
 
         return {
             "user": user_data,
-            "challenge": user_data.get('challenge'), # 👈 Добавлено для прямого доступа на фронтенде
-            "constructor": constructor_state,        # 👈 Состояние конструктора заданий (слоты, лимит 0/5, активное)
+            "challenge": user_data.get('challenge'), 
+            "constructor": constructor_state,        
             "menu": menu_content,
             "quests": quests_list,
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
             "auctions": auctions_list, 
-            "raffles": db_data.get('raffles', []),                   
+            "raffles": db_data.get('raffles', []),                    
             "my_active_cases": my_active_cases,
             "unread_notifications": unread_count,
             "gift_available": gift_available,
             "p2p_trades": p2p_trades,
-            "matrix_quest": matrix_state 
+            "matrix_quest": matrix_state,
+            "streak_config": streak_config,  # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
+            "user_streak": user_streak       # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
         }
 
     except HTTPException:
