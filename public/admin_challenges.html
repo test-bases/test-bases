@@ -30,7 +30,7 @@
     body {
       margin: 0;
       padding: 16px;
-      padding-top: 10px; /* Адаптируется скриптом под iOS/Android/PC */
+      padding-top: 10px; 
       padding-bottom: 80px;
       background-color: var(--bg);
       color: #fff;
@@ -38,7 +38,6 @@
       min-height: 100vh;
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
-      /* Зум страницы для компактного вида */
       zoom: 0.88;
       -moz-transform: scale(0.88);
       -moz-transform-origin: 0 0;
@@ -66,7 +65,6 @@
     .back-btn:active { background: rgba(255,255,255,0.15); }
     .page-title { font-size: 18px; font-weight: 900; margin: 0; }
 
-    /* ГЛАВНАЯ КНОПКА ОТКРЫТИЯ МОДУЛЯ (ТОЛЬКО ЗАГОЛОВОК) */
     .module-hero-btn {
       width: 100%;
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(26, 27, 32, 0.95) 100%);
@@ -93,7 +91,6 @@
     .hero-btn-chevron { font-size: 14px; color: var(--gold); transition: transform 0.3s; }
     .hero-btn-chevron.open { transform: rotate(180deg); }
 
-    /* ТАБЫ ПОДРАЗДЕЛОВ */
     .sub-tabs {
       display: flex; gap: 6px;
       background: var(--card-bg); border: 1px solid var(--card-border);
@@ -107,7 +104,6 @@
     }
     .sub-tab-btn.active { background: var(--blue); color: #fff; }
 
-    /* КАРТОЧКИ СТАТИСТИКИ (НЕ ТРОНУТЫ) */
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .stat-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
@@ -119,7 +115,6 @@
     .stat-val.gold { color: var(--gold); }
     .stat-val.green { color: var(--green); }
 
-    /* КАРТОЧКИ ЗАДАНИЙ (СВЕТЛЫЙ, КОНТРАСТНЫЙ ТЕКСТ) */
     .template-item-card {
       background: #191a20; 
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -138,9 +133,7 @@
       background: #20222a;
     }
     .template-item-card.disabled { opacity: 0.45; }
-    .template-item-left {
-      display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;
-    }
+    .template-item-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
     .template-item-icon {
       width: 38px; height: 38px; border-radius: 8px;
       background: rgba(255, 215, 0, 0.15);
@@ -149,33 +142,15 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; flex-shrink: 0;
     }
-    .template-item-info {
-      display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden;
-    }
-    .template-item-title {
-      font-size: 13px; font-weight: 800; color: #ffffff;
-      white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
-    }
-    /* СВЕТЛЫЙ ПОДЗАГОЛОВОК ЗАДАНИЯ */
-    .template-item-sub {
-      font-size: 11px; font-weight: 500; color: #e5e7eb;
-      white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
-    }
-    .template-item-right {
-      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-    }
+    .template-item-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; }
+    .template-item-title { font-size: 13px; font-weight: 800; color: #ffffff; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .template-item-sub { font-size: 11px; font-weight: 500; color: #e5e7eb; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .template-item-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .badge-reward {
-      background: rgba(255, 215, 0, 0.15);
-      border: 1px solid rgba(255, 215, 0, 0.35);
-      color: var(--gold);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-family: monospace;
+      background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.35); color: var(--gold);
+      font-size: 11px; font-weight: 800; padding: 5px 9px; border-radius: 6px; font-family: monospace;
     }
 
-    /* ПОИСК И СПИСОК АКТИВНЫХ ИГРОКОВ */
     .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .btn-search {
       background: var(--blue); border: none; color: #fff; border-radius: 8px;
@@ -189,63 +164,27 @@
 
     .users-list-title {
       font-size: 12px; font-weight: 800; text-transform: uppercase;
-      color: var(--gold); margin: 16px 0 10px 0; display: flex;
-      align-items: center; justify-content: space-between;
+      color: var(--gold); margin: 16px 0 10px 0; display: flex; align-items: center; justify-content: space-between;
     }
     .user-progress-card {
       background: #191a20; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px; padding: 12px; margin-bottom: 10px;
       display: flex; flex-direction: column; gap: 8px;
     }
-    .u-card-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-    }
+    .u-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .u-card-name { font-size: 13px; font-weight: 800; color: #ffffff; }
     .u-card-sub { font-size: 11px; color: #cbd5e1; margin-top: 2px; }
-    .u-progress-track {
-      width: 100%; height: 6px; background: rgba(255,255,255,0.12);
-      border-radius: 3px; overflow: hidden; margin-top: 4px;
-    }
-    .u-progress-fill {
-      height: 100%; background: var(--gold); border-radius: 3px;
-      transition: width 0.3s;
-    }
-    .u-card-actions {
-      display: flex; gap: 8px; margin-top: 4px;
-    }
-    .u-action-btn {
-      flex: 1; padding: 8px; border-radius: 6px; font-size: 10px;
-      font-weight: 800; text-transform: uppercase; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 4px;
-    }
-    .u-action-reset {
-      background: rgba(255, 215, 0, 0.12); border: 1px solid rgba(255, 215, 0, 0.3);
-      color: var(--gold);
-    }
-    .u-action-reassign {
-      background: rgba(255, 59, 48, 0.12); border: 1px solid rgba(255, 59, 48, 0.3);
-      color: var(--red);
-    }
-    .u-action-blue {
-      background: rgba(0, 136, 204, 0.15); border: 1px solid rgba(0, 136, 204, 0.4);
-      color: #38bdf8;
-    }
+    .u-progress-track { width: 100%; height: 6px; background: rgba(255,255,255,0.12); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .u-progress-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.3s; }
+    .u-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .u-action-btn { flex: 1; padding: 8px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .u-action-reset { background: rgba(255, 215, 0, 0.12); border: 1px solid rgba(255, 215, 0, 0.3); color: var(--gold); }
+    .u-action-reassign { background: rgba(255, 59, 48, 0.12); border: 1px solid rgba(255, 59, 48, 0.3); color: var(--red); }
+    .u-action-blue { background: rgba(0, 136, 204, 0.15); border: 1px solid rgba(0, 136, 204, 0.4); color: #38bdf8; }
 
-    .btn-reset-yellow {
-      width: 100%; background: rgba(255, 215, 0, 0.15); border: 1px solid var(--gold);
-      color: var(--gold); border-radius: 8px; padding: 12px; font-weight: 800;
-      font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 10px;
-    }
-    .btn-reset-red {
-      width: 100%; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--red);
-      color: var(--red); border-radius: 8px; padding: 12px; font-weight: 800;
-      font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
-    }
-    .btn-reset-blue {
-      width: 100%; background: rgba(0, 136, 204, 0.15); border: 1px solid var(--blue);
-      color: #38bdf8; border-radius: 8px; padding: 12px; font-weight: 800;
-      font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
-    }
+    .btn-reset-yellow { width: 100%; background: rgba(255, 215, 0, 0.15); border: 1px solid var(--gold); color: var(--gold); border-radius: 8px; padding: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
+    .btn-reset-red { width: 100%; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--red); color: var(--red); border-radius: 8px; padding: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 8px; }
+    .btn-reset-blue { width: 100%; background: rgba(0, 136, 204, 0.15); border: 1px solid var(--blue); color: #38bdf8; border-radius: 8px; padding: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer; margin-top: 8px; }
 
     .add-btn {
       width: 100%; padding: 14px; background: rgba(255,255,255,0.06);
@@ -255,108 +194,31 @@
     }
     .add-btn:active { background: rgba(255,255,255,0.1); }
 
-    /* ФИЛЬТР СЛОТОВ КОНСТРУКТОРА */
-    .slot-filter-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      margin-bottom: 12px;
-    }
-    .slot-filter-btn {
-      background: #191a20;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #9ca3af;
-      padding: 10px 8px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .slot-filter-btn.active {
-      background: rgba(255, 215, 0, 0.15);
-      border-color: var(--gold);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
-    }
-    .slot-hint-box {
-      background: rgba(0, 136, 204, 0.1);
-      border: 1px solid rgba(0, 136, 204, 0.3);
-      color: #e5e7eb;
-      font-size: 11px;
-      line-height: 1.4;
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-    }
+    .slot-filter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
+    .slot-filter-btn { background: #191a20; border: 1px solid rgba(255, 255, 255, 0.1); color: #9ca3af; padding: 10px 8px; border-radius: 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+    .slot-filter-btn.active { background: rgba(255, 215, 0, 0.15); border-color: var(--gold); color: #fff; box-shadow: 0 0 12px rgba(255, 215, 0, 0.15); }
+    .slot-hint-box { background: rgba(0, 136, 204, 0.1); border: 1px solid rgba(0, 136, 204, 0.3); color: #e5e7eb; font-size: 11px; line-height: 1.4; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
 
-    /* МОДАЛЬНОЕ ОКНО С КРЕСТИКОМ */
-    .modal-backdrop {
-      position: fixed; inset: 0; z-index: 99999;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center;
-      padding: 16px; opacity: 0; pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-    .modal-backdrop.show {
-      opacity: 1; pointer-events: auto;
-    }
-    .modal-card {
-      width: 100%; max-width: 420px;
-      background: #18191f;
-      border: 1px solid rgba(255, 215, 0, 0.35);
-      border-radius: 16px;
-      padding: 20px;
-      display: flex; flex-direction: column; gap: 14px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.85);
-      max-height: 90vh; overflow-y: auto;
-      transform: scale(0.96); transition: transform 0.25s ease;
-    }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+    .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+    .modal-card { width: 100%; max-width: 420px; background: #18191f; border: 1px solid rgba(255, 215, 0, 0.35); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto; transform: scale(0.96); transition: transform 0.25s ease; }
     .modal-backdrop.show .modal-card { transform: scale(1); }
 
-    .modal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .modal-title { font-size: 14px; font-weight: 900; margin: 0; text-transform: uppercase; color: #fff; }
     
-    .modal-close-btn {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #fff; font-size: 16px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
+    .modal-close-btn { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
     .modal-close-btn:hover { background: rgba(255, 59, 48, 0.25); border-color: var(--red); color: var(--red); }
     .modal-close-btn:active { transform: scale(0.9); }
 
     .input-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
     .input-label { font-size: 9px; font-weight: 700; color: #bbb; text-transform: uppercase; }
-    .compact-input {
-      background: #111; border: 1px solid #333; color: #fff;
-      padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%;
-      font-family: inherit;
-    }
+    .compact-input { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; outline: none; width: 100%; font-family: inherit; }
     .compact-input:focus { border-color: var(--blue); }
 
-    .modal-actions-row {
-      display: flex; gap: 8px; margin-top: 6px;
-    }
-    .btn-save-modal {
-      flex: 2; padding: 12px; background: var(--blue); color: #fff;
-      border: none; border-radius: 10px; font-weight: 800; font-size: 12px;
-      text-transform: uppercase; cursor: pointer;
-    }
-    .btn-delete-modal {
-      flex: 1; padding: 12px; background: rgba(255,59,48,0.15); border: 1px solid var(--red);
-      color: var(--red); border-radius: 10px; font-weight: 800; font-size: 12px;
-      cursor: pointer;
-    }
+    .modal-actions-row { display: flex; gap: 8px; margin-top: 6px; }
+    .btn-save-modal { flex: 2; padding: 12px; background: var(--blue); color: #fff; border: none; border-radius: 10px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; }
+    .btn-delete-modal { flex: 1; padding: 12px; background: rgba(255,59,48,0.15); border: 1px solid var(--red); color: var(--red); border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer; }
 
     .hidden { display: none !important; }
 
@@ -376,25 +238,17 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    .streak-reward-card:hover {
-      border-color: rgba(255, 215, 0, 0.5);
-      background: #20222a;
-    }
+    .streak-reward-card:hover { border-color: rgba(255, 215, 0, 0.5); background: #20222a; }
     .streak-img-box {
       width: 44px; height: 44px; border-radius: 8px;
       background-size: cover; background-position: center;
-      background-color: rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
+      background-color: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
       flex-shrink: 0;
     }
     .streak-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
     .streak-title { font-size: 13px; font-weight: 800; color: #fff; }
     .streak-desc { font-size: 11px; color: #aaa; }
-    .streak-step-badge {
-      background: var(--gold); color: #000; font-size: 11px; font-weight: 900;
-      padding: 4px 8px; border-radius: 6px;
-    }
-    
+    .streak-step-badge { background: var(--gold); color: #000; font-size: 11px; font-weight: 900; padding: 4px 8px; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -405,9 +259,7 @@
     <div style="width: 50px;"></div>
   </div>
 
-  <!-- =========================================================
-       МОДУЛЬ 1: ЕЖЕДНЕВНЫЕ ЧЕЛЛЕНДЖИ (ОРИГИНАЛ БЕЗ ИЗМЕНЕНИЙ)
-       ========================================================= -->
+  <!-- МОДУЛЬ 1: ЕЖЕДНЕВНЫЕ ЧЕЛЛЕНДЖИ -->
   <div class="module-hero-btn" onclick="toggleChallengeModule()">
     <div class="hero-btn-left">
       <div class="hero-btn-icon"><i class="fa-solid fa-bullseye"></i></div>
@@ -418,67 +270,31 @@
     <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-icon"></i>
   </div>
 
-  <!-- ВНУТРЕННЕЕ МЕНЮ (ПОДРАЗДЕЛЫ) -->
   <div id="challenge-content-wrap" class="hidden" style="margin-bottom: 20px;">
-    
     <div class="sub-tabs">
-      <button class="sub-tab-btn active" id="tab-btn-stats" onclick="switchSection('stats')">
-        <i class="fa-solid fa-chart-line"></i> Статистика
-      </button>
-      <button class="sub-tab-btn" id="tab-btn-templates" onclick="switchSection('templates')">
-        <i class="fa-solid fa-list-check"></i> Задания
-      </button>
-      <button class="sub-tab-btn" id="tab-btn-users" onclick="switchSection('users')">
-        <i class="fa-solid fa-user-pen"></i> Сброс игроку
-      </button>
+      <button class="sub-tab-btn active" id="tab-btn-stats" onclick="switchSection('stats')"><i class="fa-solid fa-chart-line"></i> Статистика</button>
+      <button class="sub-tab-btn" id="tab-btn-templates" onclick="switchSection('templates')"><i class="fa-solid fa-list-check"></i> Задания</button>
+      <button class="sub-tab-btn" id="tab-btn-users" onclick="switchSection('users')"><i class="fa-solid fa-user-pen"></i> Сброс игроку</button>
     </div>
-
-    <!-- 1. ПОДРАЗДЕЛ: СТАТИСТИКА (НЕ ТРОГАЕМ) -->
     <div id="section-stats">
       <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-lbl">Выдано сегодня</span>
-          <span class="stat-val" id="stat-total">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">В процессе</span>
-          <span class="stat-val" id="stat-progress">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">Выполнили</span>
-          <span class="stat-val green" id="stat-completed">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">Забрали награду</span>
-          <span class="stat-val gold" id="stat-claimed">0</span>
-        </div>
-        <div class="stat-card wide">
-          <span class="stat-lbl">Конверсия за день (Клейм / Выдано)</span>
-          <span class="stat-val gold" id="stat-conversion">0%</span>
-        </div>
+        <div class="stat-card"><span class="stat-lbl">Выдано сегодня</span><span class="stat-val" id="stat-total">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">В процессе</span><span class="stat-val" id="stat-progress">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">Выполнили</span><span class="stat-val green" id="stat-completed">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">Забрали награду</span><span class="stat-val gold" id="stat-claimed">0</span></div>
+        <div class="stat-card wide"><span class="stat-lbl">Конверсия за день</span><span class="stat-val gold" id="stat-conversion">0%</span></div>
       </div>
       <button class="add-btn" onclick="loadStats()"><i class="fa-solid fa-rotate-right"></i> Обновить сводку</button>
     </div>
-
-    <!-- 2. ПОДРАЗДЕЛ: ШАБЛОНЫ ЗАДАНИЙ -->
     <div id="section-templates" class="hidden">
-      <div id="templates-list-container">
-        <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка заданий...</p>
-      </div>
-      <button class="add-btn" onclick="openNewTemplateModal()" style="margin-top:12px;">
-        <i class="fa-solid fa-plus"></i> Создать новое задание
-      </button>
+      <div id="templates-list-container"><p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка заданий...</p></div>
+      <button class="add-btn" onclick="openNewTemplateModal()" style="margin-top:12px;"><i class="fa-solid fa-plus"></i> Создать новое задание</button>
     </div>
-
-    <!-- 3. ПОДРАЗДЕЛ: СБРОС И СПИСОК АКТИВНЫХ ИГРОКОВ -->
     <div id="section-users" class="hidden">
       <div class="search-row">
-        <!-- ПОИСК И ПО TELEGRAM ID, И ПО TWITCH НИКУ -->
         <input type="text" id="inp-search-user" class="compact-input" placeholder="Telegram ID или Twitch ник...">
         <button class="btn-search" onclick="searchUser()">Найти</button>
       </div>
-
-      <!-- Индивидуальная карточка найденного -->
       <div id="user-result-box" class="hidden">
         <div class="user-info-card">
           <div class="info-line"><span style="color:#cbd5e1;">Пользователь:</span><b id="res-user-name">-</b></div>
@@ -489,31 +305,16 @@
           <div class="info-line"><span style="color:#cbd5e1;">Прогресс:</span><span id="res-task-prog" style="font-weight:700;">0 / 0</span></div>
           <div class="info-line"><span style="color:#cbd5e1;">Награда:</span><span id="res-task-reward" style="font-weight:700;">0 🎟️</span></div>
           <div class="info-line"><span style="color:#cbd5e1;">Статус:</span><span id="res-task-status">-</span></div>
-
-          <button class="btn-reset-yellow" onclick="handleUserReset('reset_progress')">
-            <i class="fa-solid fa-rotate-left"></i> Сбросить текущий прогресс на 0
-          </button>
-          <button class="btn-reset-red" onclick="handleUserReset('reassign_random')">
-            <i class="fa-solid fa-dice"></i> Выдать другое случайное задание
-          </button>
+          <button class="btn-reset-yellow" onclick="handleUserReset('reset_progress')"><i class="fa-solid fa-rotate-left"></i> Сбросить текущий прогресс на 0</button>
+          <button class="btn-reset-red" onclick="handleUserReset('reassign_random')"><i class="fa-solid fa-dice"></i> Выдать другое случайное задание</button>
         </div>
       </div>
-
-      <!-- Список активных пользователей за сегодня -->
-      <div class="users-list-title">
-        <span>Активные задания за сегодня</span>
-        <button onclick="loadActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
-      </div>
-      <div id="active-users-list">
-        <p style="text-align:center; color:#cbd5e1; font-size:11px;">Загрузка списка игроков...</p>
-      </div>
+      <div class="users-list-title"><span>Активные задания за сегодня</span><button onclick="loadActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button></div>
+      <div id="active-users-list"><p style="text-align:center; color:#cbd5e1; font-size:11px;">Загрузка списка игроков...</p></div>
     </div>
-
   </div>
 
-  <!-- =========================================================
-       МОДУЛЬ 2: КОНСТРУКТОР ЗАДАНИЙ (5 ДНЕЙ / 5 ЛИМИТОВ / PUBLIC.QUESTS)
-       ========================================================= -->
+  <!-- МОДУЛЬ 2: КОНСТРУКТОР ЗАДАНИЙ -->
   <div class="module-hero-btn" onclick="toggleConstructorModule()">
     <div class="hero-btn-left">
       <div class="hero-btn-icon"><i class="fa-solid fa-hammer"></i></div>
@@ -524,84 +325,38 @@
     <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-constructor-icon"></i>
   </div>
 
-  <div id="constructor-content-wrap" class="hidden">
+  <div id="constructor-content-wrap" class="hidden" style="margin-bottom: 20px;">
     <div class="sub-tabs">
-      <button class="sub-tab-btn active" id="c-tab-btn-stats" onclick="switchConstructorTab('stats')">
-        <i class="fa-solid fa-chart-line"></i> Статистика
-      </button>
-      <button class="sub-tab-btn" id="c-tab-btn-quests" onclick="switchConstructorTab('quests')">
-        <i class="fa-solid fa-Sliders"></i> Слоты (Quests)
-      </button>
-      <button class="sub-tab-btn" id="c-tab-btn-users" onclick="switchConstructorTab('users')">
-        <i class="fa-solid fa-user-pen"></i> Сброс игроку
-      </button>
+      <button class="sub-tab-btn active" id="c-tab-btn-stats" onclick="switchConstructorTab('stats')"><i class="fa-solid fa-chart-line"></i> Статистика</button>
+      <button class="sub-tab-btn" id="c-tab-btn-quests" onclick="switchConstructorTab('quests')"><i class="fa-solid fa-Sliders"></i> Слоты (Quests)</button>
+      <button class="sub-tab-btn" id="c-tab-btn-users" onclick="switchConstructorTab('users')"><i class="fa-solid fa-user-pen"></i> Сброс игроку</button>
     </div>
-
-    <!-- 1. ПОДРАЗДЕЛ КОНСТРУКТОРА: СТАТИСТИКА -->
     <div id="c-section-stats">
       <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-lbl">Взято на неделе</span>
-          <span class="stat-val" id="c-stat-total">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">Сейчас в работе</span>
-          <span class="stat-val" id="c-stat-progress">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">Выполнили (100%)</span>
-          <span class="stat-val green" id="c-stat-completed">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-lbl">Забрали награду</span>
-          <span class="stat-val gold" id="c-stat-claimed">0</span>
-        </div>
-        <div class="stat-card wide">
-          <span class="stat-lbl">Выплачено билетов за неделю</span>
-          <span class="stat-val gold" id="c-stat-tickets">0 🎟️</span>
-        </div>
+        <div class="stat-card"><span class="stat-lbl">Взято на неделе</span><span class="stat-val" id="c-stat-total">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">Сейчас в работе</span><span class="stat-val" id="c-stat-progress">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">Выполнили (100%)</span><span class="stat-val green" id="c-stat-completed">0</span></div>
+        <div class="stat-card"><span class="stat-lbl">Забрали награду</span><span class="stat-val gold" id="c-stat-claimed">0</span></div>
+        <div class="stat-card wide"><span class="stat-lbl">Выплачено билетов за неделю</span><span class="stat-val gold" id="c-stat-tickets">0 🎟️</span></div>
       </div>
       <button class="add-btn" onclick="loadConstructorStats()"><i class="fa-solid fa-rotate-right"></i> Обновить сводку конструктора</button>
     </div>
-
-    <!-- 2. ПОДРАЗДЕЛ КОНСТРУКТОРА: СЛОТЫ И ЗАДАНИЯ (ТАБЛИЦА PUBLIC.QUESTS) -->
     <div id="c-section-quests" class="hidden">
       <div class="slot-filter-grid">
-        <button class="slot-filter-btn active" id="c-slot-btn-twitch_chat" onclick="switchConstructorSlot('twitch_chat')">
-          <i class="fa-brands fa-twitch" style="color:#a970ff;"></i> Twitch Чат
-        </button>
-        <button class="slot-filter-btn" id="c-slot-btn-twitch_uptime" onclick="switchConstructorSlot('twitch_uptime')">
-          <i class="fa-solid fa-play" style="color:#ff3b30;"></i> Стрим (Время)
-        </button>
-        <button class="slot-filter-btn" id="c-slot-btn-telegram_chat" onclick="switchConstructorSlot('telegram_chat')">
-          <i class="fa-brands fa-telegram" style="color:#2AABEE;"></i> Telegram Чат
-        </button>
-        <button class="slot-filter-btn" id="c-slot-btn-personal_pool" onclick="switchConstructorSlot('personal_pool')">
-          <i class="fa-solid fa-dice" style="color:#FFD700;"></i> Персональный (Рандом)
-        </button>
+        <button class="slot-filter-btn active" id="c-slot-btn-twitch_chat" onclick="switchConstructorSlot('twitch_chat')"><i class="fa-brands fa-twitch" style="color:#a970ff;"></i> Twitch Чат</button>
+        <button class="slot-filter-btn" id="c-slot-btn-twitch_uptime" onclick="switchConstructorSlot('twitch_uptime')"><i class="fa-solid fa-play" style="color:#ff3b30;"></i> Стрим (Время)</button>
+        <button class="slot-filter-btn" id="c-slot-btn-telegram_chat" onclick="switchConstructorSlot('telegram_chat')"><i class="fa-brands fa-telegram" style="color:#2AABEE;"></i> Telegram Чат</button>
+        <button class="slot-filter-btn" id="c-slot-btn-personal_pool" onclick="switchConstructorSlot('personal_pool')"><i class="fa-solid fa-dice" style="color:#FFD700;"></i> Персональный (Рандом)</button>
       </div>
-
-      <div class="slot-hint-box" id="constructor-slot-hint">
-        <b>🟣 Слот «Twitch Чат»:</b> Настройте 3 варианта сложности (кнопки 1, 2, 3). Игрок сам выбирает удобную цель, и отсчёт идёт строго с 0.
-      </div>
-
-      <div id="constructor-quests-container">
-        <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка заданий из public.quests...</p>
-      </div>
-
-      <button class="add-btn" onclick="openNewConstructorQuestModal()" style="margin-top:12px;">
-        <i class="fa-solid fa-plus"></i> Добавить задание в этот слот
-      </button>
+      <div class="slot-hint-box" id="constructor-slot-hint"><b>🟣 Слот «Twitch Чат»:</b> Настройте 3 варианта сложности...</div>
+      <div id="constructor-quests-container"><p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка заданий из public.quests...</p></div>
+      <button class="add-btn" onclick="openNewConstructorQuestModal()" style="margin-top:12px;"><i class="fa-solid fa-plus"></i> Добавить задание в этот слот</button>
     </div>
-
-    <!-- 3. ПОДРАЗДЕЛ КОНСТРУКТОРА: СБРОС И АКТИВНЫЕ ИГРОКИ (5 ДНЕЙ / 5 ЛИМИТОВ) -->
     <div id="c-section-users" class="hidden">
       <div class="search-row">
         <input type="text" id="inp-c-search-user" class="compact-input" placeholder="Telegram ID или Twitch ник...">
         <button class="btn-search" onclick="searchConstructorUser()">Найти</button>
       </div>
-
-      <!-- Карточка найденного игрока в конструкторе -->
       <div id="c-user-result-box" class="hidden">
         <div class="user-info-card">
           <div class="info-line"><span style="color:#cbd5e1;">Пользователь:</span><b id="c-res-user-name">-</b></div>
@@ -610,30 +365,43 @@
           <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">
           <div class="info-line"><span style="color:#cbd5e1;">Активных слотов:</span><b id="c-res-slots-count" style="color:var(--gold);">0</b></div>
           <div id="c-res-slots-details" style="font-size:11px; color:#e5e7eb; display:flex; flex-direction:column; gap:4px; margin-bottom:8px;"></div>
-
-          <button class="btn-reset-yellow" onclick="handleConstructorUserAction('reset_progress')">
-            <i class="fa-solid fa-rotate-left"></i> Сбросить прогресс активных слотов в 0
-          </button>
-          <button class="btn-reset-red" onclick="handleConstructorUserAction('clear_active')">
-            <i class="fa-solid fa-trash-can"></i> Снять активный набор (разблокировать конструктор)
-          </button>
-          <button class="btn-reset-blue" onclick="handleConstructorUserAction('reset_limits')">
-            <i class="fa-solid fa-bolt"></i> Обнулить недельный лимит подходов (сделать 0 / 5)
-          </button>
+          <button class="btn-reset-yellow" onclick="handleConstructorUserAction('reset_progress')"><i class="fa-solid fa-rotate-left"></i> Сбросить прогресс</button>
+          <button class="btn-reset-red" onclick="handleConstructorUserAction('clear_active')"><i class="fa-solid fa-trash-can"></i> Снять активный набор</button>
+          <button class="btn-reset-blue" onclick="handleConstructorUserAction('reset_limits')"><i class="fa-solid fa-bolt"></i> Обнулить лимит (0 / 5)</button>
         </div>
       </div>
-
-      <div class="users-list-title">
-        <span>Игроки с активным конструктором</span>
-        <button onclick="loadConstructorActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
-      </div>
-      <div id="c-active-users-list">
-        <p style="text-align:center; color:#cbd5e1; font-size:11px;">Загрузка активных контрактов...</p>
-      </div>
+      <div class="users-list-title"><span>Игроки с активным конструктором</span><button onclick="loadConstructorActiveUsers()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button></div>
+      <div id="c-active-users-list"><p style="text-align:center; color:#cbd5e1; font-size:11px;">Загрузка...</p></div>
     </div>
   </div>
 
-  <!-- ДИАЛОГОВОЕ ОКНО РЕДАКТИРОВАНИЯ/СОЗДАНИЯ ЕЖЕДНЕВНОГО ЧЕЛЛЕНДЖА -->
+  <!-- МОДУЛЬ 3: ИДЕАЛЬНАЯ СЕРИЯ (НАСТРОЙКА КУПОНОВ) -->
+  <div class="module-hero-btn" onclick="toggleStreakModule()">
+    <div class="hero-btn-left">
+      <div class="hero-btn-icon"><i class="fa-solid fa-fire"></i></div>
+      <div class="hero-btn-text">
+        <h2>ИДЕАЛЬНАЯ СЕРИЯ</h2>
+      </div>
+    </div>
+    <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-streak-icon"></i>
+  </div>
+
+  <div id="streak-content-wrap" class="hidden">
+    <div class="slot-hint-box" style="border-color: var(--gold); background: rgba(255,215,0,0.05);">
+      <b>🔥 Как работает Идеальная серия?</b><br>
+      Игрок получает +1 к серии, если закрыл хотя бы 1 контракт за календарную неделю. Настрой здесь, какие кейсы выдавать за каждую ступень (например: за 1 нед, 2 нед, 3 нед, 4 нед).
+    </div>
+
+    <div id="streak-rewards-container">
+      <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка наград...</p>
+    </div>
+
+    <button class="add-btn" onclick="openStreakModal()" style="margin-top:12px;">
+      <i class="fa-solid fa-plus"></i> Добавить ступень наград
+    </button>
+  </div>
+
+  <!-- МОДАЛКИ (Ежедневные челленджи) -->
   <div id="template-modal-overlay" class="modal-backdrop" onclick="if(event.target===this) closeTemplateModal()">
     <div class="modal-card">
       <div class="modal-header">
@@ -687,7 +455,7 @@
     </div>
   </div>
 
-  <!-- ДИАЛОГОВОЕ ОКНО СОЗДАНИЯ / РЕДАКТИРОВАНИЯ ЗАДАНИЯ КОНСТРУКТОРА (PUBLIC.QUESTS) -->
+  <!-- МОДАЛКИ (Конструктор) -->
   <div id="constructor-quest-modal-overlay" class="modal-backdrop" onclick="if(event.target===this) closeConstructorQuestModal()">
     <div class="modal-card">
       <div class="modal-header">
@@ -731,17 +499,17 @@
 
       <div style="display:flex; gap:8px;">
         <div class="input-wrapper" style="flex:1;">
-          <span class="input-label">Срок в часах (duration_hours, 120 = 5 дн.)</span>
+          <span class="input-label">Срок в часах (duration_hours)</span>
           <input type="number" id="cq-duration" class="compact-input" value="120">
         </div>
         <div class="input-wrapper" style="flex:1;">
-          <span class="input-label">Номер чипа (sort_order: 1, 2, 3)</span>
+          <span class="input-label">Номер чипа (sort_order)</span>
           <input type="number" id="cq-sort" class="compact-input" value="1">
         </div>
       </div>
 
       <div class="input-wrapper">
-        <span class="input-label">Ссылка перехода (action_url — опционально)</span>
+        <span class="input-label">Ссылка перехода (action_url)</span>
         <input type="text" id="cq-action-url" class="compact-input" placeholder="https://www.twitch.tv/hatelove_ttv">
       </div>
 
@@ -751,38 +519,10 @@
       </div>
 
       <div class="modal-actions-row">
-        <button class="btn-save-modal" onclick="submitConstructorQuestModal()"><i class="fa-solid fa-check"></i> Сохранить в quests</button>
+        <button class="btn-save-modal" onclick="submitConstructorQuestModal()"><i class="fa-solid fa-check"></i> Сохранить</button>
         <button class="btn-delete-modal hidden" id="cq-delete-btn" onclick="deleteConstructorQuest()"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
-  </div>
-
-  <!-- =========================================================
-       МОДУЛЬ 3: ИДЕАЛЬНАЯ СЕРИЯ (НАСТРОЙКА КУПОНОВ)
-       ========================================================= -->
-  <div class="module-hero-btn" onclick="toggleStreakModule()">
-    <div class="hero-btn-left">
-      <div class="hero-btn-icon"><i class="fa-solid fa-fire"></i></div>
-      <div class="hero-btn-text">
-        <h2>ИДЕАЛЬНАЯ СЕРИЯ</h2>
-      </div>
-    </div>
-    <i class="fa-solid fa-chevron-down hero-btn-chevron" id="chevron-streak-icon"></i>
-  </div>
-
-  <div id="streak-content-wrap" class="hidden">
-    <div class="slot-hint-box" style="border-color: var(--gold); background: rgba(255,215,0,0.05);">
-      <b>🔥 Как работает Идеальная серия?</b><br>
-      Игрок получает +1 к серии, если закрыл хотя бы 1 контракт за календарную неделю. Настрой здесь, какие кейсы выдавать за каждую ступень (например: за 1 нед, 2 нед, 3 нед, 4 нед).
-    </div>
-
-    <div id="streak-rewards-container">
-      <p style="text-align:center; color:#e5e7eb; font-size:12px; padding:15px 0;">Загрузка наград...</p>
-    </div>
-
-    <button class="add-btn" onclick="openStreakModal()" style="margin-top:12px;">
-      <i class="fa-solid fa-plus"></i> Добавить ступень наград
-    </button>
   </div>
 
   <!-- ДИАЛОГОВОЕ ОКНО: НАСТРОЙКА НАГРАДЫ ЗА СЕРИЮ -->
@@ -826,20 +566,15 @@
       tg.enableClosingConfirmation();
     }
 
-    // 1. АДАПТИВНЫЙ ВЕРХНИЙ ОТСТУП ПОД УСТРОЙСТВА
     function applyAdaptivePadding() {
       const platform = (tg?.platform || '').toLowerCase();
       const ua = navigator.userAgent || '';
-      let topPadding = '10px'; // ПК: в самый верх
-
+      let topPadding = '10px'; 
       if (platform === 'ios' || /iphone|ipad|ipod/i.test(ua)) {
-        // iOS: сдвиг вниз под Dynamic Island / чёлку
         topPadding = 'calc(env(safe-area-inset-top, 20px) + 24px)';
       } else if (platform === 'android' || /android/i.test(ua)) {
-        // Android: аккуратный сдвиг под статус-бар
         topPadding = '26px';
       }
-
       document.body.style.paddingTop = topPadding;
     }
     applyAdaptivePadding();
@@ -864,9 +599,7 @@
       isOpen = !isOpen;
       document.getElementById('challenge-content-wrap').classList.toggle('hidden', !isOpen);
       document.getElementById('chevron-icon').classList.toggle('open', isOpen);
-      if (isOpen) {
-        loadStats(); // Первой грузим только статистику
-      }
+      if (isOpen) loadStats(); 
     }
 
     function switchSection(sec) {
@@ -878,15 +611,10 @@
       document.getElementById('section-templates').classList.toggle('hidden', sec !== 'templates');
       document.getElementById('section-users').classList.toggle('hidden', sec !== 'users');
 
-      // Ленивая быстрая подгрузка вкладок
-      if (sec === 'templates' && !isTemplatesLoaded) {
-        loadTemplates();
-      } else if (sec === 'users') {
-        loadActiveUsers();
-      }
+      if (sec === 'templates' && !isTemplatesLoaded) loadTemplates();
+      else if (sec === 'users') loadActiveUsers();
     }
 
-    // 2. СТАТИСТИКА
     async function loadStats() {
       try {
         const res = await fetch('/api/v1/admin/challenges/stats', {
@@ -908,13 +636,11 @@
       }
     }
 
-    // 3. БЫСТРАЯ ЗАГРУЗКА ЗАДАНИЙ С КЭШЕМ
     async function loadTemplates(force = false) {
       if (isTemplatesLoaded && !force && templatesData.length > 0) {
         renderTemplatesList();
         return;
       }
-
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/list', {
           method: 'POST',
@@ -926,35 +652,29 @@
         isTemplatesLoaded = true;
         renderTemplatesList();
       } catch (e) {
-        document.getElementById('templates-list-container').innerHTML = 
-          `<p style="color:red; text-align:center; font-size:12px;">Ошибка загрузки: ${e.message}</p>`;
+        document.getElementById('templates-list-container').innerHTML = `<p style="color:red; text-align:center; font-size:12px;">Ошибка загрузки: ${e.message}</p>`;
       }
     }
 
     function renderTemplatesList() {
       const container = document.getElementById('templates-list-container');
       container.innerHTML = '';
-
       if (templatesData.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:12px; padding:15px 0;">Нет созданных заданий</p>';
         return;
       }
-
       templatesData.forEach((t, idx) => {
         const div = document.createElement('div');
         div.className = `template-item-card ${t.is_active ? '' : 'disabled'}`;
         div.onclick = () => openEditTemplateModal(idx);
-
         const taskTypeObj = TASK_TYPES.find(x => x.key === t.task_type);
         const typeLabel = taskTypeObj ? taskTypeObj.label : t.task_type;
         const descText = t.description ? `${t.description} • ` : '';
-
         div.innerHTML = `
           <div class="template-item-left">
             <div class="template-item-icon"><i class="${t.icon || 'fa-solid fa-bolt'}"></i></div>
             <div class="template-item-info">
               <span class="template-item-title">${escapeHTML(t.title)}</span>
-              <!-- ЯРКИЙ СВЕТЛЫЙ ТЕКСТ ОПИСАНИЯ -->
               <span class="template-item-sub">${escapeHTML(descText)}${typeLabel} (Цель: ${t.target_value})</span>
             </div>
           </div>
@@ -969,9 +689,7 @@
 
     function initTaskTypeSelect(selectedKey) {
       const select = document.getElementById('modal-tpl-task-type');
-      select.innerHTML = TASK_TYPES.map(opt => 
-        `<option value="${opt.key}" ${opt.key === selectedKey ? 'selected' : ''}>${opt.label}</option>`
-      ).join('');
+      select.innerHTML = TASK_TYPES.map(opt => `<option value="${opt.key}" ${opt.key === selectedKey ? 'selected' : ''}>${opt.label}</option>`).join('');
     }
 
     function openNewTemplateModal() {
@@ -984,7 +702,6 @@
       document.getElementById('modal-tpl-reward').value = 1.0;
       document.getElementById('modal-tpl-active').checked = true;
       document.getElementById('modal-tpl-delete-btn').classList.add('hidden');
-
       initTaskTypeSelect('telegram_messages_session');
       document.getElementById('template-modal-overlay').classList.add('show');
     }
@@ -992,7 +709,6 @@
     function openEditTemplateModal(idx) {
       const t = templatesData[idx];
       if (!t) return;
-
       document.getElementById('modal-heading').textContent = `Задание #${t.id}`;
       document.getElementById('modal-tpl-id').value = t.id;
       document.getElementById('modal-tpl-title').value = t.title;
@@ -1002,7 +718,6 @@
       document.getElementById('modal-tpl-reward').value = t.ticket_reward;
       document.getElementById('modal-tpl-active').checked = !!t.is_active;
       document.getElementById('modal-tpl-delete-btn').classList.remove('hidden');
-
       initTaskTypeSelect(t.task_type);
       document.getElementById('template-modal-overlay').classList.add('show');
     }
@@ -1015,7 +730,6 @@
       const idVal = document.getElementById('modal-tpl-id').value;
       const title = document.getElementById('modal-tpl-title').value.trim();
       if (!title) return alert('Введите заголовок задания');
-
       const payload = {
         initData: tg?.initData || '',
         id: idVal ? parseInt(idVal) : null,
@@ -1027,7 +741,6 @@
         ticket_reward: parseFloat(document.getElementById('modal-tpl-reward').value) || 1.0,
         is_active: document.getElementById('modal-tpl-active').checked
       };
-
       try {
         const res = await fetch('/api/v1/admin/challenges/templates/save', {
           method: 'POST',
@@ -1037,74 +750,49 @@
         const d = await res.json();
         if (d.status === 'success') {
           closeTemplateModal();
-          loadTemplates(true); // Форсированно обновляем список
-        } else {
-          alert('Ошибка: ' + d.detail);
-        }
-      } catch (e) {
-        alert('Ошибка при сохранении: ' + e.message);
-      }
+          loadTemplates(true);
+        } else alert('Ошибка: ' + d.detail);
+      } catch (e) { alert('Ошибка при сохранении: ' + e.message); }
     }
 
     async function submitDeleteTemplate() {
       const idVal = document.getElementById('modal-tpl-id').value;
-      if (!idVal) return;
-      if (!confirm('Удалить это задание?')) return;
-
+      if (!idVal || !confirm('Удалить это задание?')) return;
       try {
-        const res = await fetch('/api/v1/admin/challenges/templates/delete', {
+        await fetch('/api/v1/admin/challenges/templates/delete', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '', template_id: parseInt(idVal) })
         });
         closeTemplateModal();
         loadTemplates(true);
-      } catch (e) {
-        alert('Ошибка: ' + e.message);
-      }
+      } catch (e) { alert('Ошибка: ' + e.message); }
     }
 
-    // 4. СПИСОК АКТИВНЫХ ИГРОКОВ И ПОИСК ПО TG / TWITCH
     let foundUserId = null;
-
     async function loadActiveUsers() {
       const container = document.getElementById('active-users-list');
       try {
         const res = await fetch('/api/v1/admin/challenges/active_users', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '' })
         });
-
-        if (res.status === 404) {
-          container.innerHTML = '<p style="text-align:center; color:red; font-size:11px;">Эндпоинт /active_users не найден на бэкенде. Проверьте регистрацию роута.</p>';
-          return;
-        }
-
         const d = await res.json();
         const users = d.users || [];
-
         if (users.length === 0) {
           container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:11px; padding:12px 0;">Сегодня еще никто не активировал задания</p>';
           return;
         }
-
         container.innerHTML = users.map(u => {
           const cur = u.current_value || 0;
           const target = u.target_value || 1;
           const pct = Math.min(100, Math.round((cur / target) * 100));
           const isClaimed = !!u.claimed_at;
           const isDone = !!u.is_completed || cur >= target;
-
           let statusBadge = `<span style="color:#cbd5e1; font-size:10px;">⏳ В процессе</span>`;
-          if (isClaimed) {
-            statusBadge = `<span style="color:var(--gold); font-size:10px; font-weight:800;">✅ Забрал</span>`;
-          } else if (isDone) {
-            statusBadge = `<span style="color:var(--green); font-size:10px; font-weight:800;">🎉 Выполнено</span>`;
-          }
-
+          if (isClaimed) statusBadge = `<span style="color:var(--gold); font-size:10px; font-weight:800;">✅ Забрал</span>`;
+          else if (isDone) statusBadge = `<span style="color:var(--green); font-size:10px; font-weight:800;">🎉 Выполнено</span>`;
           const twitchTag = u.twitch_login ? `<span style="color:#a78bfa; font-weight:700;">[Twitch: ${escapeHTML(u.twitch_login)}]</span>` : '';
-
           return `
             <div class="user-progress-card">
               <div class="u-card-header">
@@ -1117,46 +805,32 @@
                   <div style="font-size:11px; font-weight:800; font-family:monospace; margin-top:3px; color:#fff;">${cur} / ${target}</div>
                 </div>
               </div>
-              <div class="u-progress-track">
-                <div class="u-progress-fill" style="width: ${pct}%;"></div>
-              </div>
+              <div class="u-progress-track"><div class="u-progress-fill" style="width: ${pct}%;"></div></div>
               <div class="u-card-actions">
-                <button class="u-action-btn u-action-reset" onclick="quickUserAction(${u.telegram_id}, 'reset_progress')">
-                  <i class="fa-solid fa-rotate-left"></i> Сбросить в 0
-                </button>
-                <button class="u-action-btn u-action-reassign" onclick="quickUserAction(${u.telegram_id}, 'reassign_random')">
-                  <i class="fa-solid fa-dice"></i> Перевыдать
-                </button>
+                <button class="u-action-btn u-action-reset" onclick="quickUserAction(${u.telegram_id}, 'reset_progress')"><i class="fa-solid fa-rotate-left"></i> Сбросить в 0</button>
+                <button class="u-action-btn u-action-reassign" onclick="quickUserAction(${u.telegram_id}, 'reassign_random')"><i class="fa-solid fa-dice"></i> Перевыдать</button>
               </div>
             </div>
           `;
         }).join('');
-      } catch (e) {
-        container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка: ${e.message}</p>`;
-      }
+      } catch (e) { container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка: ${e.message}</p>`; }
     }
 
     async function searchUser() {
       const val = document.getElementById('inp-search-user').value.trim();
       if (!val) return alert('Введите Telegram ID или Twitch ник');
-
       try {
         const res = await fetch('/api/v1/admin/challenges/user_lookup', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '', query: val })
         });
         const d = await res.json();
         if (d.status === 'success') {
           document.getElementById('user-result-box').classList.remove('hidden');
-          const u = d.user;
-          const ch = d.challenge;
-          foundUserId = u.telegram_id;
-
+          const u = d.user; const ch = d.challenge; foundUserId = u.telegram_id;
           document.getElementById('res-user-name').textContent = u.full_name || u.username || ('ID: ' + u.telegram_id);
           document.getElementById('res-user-twitch').textContent = u.twitch_login ? `@${u.twitch_login}` : 'Не привязан';
           document.getElementById('res-user-tickets').textContent = u.tickets + ' 🎟️';
-
           if (ch) {
             document.getElementById('res-task-title').textContent = ch.title;
             document.getElementById('res-task-prog').textContent = `${ch.current_value} / ${ch.target_value}`;
@@ -1168,49 +842,30 @@
             document.getElementById('res-task-reward').textContent = '-';
             document.getElementById('res-task-status').textContent = '-';
           }
-        } else {
-          alert(d.detail || 'Пользователь не найден');
-        }
-      } catch (e) {
-        alert(e.message);
-      }
+        } else alert(d.detail || 'Пользователь не найден');
+      } catch (e) { alert(e.message); }
     }
 
-    async function handleUserReset(action) {
-      if (!foundUserId) return;
-      quickUserAction(foundUserId, action);
-    }
-
+    async function handleUserReset(action) { if (foundUserId) quickUserAction(foundUserId, action); }
     async function quickUserAction(tgId, action) {
       const actText = action === 'reset_progress' ? 'сбросить прогресс в 0' : 'перевыдать случайное задание';
       if (!confirm(`Подтверждаете действие "${actText}" для пользователя ID ${tgId}?`)) return;
-
       try {
         const res = await fetch('/api/v1/admin/challenges/reset_user', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            initData: tg?.initData || '',
-            target_telegram_id: tgId,
-            action: action
-          })
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '', target_telegram_id: tgId, action: action })
         });
         const d = await res.json();
         if (d.status === 'success') {
           tg?.showAlert ? tg.showAlert(d.message) : alert(d.message);
           if (foundUserId === tgId) searchUser();
-          loadActiveUsers();
-          loadStats();
-        } else {
-          alert('Ошибка: ' + d.detail);
-        }
-      } catch (e) {
-        alert(e.message);
-      }
+          loadActiveUsers(); loadStats();
+        } else alert('Ошибка: ' + d.detail);
+      } catch (e) { alert(e.message); }
     }
 
     // =========================================================
-    // ЛОГИКА МОДУЛЯ 2: КОНСТРУКТОР ЗАДАНИЙ (PUBLIC.QUESTS)
+    // ЛОГИКА МОДУЛЯ 2: КОНСТРУКТОР ЗАДАНИЙ
     // =========================================================
     let isConstructorOpen = false;
     let currentConstructorSlot = 'twitch_chat';
@@ -1219,54 +874,17 @@
     let foundConstructorUserId = null;
 
     const CONSTRUCTOR_SLOT_CONFIG = {
-      twitch_chat: {
-        hint: "<b>🟣 Слот «Twitch Чат»:</b> Настройте 3 варианта сложности (кнопки 1, 2, 3). Игрок сам выбирает удобную цель, и отсчёт идёт строго с 0.",
-        defaultIcon: "fa-brands fa-twitch",
-        defaultUrl: "https://www.twitch.tv/hatelove_ttv",
-        types: [
-          { key: "automatic_twitch_messages_week", label: "Twitch: Сообщения в чате (неделя/сессия)" },
-          { key: "automatic_twitch_messages_session", label: "Twitch: Сообщения за 1 стрим" }
-        ]
-      },
-      twitch_uptime: {
-        hint: "<b>🔴 Слот «Стрим (Время)»:</b> Настройте 3 варианта времени просмотра стрима в минутах (например: 30, 60, 120 мин).",
-        defaultIcon: "fa-solid fa-play",
-        defaultUrl: "https://www.twitch.tv/hatelove_ttv",
-        types: [
-          { key: "automatic_twitch_uptime_week", label: "Twitch: Время просмотра (мин)" },
-          { key: "automatic_twitch_uptime_session", label: "Twitch: Время за 1 стрим (мин)" }
-        ]
-      },
-      telegram_chat: {
-        hint: "<b>🔵 Слот «Telegram Чат»:</b> Настройте 3 варианта количества сообщений в ТГ-чате (например: 15, 30, 60 сообщений).",
-        defaultIcon: "fa-brands fa-telegram",
-        defaultUrl: "https://t.me/hatelove_ttv",
-        types: [
-          { key: "automatic_telegram_messages_week", label: "Telegram: Сообщения в чате (неделя)" },
-          { key: "automatic_telegram_messages_session", label: "Telegram: Сообщения в чате (сессия)" }
-        ]
-      },
-      personal_pool: {
-        hint: "<b>🎲 Пул «Персональный вызов (Рандом)»:</b> Добавляйте сюда любые задания. Система случайно выбирает варианты из этого пула для каждого игрока!",
-        defaultIcon: "fa-solid fa-crosshairs",
-        defaultUrl: "",
-        types: [
-          { key: "personal_open_cases", label: "🎲 Персональный: Открыть N кейсов" },
-          { key: "personal_tg_words", label: "🎲 Персональный: Написать N сообщений в ТГ" },
-          { key: "personal_invite_friends", label: "🎲 Персональный: Пригласить N друзей" },
-          { key: "personal_grind_streak", label: "🎲 Персональный: Собрать гринд N раз" },
-          { key: "personal_auction_bid", label: "🎲 Персональный: Сделать ставку на аукционе" }
-        ]
-      }
+      twitch_chat: { hint: "<b>🟣 Слот «Twitch Чат»...</b>", defaultIcon: "fa-brands fa-twitch", defaultUrl: "https://www.twitch.tv/hatelove_ttv", types: [{ key: "automatic_twitch_messages_week", label: "Twitch: Сообщения в чате (неделя/сессия)" }, { key: "automatic_twitch_messages_session", label: "Twitch: Сообщения за 1 стрим" }] },
+      twitch_uptime: { hint: "<b>🔴 Слот «Стрим (Время)»...</b>", defaultIcon: "fa-solid fa-play", defaultUrl: "https://www.twitch.tv/hatelove_ttv", types: [{ key: "automatic_twitch_uptime_week", label: "Twitch: Время просмотра (мин)" }, { key: "automatic_twitch_uptime_session", label: "Twitch: Время за 1 стрим (мин)" }] },
+      telegram_chat: { hint: "<b>🔵 Слот «Telegram Чат»...</b>", defaultIcon: "fa-brands fa-telegram", defaultUrl: "https://t.me/hatelove_ttv", types: [{ key: "automatic_telegram_messages_week", label: "Telegram: Сообщения в чате (неделя)" }, { key: "automatic_telegram_messages_session", label: "Telegram: Сообщения в чате (сессия)" }] },
+      personal_pool: { hint: "<b>🎲 Пул «Персональный вызов...</b>", defaultIcon: "fa-solid fa-crosshairs", defaultUrl: "", types: [{ key: "personal_open_cases", label: "🎲 Персональный: Открыть N кейсов" }, { key: "personal_tg_words", label: "🎲 Персональный: Написать N сообщений в ТГ" }, { key: "personal_invite_friends", label: "🎲 Персональный: Пригласить N друзей" }, { key: "personal_grind_streak", label: "🎲 Персональный: Собрать гринд N раз" }, { key: "personal_auction_bid", label: "🎲 Персональный: Сделать ставку на аукционе" }] }
     };
 
     function toggleConstructorModule() {
       isConstructorOpen = !isConstructorOpen;
       document.getElementById('constructor-content-wrap').classList.toggle('hidden', !isConstructorOpen);
       document.getElementById('chevron-constructor-icon').classList.toggle('open', isConstructorOpen);
-      if (isConstructorOpen) {
-        loadConstructorStats();
-      }
+      if (isConstructorOpen) loadConstructorStats();
     }
 
     function switchConstructorTab(sec) {
@@ -1278,18 +896,14 @@
       document.getElementById('c-section-quests').classList.toggle('hidden', sec !== 'quests');
       document.getElementById('c-section-users').classList.toggle('hidden', sec !== 'users');
 
-      if (sec === 'quests' && !isConstructorQuestsLoaded) {
-        loadConstructorQuests();
-      } else if (sec === 'users') {
-        loadConstructorActiveUsers();
-      }
+      if (sec === 'quests' && !isConstructorQuestsLoaded) loadConstructorQuests();
+      else if (sec === 'users') loadConstructorActiveUsers();
     }
 
     async function loadConstructorStats() {
       try {
         const res = await fetch('/api/v1/admin/constructor/stats', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '' })
         });
         const d = await res.json();
@@ -1301,9 +915,7 @@
           document.getElementById('c-stat-claimed').textContent = s.claimed || 0;
           document.getElementById('c-stat-tickets').textContent = (s.tickets_rewarded || 0) + ' 🎟️';
         }
-      } catch (e) {
-        console.error("Ошибка статистики конструктора:", e);
-      }
+      } catch (e) { console.error("Ошибка статистики конструктора:", e); }
     }
 
     function switchConstructorSlot(slotKey) {
@@ -1312,11 +924,8 @@
         const btn = document.getElementById(`c-slot-btn-${k}`);
         if (btn) btn.classList.toggle('active', k === slotKey);
       });
-
       const cfg = CONSTRUCTOR_SLOT_CONFIG[slotKey];
-      if (cfg) {
-        document.getElementById('constructor-slot-hint').innerHTML = cfg.hint;
-      }
+      if (cfg) document.getElementById('constructor-slot-hint').innerHTML = cfg.hint;
       renderConstructorQuests();
     }
 
@@ -1329,31 +938,23 @@
     }
 
     async function loadConstructorQuests(force = false) {
-      if (isConstructorQuestsLoaded && !force && constructorQuestsData.length > 0) {
-        renderConstructorQuests();
-        return;
-      }
-
+      if (isConstructorQuestsLoaded && !force && constructorQuestsData.length > 0) { renderConstructorQuests(); return; }
       const container = document.getElementById('constructor-quests-container');
       try {
         const res = await fetch('/api/v1/admin/constructor/quests/list', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '' })
         });
         const d = await res.json();
         constructorQuestsData = d.quests || [];
         isConstructorQuestsLoaded = true;
         renderConstructorQuests();
-      } catch (e) {
-        container.innerHTML = `<p style="color:#ff3b30; text-align:center; font-size:12px;">Ошибка загрузки public.quests: ${e.message}</p>`;
-      }
+      } catch (e) { container.innerHTML = `<p style="color:#ff3b30; text-align:center; font-size:12px;">Ошибка загрузки public.quests: ${e.message}</p>`; }
     }
 
     function renderConstructorQuests() {
       const container = document.getElementById('constructor-quests-container');
       container.innerHTML = '';
-
       const filtered = constructorQuestsData
         .filter(q => getSlotByQuestType(q.quest_type) === currentConstructorSlot)
         .sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99) || (a.target_value || 0) - (b.target_value || 0));
@@ -1362,20 +963,14 @@
         container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:12px; padding:15px 0;">В этом слоте пока нет заданий</p>';
         return;
       }
-
       filtered.forEach((q, idx) => {
         const div = document.createElement('div');
         div.className = `template-item-card ${q.is_active ? '' : 'disabled'}`;
         div.onclick = () => openEditConstructorQuestModal(q.id);
-
         const slotCfg = CONSTRUCTOR_SLOT_CONFIG[currentConstructorSlot];
         const iconClass = (q.icon_url && q.icon_url.trim() !== '') ? q.icon_url : (slotCfg?.defaultIcon || 'fa-solid fa-bolt');
-        const chipBadge = currentConstructorSlot === 'personal_pool'
-          ? `<span style="color:var(--gold); font-weight:700;">[РАНДОМ]</span>`
-          : `<span style="color:#38bdf8; font-weight:700;">[Чип #${q.sort_order || (idx + 1)}]</span>`;
-
+        const chipBadge = currentConstructorSlot === 'personal_pool' ? `<span style="color:var(--gold); font-weight:700;">[РАНДОМ]</span>` : `<span style="color:#38bdf8; font-weight:700;">[Чип #${q.sort_order || (idx + 1)}]</span>`;
         const durationText = q.duration_hours ? ` • ⏱ ${q.duration_hours}ч.` : '';
-
         div.innerHTML = `
           <div class="template-item-left">
             <div class="template-item-icon"><i class="${escapeHTML(iconClass)}"></i></div>
@@ -1395,23 +990,14 @@
 
     function populateConstructorQuestTypeSelect(selectedType = null) {
       const select = document.getElementById('cq-quest-type');
-      const allOptions = [
-        ...CONSTRUCTOR_SLOT_CONFIG.twitch_chat.types,
-        ...CONSTRUCTOR_SLOT_CONFIG.twitch_uptime.types,
-        ...CONSTRUCTOR_SLOT_CONFIG.telegram_chat.types,
-        ...CONSTRUCTOR_SLOT_CONFIG.personal_pool.types
-      ];
+      const allOptions = [ ...CONSTRUCTOR_SLOT_CONFIG.twitch_chat.types, ...CONSTRUCTOR_SLOT_CONFIG.twitch_uptime.types, ...CONSTRUCTOR_SLOT_CONFIG.telegram_chat.types, ...CONSTRUCTOR_SLOT_CONFIG.personal_pool.types ];
       const defaultKey = selectedType || CONSTRUCTOR_SLOT_CONFIG[currentConstructorSlot].types[0].key;
-
-      select.innerHTML = allOptions.map(opt =>
-        `<option value="${opt.key}" ${opt.key === defaultKey ? 'selected' : ''}>${opt.label} (${opt.key})</option>`
-      ).join('');
+      select.innerHTML = allOptions.map(opt => `<option value="${opt.key}" ${opt.key === defaultKey ? 'selected' : ''}>${opt.label} (${opt.key})</option>`).join('');
     }
 
     function openNewConstructorQuestModal() {
       const slotCfg = CONSTRUCTOR_SLOT_CONFIG[currentConstructorSlot];
       const existingInSlot = constructorQuestsData.filter(q => getSlotByQuestType(q.quest_type) === currentConstructorSlot);
-
       document.getElementById('cq-modal-heading').textContent = 'Новое задание в public.quests';
       document.getElementById('cq-id').value = '';
       document.getElementById('cq-title').value = '';
@@ -1424,7 +1010,6 @@
       document.getElementById('cq-action-url').value = slotCfg?.defaultUrl || '';
       document.getElementById('cq-active').checked = true;
       document.getElementById('cq-delete-btn').classList.add('hidden');
-
       populateConstructorQuestTypeSelect();
       document.getElementById('constructor-quest-modal-overlay').classList.add('show');
     }
@@ -1432,7 +1017,6 @@
     function openEditConstructorQuestModal(questId) {
       const q = constructorQuestsData.find(item => Number(item.id) === Number(questId));
       if (!q) return;
-
       document.getElementById('cq-modal-heading').textContent = `Редактирование Quests #${q.id}`;
       document.getElementById('cq-id').value = q.id;
       document.getElementById('cq-title').value = q.title || '';
@@ -1445,24 +1029,18 @@
       document.getElementById('cq-action-url').value = q.action_url || '';
       document.getElementById('cq-active').checked = !!q.is_active;
       document.getElementById('cq-delete-btn').classList.remove('hidden');
-
       populateConstructorQuestTypeSelect(q.quest_type);
       document.getElementById('constructor-quest-modal-overlay').classList.add('show');
     }
 
-    function closeConstructorQuestModal() {
-      document.getElementById('constructor-quest-modal-overlay').classList.remove('show');
-    }
+    function closeConstructorQuestModal() { document.getElementById('constructor-quest-modal-overlay').classList.remove('show'); }
 
     async function submitConstructorQuestModal() {
       const idVal = document.getElementById('cq-id').value;
       const title = document.getElementById('cq-title').value.trim();
       if (!title) return alert('Введите заголовок задания (title)');
-
       const payload = {
-        initData: tg?.initData || '',
-        id: idVal ? parseInt(idVal) : null,
-        title: title,
+        initData: tg?.initData || '', id: idVal ? parseInt(idVal) : null, title: title,
         description: document.getElementById('cq-desc').value.trim() || null,
         quest_type: document.getElementById('cq-quest-type').value,
         target_value: parseInt(document.getElementById('cq-target').value) || 1,
@@ -1473,75 +1051,42 @@
         action_url: document.getElementById('cq-action-url').value.trim() || null,
         is_active: document.getElementById('cq-active').checked
       };
-
       try {
         const res = await fetch('/api/v1/admin/constructor/quests/save', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload)
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
         });
         const d = await res.json();
-        if (d.status === 'success') {
-          closeConstructorQuestModal();
-          loadConstructorQuests(true);
-        } else {
-          alert('Ошибка: ' + (d.detail || d.message));
-        }
-      } catch (e) {
-        alert('Ошибка сохранения: ' + e.message);
-      }
+        if (d.status === 'success') { closeConstructorQuestModal(); loadConstructorQuests(true); } else alert('Ошибка: ' + (d.detail || d.message));
+      } catch (e) { alert('Ошибка сохранения: ' + e.message); }
     }
 
     async function deleteConstructorQuest() {
       const idVal = document.getElementById('cq-id').value;
-      if (!idVal) return;
-      if (!confirm(`Удалить задание #${idVal} из таблицы public.quests?`)) return;
-
+      if (!idVal || !confirm(`Удалить задание #${idVal} из таблицы public.quests?`)) return;
       try {
         const res = await fetch('/api/v1/admin/constructor/quests/delete', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '', quest_id: parseInt(idVal) })
         });
         const d = await res.json();
-        if (d.status === 'success') {
-          closeConstructorQuestModal();
-          loadConstructorQuests(true);
-        } else {
-          alert('Ошибка: ' + (d.detail || d.message));
-        }
-      } catch (e) {
-        alert('Ошибка удаления: ' + e.message);
-      }
+        if (d.status === 'success') { closeConstructorQuestModal(); loadConstructorQuests(true); } else alert('Ошибка: ' + (d.detail || d.message));
+      } catch (e) { alert('Ошибка удаления: ' + e.message); }
     }
 
-    // 5. УПРАВЛЕНИЕ ИГРОКАМИ В КОНСТРУКТОРЕ (5 ДНЕЙ / 5 ЛИМИТОВ)
     async function loadConstructorActiveUsers() {
       const container = document.getElementById('c-active-users-list');
       try {
         const res = await fetch('/api/v1/admin/constructor/active_users', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '' })
         });
-
-        if (res.status === 404) {
-          container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:11px;">Эндпоинт /admin/constructor/active_users ещё не подключён (подключим на Шаге 3).</p>';
-          return;
-        }
-
+        if (res.status === 404) { container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:11px;">Эндпоинт /admin/constructor/active_users ещё не подключён (подключим на Шаге 3).</p>'; return; }
         const d = await res.json();
         const users = d.users || [];
-
-        if (users.length === 0) {
-          container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:11px; padding:12px 0;">Сейчас нет активных контрактов конструктора</p>';
-          return;
-        }
-
+        if (users.length === 0) { container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:12px; padding:12px 0;">Сейчас нет активных контрактов конструктора</p>'; return; }
         container.innerHTML = users.map(u => {
           const pct = u.overall_pct || 0;
           const twitchTag = u.twitch_login ? `<span style="color:#a78bfa; font-weight:700;">[Twitch: ${escapeHTML(u.twitch_login)}]</span>` : '';
-
           return `
             <div class="user-progress-card">
               <div class="u-card-header">
@@ -1549,117 +1094,240 @@
                   <div class="u-card-name">${escapeHTML(u.full_name || u.username || ('ID: ' + u.telegram_id))} ${twitchTag}</div>
                   <div class="u-card-sub">Подход #${u.run_number || 1} (Лимит: ${u.used_limits || 0}/5) • Слотов: ${u.slots_count || 1} (+${u.total_reward || 0} 🎟️)</div>
                 </div>
-                <div style="text-align:right;">
-                  <span style="color:var(--gold); font-size:11px; font-weight:800; font-family:monospace;">${pct}%</span>
-                </div>
+                <div style="text-align:right;"><span style="color:var(--gold); font-size:11px; font-weight:800; font-family:monospace;">${pct}%</span></div>
               </div>
-              <div class="u-progress-track">
-                <div class="u-progress-fill" style="width: ${pct}%;"></div>
-              </div>
+              <div class="u-progress-track"><div class="u-progress-fill" style="width: ${pct}%;"></div></div>
               <div class="u-card-actions">
-                <button class="u-action-btn u-action-reset" onclick="quickConstructorUserAction(${u.telegram_id}, 'reset_progress')">
-                  <i class="fa-solid fa-rotate-left"></i> В 0
-                </button>
-                <button class="u-action-btn u-action-reassign" onclick="quickConstructorUserAction(${u.telegram_id}, 'clear_active')">
-                  <i class="fa-solid fa-trash-can"></i> Снять
-                </button>
-                <button class="u-action-btn u-action-blue" onclick="quickConstructorUserAction(${u.telegram_id}, 'reset_limits')">
-                  <i class="fa-solid fa-bolt"></i> Лимит 0/5
-                </button>
+                <button class="u-action-btn u-action-reset" onclick="quickConstructorUserAction(${u.telegram_id}, 'reset_progress')"><i class="fa-solid fa-rotate-left"></i> В 0</button>
+                <button class="u-action-btn u-action-reassign" onclick="quickConstructorUserAction(${u.telegram_id}, 'clear_active')"><i class="fa-solid fa-trash-can"></i> Снять</button>
+                <button class="u-action-btn u-action-blue" onclick="quickConstructorUserAction(${u.telegram_id}, 'reset_limits')"><i class="fa-solid fa-bolt"></i> Лимит 0/5</button>
               </div>
             </div>
           `;
         }).join('');
-      } catch (e) {
-        container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка: ${e.message}</p>`;
-      }
+      } catch (e) { container.innerHTML = `<p style="text-align:center; color:red; font-size:11px;">Ошибка: ${e.message}</p>`; }
     }
 
     async function searchConstructorUser() {
       const val = document.getElementById('inp-c-search-user').value.trim();
       if (!val) return alert('Введите Telegram ID или Twitch ник');
-
       try {
         const res = await fetch('/api/v1/admin/constructor/user_lookup', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ initData: tg?.initData || '', query: val })
         });
         const d = await res.json();
         if (d.status === 'success') {
           document.getElementById('c-user-result-box').classList.remove('hidden');
-          const u = d.user;
-          const slots = d.active_slots || [];
-          foundConstructorUserId = u.telegram_id;
-
+          const u = d.user; const slots = d.active_slots || []; foundConstructorUserId = u.telegram_id;
           document.getElementById('c-res-user-name').textContent = u.full_name || u.username || ('ID: ' + u.telegram_id);
           document.getElementById('c-res-user-twitch').textContent = u.twitch_login ? `@${u.twitch_login}` : 'Не привязан';
           document.getElementById('c-res-user-limits').textContent = `${d.used_limits || 0} / 5`;
           document.getElementById('c-res-slots-count').textContent = `${slots.length} шт.`;
-
           const detailsEl = document.getElementById('c-res-slots-details');
           if (slots.length > 0) {
-            detailsEl.innerHTML = slots.map(s =>
-              `<div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.04); padding:5px 8px; border-radius:6px;">
-                <span>• ${escapeHTML(s.title)}</span>
-                <b style="color:var(--gold); font-family:monospace;">${s.current_progress} / ${s.target_value} (+${s.reward_amount}🎟️)</b>
-              </div>`
-            ).join('');
-          } else {
-            detailsEl.innerHTML = `<div style="color:#9ca3af;">Нет активного набора в работе</div>`;
-          }
-        } else {
-          alert(d.detail || 'Пользователь не найден');
-        }
-      } catch (e) {
-        alert(e.message);
-      }
+            detailsEl.innerHTML = slots.map(s => `<div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.04); padding:5px 8px; border-radius:6px;"><span>• ${escapeHTML(s.title)}</span><b style="color:var(--gold); font-family:monospace;">${s.current_progress} / ${s.target_value} (+${s.reward_amount}🎟️)</b></div>`).join('');
+          } else { detailsEl.innerHTML = `<div style="color:#9ca3af;">Нет активного набора в работе</div>`; }
+        } else alert(d.detail || 'Пользователь не найден');
+      } catch (e) { alert(e.message); }
     }
 
-    function handleConstructorUserAction(action) {
-      if (!foundConstructorUserId) return;
-      quickConstructorUserAction(foundConstructorUserId, action);
-    }
-
+    function handleConstructorUserAction(action) { if (foundConstructorUserId) quickConstructorUserAction(foundConstructorUserId, action); }
     async function quickConstructorUserAction(tgId, action) {
-      const labels = {
-        reset_progress: 'сбросить прогресс активных слотов в 0 (перезаписать точку старта)',
-        clear_active: 'снять текущий активный набор игрока',
-        reset_limits: 'обнулить недельный лимит подходов (сделать 0 / 5)'
-      };
+      const labels = { reset_progress: 'сбросить прогресс активных слотов в 0', clear_active: 'снять текущий активный набор игрока', reset_limits: 'обнулить недельный лимит подходов' };
       if (!confirm(`Подтверждаете действие "${labels[action] || action}" для пользователя ID ${tgId}?`)) return;
-
       try {
         const res = await fetch('/api/v1/admin/constructor/reset_user', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            initData: tg?.initData || '',
-            target_telegram_id: tgId,
-            action: action
-          })
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '', target_telegram_id: tgId, action: action })
         });
         const d = await res.json();
         if (d.status === 'success') {
           tg?.showAlert ? tg.showAlert(d.message) : alert(d.message);
           if (foundConstructorUserId === tgId) searchConstructorUser();
-          loadConstructorActiveUsers();
-          loadConstructorStats();
-        } else {
-          alert('Ошибка: ' + (d.detail || d.message));
-        }
-      } catch (e) {
-        alert(e.message);
-      }
+          loadConstructorActiveUsers(); loadConstructorStats();
+        } else alert('Ошибка: ' + (d.detail || d.message));
+      } catch (e) { alert(e.message); }
     }
 
     function escapeHTML(str) {
       if (!str) return '';
-      return String(str).replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-      );
+      return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
-    
+
+    // =========================================================
+    // ЛОГИКА МОДУЛЯ 3: ИДЕАЛЬНАЯ СЕРИЯ
+    // =========================================================
+    let isStreakOpen = false;
+    let streakData = []; 
+    let shopCasesCache = []; 
+
+    function toggleStreakModule() {
+      isStreakOpen = !isStreakOpen;
+      document.getElementById('streak-content-wrap').classList.toggle('hidden', !isStreakOpen);
+      document.getElementById('chevron-streak-icon').classList.toggle('open', isStreakOpen);
+      if (isStreakOpen && streakData.length === 0) {
+        loadStreakRewards();
+        loadShopCasesForSelect(); 
+      }
+    }
+
+    async function loadStreakRewards() {
+      const container = document.getElementById('streak-rewards-container');
+      try {
+        const res = await fetch('/api/v1/admin/streak/list', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '' })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          streakData = d.rewards || [];
+          renderStreakRewards();
+        } else {
+            container.innerHTML = `<p style="color:#ff3b30; text-align:center; font-size:12px;">Ошибка: ${d.detail || d.message}</p>`;
+        }
+      } catch (e) {
+        container.innerHTML = `<p style="color:#ff3b30; text-align:center; font-size:12px;">Эндпоинт /streak/list не найден.</p>`;
+      }
+    }
+
+    async function loadShopCasesForSelect() {
+        try {
+            const res = await fetch('/api/v1/admin/shop/cases', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ initData: tg?.initData || '' })
+            });
+            const d = await res.json();
+            if (d.status === 'success') {
+                shopCasesCache = d.cases || [];
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки shop_cache:", e);
+        }
+    }
+
+    function renderStreakRewards() {
+      const container = document.getElementById('streak-rewards-container');
+      container.innerHTML = '';
+
+      if (streakData.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:12px; padding:15px 0;">Награды за серию не настроены</p>';
+        return;
+      }
+
+      streakData.sort((a, b) => a.step_target - b.step_target);
+
+      streakData.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'streak-reward-card';
+        div.onclick = () => openStreakModal(item.id);
+
+        div.innerHTML = `
+          <div class="streak-img-box" style="background-image: url('${escapeHTML(item.image_url)}');"></div>
+          <div class="streak-info">
+            <span class="streak-title">${escapeHTML(item.reward_name)}</span>
+            <span class="streak-desc">Уникальный купон</span>
+          </div>
+          <div class="streak-step-badge">${item.step_target} нед.</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function populateCasesSelect(selectedCaseName = '') {
+        const select = document.getElementById('streak-case-select');
+        select.innerHTML = '<option value="">-- Выберите кейс из магазина --</option>';
+        
+        shopCasesCache.forEach(c => {
+            const isSelected = c.name === selectedCaseName ? 'selected' : '';
+            select.innerHTML += `<option value="${escapeHTML(c.name)}" data-img="${c.image_url}" ${isSelected}>[${c.price}₽] ${escapeHTML(c.name)}</option>`;
+        });
+    }
+
+    function openStreakModal(id = null) {
+      document.getElementById('streak-modal-overlay').classList.add('show');
+      populateCasesSelect(); 
+
+      if (id) {
+        const item = streakData.find(x => x.id === id);
+        document.getElementById('streak-modal-heading').textContent = 'Редактировать ступень';
+        document.getElementById('streak-id').value = item.id;
+        document.getElementById('streak-target').value = item.step_target;
+        document.getElementById('streak-custom-img').value = item.custom_image || '';
+        document.getElementById('streak-delete-btn').classList.remove('hidden');
+        
+        populateCasesSelect(item.reward_name);
+      } else {
+        document.getElementById('streak-modal-heading').textContent = 'Новая ступень';
+        document.getElementById('streak-id').value = '';
+        document.getElementById('streak-target').value = streakData.length + 1;
+        document.getElementById('streak-custom-img').value = '';
+        document.getElementById('streak-delete-btn').classList.add('hidden');
+      }
+    }
+
+    function closeStreakModal() {
+      document.getElementById('streak-modal-overlay').classList.remove('show');
+    }
+
+    async function submitStreakModal() {
+      const selectEl = document.getElementById('streak-case-select');
+      const selectedCaseName = selectEl.value;
+      
+      if (!selectedCaseName) return alert('Выберите кейс из списка!');
+
+      const selectedOption = selectEl.options[selectEl.selectedIndex];
+      const caseImgUrl = selectedOption.getAttribute('data-img');
+      const customImg = document.getElementById('streak-custom-img').value.trim();
+
+      const payload = {
+        initData: tg?.initData || '',
+        id: document.getElementById('streak-id').value ? parseInt(document.getElementById('streak-id').value) : null,
+        step_target: parseInt(document.getElementById('streak-target').value),
+        reward_name: selectedCaseName,
+        image_url: customImg || caseImgUrl, 
+        custom_image: customImg
+      };
+
+      try {
+        const res = await fetch('/api/v1/admin/streak/save', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          closeStreakModal();
+          loadStreakRewards();
+        } else {
+          alert('Ошибка: ' + (d.detail || d.message));
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
+
+    async function deleteStreak() {
+      const id = document.getElementById('streak-id').value;
+      if (!id || !confirm('Удалить эту награду?')) return;
+      
+      try {
+        const res = await fetch('/api/v1/admin/streak/delete', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ initData: tg?.initData || '', id: parseInt(id) })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          closeStreakModal();
+          loadStreakRewards();
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
   </script>
 </body>
 </html>
