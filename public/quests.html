@@ -56,16 +56,16 @@
         }
 
         html, body {
-    margin: 0; 
-    padding: 0; 
-    width: 100%; 
-    min-height: 100%; /* Убрали жесткий height: 100%, теперь страница свободно скроллится */
-    background-color: var(--bg-deep); 
-    font-family: 'Inter', sans-serif; 
-    color: var(--text-main); 
-    overflow-x: hidden; 
-    -webkit-font-smoothing: antialiased;
-}
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            min-height: 100%; /* Убрали жесткий height: 100%, теперь страница свободно скроллится */
+            background-color: var(--bg-deep); 
+            font-family: 'Inter', sans-serif; 
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
 
         ::-webkit-scrollbar { display: none; }
 
@@ -73,19 +73,19 @@
            2. МОБИЛЬНЫЙ КОНТЕЙНЕР (ФОРМАТ 9:16)
            ========================================== */
         /* В .mobile-wrapper меняем radial-gradient на нейтральный холодный свет */
-.mobile-wrapper {
-    width: 100%;
-    max-width: 430px; 
-    min-height: 100vh;
-    margin: 0 auto;
-    position: relative;
-    background-color: #121212;
-    background-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 45%);
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 1;
-}
+        .mobile-wrapper {
+            width: 100%;
+            max-width: 430px; 
+            min-height: 100vh;
+            margin: 0 auto;
+            position: relative;
+            background-color: #121212;
+            background-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 45%);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
 
         .main-content {
             padding: 16px 10px calc(140px + env(safe-area-inset-bottom, 20px)) 10px;
@@ -153,24 +153,24 @@
         }
 
         /* Ореол за оперативником: вместо золота — дымчатая серая подсветка контура */
-.bg-soldier { 
-    position: absolute; 
-    right: -1px; 
-    top: -17px; 
-    width: 310px; 
-    height: 310px; 
-    background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp'); 
-    background-size: contain; 
-    background-position: top right; 
-    background-repeat: no-repeat; 
-    z-index: -1; 
-    pointer-events: none; 
-    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.12)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.8)); 
-    clip-path: inset(0 0 40px 0); 
-    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
-    mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
-    opacity: 0.9; 
-}
+        .bg-soldier { 
+            position: absolute; 
+            right: -1px; 
+            top: -17px; 
+            width: 310px; 
+            height: 310px; 
+            background-image: url('/public/static/Тактический оперативник с золотым визором копия.webp'); 
+            background-size: contain; 
+            background-position: top right; 
+            background-repeat: no-repeat; 
+            z-index: -1; 
+            pointer-events: none; 
+            filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.12)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.8)); 
+            clip-path: inset(0 0 40px 0); 
+            -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+            mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%); 
+            opacity: 0.9; 
+        }
 
         .hero-content { 
             width: 65%; 
@@ -258,39 +258,39 @@
            НОВЫЙ ДИЗАЙН: КНОПКА КОНСТРУКТОРА
            ========================================== */
         .constructor-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 18, 22, 0.92) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: var(--radius-xl);
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 255, 255, 0.03);
-    transition: all 0.2s ease;
-}
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 18, 22, 0.92) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: var(--radius-xl);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
+        }
 
-.constructor-card:active {
-    transform: scale(0.97);
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 14px rgba(255, 255, 255, 0.08);
-}
+        .constructor-card:active {
+            transform: scale(0.97);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 14px rgba(255, 255, 255, 0.08);
+        }
 
-/* Иконка молота: графитовый фон со стальной рамкой и приглушенной иконкой */
-.constructor-icon-wrap {
-    width: 38px; 
-    height: 38px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 10px;
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-    font-size: 15px; 
-    color: var(--gold-primary);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
+        /* Иконка молота: графитовый фон со стальной рамкой и приглушенной иконкой */
+        .constructor-icon-wrap {
+            width: 38px; 
+            height: 38px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 10px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            font-size: 15px; 
+            color: var(--gold-primary);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
         .constructor-title { font-size: 13px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
         .constructor-desc { font-size: 10px; color: rgba(255,255,255,0.7); margin: 0; font-weight: 500;}
         .constructor-arrow {
@@ -370,54 +370,53 @@
         }
 
         /* 📍 3. ЦЕНТРАЛЬНАЯ ПЛАШКА ЗАДАНИЯ */
-        /* 📍 3. ЦЕНТРАЛЬНАЯ ПЛАШКА ЗАДАНИЯ */
-.canvas-task-box {
-    position: absolute;
-    top: 30.5%;
-    left: 35.5%;
-    width: 61.5%;
-    height: 28.5%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 4%;
-    gap: 4px; /* Уменьшили с 6px до 4px, чтобы 2 строки + прогресс-бар идеально помещались */
-}
+        .canvas-task-box {
+            position: absolute;
+            top: 30.5%;
+            left: 35.5%;
+            width: 61.5%;
+            height: 28.5%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 4%;
+            gap: 4px; /* Уменьшили с 6px до 4px, чтобы 2 строки + прогресс-бар идеально помещались */
+        }
 
-.canvas-task-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start; /* Выравнивание по верхней линии, чтобы цифры не скакали */
-    width: 100%;
-    gap: 6px;
-}
+        .canvas-task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Выравнивание по верхней линии, чтобы цифры не скакали */
+            width: 100%;
+            gap: 6px;
+        }
 
-.canvas-task-title {
-    font-size: clamp(8px, 2.3vw, 10.5px); /* Чуть поджали базовый размер для идеальной посадки */
-    font-weight: 800;
-    color: #FFFFFF;
-    line-height: 1.15;
-    
-    /* Ограничение ровно в 2 строки с многоточием, если текст еще длиннее */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal; /* Разрешаем перенос */
-    
-    flex: 1;
-    min-width: 0;
-}
+        .canvas-task-title {
+            font-size: clamp(8px, 2.3vw, 10.5px); /* Чуть поджали базовый размер для идеальной посадки */
+            font-weight: 800;
+            color: #FFFFFF;
+            line-height: 1.15;
+            
+            /* Ограничение ровно в 2 строки с многоточием, если текст еще длиннее */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal; /* Разрешаем перенос */
+            
+            flex: 1;
+            min-width: 0;
+        }
 
-.canvas-task-numbers {
-    font-size: clamp(9px, 2.7vw, 11px);
-    font-weight: 900;
-    font-family: monospace;
-    color: #FFFFFF;
-    flex-shrink: 0; /* Гарантирует, что счетчик никогда не сожмется */
-    white-space: nowrap;
-}
+        .canvas-task-numbers {
+            font-size: clamp(9px, 2.7vw, 11px);
+            font-weight: 900;
+            font-family: monospace;
+            color: #FFFFFF;
+            flex-shrink: 0; /* Гарантирует, что счетчик никогда не сожмется */
+            white-space: nowrap;
+        }
         .canvas-progress-track {
             width: 100%;
             height: 8px;
@@ -586,38 +585,33 @@
 
         .streak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
         .s-item {
-    background: rgba(16, 16, 19, 0.65); 
-    border: 1px solid rgba(255, 255, 255, 0.08); 
-    border-radius: 8px;
-    padding: 8px 4px; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    text-align: center;
-    transition: all 0.2s ease;
-}
+            background: rgba(16, 16, 19, 0.65); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 8px;
+            padding: 8px 4px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center;
+            transition: all 0.2s ease;
+        }
 
-/* Активный шаг: легкий титановый блик вместо сплошной желтизны */
-.s-item.active { 
-    background: rgba(255, 255, 255, 0.07); 
-    border-color: rgba(255, 255, 255, 0.22); 
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
-}
+        /* Активный шаг: легкий титановый блик вместо сплошной желтизны */
+        .s-item.active { 
+            background: rgba(255, 255, 255, 0.07); 
+            border-color: rgba(255, 255, 255, 0.22); 
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+        }
 
-/* Золотой тир (4 неделя) оставляем с золотым кантом для контраста редкости */
-.s-item.gold-tier { 
-    border-color: rgba(212, 175, 55, 0.5); 
-}
-.s-item.gold-tier.active { 
-    background: rgba(212, 175, 55, 0.08);
-    box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
-}
+        /* Золотой тир (4 неделя) оставляем с золотым кантом для контраста редкости */
+        .s-item.gold-tier { 
+            border-color: rgba(212, 175, 55, 0.5); 
+        }
+        .s-item.gold-tier.active { 
+            background: rgba(212, 175, 55, 0.08);
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+        }
         .s-img { width: 34px; height: 26px; background-size: contain; background-position: center; background-repeat: no-repeat; margin-bottom: 4px; }
-        
-        .case-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXU5A1PIYQNqhpOSV-fRPasw8rsUFJ5KBFZv668FFU1nfbOIj8W7oWzkYLdlPOsMOmIk2lu5cB1g_zMu92giw23qEs4Zzr2INedJgU4YVCE_1W4xO_qjZ-975_Kn3Bl7ikmsH2MzkS3hAYMMLLo8Wvdvg/128fx128f"); }
-        .wp-img-1 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09izh5-HnvD8J_WEwjsBvpMp3OyW84_32VLt_0VsMm_zLYeTewU8Y1vX_VG6x-u-h8C76M_XiSw03H9b7Ww/128fx128f"); }
-        .wp-img-2 { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FABz7PLfYQJG6d2inL-GkvP9Jrafw2lU6ccp0rqV942s3wHsqhc_YGD2IdfDJ1c2YFzV-VG8x-7v18e6u56Yn3RhunU8pSGKUw-Wp0U/128fx128f"); }
-        .knife-img { background-image: url("https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf1f_BYQJB-ditq4yCkP_gfezcx29T68Al373D8Yj23Q2y80A-Nzv7ctTHegU6aVCC_FC3wOnu1pW0tJTNzCExunN352GdwULpwt1qEQ/128fx128f"); }
         
         .s-item b { font-size: 8px; margin-bottom: 2px; }
         .s-item span { font-size: 7px; color: var(--text-dim); line-height: 1.2; word-wrap: break-word; opacity: 0.9;}
@@ -800,14 +794,14 @@
            11. МОДАЛКИ (КОНСТРУКТОР + ВВОД ДАННЫХ)
            ========================================== */
         .cs-modal-backdrop { 
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
-    z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
-    opacity: 0; pointer-events: none; visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-.cs-modal-backdrop.show { 
-    opacity: 1; pointer-events: auto; visibility: visible; 
-}
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); 
+            z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 12px; 
+            opacity: 0; pointer-events: none; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .cs-modal-backdrop.show { 
+            opacity: 1; pointer-events: auto; visibility: visible; 
+        }
         
         .cs-modal-card.large-modal { 
             width: 100%; max-width: 380px; 
@@ -870,13 +864,13 @@
         .constructor-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; flex: 1; }
 
         .c-row { 
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 18, 22, 0.95) 100%); 
-    border: 1px solid rgba(255, 255, 255, 0.12); 
-    border-radius: 12px; 
-    padding: 7px 10px; 
-    transition: all 0.22s ease; 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 18, 22, 0.95) 100%); 
+            border: 1px solid rgba(255, 255, 255, 0.12); 
+            border-radius: 12px; 
+            padding: 7px 10px; 
+            transition: all 0.22s ease; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
         .c-row.row-disabled { 
             background: rgba(255, 255, 255, 0.02); 
             border-color: rgba(255, 255, 255, 0.07); 
@@ -1013,20 +1007,20 @@
         .c-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .c-info-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
         /* Иконка слота внутри строки */
-.c-icon { 
-    width: 26px; 
-    height: 26px; 
-    flex-shrink: 0; 
-    background: rgba(255, 255, 255, 0.06); 
-    border: 1px solid rgba(255, 255, 255, 0.14); 
-    border-radius: 7px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-size: 11px; 
-    color: var(--gold-primary); 
-    transition: 0.2s;
-}
+        .c-icon { 
+            width: 26px; 
+            height: 26px; 
+            flex-shrink: 0; 
+            background: rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.14); 
+            border-radius: 7px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 11px; 
+            color: var(--gold-primary); 
+            transition: 0.2s;
+        }
         .c-row.row-disabled .c-icon {
             background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.45);
         }
@@ -1151,11 +1145,11 @@
             gap: 10px;
         }
         .glass-card-contract.summary-card {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 18, 20, 0.75) 100%);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 255, 255, 0.03);
-    margin-top: 6px;
-}
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 18, 20, 0.75) 100%);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 255, 255, 0.03);
+            margin-top: 6px;
+        }
 
         .contract-task-header {
             display: flex;
@@ -1324,26 +1318,26 @@
         }
 
         .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    z-index: 100010;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    padding: 20px;
-}
-.modal-overlay.visible {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-}
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 100010;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 20px;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
         .bottom-sheet {
             background: rgba(20, 20, 22, 0.4);
             backdrop-filter: blur(35px);
@@ -1375,6 +1369,7 @@
         .cs-loading-text { font-size: 10px; font-weight: 800; margin-top: 10px; color: #fff;}
         .cs-loading-bar { width: 120px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 8px; overflow: hidden; }
         .cs-loading-fill { height: 100%; background: var(--gold-primary); width: 0%; transition: 0.3s; }
+        
         /* ==========================================
            13. ИНТЕРАКТИВНЫЙ ТУР-ГИД (ЧИСТЫЙ ВИД)
            ========================================== */
@@ -1463,29 +1458,29 @@
         }
 
         /* Лимит: сохраняем нативные компактные размеры (без раздувания) */
-        /* Лимит: сохраняем нативные компактные размеры (без раздувания) */
-body.tour-mode .limit-pill.tour-target-active {
-    position: absolute !important; /* <--- ДОБАВИТЬ ЭТО */
-    padding: 4px 8px !important;
-    background: rgba(24, 24, 28, 0.98) !important;
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
-}
+        body.tour-mode .limit-pill.tour-target-active {
+            position: absolute !important; /* <--- ДОБАВИТЬ ЭТО */
+            padding: 4px 8px !important;
+            background: rgba(24, 24, 28, 0.98) !important;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.35) !important;
+        }
+        
         /* Если внутри табов есть подсвеченный элемент, снимаем блюр с самой панели табов */
-body.tour-mode .cs-tabs:has(.tour-target-active) {
-    filter: none !important;
-    -webkit-filter: none !important;
-    opacity: 1 !important;
-    background: transparent !important; 
-    border-color: transparent !important;
-    box-shadow: none !important;
-}
+        body.tour-mode .cs-tabs:has(.tour-target-active) {
+            filter: none !important;
+            -webkit-filter: none !important;
+            opacity: 1 !important;
+            background: transparent !important; 
+            border-color: transparent !important;
+            box-shadow: none !important;
+        }
 
-/* При этом соседние неактивные вкладки (План, Активное) мы приглушаем */
-body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-active) {
-    opacity: 0.25;
-    filter: blur(2px);
-    -webkit-filter: blur(2px);
-}
+        /* При этом соседние неактивные вкладки (План, Активное) мы приглушаем */
+        body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-active) {
+            opacity: 0.25;
+            filter: blur(2px);
+            -webkit-filter: blur(2px);
+        }
 
         /* Статичный персонаж без покачиваний */
         .tour-img {
@@ -1772,7 +1767,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                         <div class="streak-grid" id="streak-grid-container">
                         </div>
                     </div>
-                    </div>
                 </div>
 
             </div>
@@ -1838,7 +1832,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
     <!-- МОДАЛКА: КОНСТРУКТОР -->
     <div id="constructor-modal-overlay" class="cs-modal-backdrop" onclick="if(event.target===this) closeConstructorModal()">
         <div class="cs-modal-card large-modal">
-            <!-- Убрали нижнюю рамку у шапки (border-bottom: none), так как рамка теперь будет под кнопкой -->
             <div class="modal-head" style="border-bottom: none; padding-bottom: 8px;">
                 <h2>КОНСТРУКТОР ЗАДАНИЙ</h2>
                 <button class="close-btn" onclick="closeConstructorModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -1980,7 +1973,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
     <!-- === МОДАЛКА ПОДРОБНОСТЕЙ ЗАДАНИЯ (1в1 КАК В ГРИНДЕ) === -->
     <div id="tg-task-info-modal" class="modal-overlay" onclick="if(event.target===this) closeTgTaskInfoModal()">
         <div class="bottom-sheet" style="box-shadow: none; -webkit-backdrop-filter: blur(35px); max-width: 320px; padding: 20px 18px; text-align: left;">
-            <!-- Шапка -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <i id="tg-info-icon" class="fa-solid fa-circle-info" style="color: var(--gold-primary); font-size: 15px;"></i>
@@ -1988,11 +1980,7 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 </div>
                 <button class="tour-close-btn" onclick="closeTgTaskInfoModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <!-- Чистые строки без рамок и фонов -->
             <div id="tg-info-content" style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px;"></div>
-
-            <!-- Кнопка ПОНЯТНО -->
             <button class="premium-btn active-state" onclick="closeTgTaskInfoModal()">ПОНЯТНО</button>
         </div>
     </div>
@@ -2022,29 +2010,25 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
         </div>
     </div>
 
-    <!-- ПОДКЛЮЧЕНИЕ НИЖНЕГО МЕНЮ (BOTTOM NAV) -->
     <script src="/bottom-nav.js"></script>
 
     <!-- ================= 8. JS ЛОГИКА ================= -->
     <script>
-
         function scrollToTop(smooth = false) {
-    const scroll = () => {
-        window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-        if (dom.mainContent) dom.mainContent.scrollTop = 0;
-        const wrapper = document.querySelector('.mobile-wrapper');
-        if (wrapper) wrapper.scrollTop = 0;
-    };
-    scroll();
-    requestAnimationFrame(scroll);
-}
-        // =========================================================================
-        // ⚙️ ПАНЕЛЬ РУЧНОЙ НАСТРОЙКИ ЧЕЛЛЕНДЖА
-        // =========================================================================
+            const scroll = () => {
+                window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+                if (dom.mainContent) dom.mainContent.scrollTop = 0;
+                const wrapper = document.querySelector('.mobile-wrapper');
+                if (wrapper) wrapper.scrollTop = 0;
+            };
+            scroll();
+            requestAnimationFrame(scroll);
+        }
+
         const CUSTOM_CHALLENGE = {
-            enabled: false,           // 🔥 ВЫКЛЮЧЕНО: данные берутся напрямую из базы данных
+            enabled: false,
             title: "РАЗМИНКА",
             subtitle: "Личное задание на сегодня", 
             taskName: "Выполните условие",
@@ -2054,9 +2038,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             rewardType: "tickets"
         };
 
-        // ==========================================
-        // 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ DOM
-        // ==========================================
         const dom = {
             loaderOverlay: document.getElementById('loader-overlay'),
             loadingText: document.getElementById('loading-text'),
@@ -2120,9 +2101,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             personal_quest: { rewardOptions: [5, 6, 8], selectedIdx: 1, enabled: false }
         };
 
-        // ==========================================
-        // 2. УТИЛИТЫ И API
-        // ==========================================
         function escapeHTML(str) {
             if (typeof str !== 'string') return str;
             return str.replace(/[&<>"']/g, match => ({
@@ -2206,30 +2184,19 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             setInterval(update, 1000);
         }
 
-        // ==========================================
-        // 3. ОТРИСОВКА ЧЕЛЛЕНДЖА
-        // ==========================================
         function renderChallenge(challengeData) {
             if (!dom.challengeCardBox) return;
-
             startDailyResetTimer();
 
-            // Если включен локальный тест, берем мок; иначе работаем строго с базой
             if (CUSTOM_CHALLENGE.enabled) {
                 challengeData = {
-                    id: 9999,
-                    title: CUSTOM_CHALLENGE.title,
-                    description: CUSTOM_CHALLENGE.taskName,
-                    current_value: CUSTOM_CHALLENGE.curVal,
-                    target_value: CUSTOM_CHALLENGE.targetVal,
-                    reward_amount: CUSTOM_CHALLENGE.reward,
-                    reward_type: CUSTOM_CHALLENGE.rewardType,
-                    is_completed: CUSTOM_CHALLENGE.curVal >= CUSTOM_CHALLENGE.targetVal,
-                    claimed_at: null
+                    id: 9999, title: CUSTOM_CHALLENGE.title, description: CUSTOM_CHALLENGE.taskName,
+                    current_value: CUSTOM_CHALLENGE.curVal, target_value: CUSTOM_CHALLENGE.targetVal,
+                    reward_amount: CUSTOM_CHALLENGE.reward, reward_type: CUSTOM_CHALLENGE.rewardType,
+                    is_completed: CUSTOM_CHALLENGE.curVal >= CUSTOM_CHALLENGE.targetVal, claimed_at: null
                 };
             }
 
-            // Если задание еще не создано или не пришло
             if (!challengeData) {
                 activeChallengeId = null;
                 if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = "ЧЕЛЛЕНДЖ";
@@ -2245,9 +2212,7 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 return;
             }
 
-            // Запоминаем реальный ID из базы для последующего клейма
             activeChallengeId = challengeData.id;
-
             const cur = parseInt(challengeData.current_value !== undefined ? challengeData.current_value : (challengeData.progress_value || 0));
             const target = parseInt(challengeData.target_value || 1);
             const pct = Math.min(100, Math.floor((cur / target) * 100));
@@ -2255,34 +2220,23 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             const isCompleted = !!challengeData.is_completed || (cur >= target);
             const canClaim = isCompleted && !isClaimed;
 
-            // Заголовок и описание
             if (dom.challengeHeaderTitle) dom.challengeHeaderTitle.textContent = challengeData.title || "РАЗМИНКА";
             if (dom.challengeHeaderDesc) dom.challengeHeaderDesc.textContent = "Личное задание на сегодня";
             if (dom.challengeTaskName) dom.challengeTaskName.textContent = challengeData.description || "Выполните условие";
             if (dom.challengeTaskNumbers) dom.challengeTaskNumbers.textContent = `${cur} / ${target}`;
-
-            // Прогресс-бар
             if (dom.challengeProgressFill) dom.challengeProgressFill.style.width = `${pct}%`;
 
-            // Награда (по умолчанию билеты tickets)
             const rewType = challengeData.reward_type || 'tickets';
-            
-            // Если reward_amount пустой или 0, пытаемся взять tickets из reward_config
             let rawRew = challengeData.reward_amount;
             if (!rawRew && challengeData.reward_config) {
-                const cfg = typeof challengeData.reward_config === 'string' 
-                    ? JSON.parse(challengeData.reward_config) 
-                    : challengeData.reward_config;
+                const cfg = typeof challengeData.reward_config === 'string' ? JSON.parse(challengeData.reward_config) : challengeData.reward_config;
                 rawRew = cfg.tickets || cfg.amount;
             }
             const rewAmount = parseFloat(rawRew || 1);
-
             const rewIcon = rewType === 'coins' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-ticket"></i>';
-            if (dom.challengeRewardVal) {
-                dom.challengeRewardVal.innerHTML = `+${rewAmount} ${rewIcon}`;
-            }
+            
+            if (dom.challengeRewardVal) dom.challengeRewardVal.innerHTML = `+${rewAmount} ${rewIcon}`;
 
-            // Кнопка действия (ЗАБРАНО / ЗАБРАТЬ / В ПРОЦЕССЕ)
             if (dom.claimChallengeBtn) {
                 if (isClaimed) {
                     dom.claimChallengeBtn.innerHTML = `<span>ЗАБРАНО</span>`;
@@ -2299,8 +2253,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
 
         window.claimActiveStreamChallenge = async function() {
             if (!activeChallengeId) return;
-
-            // Если задание уже забрано или ещё выполняется — не отправляем пустой запрос на бэкенд
             if (dom.claimChallengeBtn) {
                 if (dom.claimChallengeBtn.classList.contains('claimed')) return;
                 if (dom.claimChallengeBtn.classList.contains('in-progress')) {
@@ -2321,14 +2273,10 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                     customAlert(res?.detail || res?.message || "Условия ещё не выполнены", "ВЫЗОВ");
                 }
             } catch (e) {
-                console.error("Ошибка при получении награды челленджа:", e);
                 customAlert(e.message || "Условия задания ещё не выполнены", "ВЫЗОВ");
             }
         };
 
-        // ==========================================
-        // 4. МАТРИЦА
-        // ==========================================
         function renderMatrixTracker(matrixData, user) {
             const topBar = dom.matrixTopBar || document.getElementById('matrix-top-bar');
             const alertEl = document.getElementById('matrix-twitch-alert');
@@ -2363,10 +2311,7 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
 
             if (isReadyToClaim) {
                 if (subTitleEl) {
-                    subTitleEl.innerHTML = `
-                        <span onclick="claimMatrixReward()" style="color: #34c759; font-weight: 900; cursor: pointer; text-transform: uppercase;">
-                            ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i>
-                        </span>`;
+                    subTitleEl.innerHTML = `<span onclick="claimMatrixReward()" style="color: #34c759; font-weight: 900; cursor: pointer; text-transform: uppercase;">ЗАБРАТЬ ПРИЗ <i class="fa-solid fa-arrow-right"></i></span>`;
                 }
                 if (mainIconEl) mainIconEl.innerHTML = `<i class="fa-solid fa-gift" style="color:#34c759;"></i>`;
             } else if (totalPercent >= 0.8) {
@@ -2413,19 +2358,15 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             
             if (!gridContainer || !segContainer) return;
 
-            // Если из базы (админки) не пришел конфиг, показываем заглушку
             if (!streakRewards || streakRewards.length === 0) {
                 segContainer.innerHTML = '';
                 gridContainer.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:10px; width:100%;">Награды в процессе настройки...</p>';
                 return;
             }
 
-            // userStreakInfo должен приходить из бэкенда. Например: { total_streak: 2, visual_tier: 2 }
-            // Если его нет (пока бэкенд не готов), ставим 0
             const currentTier = userStreakInfo?.visual_tier || 0;
             const totalStreak = userStreakInfo?.total_streak || 0;
             
-            // Сортируем настройки (1 нед, 2 нед, 3 нед...)
             const sortedRewards = [...streakRewards].sort((a, b) => a.step_target - b.step_target);
             const totalSteps = sortedRewards.length;
 
@@ -2433,7 +2374,6 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 textEl.textContent = `${currentTier} / ${totalSteps} (Всего: ${totalStreak})`;
             }
 
-            // 1. Отрисовка полосок (сегментов)
             let segHtml = '';
             for (let i = 1; i <= totalSteps; i++) {
                 const isActive = i <= currentTier ? 'active' : '';
@@ -2441,18 +2381,12 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
             }
             segContainer.innerHTML = segHtml;
 
-            // 2. Отрисовка карточек с наградами (кейсами)
             let gridHtml = '';
             sortedRewards.forEach((item, idx) => {
                 const step = idx + 1;
-                // Карточка активна, если юзер дошел до этого уровня или превысил его
                 const isActive = step <= currentTier ? 'active' : '';
-                
-                // Если это последняя (самая ценная) награда - даем ей золотой класс
                 const isGoldTier = step === totalSteps ? 'gold-tier' : '';
                 const titleColor = step === totalSteps ? 'gold-text' : '';
-
-                // Картинка: берем либо custom_image, либо image_url (от кейса)
                 const imgUrl = item.custom_image || item.image_url || '';
 
                 gridHtml += `
@@ -2464,22 +2398,17 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                 `;
             });
             
-            // Задаем сетке правильное количество колонок (по умолчанию у нас было 4, но вдруг в админке настроят 3 или 5)
             gridContainer.style.gridTemplateColumns = `repeat(${totalSteps}, 1fr)`;
             gridContainer.innerHTML = gridHtml;
         }
 
-        // Логика клика по карточке (Отправка запроса за купоном)
         window.claimStreak = async function(weekTier, event) {
             if (event) event.stopPropagation();
 
             try {
-                // Вызываем бэкенд, который ты просил пока не писать, 
-                // но фронт уже должен уметь туда стучаться:
                 const res = await makeApiRequest('/api/v1/streak/claim', { week_tier: weekTier }, 'POST');
                 
                 if (res && res.status === 'success') {
-                    // Генерируем красивую модалку с промокодом
                     const couponHtml = `
                         <div style="text-align: center;">
                             <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">Вы достигли отметки <b>${weekTier} нед.</b> без пропусков!</p>
@@ -2791,26 +2720,26 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
         const LAST_CONFIG_KEY = 'cs_last_constructor_config';
 
         window.openConstructorModal = function(forceModal = false) {
-    // Если контракт уже активен — сразу переходим во вкладку «Активное» и скроллим в самый верх
-    if (isContractActive && !forceModal) {
-        switchMainTab('contract');
-        scrollToTop();
-        return;
-    }
-    if (serverUsedLimits >= serverMaxLimits && !isContractActive) {
-        customAlert("Вы уже выполнили максимум заданий на этой неделе (5 / 5). Новые лимиты откроются в понедельник!", "ЛИМИТ ИСЧЕРПАН");
-        return;
-    }
-    if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
-    
-    // Активируем кнопку "Повторить", если есть сохраненный конфиг
-    const btnLast = document.getElementById('btn-repeat-last');
-    if (btnLast) {
-        btnLast.disabled = !localStorage.getItem(LAST_CONFIG_KEY);
-    }
-    
-    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-};
+            // Если контракт уже активен — сразу переходим во вкладку «Активное» и скроллим в самый верх
+            if (isContractActive && !forceModal) {
+                switchMainTab('contract');
+                scrollToTop();
+                return;
+            }
+            if (serverUsedLimits >= serverMaxLimits && !isContractActive) {
+                customAlert("Вы уже выполнили максимум заданий на этой неделе (5 / 5). Новые лимиты откроются в понедельник!", "ЛИМИТ ИСЧЕРПАН");
+                return;
+            }
+            if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.add('show');
+            
+            // Активируем кнопку "Повторить", если есть сохраненный конфиг
+            const btnLast = document.getElementById('btn-repeat-last');
+            if (btnLast) {
+                btnLast.disabled = !localStorage.getItem(LAST_CONFIG_KEY);
+            }
+            
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        };
 
         window.closeConstructorModal = function() {
             if (dom.constructorModalOverlay) dom.constructorModalOverlay.classList.remove('show');
@@ -3877,8 +3806,7 @@ body.tour-mode .cs-tabs:has(.tour-target-active) .cs-tab-btn:not(.tour-target-ac
                         syncConstructorFromBackend(bootstrapData.constructor);
                     }
                     
-                    // ДОБАВЛЯЕМ ВЫЗОВ ОТРИСОВКИ СЕРИИ:
-                    // Бэкенд должен прислать массив streak_config и объект user_streak
+                    // ВЫЗОВ ОТРИСОВКИ СЕРИИ:
                     renderStreak(bootstrapData.streak_config, bootstrapData.user_streak);
                 }
 
