@@ -570,6 +570,7 @@
             color: #d1d1d6;
             line-height: 1.45;
             font-weight: 500;
+            text-align: left; /* Делаем текст в модалке по левому краю для читаемости списка */
         }
         .custom-dialog-text b { color: #fff; }
         .custom-dialog-actions {
@@ -578,43 +579,82 @@
             width: 100%;
             margin-top: 6px;
         }
+        
         .streak-body { padding: 0 14px 14px 14px; }
         .streak-segments { display: flex; gap: 4px; margin-bottom: 10px; }
         .seg { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
         .seg.active { background: var(--gold-primary); box-shadow: 0 0 6px rgba(255,215,0,0.4); }
 
         .streak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+        
+        /* НОВЫЙ ДИЗАЙН КЕЙСОВ: Картинка на весь фон с градиентом */
         .s-item {
             background: rgba(16, 16, 19, 0.65); 
             border: 1px solid rgba(255, 255, 255, 0.08); 
             border-radius: 8px;
-            padding: 8px 4px; 
+            padding: 0; /* Убираем паддинг, чтобы картинка была во всю ширину */
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             text-align: center;
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            height: 90px; /* Фиксированная высота карточки */
+            justify-content: flex-end; /* Текст прижимаем вниз */
         }
 
-        /* Активный шаг: легкий титановый блик вместо сплошной желтизны */
         .s-item.active { 
-            background: rgba(255, 255, 255, 0.07); 
             border-color: rgba(255, 255, 255, 0.22); 
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
         }
+        .s-item.gold-tier { border-color: rgba(212, 175, 55, 0.5); }
+        .s-item.gold-tier.active { box-shadow: 0 0 12px rgba(212, 175, 55, 0.15); }
 
-        /* Золотой тир (4 неделя) оставляем с золотым кантом для контраста редкости */
-        .s-item.gold-tier { 
-            border-color: rgba(212, 175, 55, 0.5); 
+        /* Картинка как фон с увеличенным размером */
+        .s-img { 
+            position: absolute;
+            top: -15px; /* Немного поднимаем для центровки кейса */
+            left: -10px;
+            width: calc(100% + 20px); /* Выходит за края для эффекта масштабности */
+            height: calc(100% + 15px);
+            background-size: cover;
+            background-position: center; 
+            background-repeat: no-repeat; 
+            z-index: 1;
+            transition: transform 0.3s ease;
         }
-        .s-item.gold-tier.active { 
-            background: rgba(212, 175, 55, 0.08);
-            box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+
+        /* Эффект увеличения при наведении/нажатии */
+        .s-item:active .s-img { transform: scale(1.1); }
+
+        /* Градиентное затемнение снизу */
+        .s-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, transparent 100%);
+            z-index: 2;
         }
-        .s-img { width: 34px; height: 26px; background-size: contain; background-position: center; background-repeat: no-repeat; margin-bottom: 4px; }
-        
-        .s-item b { font-size: 8px; margin-bottom: 2px; }
-        .s-item span { font-size: 7px; color: var(--text-dim); line-height: 1.2; word-wrap: break-word; opacity: 0.9;}
+
+        /* Обёртка текста поверх затемнения */
+        .s-text-wrap {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 4px;
+            padding-bottom: 6px;
+        }
+
+        .s-item b { font-size: 11px; font-weight: 900; margin-bottom: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
+        .s-item span { font-size: 8.5px; color: #ddd; line-height: 1.1; word-wrap: break-word; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+        .s-item.active .s-img { filter: drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+        .s-item.gold-tier.active .s-img { filter: drop-shadow(0 0 12px rgba(212,175,55,0.4)); }
 
         /* ==========================================
            10. РУЧНЫЕ ЗАДАНИЯ
@@ -1754,7 +1794,7 @@
                                 <p class="c-desc">Неделя без пропусков: <span style="color:#fff; font-weight:700;" id="streak-counter-text">1 / 4</span></p>
                             </div>
                         </div>
-                        <button class="ghost-btn" onclick="customAlert('Серия обновляется каждую неделю. Не пропускай!', 'О СЕРИИ')"><i class="fa-solid fa-gift"></i> Инфо</button>
+                        <button class="ghost-btn" onclick="customAlert('<ul style=\'padding-left: 15px; margin: 0; margin-bottom: 10px;\'><li>Закрывай любой контракт из конструктора заданий на этой неделе, чтобы получить <b>+1 к Идеальной серии</b>.</li><li style=\'margin-top: 5px;\'>Выполняя серию, ты получаешь уникальные кейсы. Открыть их можно <b>сразу и без дополнительных условий</b>.</li><li style=\'margin-top: 5px; color: #ff453a;\'><b>Важно:</b> Если ты не выполнишь ни одного контракта до сброса недели, прогресс серии обнулится!</li></ul>', 'ИДЕАЛЬНАЯ СЕРИЯ')"><i class="fa-solid fa-gift"></i> Инфо</button>
                     </div>
 
                     <div class="streak-body">
@@ -2392,8 +2432,10 @@
                 gridHtml += `
                     <div class="s-item ${isActive} ${isGoldTier}" onclick="claimStreak(${step}, event)" style="cursor: pointer;">
                         <div class="s-img" style="background-image: url('${escapeHTML(imgUrl)}');"></div>
-                        <b class="${titleColor}">${item.step_target} нед.</b>
-                        <span>${escapeHTML(item.reward_name).replace('Кейс | ', '')}</span>
+                        <div class="s-text-wrap">
+                            <b class="${titleColor}">${item.step_target} нед.</b>
+                            <span>${escapeHTML(item.reward_name).replace('Кейс | ', '')}</span>
+                        </div>
                     </div>
                 `;
             });
