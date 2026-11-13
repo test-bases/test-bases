@@ -29562,6 +29562,7 @@ async def test_raffle_pm(
     return {"status": "success", "message": f"Тест отправлен через Bot-T на твой ID #{MY_TELEGRAM_ID}!"}
 
 # 4. (Юзер) Участие
+# 4. (Юзер) Участие
 @app.post("/api/v1/raffles/join")
 async def join_raffle(
     req: RaffleJoinRequest, 
@@ -29592,15 +29593,35 @@ async def join_raffle(
         print(f"❌ Join Error: Уже участвует")
         raise HTTPException(status_code=400, detail="Вы уже участвуете! 😉")
 
-    # 3. Читаем юзера
+    # 3. Читаем юзера (с новыми полями подписки)
     user_db_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}"})
     if not user_db_resp.json():
         raise HTTPException(status_code=400, detail="⚠️ Сначала запустите бота /start")
     
     user_row = user_db_resp.json()[0]
 
-    # --- ПРОВЕРКИ ---
+    # --- 🔥 ЛОГИКА ПРЕМИУМ-ДОСТУПА К РОЗЫГРЫШАМ ---
+    # Проверяем, активна ли подписка прямо сейчас
+    has_premium = False
+    premium_until = user_row.get('raffles_premium_until')
+    
+    if user_row.get('has_raffles_premium') and premium_until:
+        try:
+            # Приводим строку времени из БД к UTC datetime
+            dt_until = datetime.fromisoformat(premium_until.replace('Z', '+00:00'))
+            if dt_until > datetime.now(timezone.utc):
+                has_premium = True
+        except Exception as e:
+            print(f"⚠️ Ошибка парсинга даты премиума для {user_id}: {e}")
 
+    free_passes = int(user_row.get('free_raffle_passes', 0))
+    used_free_pass = False  # Флаг, списали ли мы пропуск
+
+    # Если есть премиум, мы собираем ошибки условий, но НЕ прерываем выполнение сразу
+    conditions_met = True
+    error_msg = ""
+
+    # --- БАЗОВАЯ ПРОВЕРКА (Она обязательна даже с пропусками) ---
     if not user_row.get('trade_link'):
         print(f"❌ Join Error: Нет Trade Link")
         raise HTTPException(status_code=400, detail="⚠️ Укажите Trade Link в профиле!")
@@ -29610,11 +29631,8 @@ async def join_raffle(
     user_bp_level = int(user_row.get('checkpoint_level') or 0)
 
     if min_bp_level > 0 and user_bp_level < min_bp_level:
-        print(f"❌ Join Error: Мало уровней БП ({user_bp_level} < {min_bp_level})")
-        raise HTTPException(
-            status_code=400, 
-            detail=f"⚠️ Не хватает уровня <b>Battle Pass</b>!<br><br>Требуется: <br><span style='color: #ffd700; font-size: 22px; font-weight: 800; text-shadow: 0 0 12px rgba(255, 215, 0, 0.4); display: inline-block; margin-top: 5px; margin-bottom: 5px;'>{min_bp_level} ⭐️</span><br><span style='font-size: 13px; color: var(--text-muted);'>(Твой текущий: {user_bp_level} ур.)</span>"
-        )
+        conditions_met = False
+        error_msg = f"⚠️ Не хватает уровня <b>Battle Pass</b>!<br><br>Требуется: <br><span style='color: #ffd700; font-size: 22px; font-weight: 800; text-shadow: 0 0 12px rgba(255, 215, 0, 0.4); display: inline-block; margin-top: 5px; margin-bottom: 5px;'>{min_bp_level} ⭐️</span><br><span style='font-size: 13px; color: var(--text-muted);'>(Твой текущий: {user_bp_level} ур.)</span>"
 
     # --- ПРОВЕРКА СООБЩЕНИЙ (TWITCH) ---
     min_msgs = int(settings.get('min_messages') or settings.get('min_daily_messages') or 0)
@@ -29629,24 +29647,35 @@ async def join_raffle(
     db_field, period_text = period_db_map.get(msg_period, period_db_map['daily'])
     user_msgs = int(user_row.get(db_field) or 0)
 
-    if min_msgs > 0 and user_msgs < min_msgs:
-        print(f"❌ Join Error: Мало сообщений {msg_period} ({user_msgs} < {min_msgs})")
-        raise HTTPException(
-            status_code=400, 
-            detail=f"⚠️ Мало актива на стриме! Нужно: {min_msgs} сообщ. {period_text} (у тебя: {user_msgs})"
-        )
+    if conditions_met and min_msgs > 0 and user_msgs < min_msgs:
+        conditions_met = False
+        error_msg = f"⚠️ Мало актива на стриме! Нужно: {min_msgs} сообщ. {period_text} (у тебя: {user_msgs})"
 
+    # --- ПРОВЕРКА БИЛЕТОВ НА ВХОД ---
     ticket_cost = int(settings.get('ticket_cost') or 0)
     user_tickets = int(user_row.get('tickets') or 0)
     
-    if ticket_cost > 0 and user_tickets < ticket_cost:
-        print(f"❌ Join Error: Мало билетов ({user_tickets} < {ticket_cost})")
-        raise HTTPException(status_code=400, detail=f"⚠️ Не хватает билетов! Нужно: {ticket_cost}")
+    if conditions_met and ticket_cost > 0 and user_tickets < ticket_cost:
+        conditions_met = False
+        error_msg = f"⚠️ Не хватает билетов! Нужно: {ticket_cost}"
 
-    # Если всё ок
-    if ticket_cost > 0:
-        new_balance = user_tickets - ticket_cost
-        await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"tickets": new_balance})
+    # --- ПРИНИМАЕМ РЕШЕНИЕ ОБ УЧАСТИИ ---
+    if not conditions_met:
+        # Условия НЕ выполнены. Проверяем, можем ли спасти ситуацию пропуском.
+        if has_premium and free_passes > 0:
+            print(f"🌟 Пользователь {user_id} использует бесплатный пропуск ({free_passes} -> {free_passes - 1})")
+            used_free_pass = True
+            # Списываем 1 бесплатный пропуск (билеты и прочее не трогаем)
+            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"free_raffle_passes": free_passes - 1})
+        else:
+            # Премиума нет, либо кончились пропуски -> Выдаем ошибку
+            raise HTTPException(status_code=400, detail=error_msg)
+    else:
+        # Условия ВЫПОЛНЕНЫ. 
+        # Если вход платный (за билеты) и мы не использовали пропуск - списываем обычные билеты
+        if ticket_cost > 0 and not used_free_pass:
+            new_balance = user_tickets - ticket_cost
+            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"tickets": new_balance})
 
     source_type = "twitch" if min_msgs > 0 else "telegram"
     
@@ -29680,12 +29709,15 @@ async def join_raffle(
     except Exception as e:
         print(f"⚠️ Button Upd Error: {e}")
 
-    # --- 🔥 НОВОЕ: ПРОВЕРКА НА ПЕНАЛЬТИ ДЛЯ ВЫВОДА ALERT ---
+    # --- 🔥 ПРОВЕРКА НА ПЕНАЛЬТИ И ФОРМИРОВАНИЕ СООБЩЕНИЯ ---
     full_name = user_row.get('full_name', '')
     username = user_row.get('username', '')
     
-    # Стандартное сообщение
-    success_msg = "Участие принято! 🍀"
+    # Стандартное сообщение меняется, если юзали пропуск
+    if used_free_pass:
+        success_msg = f"Участие принято! 🌟\nИспользован бесплатный пропуск (Осталось: {free_passes - 1})"
+    else:
+        success_msg = "Участие принято! 🍀"
     
     # Проверяем наличие чужого бота
     if check_bot_penalty(full_name, username):
@@ -29694,8 +29726,7 @@ async def join_raffle(
             "<span style='font-size: 11px; color: var(--text-muted); line-height: 1.2; display: inline-block;'>"
             "Ваши шансы на победу во ВСЕХ розыгрышах снижены на 20%. Чтобы вернуть шанс, уберите тег из имени/юзернейма."
             "</span>\n\n"
-            "Участие принято! 🍀"
-        )
+        ) + success_msg
 
     print(f"✅ User {user_id} joined raffle {req.raffle_id}")
     
