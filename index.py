@@ -19151,7 +19151,7 @@ ADMIN_TELEGRAM_IDS = os.getenv("ADMIN_TELEGRAM_IDS", "477521935") # Можно �
 
 class PaymentCreateRequest(BaseModel):
     initData: str
-    action_type: str  # 'premium' или 'exp'
+    action_type: str  # 'premium', 'exp' или 'raffles_premium'
     exp_amount: Optional[float] = 0.0  # Заменили levels на точное количество звезд от фронтенда
     price: Optional[float] = 199.00
 
@@ -19179,6 +19179,9 @@ async def create_robokassa_link(
         # ПРАВКА 1: Округляем опыт до целого числа и убираем спецсимволы (скобки) для ФНС
         exp_int = int(req.exp_amount) if req.exp_amount else 0
         item_name = f"Опыт Battle Pass {exp_int} звезд"
+    elif req.action_type == "raffles_premium":
+        out_sum = "100.00"
+        item_name = "Премиум-доступ к розыгрышам (30 дней)"
     else:
         raise HTTPException(status_code=400, detail="Неизвестный тип покупки")
 
@@ -19186,7 +19189,7 @@ async def create_robokassa_link(
     
     # Кастомные параметры (СТРОГО по алфавиту: Shp_action -> Shp_exp -> Shp_tgid)
     shp_action = req.action_type
-    shp_exp = str(req.exp_amount)
+    shp_exp = str(req.exp_amount if req.exp_amount else 0.0)
     shp_tgid = str(tg_id)
 
     # ПРАВКА 2: Убрали параметр "sno" из чека. Робокасса сама подтянет статус самозанятого.
@@ -19339,6 +19342,8 @@ async def simulate_transaction(
     Симулятор боевой транзакции для проверки всех этапов.
     Использование в браузере: 
     /api/v1/admin/test-transaction?tgid=123456789&action=exp&exp_amount=665
+    ИЛИ ДЛЯ ПОДПИСКИ:
+    /api/v1/admin/test-transaction?tgid=123456789&action=raffles_premium
     """
     # Создаем наш чек-лист
     checklist = {
