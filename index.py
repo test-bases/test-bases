@@ -19399,19 +19399,29 @@ async def robokassa_callback(
 
 @app.api_route("/api/v1/payment/success", methods=["GET", "POST"])
 async def robokassa_success_redirect(request: Request):
-    """
-    Умный редирект после оплаты: возвращает игрока именно на ту страницу, где он покупал.
-    В ЛК Робокассы укажи Success URL: https://hatelavka.online/api/v1/payment/success
-    """
     params = dict(request.query_params)
     if request.method == "POST":
         form_data = await request.form()
         params.update(dict(form_data))
 
     action = params.get("Shp_action", "")
-    if action == "raffles_premium":
-        return RedirectResponse(url="/raffles?paid=1", status_code=302)
-    return RedirectResponse(url="/checkpoint?paid=1", status_code=302)
+    target_path = (
+        "/raffles?paid=1" if action == "raffles_premium" else "/checkpoint?paid=1"
+    )
+
+    # Если мы внутри WebView — мгновенно переходим на нужную страницу,
+    # а если во внешнем браузере — пробуем закрыть вкладку или вернуть в ТГ
+    html = f"""<!DOCTYPE html>
+    <html><head><meta charset="utf-8"><script>
+        if (window.opener || window.history.length <= 2) {{
+            window.location.replace("{target_path}");
+        }} else {{
+            window.location.replace("{target_path}");
+        }}
+    </script></head><body style="background:#09090b;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+        Возвращаемся в приложение...
+    </body></html>"""
+    return HTMLResponse(content=html)
 
 
 @app.api_route("/api/v1/payment/fail", methods=["GET", "POST"])
