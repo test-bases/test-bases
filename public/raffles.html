@@ -10,17 +10,17 @@
         :root {
             --bg: #09090b; 
             --card: #131316; 
-            --primary-blue: #5516b7; /* Строгий фиолетовый для кнопки */
+            --primary-blue: #5516b7;
             --primary-purple: #7c3aed;
-            --primary-purple-light: #9f36f1; /* Цвет плашки РОЗЫГРЫШ */
+            --primary-purple-light: #9f36f1;
             --text: #ffffff;
-            --text-muted: #84848a; /* Серый цвет для условий */
+            --text-muted: #84848a;
             --accent-green: #34c759;
             --danger: #ff453a;
             --gold: #ffd700;
             
-            /* 🔥 СЮДА ВСТАВЬ ССЫЛКУ НА ВЫРЕЗАННЫЙ ФОН КАРТОЧКИ ИЗ МАКЕТА 🔥 */
-            --card-bg-img: url('https://i.ibb.co/6RJyD6G/card-bg.png'); 
+            /* Локальный неоновый фон из папки public/static */
+            --card-bg-img: url('/static/bg-neon.png'); 
         }
 
         html, body {
@@ -44,7 +44,7 @@
             overflow-y: auto !important; 
             -webkit-overflow-scrolling: touch;
             box-sizing: border-box;
-            padding: 12px 14px 120px 14px;
+            padding: 8px 12px 110px 12px;
         }
 
         /* === PULL TO REFRESH === */
@@ -60,163 +60,326 @@
             text-shadow: 0 0 10px rgba(124, 58, 237, 0.7);
         }
 
-        /* === ШАПКА === */
-        .header-row { 
-            display: flex; justify-content: space-between; align-items: flex-start; 
-            margin-bottom: 16px;
-        }
-        .header-titles { display: flex; flex-direction: column; gap: 4px; }
-        h1 { font-size: 32px; font-weight: 900; margin: 0; letter-spacing: -1px; line-height: 1; color: #fff;}
-        .header-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-
-        /* === КОМПАКТНЫЙ ПРЕМИУМ БАННЕР === */
+        /* === ПРЕМИУМ GLASS-БАННЕР (УЛЬТРА-КОМПАКТНЫЙ) === */
         .premium-banner {
-            border-radius: 16px; padding: 12px 14px; margin-bottom: 16px;
-            background: var(--card); border: 1px solid rgba(124, 58, 237, 0.2); 
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            position: relative; overflow: hidden;
+            border-radius: 14px;
+            padding: 9px 10px 9px 12px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(19, 19, 24, 0.65) 55%, rgba(85, 22, 183, 0.22) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(159, 54, 241, 0.35);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        /* Легкое свечение на баннере */
         .premium-banner::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+            content: '';
+            position: absolute;
+            top: -60%; left: -20%;
+            width: 140px; height: 140px;
+            background: radial-gradient(circle, rgba(159, 54, 241, 0.25) 0%, transparent 70%);
             pointer-events: none;
         }
-        .premium-banner.active-sub { border-color: rgba(52, 199, 89, 0.45); }
-        .premium-banner.active-sub::before { background: radial-gradient(circle, rgba(52, 199, 89, 0.08) 0%, transparent 70%); }
-        .prem-left { display: flex; flex-direction: column; gap: 4px; z-index: 1; }
-        .prem-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 4px;}
-        .prem-title { font-size: 15px; font-weight: 800; color: #fff; line-height: 1.1; }
-        .prem-desc { font-size: 11px; color: var(--text-muted); line-height: 1.2; max-width: 90%; }
-        .prem-btn {
-            background: var(--primary-blue); color: #fff; border: none;
-            padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 700;
-            white-space: nowrap; cursor: pointer; z-index: 1; display:flex; align-items:center; gap:4px;
+        .premium-banner.active-sub {
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.16) 0%, rgba(19, 19, 24, 0.7) 60%, rgba(52, 199, 89, 0.12) 100%);
+            border-color: rgba(52, 199, 89, 0.4);
         }
-        .prem-btn.active-badge { background: rgba(52, 199, 89, 0.15); color: #34c759; }
+        .prem-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+            z-index: 1;
+        }
+        .prem-desc {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.92);
+            line-height: 1.25;
+            letter-spacing: -0.1px;
+        }
+        .prem-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .prem-btn {
+            background: linear-gradient(135deg, #6d28d9 0%, #5516b7 100%);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 6px 10px;
+            border-radius: 9px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(85, 22, 183, 0.5);
+        }
+        .prem-btn:active { transform: scale(0.95); }
+        .prem-btn.active-badge {
+            background: rgba(52, 199, 89, 0.18);
+            border-color: rgba(52, 199, 89, 0.35);
+            color: #34c759;
+            box-shadow: none;
+        }
+        .prem-close-btn {
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .prem-close-btn:active { transform: scale(0.9); color: #fff; }
 
-        /* === КОМПАКТНЫЕ ТАБЫ (ЛАГИ УБРАНЫ) === */
+        /* === СТРОКА СТАТИСТИКИ ПОД ПРЕМИУМОМ === */
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 7px 12px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .stats-left {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-weight: 500;
+        }
+        .stats-icon {
+            width: 20px; height: 20px;
+            border-radius: 6px;
+            background: rgba(159, 54, 241, 0.15);
+            color: var(--primary-purple-light);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .stats-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stats-count {
+            color: #fff;
+            font-weight: 800;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 2px 8px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-variant-numeric: tabular-nums;
+        }
+        .restore-prem-pill {
+            background: rgba(255, 215, 0, 0.12);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            color: var(--gold);
+            border-radius: 7px;
+            padding: 2px 7px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* === КОМПАКТНЫЕ ТАБЫ === */
         .tabs-bar {
             display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); 
-            border-radius: 16px; padding: 4px; margin-bottom: 16px; gap: 4px;
+            border-radius: 12px; padding: 3px; margin-bottom: 10px; gap: 4px;
         }
         .tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            gap: 6px; padding: 10px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
+            gap: 5px; padding: 7px 6px; border-radius: 9px; font-size: 11px; font-weight: 600;
             color: var(--text-muted); background: transparent; border: none; cursor: pointer;
             transition: color 0.15s ease, background 0.15s ease;
         }
-        .tab-btn i { font-size: 12px; }
+        .tab-btn i { font-size: 11px; }
         .tab-btn.active { background: var(--primary-blue); color: #fff; }
         .tab-counter {
-            background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 10px;
-            padding: 1px 6px; border-radius: 8px; min-width: 14px; text-align: center;
+            background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 9px;
+            padding: 1px 5px; border-radius: 6px; min-width: 12px; text-align: center;
         }
 
-        /* === КАРТОЧКА РОЗЫГРЫША (ИДЕАЛЬНЫЙ ВИЗУАЛ) === */
+        /* === КАРТОЧКА РОЗЫГРЫША (СУЖЕНА ПОД 3 ШТУКИ НА ЭКРАН + ОПТИМИЗИРОВАНА) === */
         .card { 
-            position: relative; overflow: hidden; border-radius: 18px; 
-            margin-bottom: 14px; 
-            /* 🔥 Используем картинку макета как фон */
+            position: relative; overflow: hidden; border-radius: 14px; 
+            margin-bottom: 9px; 
             background-color: var(--card);
             background-image: var(--card-bg-img);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            border: 1px solid rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
             display: flex; flex-direction: column;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); /* Эффект стекла по краям */
+            contain: content;
         }
-        /* Скрытие карточек через CSS для мгновенных табов */
+        /* Затемняющая подложка для читаемости текста поверх bg-neon.png */
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(12, 12, 16, 0.88) 0%, rgba(12, 12, 16, 0.68) 60%, rgba(12, 12, 16, 0.35) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
         .card.hidden-tab { display: none; }
 
-        .card_content { padding: 16px; position: relative; z-index: 1; display: flex; flex-direction: column; }
-
-        /* Плашка */
-        .r-label { 
-            display: inline-flex; align-items: center; gap: 5px; background: rgba(43, 10, 89, 0.7); 
-            border-radius: 12px; padding: 4px 10px;
-            font-size: 9px; font-weight: 700; margin-bottom: 12px; color: var(--primary-purple-light); text-transform: uppercase;
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        .card_content {
+            padding: 10px 12px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
         }
-        .r-label-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-purple-light); }
 
-        .r-title { font-size: 17px; font-weight: 800; color: #fff; margin: 0 0 14px 0; line-height: 1.2; max-width: 55%; letter-spacing: -0.3px;}
+        /* Верхняя строка карточки: Плашка + Участники/Шанс */
+        .card-top-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            max-width: 66%;
+        }
 
-        /* Условия */
-        .conditions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-width: 55%; }
-        .cond-row { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; font-weight: 500; }
-        .cond-row b, .cond-row span.val { color: #d4d4d8; font-weight: 700; }
+        .r-label { 
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(43, 10, 89, 0.85); 
+            border: 1px solid rgba(159, 54, 241, 0.3);
+            border-radius: 8px; padding: 2px 7px;
+            font-size: 8px; font-weight: 800; color: var(--primary-purple-light);
+            text-transform: uppercase;
+        }
+        .r-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary-purple-light); }
+
+        .r-title {
+            font-size: 14px; font-weight: 800; color: #fff;
+            margin: 0 0 6px 0; line-height: 1.15;
+            max-width: 64%; letter-spacing: -0.2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Условия (компактными чипсами в ряд для экономии высоты) */
+        .conditions {
+            display: flex; flex-direction: row; flex-wrap: wrap;
+            gap: 4px; margin-bottom: 6px; max-width: 66%;
+        }
+        .cond-row {
+            font-size: 10px; color: #d4d4d8;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 2px 6px; border-radius: 6px;
+            display: inline-flex; align-items: center; gap: 4px; font-weight: 500;
+            line-height: 1.2;
+        }
+        .cond-row b, .cond-row span.val { color: #fff; font-weight: 700; }
         .cond-icon-box {
-            width: 18px; height: 18px; border-radius: 50%; background: rgba(124, 58, 237, 0.15);
             display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .cond-icon-box i { color: var(--primary-purple-light); font-size: 9px; }
 
-        /* Картинка оружия */
+        /* Картинка оружия (компактная и без тяжелого drop-shadow для слабых телефонов) */
         .prize-img-wrapper { 
-            position: absolute; top: 18px; right: -15px; 
-            width: 190px; height: 130px; display: flex; align-items: center; justify-content: center; z-index: 2; pointer-events: none; 
+            position: absolute; top: 6px; right: -6px; 
+            width: 132px; height: 84px;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2; pointer-events: none; 
         }
-        .prize-img { width: 100%; max-height: 100%; object-fit: contain; transform: rotate(-3deg); filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));}
+        .prize-img {
+            width: 100%; max-height: 100%; object-fit: contain;
+            transform: rotate(-3deg) translateZ(0);
+        }
 
-        /* Строка "Участники | Шанс" НАД таймером */
+        /* Строка "Участники | Шанс" */
         .participants-info {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
-            font-size: 11px; color: var(--text-muted); font-weight: 500;
+            display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+            font-size: 10px; color: var(--text-muted); font-weight: 500;
+            max-width: 66%;
         }
-        .participants-info b { color: #fff; font-weight: 700;}
+        .participants-info b { color: #fff; font-weight: 700; }
         .chance-badge {
-            background: rgba(255, 215, 0, 0.1); color: var(--gold); padding: 3px 8px;
-            border-radius: 10px; font-size: 10px; font-weight: 700; display: inline-flex;
-            align-items: center; gap: 4px; border: 1px solid rgba(255, 215, 0, 0.2); cursor:pointer;
+            background: rgba(255, 215, 0, 0.1); color: var(--gold); padding: 1px 6px;
+            border-radius: 7px; font-size: 9px; font-weight: 700; display: inline-flex;
+            align-items: center; gap: 3px; border: 1px solid rgba(255, 215, 0, 0.2); cursor: pointer;
         }
 
-        /* === ТАЙМЕР И КНОПКА (НИЖНЯЯ ПАНЕЛЬ) === */
+        /* === ТАЙМЕР И КНОПКА (НИЖНЯЯ ПАНЕЛЬ КАРТОЧКИ) === */
         .card-footer-bar {
             display: flex; align-items: center; justify-content: space-between;
-            padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); /* Линия как на макете */
+            padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, 0.07);
+            gap: 8px;
         }
 
-        .timer_row { display: flex; align-items: center; gap: 12px; margin: 0; }
-        .timer_item { display: flex; flex-direction: column; align-items: center; justify-content: center;}
-        .timer_val { font-size: 20px; font-weight: 800; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums; }
-        .timer_lbl { font-size: 9px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+        .timer_row { display: flex; align-items: center; gap: 8px; margin: 0; }
+        .timer_item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .timer_val { font-size: 14px; font-weight: 800; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums; }
+        .timer_lbl { font-size: 8px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
         
-        /* Вертикальная палочка между днями и часами */
         .timer-divider {
-            width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 2px;
+            width: 1px; height: 12px; background: rgba(255,255,255,0.12); margin: 0 1px;
         }
 
-        /* Кнопка Участвовать (Строгий дизайн) */
+        .footer-right-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        /* Кнопка Участвовать (Компактная) */
         .btn-main {
             background: var(--primary-blue); color: #fff; border: none;
-            padding: 10px 16px; border-radius: 14px; font-size: 12px; font-weight: 700;
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+            padding: 7px 12px; border-radius: 10px; font-size: 11px; font-weight: 700;
+            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;
             transition: transform 0.1s ease;
         }
         .btn-main:active { transform: scale(0.95); }
-        .btn-main.joined { background: rgba(52, 199, 89, 0.15); color: var(--accent-green); cursor: default; }
-        .btn-main i { font-size: 13px; }
+        .btn-main.joined { background: rgba(52, 199, 89, 0.18); color: var(--accent-green); cursor: default; }
+        .btn-main i { font-size: 11px; }
 
-        .user-tickets-info { text-align: right; font-size: 10px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+        .user-tickets-info { text-align: right; font-size: 9px; color: var(--text-muted); font-weight: 500; line-height: 1; }
         .user-tickets-info b { color: var(--primary-purple-light); }
 
         .winner_box { 
-            margin-top: 10px; background: rgba(255,255,255,0.02); border-radius: 14px; 
-            padding: 12px 14px; border: 1px solid rgba(255,255,255,0.04); 
+            margin-top: 4px; background: rgba(255,255,255,0.03); border-radius: 10px; 
+            padding: 7px 10px; border: 1px solid rgba(255,255,255,0.05); 
             display: flex; align-items: center; justify-content: space-between;
         }
-        .w-title { font-size: 10px; color: var(--gold); text-transform: uppercase; font-weight: 800; margin-bottom: 2px; letter-spacing: 0.5px;}
-        .w-user { font-size: 14px; font-weight: 700; color: #fff; }
+        .w-title { font-size: 8px; color: var(--gold); text-transform: uppercase; font-weight: 800; margin-bottom: 1px; letter-spacing: 0.4px; }
+        .w-user { font-size: 12px; font-weight: 700; color: #fff; }
 
-        .bottom-spacer { height: 100px; width: 100%; pointer-events: none; }
+        .bottom-spacer { height: 80px; width: 100%; pointer-events: none; }
 
         /* FOOTER */
         .app-footer {
             display: flex; justify-content: space-around; align-items: center;
-            background-color: rgba(9, 9, 11, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background-color: rgba(9, 9, 11, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
             padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
@@ -228,17 +391,17 @@
         
         /* МОДАЛКИ */
         .modal-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 3000; display: none; align-items: center; justify-content: center; 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 3000; display: none; align-items: center; justify-content: center; 
         }
         .modal-box { 
             background: var(--card); width: 85%; max-width: 320px; border-radius: 20px; padding: 24px 20px; 
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); 
-            animation: zoom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 20px 40px rgba(0,0,0,0.8);
+            text-align: center; border: 1px solid rgba(255, 255, 255, 0.07); 
+            animation: zoom 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
         .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
-        .m-btn-confirm { background: var(--primary-blue); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px;}
-        .m-btn-cancel { background: rgba(255,255,255,0.05); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px;}
+        .m-btn-confirm { background: var(--primary-blue); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px; }
+        .m-btn-cancel { background: rgba(255,255,255,0.05); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px; }
         
         .m-head { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #fff; }
         .m-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
@@ -260,7 +423,7 @@
         .verify-modal-content {
             background: var(--card); padding: 24px 30px; border-radius: 20px; text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6); animation: zoom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); animation: zoom 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .verify-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.05); border-top: 3px solid var(--primary-purple-light); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
         .verify-text { font-size: 16px; font-weight: 700; color: #fff; margin: 0; }
@@ -283,30 +446,36 @@
     </div>
 
     <main id="main-content">
-        <!-- ШАПКА ПО МАКЕТУ -->
-        <div class="header-row">
-            <div class="header-titles">
-                <h1>Розыгрыши</h1>
-                <div class="header-subtitle">Участвуй и выигрывай топовые призы</div>
-            </div>
-            <!-- Кнопку истории убрали, так как есть вкладка "Завершённые" -->
-        </div>
-
-        <!-- 🔥 БАННЕР ПРЕМИУМ-ДОСТУПА 🔥 -->
+        <!-- 🔥 GLASS-БАННЕР ПРЕМИУМ-ДОСТУПА (СКРЫВАЕМЫЙ) 🔥 -->
         <div id="premium-banner" class="premium-banner" onclick="openPremiumModal()">
             <div class="prem-left">
-                <div class="prem-badge" id="prem-badge-text">
-                    <i class="fa-solid fa-crown"></i> HATElavka Premium
-                </div>
-                <div class="prem-title" id="prem-title-text">Премиум-доступ к розыгрышам</div>
                 <div class="prem-desc" id="prem-desc-text">Авто-участие + 4 входа без условий на 30 дней</div>
             </div>
-            <button class="prem-btn" id="prem-action-btn" onclick="event.stopPropagation(); openPremiumModal();">
-                <i class="fa-solid fa-bolt"></i> 100 ₽ / мес
-            </button>
+            <div class="prem-actions">
+                <button class="prem-btn" id="prem-action-btn" onclick="event.stopPropagation(); openPremiumModal();">
+                    Купить • 100 ₽
+                </button>
+                <button class="prem-close-btn" title="Скрыть" onclick="hidePremiumBanner(event)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- ТАБЫ (Без Победителей/Истории, только Актуальное и Прошедшее) -->
+        <!-- 🔥 СТАТИСТИКА РАЗЫГРАННЫХ СКИНОВ 🔥 -->
+        <div class="stats-bar">
+            <div class="stats-left">
+                <span class="stats-icon"><i class="fa-solid fa-trophy"></i></span>
+                <span>Разыграно скинов:</span>
+            </div>
+            <div class="stats-right">
+                <button id="restore-prem-btn" class="restore-prem-pill" onclick="restorePremiumBanner()">
+                    <i class="fa-solid fa-bolt"></i> Премиум
+                </button>
+                <span class="stats-count" id="raffled-skins-count">0</span>
+            </div>
+        </div>
+
+        <!-- ТАБЫ -->
         <div class="tabs-bar">
             <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">
                 <i class="fa-solid fa-gift"></i>
@@ -350,7 +519,7 @@
     <!-- 🔥 МОДАЛКА ПРЕМИУМ-ДОСТУПА 🔥 -->
     <div id="premium-modal" class="modal-overlay">
         <div class="modal-box">
-            <div style="font-size: 40px; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(168,85,247,0.4));">👑</div>
+            <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
             <div class="m-head">Премиум-доступ</div>
             <div class="m-desc" id="prem-modal-desc" style="text-align: left; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05);">
                 <div style="margin-bottom: 6px; color: #fff; font-weight: 700;">Привилегия на 30 дней:</div>
@@ -402,7 +571,36 @@
         let userHasRafflesPremium = false;
         let userFreePasses = 0;
         let userPremiumUntil = null;
+        let userTotalRaffledFromProfile = 0;
         let currentTab = 'active';
+        let cachedTimerNodes = [];
+
+        // Управление скрытием/показом Премиум-баннера
+        function checkPremiumBannerVisibility() {
+            const isHidden = localStorage.getItem('hide_raffles_prem_banner') === '1';
+            const banner = document.getElementById('premium-banner');
+            const restoreBtn = document.getElementById('restore-prem-btn');
+            if (banner && restoreBtn) {
+                if (isHidden) {
+                    banner.classList.add('hidden');
+                    restoreBtn.style.display = 'inline-flex';
+                } else {
+                    banner.classList.remove('hidden');
+                    restoreBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function hidePremiumBanner(e) {
+            if (e) e.stopPropagation();
+            localStorage.setItem('hide_raffles_prem_banner', '1');
+            checkPremiumBannerVisibility();
+        }
+
+        function restorePremiumBanner() {
+            localStorage.removeItem('hide_raffles_prem_banner');
+            checkPremiumBannerVisibility();
+        }
 
         function initPullToRefresh() {
             const content = document.getElementById('main-content');
@@ -468,14 +666,16 @@
             userPremiumUntil = uData.raffles_premium_until || null;
             userHasRafflesPremium = false;
 
+            if (uData.total_raffled || uData.raffled_skins_count) {
+                userTotalRaffledFromProfile = parseInt(uData.total_raffled || uData.raffled_skins_count || 0);
+            }
+
             if (uData.has_raffles_premium && userPremiumUntil) {
                 const dtUntil = new Date(userPremiumUntil);
                 if (dtUntil > new Date()) { userHasRafflesPremium = true; }
             }
 
             const banner = document.getElementById('premium-banner');
-            const badgeText = document.getElementById('prem-badge-text');
-            const titleText = document.getElementById('prem-title-text');
             const descText = document.getElementById('prem-desc-text');
             const actionBtn = document.getElementById('prem-action-btn');
             const buyBtn = document.getElementById('buy-prem-btn');
@@ -483,19 +683,15 @@
             if (userHasRafflesPremium) {
                 const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
                 banner.classList.add('active-sub');
-                badgeText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34c759;"></i> ПРЕМИУМ АКТИВЕН ДО ${untilStr}`;
-                titleText.innerText = `Доступ открыт • Пропусков: ${userFreePasses}`;
-                descText.innerText = `Авто-участие включено. Можно войти без условий ещё ${userFreePasses} раз(а)`;
+                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34c759; margin-right:4px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
                 actionBtn.className = 'prem-btn active-badge';
-                actionBtn.innerHTML = `🎟 ${userFreePasses} проп.`;
+                actionBtn.innerHTML = `🎟 ${userFreePasses}`;
                 if (buyBtn) buyBtn.innerText = '💳 Продлить (+30 дней) • 100 ₽';
             } else {
                 banner.classList.remove('active-sub');
-                badgeText.innerHTML = `<i class="fa-solid fa-crown"></i> HATElavka Premium`;
-                titleText.innerText = `Премиум-доступ к розыгрышам`;
                 descText.innerText = `Авто-участие + 4 входа без условий на 30 дней`;
                 actionBtn.className = 'prem-btn';
-                actionBtn.innerHTML = `<i class="fa-solid fa-bolt"></i> 100 ₽ / мес`;
+                actionBtn.innerHTML = `Купить • 100 ₽`;
                 if (buyBtn) buyBtn.innerText = '💳 Оплатить 100 ₽';
             }
         }
@@ -521,15 +717,13 @@
             finally { btn.innerHTML = oldText; btn.disabled = false; }
         }
 
-        // 🔥 CSS-ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ТАБОВ (БЕЗ ПЕРЕРЕНДЕРА И ЛАГОВ) 🔥
+        // CSS-логика переключения табов без перерендера
         function switchTab(tabName) {
             currentTab = tabName;
-            // Обновляем визуал кнопок табов
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             const activeBtn = document.getElementById('tab-' + tabName);
             if (activeBtn) activeBtn.classList.add('active');
 
-            // Скрываем/показываем карточки через классы
             document.querySelectorAll('.card').forEach(card => {
                 const isCompleted = card.classList.contains('done');
                 if (tabName === 'active') {
@@ -540,6 +734,11 @@
                     else card.classList.remove('hidden-tab');
                 }
             });
+
+            const emptyActive = document.getElementById('empty-active-msg');
+            const emptyCompleted = document.getElementById('empty-completed-msg');
+            if (emptyActive) emptyActive.style.display = (tabName === 'active') ? 'block' : 'none';
+            if (emptyCompleted) emptyCompleted.style.display = (tabName === 'completed') ? 'block' : 'none';
         }
 
         function showChanceInfo(e) {
@@ -551,42 +750,53 @@
             return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
         }
 
+        // Оптимизированный таймер по кэшированным узлам (без поиска по всему DOM каждую секунду)
         setInterval(() => {
-            document.querySelectorAll('.timer-data').forEach(el => {
-                const endTime = new Date(el.dataset.time);
-                const diff = endTime - new Date();
+            if (currentTab !== 'active' || !cachedTimerNodes.length) return;
+            const now = Date.now();
+            for (let i = 0; i < cachedTimerNodes.length; i++) {
+                const item = cachedTimerNodes[i];
+                const diff = item.endTime - now;
                 if (diff <= 0) {
-                    el.innerHTML = '<span style="color:var(--danger); font-weight:700; font-size:12px;">ЗАВЕРШАЕТСЯ...</span>';
-                    return;
+                    if (!item.expired) {
+                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:700; font-size:11px;">ЗАВЕРШАЕТСЯ...</span>';
+                        item.expired = true;
+                    }
+                    continue;
                 }
-                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                const m = Math.floor((diff / (1000 * 60)) % 60);
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff / 3600000) % 24);
+                const m = Math.floor((diff / 60000) % 60);
                 const s = Math.floor((diff / 1000) % 60);
-                const dEl = el.querySelector('.d-v'); const hEl = el.querySelector('.h-v');
-                const mEl = el.querySelector('.m-v'); const sEl = el.querySelector('.s-v');
-                if (dEl) dEl.innerText = d; if (hEl) hEl.innerText = h;
-                if (mEl) mEl.innerText = m; if (sEl) sEl.innerText = s;
-            });
+                if (item.dEl) item.dEl.textContent = d;
+                if (item.hEl) item.hEl.textContent = h;
+                if (item.mEl) item.mEl.textContent = m;
+                if (item.sEl) item.sEl.textContent = s;
+            }
         }, 1000);
 
         async function load() {
             try {
-                const uRes = await fetch('/api/v1/user/me', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) });
-                const uData = await uRes.json();
+                // Параллельная загрузка обоих эндпоинтов для максимальной скорости на слабых устройствах
+                const [uRes, res] = await Promise.all([
+                    fetch('/api/v1/user/me', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) }),
+                    fetch('/api/v1/raffles/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) })
+                ]);
+
+                const [uData, data] = await Promise.all([uRes.json(), res.json()]);
+
                 userTickets = uData.tickets || 0;
                 updatePremiumBannerUI(uData);
 
-                const res = await fetch('/api/v1/raffles/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) });
-                const data = await res.json();
                 renderAll(Array.isArray(data) ? data : []);
                 checkDeepLink(); 
-            } catch(e) { document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-muted);">Ошибка сети</p>'; }
+            } catch(e) {
+                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-muted);">Ошибка сети</p>';
+            }
         }
 
         function renderAll(data) {
             const list = document.getElementById('list');
-            list.innerHTML = ''; 
             
             const validData = data.filter(r => {
                 if (r.status === 'scheduled') return false;
@@ -601,9 +811,17 @@
             completedRaffles.sort((a, b) => new Date(b.end_time || 0) - new Date(a.end_time || 0));
 
             const tabCountEl = document.getElementById('active-tab-count');
-            if (tabCountEl) tabCountEl.innerText = activeRaffles.length;
+            if (tabCountEl) tabCountEl.textContent = activeRaffles.length;
+
+            // Обновляем статистику разыгранных скинов
+            const statsCountEl = document.getElementById('raffled-skins-count');
+            if (statsCountEl) {
+                const totalRaffled = userTotalRaffledFromProfile > completedRaffles.length ? userTotalRaffledFromProfile : completedRaffles.length;
+                statsCountEl.textContent = totalRaffled;
+            }
 
             const sortedData = [...activeRaffles, ...completedRaffles];
+            let htmlBuffer = '';
 
             sortedData.forEach(r => {
                 const done = r.status === 'completed';
@@ -618,29 +836,29 @@
                 let conditions = '';
                 if (!done) {
                     if (isTwitch) {
-                        conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-brands fa-twitch"></i></span> <span>Участие на трансляции</span></div>`;
-                        if (s.cost) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-coins" style="color:#ffd700;"></i></span> <span>${s.cost} баллов канала</span></div>`;
-                        if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>Мин. сообщений: <b style="color:#fff;">${s.min_lifetime_msgs}</b></span></div>`;
-                        if (s.is_for_newbies) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-seedling" style="color:#34c759;"></i></span> <span>Только для новых зрителей</span></div>`;
+                        conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-brands fa-twitch"></i></span> <span>Стрим</span></div>`;
+                        if (s.cost) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-coins" style="color:#ffd700;"></i></span> <span>${s.cost} баллов</span></div>`;
+                        if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>Сообщ: <b>${s.min_lifetime_msgs}</b></span></div>`;
+                        if (s.is_for_newbies) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-seedling" style="color:#34c759;"></i></span> <span>Новичкам</span></div>`;
                     } else {
                         if (s.requires_telegram_sub) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-paper-plane"></i></span> <span>Канал</span></div>`;
+                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-paper-plane"></i></span> <span>Подписка</span></div>`;
                         }
                         
                         const minMsgs = s.min_messages || s.min_daily_messages || 0;
                         const msgPeriod = s.message_period || 'daily';
-                        const periodMap = { 'daily': 'за стрим', 'weekly': 'за неделю', 'monthly': 'за месяц' };
-                        const periodStr = periodMap[msgPeriod] || 'за стрим';
+                        const periodMap = { 'daily': 'стрим', 'weekly': 'нед.', 'monthly': 'мес.' };
+                        const periodStr = periodMap[msgPeriod] || 'стрим';
 
                         if (minMsgs > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>Сообщений ${periodStr}: <b style="color:#fff;">${minMsgs}</b></span></div>`;
+                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>${minMsgs} сообщ/${periodStr}</span></div>`;
                         }
                         
                         if (s.min_participants > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-users"></i></span> <span>Мин. участников: <b style="color:#fff;">${s.min_participants}</b></span></div>`;
+                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-users"></i></span> <span>От <b>${s.min_participants}</b> уч.</span></div>`;
                         }
                         if (s.min_bp_level > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-star" style="color: #ffd700;"></i></span> <span>БП Уровень: <b style="color:#fff;">${s.min_bp_level}</b></span></div>`;
+                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-star" style="color: #ffd700;"></i></span> <span>БП <b>${s.min_bp_level}</b> ур.</span></div>`;
                         }
                     }
                 }
@@ -650,15 +868,15 @@
                 if (!done) {
                     if (isTwitch) {
                         btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <span>→</span></button>`;
-                        ticketInfo = `<div class="user-tickets-info">Напишите <b style="color:var(--primary-purple-light);">!розыгрыш</b> в чате стрима</div>`;
+                        ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
                     } else {
                         let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <span>→</span>`;
                         if (!r.is_joined && s.ticket_cost > 0) {
-                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} билетов <span>→</span>`;
-                            ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> билетов</div>`;
+                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <span>→</span>`;
+                            ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
                         }
                         btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
-                                    ${r.is_joined ? '<i class="fa-solid fa-check"></i> Вы участвуете' : btnLabel}
+                                    ${r.is_joined ? '<i class="fa-solid fa-check"></i> Участвуете' : btnLabel}
                                    </button>`;
                     }
                 }
@@ -669,7 +887,7 @@
                     pTextFinal = `
                         <div class="participants-info">
                             <span><b>${pCount}</b> ${getPlural(pCount, ['участник', 'участника', 'участников'])}</span>
-                            <span class="chance-badge" onclick="showChanceInfo(event)">🔥 Шанс: ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:10px;"></i></span>
+                            <span class="chance-badge" onclick="showChanceInfo(event)">🔥 ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:8px;"></i></span>
                         </div>
                     `;
                 } else if (!done && pCount === 0) {
@@ -685,56 +903,70 @@
                     if (r.end_time) {
                         timerBlock = `
                             <div class="timer_row timer-data" data-time="${r.end_time}">
-                                <div class="timer_item"><span class="timer_val d-v">0</span><span class="timer_lbl">дня</span></div>
+                                <div class="timer_item"><span class="timer_val d-v">0</span><span class="timer_lbl">дн</span></div>
                                 <div class="timer-divider"></div>
-                                <div class="timer_item"><span class="timer_val h-v">0</span><span class="timer_lbl">часов</span></div>
-                                <div class="timer_item"><span class="timer_val m-v">0</span><span class="timer_lbl">минут</span></div>
-                                <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">секунд</span></div>
+                                <div class="timer_item"><span class="timer_val h-v">0</span><span class="timer_lbl">час</span></div>
+                                <div class="timer_item"><span class="timer_val m-v">0</span><span class="timer_lbl">мин</span></div>
+                                <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">сек</span></div>
                             </div>`;
                     } else if (isTwitch) {
-                        timerBlock = `<div style="font-size:12px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.3px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
+                        timerBlock = `<div style="font-size:11px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                     }
                 }
 
-                // ВАЖНО: Добавляем класс hidden-tab если карточка не соответствует текущему табу
                 const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
 
-                const cardHtml = `
+                htmlBuffer += `
                 <div class="card ${done ? 'done' : ''} ${isHidden ? 'hidden-tab' : ''}">
                     <div class="card_content">
-                        <div class="prize-img-wrapper"><img src="${img}" class="prize-img" onerror="this.style.display='none'"></div>
-                        <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
+                        <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
+                        <div class="card-top-meta">
+                            <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
+                        </div>
                         <h3 class="r-title">${fullPrizeName}</h3>
-                        ${!done ? `<div class="conditions">${conditions}</div>` : ''}
-                        
+                        ${!done && conditions ? `<div class="conditions">${conditions}</div>` : ''}
                         ${!done ? pTextFinal : ''}
 
                         ${!done ? `
                             <div class="card-footer-bar">
                                 ${timerBlock}
-                                ${btnHtml}
+                                <div class="footer-right-col">
+                                    ${btnHtml}
+                                    ${ticketInfo}
+                                </div>
                             </div>
-                            ${ticketInfo}
                         ` : `
                             <div class="winner_box">
                                 <div><div class="w-title">Победитель</div>${winnerBoxContent}</div>
-                                <i class="fa-solid fa-trophy" style="color:#ffd700; font-size:18px; opacity:0.8;"></i>
+                                <i class="fa-solid fa-trophy" style="color:#ffd700; font-size:16px; opacity:0.85;"></i>
                             </div>
                         `}
                     </div>
                 </div>`;
-
-                list.innerHTML += cardHtml;
             });
 
-            if (activeRaffles.length === 0 && currentTab === 'active') {
-                list.innerHTML = '<div style="text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Активных розыгрышей нет 👻</div>';
+            if (activeRaffles.length === 0) {
+                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Активных розыгрышей нет 👻</div>`;
             }
-            if (completedRaffles.length === 0 && currentTab === 'completed') {
-                list.innerHTML = '<div style="text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Завершённых розыгрышей пока нет 👻</div>';
+            if (completedRaffles.length === 0) {
+                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Завершённых розыгрышей пока нет 👻</div>`;
             }
             
-            list.innerHTML += '<div class="bottom-spacer"></div>';
+            htmlBuffer += '<div class="bottom-spacer"></div>';
+
+            // Единовременная вставка в DOM без фризов
+            list.innerHTML = htmlBuffer;
+
+            // Кэшируем элементы таймера один раз после рендера
+            cachedTimerNodes = Array.from(document.querySelectorAll('.timer-data')).map(el => ({
+                el: el,
+                endTime: new Date(el.dataset.time).getTime(),
+                dEl: el.querySelector('.d-v'),
+                hEl: el.querySelector('.h-v'),
+                mEl: el.querySelector('.m-v'),
+                sEl: el.querySelector('.s-v'),
+                expired: false
+            }));
         }
         
         function handleJoin(id, cost, isJoined) {
@@ -833,7 +1065,10 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', initPullToRefresh);
+        document.addEventListener('DOMContentLoaded', () => {
+            checkPremiumBannerVisibility();
+            initPullToRefresh();
+        });
         load();
     </script>
 </body>
