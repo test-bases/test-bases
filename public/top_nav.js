@@ -26,13 +26,13 @@
         return { initData: webToken, platform: 'web', platform_type: deviceType };
     }
 
-    async function safeApiRequest(url, data = {}, method = 'POST', isSilent = true) {
+    async function safeApiRequest(url, data = {}, method = 'POST', isSilent = true, bypassCache = false) {
         const auth = getSafeAuthPayload();
         const validInitData = data.initData || auth.initData || '';
         const validPlatform = validInitData === auth.initData ? auth.platform : (data.platform || auth.platform || 'tg');
 
-        // Если на странице есть свой makeApiRequest — используем его, но гарантируем непустой initData
-        if (typeof window.makeApiRequest === 'function' && !window.makeApiRequest.__isTopNavFallback) {
+        // Если на странице есть свой makeApiRequest и не требуется обход кэша — используем его
+        if (!bypassCache && typeof window.makeApiRequest === 'function' && !window.makeApiRequest.__isTopNavFallback) {
             const payload = Object.assign({}, data, {
                 initData: validInitData,
                 platform: validPlatform,
@@ -46,7 +46,8 @@
             headers: {
                 'Content-Type': 'application/json',
                 'X-Device-Id': localStorage.getItem('frontend_device_id') || ''
-            }
+            },
+            __bypassFastCache: bypassCache
         };
 
         if (method !== 'GET') {
@@ -830,12 +831,15 @@
 
         try {
             const userData = await safeApiRequest('/api/v1/user/me', {}, 'POST', true);
-            if (userData && userData.is_admin) {
-                adminNav.classList.remove('hidden');
+            if (userData && typeof userData === 'object') {
+                if (userData.is_admin) {
+                    adminNav.classList.remove('hidden');
+                }
+                // Сохраняем полный объект профиля, чтобы не затирать поля премиума и баланса
                 try {
                     const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-                    if (!cached.user) cached.user = {};
-                    cached.user.is_admin = true;
+                    cached.user = Object.assign({}, cached.user || {}, userData);
+                    cached._ts = Date.now();
                     localStorage.setItem('cache_bootstrap', JSON.stringify(cached));
                 } catch(e){}
             }
@@ -1155,7 +1159,7 @@
             }
 
             try {
-                await safeApiRequest('/api/v1/user/trust/amnesty', {}, 'POST', false);
+                await safeApiRequest('/api/v1/user/trust/amnesty', {}, 'POST', false, true);
 
                 if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
 
@@ -1167,6 +1171,7 @@
                 if(cachedBootstrap.user) {
                     cachedBootstrap.user.trust_score = 35.0;
                     cachedBootstrap.user.penalty_points = 0;
+                    cachedBootstrap._ts = Date.now();
                     localStorage.setItem('cache_bootstrap', JSON.stringify(cachedBootstrap));
                 }
 
@@ -1254,6 +1259,12 @@
         if (ticketsEl && ticketsEl.innerHTML !== displayTickets) { 
             ticketsEl.innerHTML = displayTickets; 
         }
+
+        if (tickets !== undefined && tickets !== null && tickets !== '') {
+            document.querySelectorAll('.js-user-tickets-val').forEach(el => {
+                el.textContent = tickets;
+            });
+        }
     });
 
     let isBalanceLoading = false;
@@ -1265,7 +1276,12 @@
         isBalanceLoading = true;
 
         const iconCoins = document.getElementById('refresh-icon');
-        if (iconCoins && forceSync) iconCoins.classList.add('fa-spin');
+        if (iconCoins && forceSync) {
+            iconCoins.classList.add('fa-spin');
+            if (typeof window.clearGlobalFastCache === 'function') {
+                window.clearGlobalFastCache();
+            }
+        }
 
         if (updateUI && !forceSync) {
             try {
@@ -1283,13 +1299,21 @@
             const url = forceSync ? '/api/v1/shop/smart_balance?force=true' : '/api/v1/shop/smart_balance';
 
             const [data, limitsData] = await Promise.all([
-                safeApiRequest(url, {}, 'POST', true).catch(() => null),
-                safeApiRequest('/api/v1/user/limits', {}, 'POST', true).catch(() => null)
+                safeApiRequest(url, {}, 'POST', true, forceSync).catch(() => null),
+                safeApiRequest('/api/v1/user/limits', {}, 'POST', true, forceSync).catch(() => null)
             ]);
 
             if (updateUI && data) {
                 localStorage.setItem('smart_balance_cache', JSON.stringify(data));
                 window.renderBalanceUI(data.balance, data.tickets);
+                try {
+                    const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (cachedBoot.user) {
+                        if (data.balance !== undefined) cachedBoot.user.balance = data.balance;
+                        if (data.tickets !== undefined) cachedBoot.user.tickets = data.tickets;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(cachedBoot));
+                    }
+                } catch (e) {}
             }
 
             if (limitsData && typeof window.updateActivityLockUI === 'function') {
@@ -1342,7 +1366,7 @@
         if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверка...'; }
 
         try {
-            const res = await safeApiRequest('/api/cs/check_code', { code: code }, 'POST', false);
+            const res = await safeApiRequest('/api/cs/check_code', { code: code }, 'POST', false, true);
             if (res && res.valid) {
                 window.customAlert("✅ " + res.message);
                 window.closeCouponModal();
