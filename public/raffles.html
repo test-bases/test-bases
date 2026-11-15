@@ -1034,9 +1034,6 @@
         </div>
     </main>
 
-    <script src="/bottom-nav.js"></script>
-    <script src="/top_nav.js" defer></script>
-
     <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ (БЕЗ РАМОК) -->
     <div id="top-winners-modal" class="modal-overlay" onclick="if(event.target===this) closeTopWinnersModal()">
         <div class="modal-box">
@@ -1143,12 +1140,18 @@
     <script>
         window.makeApiRequest = async function(url, data = {}, method = 'POST', silent = false) {
             const options = { method: method, headers: { 'Content-Type': 'application/json' } };
-            if (method === 'POST') { options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data }); }
+            if (method === 'POST') {
+                options.body = JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', ...data });
+            }
             const response = await fetch(url, options);
             if (!response.ok) throw new Error('API Error');
             return await response.json();
         };
+    </script>
+    <script src="/bottom-nav.js"></script>
+    <script src="/top_nav.js" defer></script>
 
+    <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.BackButton.hide();
@@ -1167,10 +1170,18 @@
         let lastRafflesData = null;
         let paymentPollTimer = null;
 
+        // Защищенная от искажений при копировании функция экранирования HTML
+        const HTML_ESCAPE_MAP = {
+            '&': '&' + 'amp;',
+            '<': '&' + 'lt;',
+            '>': '&' + 'gt;',
+            '"': '&' + 'quot;',
+            "'": '&' + '#39;'
+        };
         function escapeHtml(str) {
-            return String(str || '').replace(/[&<>"']/g, m => ({
-                '&': '&', '<': '<', '>': '>', '"': '"', "'": '''
-            }[m]));
+            return String(str || '').replace(/[&<>"']/g, function(m) {
+                return HTML_ESCAPE_MAP[m];
+            });
         }
 
         // Удаление любых эмодзи из серверных ответов для сохранения строгого дизайна
