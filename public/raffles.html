@@ -14,7 +14,7 @@
             --primary-purple: #7c3aed;
             --primary-purple-light: #c084fc;
             --text: #ffffff;
-            --text-secondary: #e4e4e7;
+            --text-secondary: #f4f4f5;
             --text-muted: #a1a1aa;
             --accent-green: #34c759;
             --danger: #ff453a;
@@ -66,7 +66,7 @@
             text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
         }
 
-        /* === ПРЕМИУМ GLASS-БАННЕР (НОВАЯ ИЕРАРХИЯ ТЕКСТА) === */
+        /* === ПРЕМИУМ GLASS-БАННЕР === */
         .premium-banner {
             border-radius: 13px;
             padding: 8px 9px 8px 12px;
@@ -127,7 +127,7 @@
         .prem-sub-line {
             font-size: 9.5px;
             font-weight: 500;
-            color: #d4d4d8;
+            color: #e4e4e7;
             letter-spacing: -0.1px;
             line-height: 1.15;
             white-space: nowrap;
@@ -188,6 +188,40 @@
         }
         .prem-close-btn:active { transform: scale3d(0.9, 0.9, 1); color: #fff; }
 
+        /* === КНОПКА ВОЗВРАТА АВТО-ВХОДА (ВСЕГДА ВЫШЕ ТОПА ПОБЕДИТЕЛЕЙ) === */
+        .restore-prem-row {
+            display: none;
+            justify-content: flex-end;
+            margin-bottom: 6px;
+            animation: fadeUpIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .restore-prem-pill {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.22) 0%, rgba(18, 18, 24, 0.78) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(192, 132, 252, 0.36);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-radius: 9px;
+            padding: 5px 10px;
+            font-size: 9.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            transition: transform 0.12s ease;
+        }
+        .restore-prem-pill:active { transform: scale3d(0.98, 0.98, 1); }
+        .restore-prem-pill span.r-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .restore-prem-pill i.bolt-ic { color: var(--gold); font-size: 9.5px; }
+
         /* === СТРОКА СТАТИСТИКИ + ТОП ПОБЕДИТЕЛЕЙ === */
         .stats-bar {
             display: flex;
@@ -229,39 +263,26 @@
         .stats-right {
             display: flex;
             align-items: center;
-            gap: 5px;
         }
+        /* Расширенная кнопка Топ победителей */
         .top-winners-btn {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(85, 22, 183, 0.18) 100%);
-            border: 1px solid rgba(192, 132, 252, 0.36);
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.32) 0%, rgba(85, 22, 183, 0.22) 100%);
+            border: 1px solid rgba(192, 132, 252, 0.42);
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.24);
             color: #ffffff;
-            border-radius: 7px;
-            padding: 3.5px 7.5px;
-            font-size: 9px;
+            border-radius: 8px;
+            padding: 4.5px 11px;
+            font-size: 9.5px;
             font-weight: 700;
             letter-spacing: -0.1px;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             cursor: pointer;
             transition: transform 0.12s ease;
         }
         .top-winners-btn:active { transform: scale3d(0.95, 0.95, 1); }
-        .top-winners-btn i { color: var(--gold); font-size: 8.5px; }
-        .restore-prem-pill {
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(217, 119, 6, 0.15) 100%);
-            border: 1px solid rgba(251, 191, 36, 0.4);
-            color: #fde68a;
-            border-radius: 7px;
-            padding: 3.5px 7px;
-            font-size: 9px;
-            font-weight: 700;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            gap: 4px;
-        }
+        .top-winners-btn i { color: var(--gold); font-size: 9px; }
 
         /* === КОМПАКТНЫЕ GLASS-ТАБЫ === */
         .tabs-bar {
@@ -291,7 +312,7 @@
             padding: 1px 5px; border-radius: 5px; min-width: 13px; text-align: center;
         }
 
-        /* === КАРТОЧКА РОЗЫГРЫША (ЧЕТКИЙ ФОН БЕЗ БЛЮРА + ПРИПОДНЯТЫЙ КРУПНЫЙ СКИН) === */
+        /* === АКТИВНАЯ КАРТОЧКА РОЗЫГРЫША === */
         .card { 
             position: relative;
             overflow: hidden;
@@ -302,27 +323,82 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.11); 
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             contain: content;
             content-visibility: auto;
-            contain-intrinsic-size: 130px;
+            contain-intrinsic-size: 132px;
             animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        /* Мягкое затемнение только слева под текстом БЕЗ БЛЮРА, чтобы фон сиял во всей красе */
+        /* Мягкое затемнение только слева под текстом БЕЗ БЛЮРА */
         .card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, rgba(7, 7, 10, 0.84) 0%, rgba(7, 7, 10, 0.56) 46%, rgba(7, 7, 10, 0.04) 100%);
+            background: linear-gradient(90deg, rgba(7, 7, 10, 0.85) 0%, rgba(7, 7, 10, 0.56) 46%, rgba(7, 7, 10, 0.02) 100%);
             pointer-events: none;
             z-index: 0;
         }
         .card.hidden-tab { display: none; }
 
-        /* Скин оружия — ПРИПОДНЯТ НАД КНОПКОЙ И УВЕЛИЧЕН */
+        /* === ЗАВЕРШЕННАЯ КАРТОЧКА (ТУСКЛЫЙ ЛЕГКИЙ СПИСОК БЕЗ КАРТИНКИ И ФОНА) === */
+        .card.done {
+            background-image: none;
+            background-color: rgba(17, 17, 22, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+            border-radius: 11px;
+            margin-bottom: 6px;
+            opacity: 0.68;
+            contain-intrinsic-size: 48px;
+        }
+        .card.done::before {
+            display: none;
+        }
+        .card.done .card_content {
+            padding: 8px 11px;
+            min-height: unset;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .done-left-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
+        }
+        .done-status-tag {
+            font-size: 7px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+        }
+        .card.done .r-title {
+            max-width: 100%;
+            margin: 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: #d4d4d8;
+            text-shadow: none;
+        }
+        .card.done .winner_box {
+            margin: 0;
+            max-width: 48%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        /* === ОСВЕТЛЕННЫЙ СКИН С ПОДСВЕТКОЙ СЗАДИ === */
         .prize-img-wrapper { 
             position: absolute;
             top: -10px;
@@ -335,19 +411,24 @@
             z-index: 1;
             pointer-events: none; 
         }
-        .card.done .prize-img-wrapper {
-            top: 50%;
-            right: -6px;
-            width: 188px;
-            height: 98px;
-            transform: translateY(-50%);
+        /* Мягкое световое пятно позади оружия, чтобы скин не сливался с фоном карточки */
+        .prize-img-wrapper::before {
+            content: '';
+            position: absolute;
+            width: 145px;
+            height: 75px;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.22) 0%, rgba(192, 132, 252, 0.25) 42%, transparent 72%);
+            filter: blur(8px);
+            z-index: -1;
+            pointer-events: none;
         }
         .prize-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
             transform: rotate(-5deg) scale(1.16) translateZ(0);
-            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.8));
+            /* Осветление, сочность и четкий контур скина */
+            filter: brightness(1.2) contrast(1.08) saturate(1.18) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 10px rgba(216, 180, 254, 0.35));
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -358,10 +439,6 @@
             z-index: 2;
             display: flex;
             flex-direction: column;
-        }
-        .card.done .card_content {
-            min-height: 82px;
-            justify-content: center;
         }
 
         /* Верхняя метка розыгрыша */
@@ -399,15 +476,29 @@
             text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95);
         }
 
-        /* Условия — аккуратная строгая типографика */
+        /* Надпись УСЛОВИЯ в цвет условий + сам блок условий */
+        .conditions-block {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5px;
+            margin-bottom: 4px;
+            max-width: 56%;
+        }
+        .conditions-label {
+            font-size: 7.5px;
+            font-weight: 800;
+            color: #e4e4e7;
+            text-transform: uppercase;
+            letter-spacing: 0.55px;
+            opacity: 0.9;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+        }
         .conditions {
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
             column-gap: 8px;
             row-gap: 2px;
-            margin-bottom: 4px;
-            max-width: 56%;
         }
         .cond-row {
             font-size: 9px;
@@ -415,7 +506,7 @@
             display: inline-flex;
             align-items: center;
             gap: 3.5px;
-            font-weight: 500;
+            font-weight: 600;
             letter-spacing: -0.1px;
             line-height: 1.2;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
@@ -457,7 +548,7 @@
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
 
-        /* === ТАЙМЕР И PREM-GLASS КНОПКА === */
+        /* === ТАЙМЕР И УВЕЛИЧЕННАЯ ГЛАВНАЯ КНОПКА === */
         .card-footer-bar {
             display: flex;
             align-items: center;
@@ -498,60 +589,51 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 2px;
+            gap: 2.5px;
         }
 
-        /* Кнопка Участвовать (Премиум Glass с легким подсвечиванием) */
+        /* Увеличенная главная кнопка Участвовать */
         .btn-main {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.34) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.54) 0%, rgba(109, 40, 217, 0.38) 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
-            border: 1px solid rgba(196, 181, 253, 0.52);
-            box-shadow: 0 3px 12px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.32);
-            padding: 5.5px 11px;
-            border-radius: 9px;
-            font-size: 9.5px;
-            font-weight: 700;
+            border: 1px solid rgba(216, 180, 254, 0.58);
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.36), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            padding: 7.5px 14px;
+            border-radius: 10px;
+            font-size: 10.5px;
+            font-weight: 800;
             letter-spacing: -0.1px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
+            gap: 5.5px;
             white-space: nowrap;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
             transition: transform 0.12s ease, box-shadow 0.15s ease;
         }
         .btn-main:active { transform: scale3d(0.95, 0.95, 1); }
         .btn-main.joined {
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%);
-            border-color: rgba(74, 222, 128, 0.5);
-            box-shadow: 0 3px 10px rgba(52, 199, 89, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.3) 0%, rgba(16, 185, 129, 0.18) 100%);
+            border-color: rgba(74, 222, 128, 0.52);
+            box-shadow: 0 3px 10px rgba(52, 199, 89, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.24);
             color: #4ade80;
             cursor: default;
         }
-        .btn-main i { font-size: 9px; }
+        .btn-main i { font-size: 9.5px; }
 
         .user-tickets-info {
             text-align: right;
             font-size: 8px;
-            color: #d4d4d8;
+            color: #e4e4e7;
             font-weight: 500;
             line-height: 1;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .user-tickets-info b { color: var(--primary-purple-light); font-weight: 700; }
 
-        /* Победитель в завершенных */
-        .winner_box { 
-            margin-top: 2px;
-            max-width: 56%;
-            padding: 2px 0 0 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
         .w-title {
             font-size: 7px;
             color: var(--gold);
@@ -559,17 +641,15 @@
             font-weight: 800;
             margin-bottom: 1px;
             letter-spacing: 0.45px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .w-user {
             font-size: 10px;
             font-weight: 700;
-            color: #ffffff;
+            color: #e4e4e7;
             letter-spacing: -0.1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
 
         .bottom-spacer { height: 80px; width: 100%; pointer-events: none; }
@@ -587,13 +667,13 @@
 
         .hidden { display: none !important; }
         
-        /* === ДИАЛОГОВЫЕ ОКНА (ЧЕРНЫЙ БЛЮР, ИДЕАЛЬНАЯ ТИПОГРАФИКА И GLASS-КНОПКИ) === */
+        /* === ДИАЛОГОВЫЕ ОКНА (СВЕТЛЫЙ КОНТРАСТНЫЙ ТЕКСТ НА ТЕМНОМ БЛЮРЕ) === */
         .modal-overlay { 
             position: fixed;
             inset: 0;
-            background: rgba(5, 5, 8, 0.86);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            background: rgba(4, 4, 7, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 3000;
             display: none;
             align-items: center;
@@ -604,8 +684,8 @@
             background: transparent;
             border: none;
             box-shadow: none;
-            width: 86%;
-            max-width: 285px;
+            width: 88%;
+            max-width: 295px;
             padding: 8px 4px; 
             text-align: center;
             animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -620,59 +700,59 @@
             justify-content: center;
             margin: 0 auto 6px;
             font-size: 22px;
-            color: var(--primary-purple-light);
-            filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.5));
+            color: #d8b4fe;
+            filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
         }
         .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
         .m-btn-confirm {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.32) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.52) 0%, rgba(109, 40, 217, 0.36) 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(196, 181, 253, 0.5);
-            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.28);
-            color: #fff; flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 10.5px;
+            border: 1px solid rgba(216, 180, 254, 0.55);
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            color: #fff; flex: 1; padding: 9.5px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 10.5px;
             letter-spacing: -0.1px;
             transition: transform 0.12s ease;
         }
         .m-btn-confirm:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-cancel {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            color: var(--text-secondary);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
-            flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 10.5px;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+            flex: 1; padding: 9.5px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 10.5px;
             letter-spacing: -0.1px;
             transition: transform 0.12s ease;
         }
         .m-btn-cancel:active { transform: scale3d(0.96, 0.96, 1); }
         
         .m-head {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 800;
             letter-spacing: -0.25px;
             margin-bottom: 4px;
             color: #ffffff;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
         }
         .m-desc {
-            font-size: 10.5px;
-            color: #d4d4d8;
+            font-size: 11px;
+            color: #f4f4f5;
             margin-bottom: 14px;
             line-height: 1.45;
             letter-spacing: -0.1px;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
         }
         .m-btn { 
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
             width: 100%; 
-            padding: 9px 14px;
+            padding: 9.5px 14px;
             border-radius: 10px;
             font-weight: 600;
             font-size: 10.5px;
@@ -687,26 +767,27 @@
         }
         .m-btn:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-primary {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.34) 100%);
-            border: 1px solid rgba(196, 181, 253, 0.52);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.55) 0%, rgba(109, 40, 217, 0.38) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.58);
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
             color: #fff;
             font-weight: 700;
         }
 
-        /* === НОВАЯ ТИПОГРАФИКА ВНУТРИ ОКНА АВТО-УЧАСТИЯ ЗА 100 ₽ === */
+        /* === ПРОДАЮЩАЯ СВЕТЛАЯ ТИПОГРАФИКА В ОКНЕ ПОДПИСКИ ЗА 100 ₽ === */
         .prem-modal-subtitle {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--primary-purple-light);
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #d8b4fe;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.65px;
             margin-bottom: 14px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
         }
         .prem-features-stack {
             display: flex;
             flex-direction: column;
-            gap: 11px;
+            gap: 12px;
             margin-bottom: 14px;
             text-align: center;
         }
@@ -714,44 +795,48 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 3px;
         }
         .prem-feat-title {
-            font-size: 11.5px;
-            font-weight: 700;
+            font-size: 10.5px;
+            font-weight: 800;
             color: #ffffff;
-            letter-spacing: -0.15px;
+            text-transform: uppercase;
+            letter-spacing: 0.25px;
             display: inline-flex;
             align-items: center;
             gap: 5px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
         }
         .prem-feat-sub {
             font-size: 10px;
             font-weight: 500;
-            color: #a1a1aa;
-            line-height: 1.35;
-            max-width: 245px;
+            color: #f4f4f5;
+            line-height: 1.38;
+            max-width: 260px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
         }
         .prem-price-line {
             display: inline-flex;
             align-items: baseline;
             justify-content: center;
-            gap: 4px;
+            gap: 5px;
             margin-bottom: 12px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            width: 75%;
+            padding-top: 9px;
+            border-top: 1px solid rgba(255, 255, 255, 0.14);
+            width: 78%;
         }
         .prem-price-val {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 800;
-            color: #ffffff;
+            color: var(--gold);
             letter-spacing: -0.3px;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
         }
         .prem-price-period {
             font-size: 10px;
-            font-weight: 500;
-            color: var(--text-muted);
+            font-weight: 600;
+            color: #e4e4e7;
         }
 
         /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ */
@@ -770,7 +855,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 6px 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.09);
         }
         .leader-left {
             display: flex;
@@ -780,7 +865,7 @@
         }
         .leader-rank {
             width: 18px;
-            color: var(--text-muted);
+            color: #d4d4d8;
             font-size: 9.5px;
             font-weight: 800;
             display: inline-flex;
@@ -789,7 +874,7 @@
             flex-shrink: 0;
         }
         .leader-row.rank-1 .leader-rank { color: #fbbf24; }
-        .leader-row.rank-2 .leader-rank { color: #f4f4f5; }
+        .leader-row.rank-2 .leader-rank { color: #ffffff; }
         .leader-row.rank-3 .leader-rank { color: #f59e0b; }
         .leader-name {
             font-size: 10.5px;
@@ -799,12 +884,12 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
         }
         .leader-wins {
             font-size: 9.5px;
             font-weight: 700;
-            color: var(--primary-purple-light);
+            color: #d8b4fe;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
@@ -831,9 +916,9 @@
             align-items: center;
             animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .verify-loader { width: 26px; height: 26px; border: 2.5px solid rgba(255,255,255,0.1); border-top: 2.5px solid var(--primary-purple-light); border-radius: 50%; animation: spin 0.85s linear infinite; margin: 0 auto 10px; }
+        .verify-loader { width: 26px; height: 26px; border: 2.5px solid rgba(255,255,255,0.12); border-top: 2.5px solid var(--primary-purple-light); border-radius: 50%; animation: spin 0.85s linear infinite; margin: 0 auto 10px; }
         .verify-text { font-size: 12.5px; font-weight: 700; color: #fff; margin: 0; letter-spacing: -0.15px; }
-        .verify-subtext { font-size: 10px; color: var(--text-secondary); font-weight: 500; margin-top: 3px; }
+        .verify-subtext { font-size: 10px; color: #f4f4f5; font-weight: 500; margin-top: 3px; }
 
         @keyframes fadeUpIn {
             0% { opacity: 0; transform: translate3d(0, 10px, 0); }
@@ -863,7 +948,7 @@
     </div>
 
     <main id="main-content">
-        <!-- GLASS-БАННЕР АВТО-УЧАСТИЯ (ДВУХЪЯРУСНАЯ ТИПОГРАФИКА) -->
+        <!-- GLASS-БАННЕР АВТО-УЧАСТИЯ -->
         <div id="premium-banner" class="premium-banner" onclick="openPremiumModal()">
             <div class="prem-left" id="prem-desc-text">
                 <div class="prem-title-line">
@@ -882,7 +967,18 @@
             </div>
         </div>
 
-        <!-- СТАТИСТИКА РАЗЫГРАННЫХ СКИНОВ + ТОП ПОБЕДИТЕЛЕЙ -->
+        <!-- СТРОКА ВОЗВРАТА АВТО-ВХОДА (ВСЕГДА ВЫШЕ БЛОКА ТОП ПОБЕДИТЕЛЕЙ) -->
+        <div id="restore-prem-row" class="restore-prem-row">
+            <button id="restore-prem-btn" class="restore-prem-pill" onclick="restorePremiumBanner()">
+                <span class="r-left">
+                    <i class="fa-solid fa-bolt bolt-ic"></i>
+                    <span>Авто-участие + 4 входа без условий</span>
+                </span>
+                <span style="color:var(--primary-purple-light); font-weight:800;">Развернуть <i class="fa-solid fa-chevron-down" style="font-size:8px;"></i></span>
+            </button>
+        </div>
+
+        <!-- СТАТИСТИКА РАЗЫГРАННЫХ СКИНОВ + РАСШИРЕННЫЙ ТОП ПОБЕДИТЕЛЕЙ -->
         <div class="stats-bar" onclick="openTopWinnersModal()">
             <div class="stats-left">
                 <i class="fa-solid fa-trophy"></i>
@@ -890,9 +986,6 @@
                 <span class="stats-count" id="raffled-skins-count">0</span>
             </div>
             <div class="stats-right">
-                <button id="restore-prem-btn" class="restore-prem-pill" onclick="event.stopPropagation(); restorePremiumBanner();">
-                    <i class="fa-solid fa-bolt"></i> Авто-вход
-                </button>
                 <button class="top-winners-btn" onclick="event.stopPropagation(); openTopWinnersModal();">
                     <i class="fa-solid fa-ranking-star"></i>
                     <span>Топ победителей</span>
@@ -956,29 +1049,29 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА АВТО-УЧАСТИЯ ЗА 100 ₽ (НОВАЯ ВОЗДУШНАЯ ТИПОГРАФИКА) -->
+    <!-- МОДАЛКА АВТО-УЧАСТИЯ ЗА 100 ₽ (ПРОДАЮЩИЙ СВЕТЛЫЙ ТЕКСТ БЕЗ УПОМИНАНИЯ БОТОВ) -->
     <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
         <div class="modal-box">
             <div class="modal-icon-badge">
                 <i class="fa-solid fa-bolt"></i>
             </div>
-            <div class="m-head">Авто-участие</div>
-            <div class="prem-modal-subtitle">Полный доступ на 30 дней</div>
+            <div class="m-head">Максимум шансов на дроп</div>
+            <div class="prem-modal-subtitle">Привилегия активна 30 дней</div>
             
             <div class="prem-features-stack" id="prem-modal-desc">
                 <div class="prem-feat-item">
                     <div class="prem-feat-title">
-                        <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary-purple-light); font-size:10px;"></i>
-                        <span>Автоматический вход</span>
+                        <i class="fa-solid fa-bolt" style="color:var(--gold); font-size:10px;"></i>
+                        <span>Автоматический вход в розыгрыши в течение месяца</span>
                     </div>
-                    <div class="prem-feat-sub">Бот сам записывает вас во все новые раздачи без вашего участия</div>
+                    <div class="prem-feat-sub">Вы гарантированно попадаете в каждую новую раздачу скинов в первые секунды — даже когда вы офлайн</div>
                 </div>
                 <div class="prem-feat-item">
                     <div class="prem-feat-title">
-                        <i class="fa-solid fa-ticket" style="color:var(--accent-green); font-size:10px;"></i>
-                        <span>4 пропуска без условий</span>
+                        <i class="fa-solid fa-ticket" style="color:#4ade80; font-size:10px;"></i>
+                        <span>4 VIP-пропуска без условий</span>
                     </div>
-                    <div class="prem-feat-sub">Мгновенный вход в закрытые розыгрыши без проверки сообщений и уровня</div>
+                    <div class="prem-feat-sub">Заходите в самые ценные закрытые раздачи в один клик — без обязательных сообщений на стриме и прокачки уровня</div>
                 </div>
             </div>
 
@@ -1049,14 +1142,14 @@
         function checkPremiumBannerVisibility() {
             const isHidden = localStorage.getItem('hide_raffles_prem_banner') === '1';
             const banner = document.getElementById('premium-banner');
-            const restoreBtn = document.getElementById('restore-prem-btn');
-            if (banner && restoreBtn) {
+            const restoreRow = document.getElementById('restore-prem-row');
+            if (banner && restoreRow) {
                 if (isHidden) {
                     banner.classList.add('hidden');
-                    restoreBtn.style.display = 'inline-flex';
+                    restoreRow.style.display = 'flex';
                 } else {
                     banner.classList.remove('hidden');
-                    restoreBtn.style.display = 'none';
+                    restoreRow.style.display = 'none';
                 }
             }
         }
@@ -1076,7 +1169,7 @@
             const listEl = document.getElementById('top-winners-list');
             if (listEl) {
                 if (!topWinnersData.length) {
-                    listEl.innerHTML = '<div style="text-align:center; padding: 14px 0; color:var(--text-muted); font-size:10.5px;">Статистика победителей формируется</div>';
+                    listEl.innerHTML = '<div style="text-align:center; padding: 14px 0; color:var(--text-secondary); font-size:10.5px;">Статистика победителей формируется</div>';
                 } else {
                     let html = '';
                     topWinnersData.forEach((item, idx) => {
@@ -1247,7 +1340,7 @@
                     card.classList.remove('hidden-tab');
                     card.style.animation = 'none';
                     void card.offsetWidth;
-                    card.style.animation = `fadeUpIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(visibleIndex * 30, 210)}ms both`;
+                    card.style.animation = `fadeUpIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(visibleIndex * 25, 180)}ms both`;
                     visibleIndex++;
                 } else {
                     card.classList.add('hidden-tab');
@@ -1368,56 +1461,84 @@
                 const prizeName = s.prize_name || r.title || 'Приз';
                 const fullPrizeName = `${prizeName} ${s.skin_quality ? `(${s.skin_quality})` : ''}`;
 
-                let conditions = '';
-                if (!done) {
-                    if (isTwitch) {
-                        conditions += `<div class="cond-row"><i class="fa-brands fa-twitch"></i> <span>Стрим</span></div>`;
-                        if (s.cost) conditions += `<div class="cond-row"><i class="fa-solid fa-coins" style="color:var(--gold);"></i> <span><b>${s.cost}</b> баллов</span></div>`;
-                        if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span>От <b>${s.min_lifetime_msgs}</b> сообщ.</span></div>`;
-                        if (s.is_for_newbies) conditions += `<div class="cond-row"><i class="fa-solid fa-seedling" style="color:var(--accent-green);"></i> <span>Новичкам</span></div>`;
-                    } else {
-                        if (s.requires_telegram_sub) {
-                            conditions += `<div class="cond-row"><i class="fa-solid fa-paper-plane"></i> <span>Подписка</span></div>`;
-                        }
-                        
-                        const minMsgs = s.min_messages || s.min_daily_messages || 0;
-                        const msgPeriod = s.message_period || 'daily';
-                        const periodMap = { 'daily': 'стрим', 'weekly': 'нед.', 'monthly': 'мес.' };
-                        const periodStr = periodMap[msgPeriod] || 'стрим';
+                const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
+                const staggerIdx = done ? completedIdx++ : activeIdx++;
+                const delayMs = Math.min(staggerIdx * 30, 210);
 
-                        if (minMsgs > 0) {
-                            conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span><b>${minMsgs}</b> сообщ/${periodStr}</span></div>`;
-                        }
-                        
-                        if (s.min_participants > 0) {
-                            conditions += `<div class="cond-row"><i class="fa-solid fa-users"></i> <span>От <b>${s.min_participants}</b> уч.</span></div>`;
-                        }
-                        if (s.min_bp_level > 0) {
-                            conditions += `<div class="cond-row"><i class="fa-solid fa-star" style="color: var(--gold);"></i> <span>БП <b>${s.min_bp_level}</b> ур.</span></div>`;
-                        }
+                // Завершённые розыгрыши — легкий приглушенный список без картинок
+                if (done) {
+                    let winnerBoxContent = '';
+                    if (r.winner) {
+                        const wName = escapeHtml(r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель');
+                        winnerBoxContent = `<div class="w-user">${wName}</div>`;
+                    } else {
+                        winnerBoxContent = `<div class="w-user">Выбор победителя...</div>`;
+                    }
+
+                    htmlBuffer += `
+                    <div class="card done ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
+                        <div class="card_content">
+                            <div class="done-left-info">
+                                <span class="done-status-tag">${isTwitch ? 'Twitch раздача • Завершена' : 'Розыгрыш завершён'}</span>
+                                <h3 class="r-title">${escapeHtml(fullPrizeName)}</h3>
+                            </div>
+                            <div class="winner_box">
+                                <div style="min-width:0;">
+                                    <div class="w-title"><i class="fa-solid fa-trophy" style="margin-right:3px;"></i>Победитель</div>
+                                    ${winnerBoxContent}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                    return;
+                }
+
+                // Активные розыгрыши
+                let conditions = '';
+                if (isTwitch) {
+                    conditions += `<div class="cond-row"><i class="fa-brands fa-twitch"></i> <span>Стрим</span></div>`;
+                    if (s.cost) conditions += `<div class="cond-row"><i class="fa-solid fa-coins" style="color:var(--gold);"></i> <span><b>${s.cost}</b> баллов</span></div>`;
+                    if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span>От <b>${s.min_lifetime_msgs}</b> сообщ.</span></div>`;
+                    if (s.is_for_newbies) conditions += `<div class="cond-row"><i class="fa-solid fa-seedling" style="color:var(--accent-green);"></i> <span>Новичкам</span></div>`;
+                } else {
+                    if (s.requires_telegram_sub) {
+                        conditions += `<div class="cond-row"><i class="fa-solid fa-paper-plane"></i> <span>Подписка</span></div>`;
+                    }
+                    
+                    const minMsgs = s.min_messages || s.min_daily_messages || 0;
+                    const msgPeriod = s.message_period || 'daily';
+                    const periodMap = { 'daily': 'стрим', 'weekly': 'нед.', 'monthly': 'мес.' };
+                    const periodStr = periodMap[msgPeriod] || 'стрим';
+
+                    if (minMsgs > 0) {
+                        conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span><b>${minMsgs}</b> сообщ/${periodStr}</span></div>`;
+                    }
+                    
+                    if (s.min_participants > 0) {
+                        conditions += `<div class="cond-row"><i class="fa-solid fa-users"></i> <span>От <b>${s.min_participants}</b> уч.</span></div>`;
+                    }
+                    if (s.min_bp_level > 0) {
+                        conditions += `<div class="cond-row"><i class="fa-solid fa-star" style="color: var(--gold);"></i> <span>БП <b>${s.min_bp_level}</b> ур.</span></div>`;
                     }
                 }
 
                 let btnHtml = ""; let ticketInfo = "";
-
-                if (!done) {
-                    if (isTwitch) {
-                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i></button>`;
-                        ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
-                    } else {
-                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i>`;
-                        if (!r.is_joined && s.ticket_cost > 0) {
-                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i>`;
-                            ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
-                        }
-                        btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
-                                    ${r.is_joined ? '<i class="fa-solid fa-check"></i> Участвуете' : btnLabel}
-                                   </button>`;
+                if (isTwitch) {
+                    btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></button>`;
+                    ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
+                } else {
+                    let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
+                    if (!r.is_joined && s.ticket_cost > 0) {
+                        btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
+                        ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
                     }
+                    btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
+                                ${r.is_joined ? '<i class="fa-solid fa-check"></i> Участвуете' : btnLabel}
+                               </button>`;
                 }
 
                 let pTextFinal = "";
-                if (!done && pCount > 0) {
+                if (pCount > 0) {
                     const chanceVal = (100 / pCount).toFixed(2).replace('.00', '');
                     pTextFinal = `
                         <div class="participants-info">
@@ -1425,61 +1546,45 @@
                             <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt" style="font-size:8px;"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:7.5px; opacity:0.8;"></i></span>
                         </div>
                     `;
-                } else if (!done && pCount === 0) {
-                    pTextFinal = `<div class="participants-info"><span><b>0</b> участников</span></div>`;
-                }
-                
-                let winnerBoxContent = '';
-                if (r.winner) {
-                    const wName = escapeHtml(r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель');
-                    winnerBoxContent = `<div class="w-user">${wName}</div>`;
                 } else {
-                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:8.5px;"></i>Выбор победителя...</div>`;
+                    pTextFinal = `<div class="participants-info"><span><b>0</b> участников</span></div>`;
                 }
 
                 let timerBlock = '';
-                if (!done) {
-                    if (r.end_time) {
-                        timerBlock = `
-                            <div class="timer_row timer-data" data-time="${r.end_time}">
-                                <div class="timer_item"><span class="timer_val d-v">0</span><span class="timer_lbl">дн</span></div>
-                                <div class="timer-divider"></div>
-                                <div class="timer_item"><span class="timer_val h-v">0</span><span class="timer_lbl">час</span></div>
-                                <div class="timer_item"><span class="timer_val m-v">0</span><span class="timer_lbl">мин</span></div>
-                                <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">сек</span></div>
-                            </div>`;
-                    } else if (isTwitch) {
-                        timerBlock = `<div style="font-size:9.5px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
-                    }
+                if (r.end_time) {
+                    timerBlock = `
+                        <div class="timer_row timer-data" data-time="${r.end_time}">
+                            <div class="timer_item"><span class="timer_val d-v">0</span><span class="timer_lbl">дн</span></div>
+                            <div class="timer-divider"></div>
+                            <div class="timer_item"><span class="timer_val h-v">0</span><span class="timer_lbl">час</span></div>
+                            <div class="timer_item"><span class="timer_val m-v">0</span><span class="timer_lbl">мин</span></div>
+                            <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">сек</span></div>
+                        </div>`;
+                } else if (isTwitch) {
+                    timerBlock = `<div style="font-size:9.5px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                 }
 
-                const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
-                const staggerIdx = done ? completedIdx++ : activeIdx++;
-                const delayMs = Math.min(staggerIdx * 35, 240);
-
                 htmlBuffer += `
-                <div class="card ${done ? 'done' : ''} ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
+                <div class="card ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
                     <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
                     <div class="card_content">
                         <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
                         <h3 class="r-title">${escapeHtml(fullPrizeName)}</h3>
-                        ${!done && conditions ? `<div class="conditions">${conditions}</div>` : ''}
-                        ${!done ? pTextFinal : ''}
+                        ${conditions ? `
+                            <div class="conditions-block">
+                                <div class="conditions-label">Условия:</div>
+                                <div class="conditions">${conditions}</div>
+                            </div>
+                        ` : ''}
+                        ${pTextFinal}
 
-                        ${!done ? `
-                            <div class="card-footer-bar">
-                                ${timerBlock}
-                                <div class="footer-right-col">
-                                    ${btnHtml}
-                                    ${ticketInfo}
-                                </div>
+                        <div class="card-footer-bar">
+                            ${timerBlock}
+                            <div class="footer-right-col">
+                                ${btnHtml}
+                                ${ticketInfo}
                             </div>
-                        ` : `
-                            <div class="winner_box">
-                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:11.5px; flex-shrink:0;"></i>
-                                <div style="min-width:0;"><div class="w-title">Победитель</div>${winnerBoxContent}</div>
-                            </div>
-                        `}
+                        </div>
                     </div>
                 </div>`;
             });
@@ -1546,7 +1651,7 @@
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
                     if (ans.detail && ans.detail.includes('Battle Pass')) {
-                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
+                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10.5px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
                         showModal('bp_error', 'Доступ закрыт', bpMsg);
                     } else { showModal('error', 'Ошибка доступа', ans.detail); }
 
