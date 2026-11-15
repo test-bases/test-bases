@@ -1173,6 +1173,9 @@
         // Полный сброс всех клиентских кэшей (sessionStorage + возможные in-memory структуры)
         function clearFastCaches() {
             try {
+                if (typeof window.clearGlobalFastCache === 'function') {
+                    window.clearGlobalFastCache();
+                }
                 sessionStorage.removeItem('__hl_fast_api_cache__');
                 sessionStorage.removeItem('rfl_fast_cache');
                 if (window.__hlFastCacheStore && typeof window.__hlFastCacheStore.clear === 'function') {
@@ -1655,60 +1658,67 @@
             const payload = JSON.stringify({ initData: tg.initData });
             const reqHeaders = { 'Content-Type': 'application/json' };
             const fetchCacheMode = bypassCache ? 'no-store' : 'default';
+            const isSilentRefresh = Boolean(lastRafflesData);
 
-            // Синхронная загрузка розыгрышей и профиля в один цикл без двойного рендера
-            const [rafflesResult, userResult] = await Promise.allSettled([
-                fetch('/api/v1/raffles/active', {
-                    method: 'POST',
-                    headers: reqHeaders,
-                    body: payload,
-                    cache: fetchCacheMode,
-                    __bypassFastCache: bypassCache
-                }).then(r => {
-                    if (!r.ok) throw new Error('Raffles fetch error');
-                    return r.json();
-                }),
-                fetch('/api/v1/user/me', {
-                    method: 'POST',
-                    headers: reqHeaders,
-                    body: payload,
-                    cache: fetchCacheMode,
-                    __bypassFastCache: bypassCache
-                }).then(r => {
+            // Запускаем оба запроса параллельно, но обновляем UI мгновенно по мере прихода каждого ответа
+            const userPromise = fetch('/api/v1/user/me', {
+                method: 'POST',
+                headers: reqHeaders,
+                body: payload,
+                cache: fetchCacheMode,
+                __bypassFastCache: bypassCache
+            })
+                .then(r => {
                     if (!r.ok) throw new Error('User fetch error');
                     return r.json();
                 })
-            ]);
-
-            if (userResult.status === 'fulfilled' && userResult.value) {
-                const uData = userResult.value;
-                userTickets = uData.tickets || 0;
-                updatePremiumBannerUI(uData);
-            }
-
-            if (rafflesResult.status === 'fulfilled') {
-                const arr = Array.isArray(rafflesResult.value) ? rafflesResult.value : [];
-                lastRafflesData = arr;
-                renderAll(arr);
-                try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(arr)); } catch (err) {}
-            } else {
-                if (!lastRafflesData) {
-                    try {
-                        const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
-                        if (cachedRaffles) {
-                            const parsed = JSON.parse(cachedRaffles);
-                            if (Array.isArray(parsed) && parsed.length) {
-                                lastRafflesData = parsed;
-                                renderAll(parsed);
-                            }
+                .then(uData => {
+                    if (uData) {
+                        userTickets = uData.tickets ?? userTickets;
+                        updatePremiumBannerUI(uData);
+                        if (typeof window.renderBalanceUI === 'function') {
+                            window.renderBalanceUI(uData.balance, uData.tickets);
                         }
-                    } catch (err) {}
-                }
-                if (!lastRafflesData) {
-                    document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
-                }
-            }
+                    }
+                })
+                .catch(() => {});
 
+            const rafflesPromise = fetch('/api/v1/raffles/active', {
+                method: 'POST',
+                headers: reqHeaders,
+                body: payload,
+                cache: fetchCacheMode,
+                __bypassFastCache: bypassCache
+            })
+                .then(r => {
+                    if (!r.ok) throw new Error('Raffles fetch error');
+                    return r.json();
+                })
+                .then(val => {
+                    const arr = Array.isArray(val) ? val : [];
+                    lastRafflesData = arr;
+                    renderAll(arr, isSilentRefresh);
+                    try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(arr)); } catch (err) {}
+                })
+                .catch(() => {
+                    if (!lastRafflesData) {
+                        try {
+                            const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
+                            if (cachedRaffles) {
+                                const parsed = JSON.parse(cachedRaffles);
+                                if (Array.isArray(parsed) && parsed.length) {
+                                    lastRafflesData = parsed;
+                                    renderAll(parsed, false);
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                    if (!lastRafflesData) {
+                        document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
+                    }
+                });
+
+            await Promise.allSettled([userPromise, rafflesPromise]);
             checkDeepLink();
         }
 
@@ -1726,7 +1736,7 @@
                 .slice(0, 20);
         }
 
-        function renderAll(data) {
+        function renderAll(data, skipAnimation = false) {
             const list = document.getElementById('list');
             
             const validData = data.filter(r => {
@@ -1769,6 +1779,7 @@
                 const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
                 const staggerIdx = done ? completedIdx++ : activeIdx++;
                 const delayMs = Math.min(staggerIdx * 25, 160);
+                const animStyle = skipAnimation ? 'animation:none;' : `animation-delay:${delayMs}ms;`;
 
                 // Завершённые розыгрыши — легкий приглушенный список без картинок
                 if (done) {
@@ -1781,7 +1792,7 @@
                     }
 
                     htmlBuffer += `
-                    <div class="card done ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
+                    <div class="card done ${isHidden ? 'hidden-tab' : ''}" style="${animStyle}">
                         <div class="card_content">
                             <div class="done-left-info">
                                 <span class="done-status-tag">${isTwitch ? 'Twitch раздача • Завершена' : 'Розыгрыш завершён'}</span>
@@ -1871,8 +1882,8 @@
 
                 const imgLoadAttr = activeIdx <= 4 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
 
-                htmlBuffer += `
-                <div class="card ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
+               htmlBuffer += `
+                <div class="card ${isHidden ? 'hidden-tab' : ''}" style="${animStyle}">
                     <div class="prize-img-wrapper"><img src="${img}" class="prize-img" ${imgLoadAttr} onerror="this.style.display='none'"></div>
                     <div class="card_content">
                         <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
@@ -1925,8 +1936,61 @@
             if (cost > 0) {
                 document.getElementById('ticket-price').innerText = cost;
                 document.getElementById('confirm-modal').style.display = 'flex';
-                document.getElementById('confirm-join-btn').onclick = () => { closeConfirm(); join(id, false, btn); };
-            } else { join(id, false, btn); }
+                document.getElementById('confirm-join-btn').onclick = () => { closeConfirm(); join(id, false, btn, cost); };
+            } else { join(id, false, btn, 0); }
+        }
+
+        // Мгновенное (0 мс) обновление карточки, шанса, билетов и проходок без ожидания перезагрузки API
+        function applyInstantJoinUI(raffleId, cost, ans, btnEl) {
+            const numId = Number(raffleId);
+            const cardEl = btnEl ? btnEl.closest('.card') : null;
+
+            // 1. Сразу обновляем массив розыгрышей в памяти и число участников + шанс на карточке
+            if (Array.isArray(lastRafflesData)) {
+                const rObj = lastRafflesData.find(x => Number(x.id) === numId);
+                if (rObj && !rObj.is_joined) {
+                    rObj.is_joined = true;
+                    rObj.participants_count = (parseInt(rObj.participants_count || 0, 10) || 0) + 1;
+                    const newPCount = rObj.participants_count;
+
+                    if (cardEl) {
+                        const pInfoEl = cardEl.querySelector('.participants-info');
+                        if (pInfoEl) {
+                            const chanceVal = (100 / newPCount).toFixed(2).replace('.00', '');
+                            pInfoEl.innerHTML = `
+                                <span><b>${newPCount}</b> ${getPlural(newPCount, ['участник', 'участника', 'участников'])}</span>
+                                <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt" style="font-size:8px;"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:7.5px; opacity:0.8;"></i></span>
+                            `;
+                        }
+                    }
+                }
+                try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(lastRafflesData)); } catch (e) {}
+            }
+
+            // 2. Сразу обновляем баланс билетов (в карточках и в верхней шапке)
+            if (ans && ans.tickets !== undefined) {
+                userTickets = parseInt(ans.tickets, 10) || 0;
+            } else if (cost > 0) {
+                userTickets = Math.max(0, (parseInt(userTickets, 10) || 0) - cost);
+            }
+            document.querySelectorAll('.js-user-tickets-val').forEach(el => { el.textContent = userTickets; });
+            const topTicketEl = document.getElementById('ticketStats');
+            if (topTicketEl) topTicketEl.textContent = userTickets.toLocaleString('ru-RU');
+
+            // 3. Сразу обновляем количество бесплатных проходок в премиум-баннере
+            const msgLow = String(ans?.message || '').toLowerCase();
+            const usedPassByMsg = msgLow.includes('пропуск') || msgLow.includes('проходк') || msgLow.includes('без условий');
+            if (ans && ans.free_raffle_passes !== undefined) {
+                userFreePasses = Math.max(0, parseInt(ans.free_raffle_passes, 10) || 0);
+            } else if (ans?.used_free_pass || (userHasRafflesPremium && userFreePasses > 0 && usedPassByMsg)) {
+                userFreePasses = Math.max(0, userFreePasses - 1);
+            }
+
+            updatePremiumBannerUI({
+                free_raffle_passes: userFreePasses,
+                raffles_premium_until: userPremiumUntil,
+                has_raffles_premium: userHasRafflesPremium
+            });
         }
 
         // Форматирование текста ошибки и определение нужной кнопки действия
@@ -2027,7 +2091,7 @@
             });
         }
 
-        async function join(id, isAuto = false, btnEl = null) {
+        async function join(id, isAuto = false, btnEl = null, cost = 0) {
             let btn = btnEl || document.getElementById('join-btn-' + id);
             let oldHtml = '';
             
@@ -2055,12 +2119,10 @@
                 const ans = await res.json();
                 
                 if (res.ok) {
-                    // Сразу сбрасываем клиентский кэш после участия и списания лимита
+                    // 1. Сбрасываем кэш
                     clearFastCaches();
 
-                    if (tg && tg.HapticFeedback) {
-                        try { tg.HapticFeedback.notificationOccurred('success'); } catch (err) {}
-                    }
+                    // 2. Мгновенно (0 мс) обновляем кнопку, участников, шанс, билеты и проходки на экране
                     if (btn) {
                         btn.dataset.loading = '0';
                         btn.disabled = false;
@@ -2068,13 +2130,23 @@
                         btn.style.opacity = '1';
                         btn.innerHTML = '<i class="fa-solid fa-check"></i> Участвуете';
                     }
+                    applyInstantJoinUI(id, cost, ans, btn);
+
+                    if (tg && tg.HapticFeedback) {
+                        try { tg.HapticFeedback.notificationOccurred('success'); } catch (err) {}
+                    }
                     const cleanMsg = stripEmojis(ans.message || 'Вы успешно зарегистрированы').replace(/\n/g, '<br>');
                     if (ans.message && ans.message.includes("снижены на 20%")) {
                         showModal('info', 'Внимание', cleanMsg);
                     } else {
                         showModal('success', 'Успех', cleanMsg);
                     }
-                    await load(true); 
+
+                    // 3. Фоновая синхронизация с сервером без блокировки интерфейса
+                    load(true);
+                    if (typeof window.checkBalance === 'function') {
+                        window.checkBalance(true, true);
+                    }
                 } else {
                     if (tg && tg.HapticFeedback) {
                         try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
