@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Raffles | RFL PRO</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <link rel="preload" as="image" href="/static/bg-neon.png" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
@@ -72,8 +74,8 @@
             padding: 8px 9px 8px 12px;
             margin-bottom: 7px;
             background: linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(14, 14, 19, 0.82) 55%, rgba(109, 40, 217, 0.26) 100%);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(192, 132, 252, 0.34);
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), 0 0 14px rgba(124, 58, 237, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.18);
             display: flex;
@@ -83,7 +85,6 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            animation: fadeUpIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         .premium-banner.active-sub {
             background: linear-gradient(135deg, rgba(52, 199, 89, 0.18) 0%, rgba(14, 14, 19, 0.84) 60%, rgba(52, 199, 89, 0.14) 100%);
@@ -146,9 +147,7 @@
             flex-shrink: 0;
         }
         .prem-btn {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.32) 100%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.55) 0%, rgba(109, 40, 217, 0.38) 100%);
             color: #ffffff;
             border: 1px solid rgba(196, 181, 253, 0.52);
             padding: 5.5px 10px;
@@ -193,13 +192,10 @@
             display: none;
             justify-content: flex-end;
             margin-bottom: 6px;
-            animation: fadeUpIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         .restore-prem-pill {
             width: 100%;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.22) 0%, rgba(18, 18, 24, 0.78) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.22) 0%, rgba(18, 18, 24, 0.85) 100%);
             border: 1px solid rgba(192, 132, 252, 0.36);
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
             color: #ffffff;
@@ -227,9 +223,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(18, 18, 24, 0.72);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(18, 18, 24, 0.82);
             border: 1px solid rgba(255, 255, 255, 0.09);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border-radius: 11px;
@@ -238,7 +232,6 @@
             font-size: 10px;
             color: var(--text-secondary);
             cursor: pointer;
-            animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
         }
         .stats-left {
             display: flex;
@@ -251,7 +244,6 @@
         .stats-left i {
             color: var(--gold);
             font-size: 10px;
-            filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
         }
         .stats-count {
             color: #ffffff;
@@ -264,7 +256,6 @@
             display: flex;
             align-items: center;
         }
-        /* Расширенная кнопка Топ победителей */
         .top-winners-btn {
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.32) 0%, rgba(85, 22, 183, 0.22) 100%);
             border: 1px solid rgba(192, 132, 252, 0.42);
@@ -287,10 +278,9 @@
         /* === КОМПАКТНЫЕ GLASS-ТАБЫ === */
         .tabs-bar {
             display: flex; align-items: center;
-            background: rgba(18, 18, 24, 0.68); 
+            background: rgba(18, 18, 24, 0.78); 
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 11px; padding: 3px; margin-bottom: 9px; gap: 4px;
-            animation: fadeUpIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
         }
         .tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
@@ -328,9 +318,7 @@
             display: flex;
             flex-direction: column;
             contain: content;
-            content-visibility: auto;
-            contain-intrinsic-size: 132px;
-            animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+            animation: fadeUpIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         /* Мягкое затемнение только слева под текстом БЕЗ БЛЮРА */
         .card::before {
@@ -352,6 +340,7 @@
             border-radius: 11px;
             margin-bottom: 6px;
             opacity: 0.68;
+            content-visibility: auto;
             contain-intrinsic-size: 48px;
         }
         .card.done::before {
@@ -398,44 +387,25 @@
             text-align: right;
         }
 
-        /* === ОСВЕТЛЕННЫЙ СКИН С ПОДСВЕТКОЙ СЗАДИ === */
+        /* === ЧЕТКИЙ ОРИГИНАЛЬНЫЙ СКИН (ЧУТЬ КРУПНЕЕ И НИЖЕ, БЕЗ ЗАСВЕТОВ И МЫЛА) === */
         .prize-img-wrapper { 
             position: absolute;
-            top: -10px;
-            right: -8px; 
-            width: 198px;
-            height: 94px;
+            top: 0px;
+            right: -12px; 
+            width: 220px;
+            height: 114px;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1;
             pointer-events: none; 
         }
-        /* Яркий выраженный блик позади оружия */
-        .prize-img-wrapper::before {
-            content: '';
-            position: absolute;
-            width: 170px;
-            height: 88px;
-            background: radial-gradient(
-                ellipse at center,
-                rgba(255, 255, 255, 0.75) 0%,
-                rgba(233, 213, 255, 0.6) 28%,
-                rgba(168, 85, 247, 0.35) 55%,
-                transparent 76%
-            );
-            filter: blur(9px);
-            z-index: -1;
-            pointer-events: none;
-        }
         .prize-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transform: rotate(-5deg) scale(1.16) translateZ(0);
-            /* Естественный цвет скина + плотная тень + яркий контурный блик */
-            filter: brightness(1.03) contrast(1.08) saturate(1.12) drop-shadow(0 6px 10px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.45));
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: rotate(-4deg);
+            filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.68));
         }
 
         /* Контент карточки поверх скина (z-index: 2) */
@@ -598,14 +568,12 @@
             gap: 2.5px;
         }
 
-        /* Увеличенная главная кнопка Участвовать */
+        /* Увеличенная главная кнопка Участвовать (без тяжелого backdrop-filter в списке) */
         .btn-main {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.54) 0%, rgba(109, 40, 217, 0.38) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.88) 0%, rgba(85, 22, 183, 0.82) 100%);
             color: #ffffff;
             border: 1px solid rgba(216, 180, 254, 0.58);
-            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.36), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
             padding: 7.5px 14px;
             border-radius: 10px;
             font-size: 10.5px;
@@ -618,13 +586,13 @@
             gap: 5.5px;
             white-space: nowrap;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-            transition: transform 0.12s ease, box-shadow 0.15s ease;
+            transition: transform 0.12s ease;
         }
         .btn-main:active { transform: scale3d(0.95, 0.95, 1); }
         .btn-main.joined {
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.3) 0%, rgba(16, 185, 129, 0.18) 100%);
+            background: linear-gradient(135deg, rgba(22, 101, 52, 0.85) 0%, rgba(20, 83, 45, 0.8) 100%);
             border-color: rgba(74, 222, 128, 0.52);
-            box-shadow: 0 3px 10px rgba(52, 199, 89, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.24);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.22);
             color: #4ade80;
             cursor: default;
         }
@@ -663,7 +631,7 @@
         /* FOOTER */
         .app-footer {
             display: flex; justify-content: space-around; align-items: center;
-            background-color: rgba(9, 9, 11, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            background-color: rgba(9, 9, 11, 0.94);
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
             padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
@@ -678,13 +646,13 @@
             position: fixed;
             inset: 0;
             background: rgba(4, 4, 7, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             z-index: 3000;
             display: none;
             align-items: center;
             justify-content: center;
-            animation: overlayFade 0.18s ease-out forwards;
+            animation: overlayFade 0.16s ease-out forwards;
         }
         .modal-box { 
             background: transparent;
@@ -694,7 +662,7 @@
             max-width: 295px;
             padding: 8px 4px; 
             text-align: center;
-            animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             will-change: transform, opacity;
         }
         .modal-icon-badge {
@@ -711,9 +679,7 @@
         }
         .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
         .m-btn-confirm {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.52) 0%, rgba(109, 40, 217, 0.36) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.55) 0%, rgba(109, 40, 217, 0.4) 100%);
             border: 1px solid rgba(216, 180, 254, 0.55);
             box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
             color: #fff; flex: 1; padding: 9.5px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 10.5px;
@@ -723,8 +689,6 @@
         .m-btn-confirm:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-cancel {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.18);
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
@@ -752,8 +716,6 @@
         }
         .m-btn { 
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.18);
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
@@ -773,7 +735,7 @@
         }
         .m-btn:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-primary {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.55) 0%, rgba(109, 40, 217, 0.38) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.58) 0%, rgba(109, 40, 217, 0.42) 100%);
             border: 1px solid rgba(216, 180, 254, 0.58);
             box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
             color: #fff;
@@ -927,7 +889,7 @@
         .verify-subtext { font-size: 10px; color: #f4f4f5; font-weight: 500; margin-top: 3px; }
 
         @keyframes fadeUpIn {
-            0% { opacity: 0; transform: translate3d(0, 10px, 0); }
+            0% { opacity: 0; transform: translate3d(0, 8px, 0); }
             100% { opacity: 1; transform: translate3d(0, 0, 0); }
         }
         @keyframes overlayFade {
@@ -1025,7 +987,7 @@
     </main>
 
     <script src="/top_nav.js" defer></script>
-    <script src="/bottom-nav.js"></script>
+    <script src="/bottom-nav.js" defer></script>
 
     <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ (БЕЗ РАМОК) -->
     <div id="top-winners-modal" class="modal-overlay" onclick="if(event.target===this) closeTopWinnersModal()">
@@ -1138,6 +1100,7 @@
         let topWinnersData = [];
         let currentTab = 'active';
         let cachedTimerNodes = [];
+        let lastRafflesData = null;
 
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>"']/g, m => ({
@@ -1271,6 +1234,10 @@
 
             if (uData.total_raffled || uData.raffled_skins_count) {
                 userTotalRaffledFromProfile = parseInt(uData.total_raffled || uData.raffled_skins_count || 0);
+                const statsCountEl = document.getElementById('raffled-skins-count');
+                if (statsCountEl && userTotalRaffledFromProfile > parseInt(statsCountEl.textContent || 0)) {
+                    statsCountEl.textContent = userTotalRaffledFromProfile;
+                }
             }
 
             if (uData.has_raffles_premium && userPremiumUntil) {
@@ -1309,6 +1276,11 @@
                 actionBtn.innerHTML = `Подключить • 100 ₽`;
                 if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽';
             }
+
+            // Обновляем отображение баланса билетов на уже отрендеренных карточках
+            document.querySelectorAll('.js-user-tickets-val').forEach(el => {
+                el.textContent = userTickets;
+            });
         }
 
         async function buyRafflesPremium() {
@@ -1346,7 +1318,7 @@
                     card.classList.remove('hidden-tab');
                     card.style.animation = 'none';
                     void card.offsetWidth;
-                    card.style.animation = `fadeUpIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(visibleIndex * 25, 180)}ms both`;
+                    card.style.animation = `fadeUpIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(visibleIndex * 20, 140)}ms both`;
                     visibleIndex++;
                 } else {
                     card.classList.add('hidden-tab');
@@ -1394,22 +1366,46 @@
         }, 1000);
 
         async function load() {
+            const payload = JSON.stringify({ initData: tg.initData });
+            const reqHeaders = { 'Content-Type': 'application/json' };
+
+            // 1. Мгновенная отрисовка из sessionStorage (0 мс при повторном заходе)
             try {
-                const [uRes, res] = await Promise.all([
-                    fetch('/api/v1/user/me', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) }),
-                    fetch('/api/v1/raffles/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) })
-                ]);
+                const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
+                if (cachedRaffles && !lastRafflesData) {
+                    const parsed = JSON.parse(cachedRaffles);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        renderAll(parsed);
+                    }
+                }
+            } catch (err) {}
 
-                const [uData, data] = await Promise.all([uRes.json(), res.json()]);
+            // 2. Независимая загрузка списка розыгрышей (не ждет ответа /user/me!)
+            const rafflesPromise = fetch('/api/v1/raffles/active', { method: 'POST', headers: reqHeaders, body: payload })
+                .then(r => r.json())
+                .then(data => {
+                    const arr = Array.isArray(data) ? data : [];
+                    lastRafflesData = arr;
+                    renderAll(arr);
+                    try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(arr)); } catch (err) {}
+                })
+                .catch(() => {
+                    if (!lastRafflesData) {
+                        document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
+                    }
+                });
 
-                userTickets = uData.tickets || 0;
-                updatePremiumBannerUI(uData);
+            // 3. Параллельная подгрузка профиля и билетов
+            fetch('/api/v1/user/me', { method: 'POST', headers: reqHeaders, body: payload })
+                .then(r => r.json())
+                .then(uData => {
+                    userTickets = uData.tickets || 0;
+                    updatePremiumBannerUI(uData);
+                })
+                .catch(() => {});
 
-                renderAll(Array.isArray(data) ? data : []);
-                checkDeepLink(); 
-            } catch(e) {
-                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
-            }
+            await rafflesPromise;
+            checkDeepLink();
         }
 
         function buildTopWinners(completedRaffles) {
@@ -1469,7 +1465,7 @@
 
                 const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
                 const staggerIdx = done ? completedIdx++ : activeIdx++;
-                const delayMs = Math.min(staggerIdx * 30, 210);
+                const delayMs = Math.min(staggerIdx * 25, 160);
 
                 // Завершённые розыгрыши — легкий приглушенный список без картинок
                 if (done) {
@@ -1536,7 +1532,7 @@
                     let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
                     if (!r.is_joined && s.ticket_cost > 0) {
                         btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
-                        ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
+                        ticketInfo = `<div class="user-tickets-info">У вас: <b class="js-user-tickets-val">${userTickets}</b> бил.</div>`;
                     }
                     btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
                                 ${r.is_joined ? '<i class="fa-solid fa-check"></i> Участвуете' : btnLabel}
@@ -1570,9 +1566,12 @@
                     timerBlock = `<div style="font-size:9.5px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                 }
 
+                // Первые 4 скина грузим сразу с высоким приоритетом, остальные — лениво
+                const imgLoadAttr = activeIdx <= 4 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
+
                 htmlBuffer += `
                 <div class="card ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
-                    <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
+                    <div class="prize-img-wrapper"><img src="${img}" class="prize-img" ${imgLoadAttr} onerror="this.style.display='none'"></div>
                     <div class="card_content">
                         <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
                         <h3 class="r-title">${escapeHtml(fullPrizeName)}</h3>
