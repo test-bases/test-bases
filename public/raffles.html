@@ -1264,40 +1264,62 @@
             const icon = ptrContainer ? ptrContainer.querySelector('i') : null;
             if (!content || !ptrContainer || !icon) return;
 
-            let startY = 0; let pulledDistance = 0; let isPulling = false; const triggerThreshold = 80;
+            let startY = 0; let pulledDistance = 0; let isPulling = false;
+            const triggerThreshold = 80;
+            const pullDeadzone = 12;
 
             content.addEventListener('touchstart', (e) => {
+                if (e.target.closest('button, a, .btn-main, .prem-btn, .prem-close-btn, .top-winners-btn, .tab-btn, .chance-badge, .restore-prem-pill')) {
+                    isPulling = false;
+                    return;
+                }
                 if (content.scrollTop <= 0) {
-                    startY = e.touches[0].clientY; isPulling = true;
-                    content.style.transition = 'none'; ptrContainer.style.transition = 'none'; icon.style.transition = 'none';
-                } else { isPulling = false; }
+                    startY = e.touches[0].clientY;
+                    isPulling = true;
+                    pulledDistance = 0;
+                } else {
+                    isPulling = false;
+                }
             }, { passive: true });
 
             content.addEventListener('touchmove', (e) => {
                 if (!isPulling) return;
-                const currentY = e.touches[0].clientY; const diff = currentY - startY;
-                if (diff > 0 && content.scrollTop <= 0) {
+                const currentY = e.touches[0].clientY;
+                const diff = currentY - startY;
+                if (diff > pullDeadzone && content.scrollTop <= 0) {
                     if (e.cancelable) e.preventDefault();
-                    pulledDistance = Math.pow(diff, 0.85); if (pulledDistance > 180) pulledDistance = 180;
+                    content.style.transition = 'none';
+                    ptrContainer.style.transition = 'none';
+                    icon.style.transition = 'none';
+                    pulledDistance = Math.pow(diff - pullDeadzone, 0.85);
+                    if (pulledDistance > 180) pulledDistance = 180;
                     content.style.transform = `translateY(${pulledDistance}px)`;
                     ptrContainer.style.transform = `translateY(${pulledDistance}px)`;
                     icon.style.transform = `rotate(${pulledDistance * 2.5}deg)`;
                     if (pulledDistance > triggerThreshold) { icon.style.color = "#34c759"; } 
                     else { icon.style.color = "var(--primary-purple-light)"; }
+                } else if (diff < 0) {
+                    isPulling = false;
+                    pulledDistance = 0;
                 }
             }, { passive: false });
 
             content.addEventListener('touchend', () => {
                 if (!isPulling) return;
                 isPulling = false;
-                content.style.transition = 'transform 0.3s ease-out'; ptrContainer.style.transition = 'transform 0.3s ease-out';
+                if (pulledDistance <= 0) return;
+                content.style.transition = 'transform 0.3s ease-out';
+                ptrContainer.style.transition = 'transform 0.3s ease-out';
                 if (pulledDistance > triggerThreshold) {
-                    content.style.transform = `translateY(80px)`; ptrContainer.style.transform = `translateY(80px)`;
-                    icon.style.transform = ''; icon.classList.add('fa-spin');
+                    content.style.transform = `translateY(80px)`;
+                    ptrContainer.style.transform = `translateY(80px)`;
+                    icon.style.transform = '';
+                    icon.classList.add('fa-spin');
                     if (window.Telegram && Telegram.WebApp.HapticFeedback) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); }
                     setTimeout(() => { window.location.reload(); }, 500);
                 } else {
-                    content.style.transform = 'translateY(0px)'; ptrContainer.style.transform = 'translateY(0px)';
+                    content.style.transform = '';
+                    ptrContainer.style.transform = '';
                     icon.style.transform = 'rotate(0deg)';
                 }
                 pulledDistance = 0;
@@ -1429,9 +1451,8 @@
             return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
         }
 
-        // Оптимизированный таймер с паузой при фоновом режиме экрана
-        setInterval(() => {
-            if (document.hidden || currentTab !== 'active' || !cachedTimerNodes.length) return;
+        function updateTimers() {
+            if (!cachedTimerNodes.length) return;
             const now = Date.now();
             for (let i = 0; i < cachedTimerNodes.length; i++) {
                 const item = cachedTimerNodes[i];
@@ -1452,48 +1473,59 @@
                 if (item.mEl) item.mEl.textContent = m;
                 if (item.sEl) item.sEl.textContent = s;
             }
+        }
+
+        // Оптимизированный таймер с паузой при фоновом режиме экрана
+        setInterval(() => {
+            if (document.hidden || currentTab !== 'active') return;
+            updateTimers();
         }, 1000);
 
         async function load() {
             const payload = JSON.stringify({ initData: tg.initData });
             const reqHeaders = { 'Content-Type': 'application/json' };
 
-            // 1. Мгновенная отрисовка из sessionStorage
-            try {
-                const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
-                if (cachedRaffles && !lastRafflesData) {
-                    const parsed = JSON.parse(cachedRaffles);
-                    if (Array.isArray(parsed) && parsed.length) {
-                        renderAll(parsed);
-                    }
+            // Синхронная загрузка розыгрышей и профиля в один цикл без двойного рендера
+            const [rafflesResult, userResult] = await Promise.allSettled([
+                fetch('/api/v1/raffles/active', { method: 'POST', headers: reqHeaders, body: payload }).then(r => {
+                    if (!r.ok) throw new Error('Raffles fetch error');
+                    return r.json();
+                }),
+                fetch('/api/v1/user/me', { method: 'POST', headers: reqHeaders, body: payload }).then(r => {
+                    if (!r.ok) throw new Error('User fetch error');
+                    return r.json();
+                })
+            ]);
+
+            if (userResult.status === 'fulfilled' && userResult.value) {
+                const uData = userResult.value;
+                userTickets = uData.tickets || 0;
+                updatePremiumBannerUI(uData);
+            }
+
+            if (rafflesResult.status === 'fulfilled') {
+                const arr = Array.isArray(rafflesResult.value) ? rafflesResult.value : [];
+                lastRafflesData = arr;
+                renderAll(arr);
+                try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(arr)); } catch (err) {}
+            } else {
+                if (!lastRafflesData) {
+                    try {
+                        const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
+                        if (cachedRaffles) {
+                            const parsed = JSON.parse(cachedRaffles);
+                            if (Array.isArray(parsed) && parsed.length) {
+                                lastRafflesData = parsed;
+                                renderAll(parsed);
+                            }
+                        }
+                    } catch (err) {}
                 }
-            } catch (err) {}
+                if (!lastRafflesData) {
+                    document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
+                }
+            }
 
-            // 2. Независимая загрузка списка розыгрышей
-            const rafflesPromise = fetch('/api/v1/raffles/active', { method: 'POST', headers: reqHeaders, body: payload })
-                .then(r => r.json())
-                .then(data => {
-                    const arr = Array.isArray(data) ? data : [];
-                    lastRafflesData = arr;
-                    renderAll(arr);
-                    try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(arr)); } catch (err) {}
-                })
-                .catch(() => {
-                    if (!lastRafflesData) {
-                        document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
-                    }
-                });
-
-            // 3. Параллельная подгрузка профиля и билетов
-            fetch('/api/v1/user/me', { method: 'POST', headers: reqHeaders, body: payload })
-                .then(r => r.json())
-                .then(uData => {
-                    userTickets = uData.tickets || 0;
-                    updatePremiumBannerUI(uData);
-                })
-                .catch(() => {});
-
-            await rafflesPromise;
             checkDeepLink();
         }
 
@@ -1622,7 +1654,7 @@
                         btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
                         ticketInfo = `<div class="user-tickets-info">У вас: <b class="js-user-tickets-val">${userTickets}</b> бил.</div>`;
                     }
-                    btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
+                    btnHtml = `<button id="join-btn-${r.id}" class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${Boolean(r.is_joined)}, this)">
                                 ${r.is_joined ? '<i class="fa-solid fa-check"></i> Участвуете' : btnLabel}
                                </button>`;
                 }
@@ -1701,15 +1733,17 @@
                 sEl: el.querySelector('.s-v'),
                 expired: false
             }));
+            updateTimers();
         }
         
-        function handleJoin(id, cost, isJoined) {
-            if(isJoined) return;
+        function handleJoin(id, cost, isJoined, btnEl) {
+            const btn = btnEl || document.getElementById('join-btn-' + id);
+            if (isJoined || (btn && (btn.classList.contains('joined') || btn.dataset.loading === '1'))) return;
             if (cost > 0) {
                 document.getElementById('ticket-price').innerText = cost;
                 document.getElementById('confirm-modal').style.display = 'flex';
-                document.getElementById('confirm-join-btn').onclick = () => { closeConfirm(); join(id); };
-            } else { join(id); }
+                document.getElementById('confirm-join-btn').onclick = () => { closeConfirm(); join(id, false, btn); };
+            } else { join(id, false, btn); }
         }
 
         // Форматирование текста ошибки и определение нужной кнопки действия
@@ -1810,17 +1844,20 @@
             });
         }
 
-        async function join(id, isAuto = false) {
-            let btn = null; let oldHtml = '';
+        async function join(id, isAuto = false, btnEl = null) {
+            let btn = btnEl || document.getElementById('join-btn-' + id);
+            let oldHtml = '';
             
-            if(!isAuto && window.event) {
-                tg.HapticFeedback.impactOccurred('medium');
-                let target = window.event.target;
-                if(target.tagName !== 'BUTTON') target = target.closest('button');
-                
-                if (target && !target.classList.contains('joined')) {
-                    btn = target; oldHtml = btn.innerHTML;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; btn.style.opacity = '0.7';
+            if (!isAuto) {
+                if (tg && tg.HapticFeedback) {
+                    try { tg.HapticFeedback.impactOccurred('medium'); } catch (err) {}
+                }
+                if (btn && !btn.classList.contains('joined')) {
+                    oldHtml = btn.innerHTML;
+                    btn.dataset.loading = '1';
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    btn.style.opacity = '0.7';
                 }
             }
             
@@ -1832,7 +1869,16 @@
                 const ans = await res.json();
                 
                 if(res.ok) {
-                    tg.HapticFeedback.notificationOccurred('success');
+                    if (tg && tg.HapticFeedback) {
+                        try { tg.HapticFeedback.notificationOccurred('success'); } catch (err) {}
+                    }
+                    if (btn) {
+                        btn.dataset.loading = '0';
+                        btn.disabled = false;
+                        btn.classList.add('joined');
+                        btn.style.opacity = '1';
+                        btn.innerHTML = '<i class="fa-solid fa-check"></i> Участвуете';
+                    }
                     const cleanMsg = stripEmojis(ans.message || 'Вы успешно зарегистрированы').replace(/\n/g, '<br>');
                     if (ans.message && ans.message.includes("снижены на 20%")) {
                         showModal('info', 'Внимание', cleanMsg);
@@ -1841,14 +1887,28 @@
                     }
                     load(); 
                 } else {
-                    tg.HapticFeedback.notificationOccurred('error');
+                    if (tg && tg.HapticFeedback) {
+                        try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
+                    }
                     handleAccessError(ans.detail);
-                    if(btn) { btn.innerHTML = oldHtml; btn.style.opacity = '1'; }
+                    if(btn) {
+                        btn.dataset.loading = '0';
+                        btn.disabled = false;
+                        btn.innerHTML = oldHtml;
+                        btn.style.opacity = '1';
+                    }
                 }
             } catch(e) {
-                tg.HapticFeedback.notificationOccurred('error');
+                if (tg && tg.HapticFeedback) {
+                    try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
+                }
                 showModal('error', 'Ошибка', 'Проверьте соединение с сетью');
-                if(btn) { btn.innerHTML = oldHtml; btn.style.opacity = '1'; }
+                if(btn) {
+                    btn.dataset.loading = '0';
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                    btn.style.opacity = '1';
+                }
             }
         }
 
