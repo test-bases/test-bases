@@ -5216,6 +5216,12 @@ async def get_bootstrap_data(
         streak_config_task = supabase.get(
             "/streak_rewards_config", params={"order": "step_target.asc"}
         )
+        raffle_parts_task = supabase.get(
+            "/raffle_participants",
+            params={"user_id": f"eq.{telegram_id}", "select": "raffle_id"},
+        )
+        daily_challenge_task = get_or_sync_daily_challenge(telegram_id, supabase)
+        user_streak_task = calculate_user_streak(telegram_id, supabase)
 
         (
             db_res,
@@ -5230,6 +5236,9 @@ async def get_bootstrap_data(
             counters_res,
             constructor_res,
             streak_conf_res,
+            raffle_parts_res,
+            daily_challenge_res,
+            user_streak_res,
         ) = await asyncio.gather(
             rpc_task,
             notifs_task,
@@ -5243,6 +5252,9 @@ async def get_bootstrap_data(
             counters_task,
             constructor_task,
             streak_config_task,
+            raffle_parts_task,
+            daily_challenge_task,
+            user_streak_task,
             return_exceptions=True,
         )
 
@@ -5364,15 +5376,11 @@ async def get_bootstrap_data(
             **db_data.get("user_settings", {}),
         })
 
-        try:
-            daily_challenge = await get_or_sync_daily_challenge(
-                telegram_id, supabase
-            )
-            user_data["challenge"] = daily_challenge
-        except Exception as chal_err:
+        if not isinstance(daily_challenge_res, Exception):
+            user_data["challenge"] = daily_challenge_res
+        else:
             logging.error(
-                f"[BOOTSTRAP] Ошибка загрузки daily_challenge для {telegram_id}: {chal_err}",
-                exc_info=True,
+                f"[BOOTSTRAP] Ошибка загрузки daily_challenge для {telegram_id}: {daily_challenge_res}"
             )
             user_data["challenge"] = None
 
@@ -5414,13 +5422,18 @@ async def get_bootstrap_data(
                 if "streak_days" in b_data[0]:
                     user_data["streak_days"] = b_data[0].get("streak_days", 1)
 
-                # 👇 ЗАПИСЫВАЕМ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ НАПРЯМУЮ ИЗ ТАБЛИЦЫ USERS 👇
-                user_data["has_raffles_premium"] = bool(
-                    b_data[0].get("has_raffles_premium", False)
-                )
-                user_data["raffles_premium_until"] = b_data[0].get(
-                    "raffles_premium_until"
-                )
+               # 👇 ЗАПИСЫВАЕМ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ НАПРЯМУЮ ИЗ ТАБЛИЦЫ USERS 👇
+                prem_until_raw = b_data[0].get("raffles_premium_until")
+                is_prem_active = False
+                if prem_until_raw:
+                    try:
+                        dt_u = datetime.fromisoformat(str(prem_until_raw).replace("Z", "+00:00"))
+                        is_prem_active = dt_u > datetime.now(timezone.utc)
+                    except Exception:
+                        is_prem_active = bool(b_data[0].get("has_raffles_premium", False))
+
+                user_data["has_raffles_premium"] = is_prem_active
+                user_data["raffles_premium_until"] = prem_until_raw
                 user_data["free_raffle_passes"] = int(
                     b_data[0].get("free_raffle_passes") or 0
                 )
@@ -5484,15 +5497,31 @@ async def get_bootstrap_data(
             else []
         )
 
-        try:
-            user_streak = await calculate_user_streak(telegram_id, supabase)
-        except Exception as e:
-            logging.error(f"[STREAK] Ошибка расчета серии: {e}")
+        if not isinstance(user_streak_res, Exception) and isinstance(user_streak_res, dict):
+            user_streak = user_streak_res
+        else:
+            logging.error(f"[STREAK] Ошибка расчета серии: {user_streak_res}")
             user_streak = {
                 "total_streak": 0,
                 "visual_tier": 0,
                 "current_week_str": "",
             }
+
+        # Проставляем актуальный флаг is_joined для розыгрышей в bootstrap
+        joined_ids = set()
+        if (
+            not isinstance(raffle_parts_res, Exception)
+            and getattr(raffle_parts_res, "status_code", 500) == 200
+        ):
+            parts_list = raffle_parts_res.json()
+            if isinstance(parts_list, list):
+                joined_ids = {p.get("raffle_id") for p in parts_list if isinstance(p, dict)}
+
+        boot_raffles = db_data.get("raffles", [])
+        if isinstance(boot_raffles, list):
+            for r in boot_raffles:
+                if isinstance(r, dict):
+                    r["is_joined"] = r.get("id") in joined_ids
 
         return {
             "user": user_data,
@@ -5503,7 +5532,7 @@ async def get_bootstrap_data(
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
             "auctions": auctions_list,
-            "raffles": db_data.get("raffles", []),
+            "raffles": boot_raffles,
             "my_active_cases": my_active_cases,
             "unread_notifications": unread_count,
             "gift_available": gift_available,
@@ -12804,12 +12833,17 @@ async def get_current_user_data(
             prem_rows = direct_prem_res.json()
             if isinstance(prem_rows, list) and len(prem_rows) > 0:
                 p_row = prem_rows[0]
-                final_response["has_raffles_premium"] = bool(
-                    p_row.get("has_raffles_premium", False)
-                )
-                final_response["raffles_premium_until"] = p_row.get(
-                    "raffles_premium_until"
-                )
+                prem_until_raw = p_row.get("raffles_premium_until")
+                is_prem_active = False
+                if prem_until_raw:
+                    try:
+                        dt_u = datetime.fromisoformat(str(prem_until_raw).replace("Z", "+00:00"))
+                        is_prem_active = dt_u > datetime.now(timezone.utc)
+                    except Exception:
+                        is_prem_active = bool(p_row.get("has_raffles_premium", False))
+
+                final_response["has_raffles_premium"] = is_prem_active
+                final_response["raffles_premium_until"] = prem_until_raw
                 final_response["free_raffle_passes"] = int(
                     p_row.get("free_raffle_passes") or 0
                 )
@@ -30014,7 +30048,6 @@ async def test_raffle_pm(
     return {"status": "success", "message": f"Тест отправлен через Bot-T на твой ID #{MY_TELEGRAM_ID}!"}
 
 # 4. (Юзер) Участие
-# 4. (Юзер) Участие
 @app.post("/api/v1/raffles/join")
 async def join_raffle(
     req: RaffleJoinRequest, 
@@ -30028,8 +30061,13 @@ async def join_raffle(
     
     user_id = user_data['id']
     
-    # 2. Получаем розыгрыш
-    raffle_resp = await supabase.get("/raffles", params={"id": f"eq.{req.raffle_id}"})
+    # 2-3. Параллельно за 1 сетевой цикл получаем розыгрыш, проверку участия и профиль юзера
+    raffle_resp, check_exist, user_db_resp = await asyncio.gather(
+        supabase.get("/raffles", params={"id": f"eq.{req.raffle_id}"}),
+        supabase.get("/raffle_participants", params={"raffle_id": f"eq.{req.raffle_id}", "user_id": f"eq.{user_id}"}),
+        supabase.get("/users", params={"telegram_id": f"eq.{user_id}"})
+    )
+
     if not raffle_resp.json(): 
         print(f"❌ Join Error: Розыгрыш {req.raffle_id} не найден")
         raise HTTPException(status_code=404, detail="Розыгрыш не найден")
@@ -30040,13 +30078,10 @@ async def join_raffle(
         print(f"❌ Join Error: Статус не active (статус: {raffle['status']})")
         raise HTTPException(status_code=400, detail="Розыгрыш завершен или не начат")
 
-    check_exist = await supabase.get("/raffle_participants", params={"raffle_id": f"eq.{req.raffle_id}", "user_id": f"eq.{user_id}"})
     if check_exist.json():
         print(f"❌ Join Error: Уже участвует")
         raise HTTPException(status_code=400, detail="Вы уже участвуете! 😉")
 
-    # 3. Читаем юзера (с новыми полями подписки)
-    user_db_resp = await supabase.get("/users", params={"telegram_id": f"eq.{user_id}"})
     if not user_db_resp.json():
         raise HTTPException(status_code=400, detail="⚠️ Сначала запустите бота /start")
     
@@ -30112,66 +30147,60 @@ async def join_raffle(
         error_msg = f"⚠️ Не хватает билетов! Нужно: {ticket_cost}"
 
     # --- ПРИНИМАЕМ РЕШЕНИЕ ОБ УЧАСТИИ ---
+    new_free_passes = free_passes
+    new_tickets = user_tickets
+    user_patch_payload = None
+
     if not conditions_met:
         # Условия НЕ выполнены. Проверяем, можем ли спасти ситуацию пропуском.
         if has_premium and free_passes > 0:
             print(f"🌟 Пользователь {user_id} использует бесплатный пропуск ({free_passes} -> {free_passes - 1})")
             used_free_pass = True
-            # Списываем 1 бесплатный пропуск (билеты и прочее не трогаем)
-            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"free_raffle_passes": free_passes - 1})
+            new_free_passes = free_passes - 1
+            user_patch_payload = {"free_raffle_passes": new_free_passes}
         else:
             # Премиума нет, либо кончились пропуски -> Выдаем ошибку
             raise HTTPException(status_code=400, detail=error_msg)
     else:
-        # Условия ВЫПОЛНЕНЫ. 
-        # Если вход платный (за билеты) и мы не использовали пропуск - списываем обычные билеты
+        # Условия ВЫПОЛНЕНЫ. Если вход платный за билеты — списываем билеты
         if ticket_cost > 0 and not used_free_pass:
-            new_balance = user_tickets - ticket_cost
-            await supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json={"tickets": new_balance})
+            new_tickets = user_tickets - ticket_cost
+            user_patch_payload = {"tickets": new_tickets}
 
     source_type = "twitch" if min_msgs > 0 else "telegram"
-    
-    await supabase.post("/raffle_participants", json={
-        "raffle_id": req.raffle_id,
-        "user_id": user_id,
-        "source": source_type 
-    })
 
-    # Увеличиваем счетчик
-    try:
-        await supabase.post("/rpc/increment_raffle_participants", json={"raffle_id_param": req.raffle_id})
-    except Exception as e:
-        print(f"⚠️ RPC Error: {e}")
-        
-    # --- 🔥 ОБНОВЛЕНИЕ КНОПКИ С ГИБРИДНОЙ ЛОГИКОЙ ---
-    try:
-        # Заново берем розыгрыш, чтобы узнать актуальный participants_count
-        r_upd = await supabase.get("/raffles", params={"id": f"eq.{req.raffle_id}", "select": "participants_count, settings"})
-        if r_upd.json():
-            r_data = r_upd.json()[0]
-            new_count = r_data.get('participants_count', 0)
-            sett = r_data.get('settings', {})
-            
-            p_msg_id = sett.get('post_message_id')
-            p_chan_id = sett.get('post_channel_id')
-            
-            if p_msg_id and p_chan_id:
-                # Запускаем в фоне, чтобы юзер не ждал
-                asyncio.create_task(update_raffle_button(bot, p_chan_id, p_msg_id, req.raffle_id, new_count))
-    except Exception as e:
-        print(f"⚠️ Button Upd Error: {e}")
+    # Выполняем запись участника, списание пропуска/билетов и инкремент счетчика ПАРАЛЛЕЛЬНО
+    write_tasks = [
+        supabase.post("/raffle_participants", json={
+            "raffle_id": req.raffle_id,
+            "user_id": user_id,
+            "source": source_type 
+        }),
+        supabase.post("/rpc/increment_raffle_participants", json={"raffle_id_param": req.raffle_id})
+    ]
+    if user_patch_payload:
+        write_tasks.append(
+            supabase.patch("/users", params={"telegram_id": f"eq.{user_id}"}, json=user_patch_payload)
+        )
+
+    await asyncio.gather(*write_tasks, return_exceptions=True)
+
+    # --- 🔥 ОБНОВЛЕНИЕ КНОПКИ В КАНАЛЕ БЕЗ ЛИШНЕГО ЗАПРОСА К БД ---
+    new_count = int(raffle.get('participants_count') or 0) + 1
+    p_msg_id = settings.get('post_message_id')
+    p_chan_id = settings.get('post_channel_id')
+    if p_msg_id and p_chan_id:
+        asyncio.create_task(update_raffle_button(bot, p_chan_id, p_msg_id, req.raffle_id, new_count))
 
     # --- 🔥 ПРОВЕРКА НА ПЕНАЛЬТИ И ФОРМИРОВАНИЕ СООБЩЕНИЯ ---
     full_name = user_row.get('full_name', '')
     username = user_row.get('username', '')
     
-    # Стандартное сообщение меняется, если юзали пропуск
     if used_free_pass:
-        success_msg = f"Участие принято! 🌟\nИспользован бесплатный пропуск (Осталось: {free_passes - 1})"
+        success_msg = f"Участие принято! 🌟\nИспользован бесплатный пропуск (Осталось: {new_free_passes})"
     else:
         success_msg = "Участие принято! 🍀"
     
-    # Проверяем наличие чужого бота
     if check_bot_penalty(full_name, username):
         success_msg = (
             "В вашем профиле найден тег другого бота!\n\n"
@@ -30182,7 +30211,16 @@ async def join_raffle(
 
     print(f"✅ User {user_id} joined raffle {req.raffle_id}")
     
-    return {"message": success_msg}
+    # Возвращаем новые значения сразу в ответе, чтобы фронт обновил плашки за 0 мс
+    return {
+        "message": success_msg,
+        "used_free_pass": used_free_pass,
+        "free_raffle_passes": new_free_passes,
+        "tickets": new_tickets,
+        "participants_count": new_count,
+        "has_raffles_premium": has_premium,
+        "raffles_premium_until": premium_until
+    }
     
 # 5. (Юзер + OBS) Список
 @app.post("/api/v1/raffles/active")
@@ -30194,8 +30232,8 @@ async def get_user_raffles(
     user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
     user_id = user_info['id'] if user_info else None
     
-    # 2. Получаем активные розыгрыши (ждем завершения запроса)
-    raffles_resp = await supabase.get(
+    # 2-3. Запрашиваем розыгрыши и участия пользователя ПАРАЛЛЕЛЬНО за 1 сетевой цикл
+    raffles_task = supabase.get(
         "/raffles", 
         params={
             "select": "*, winner:users(full_name, username)", 
@@ -30203,23 +30241,38 @@ async def get_user_raffles(
             "is_visible": "eq.true"
         }
     )
-    raffles = raffles_resp.json() if raffles_resp.status_code == 200 else []
-    
-    # 3. Получаем участия пользователя (если он авторизован)
-    participations_data = []
+
     if user_id:
-        participations_resp = await supabase.get(
+        parts_task = supabase.get(
             "/raffle_participants", 
             params={
                 "user_id": f"eq.{user_id}",
                 "select": "raffle_id" 
             }
         )
-        if participations_resp.status_code == 200:
-            participations_data = participations_resp.json()
+        raffles_resp, participations_resp = await asyncio.gather(
+            raffles_task, parts_task, return_exceptions=True
+        )
+    else:
+        raffles_resp = await raffles_task
+        participations_resp = None
 
-    # 4. Делаем быстрый Set (множество) из ID розыгрышей, где юзер уже участвует
-    joined_raffle_ids = {p.get('raffle_id') for p in participations_data}
+    raffles = (
+        raffles_resp.json()
+        if not isinstance(raffles_resp, Exception) and getattr(raffles_resp, "status_code", 500) == 200
+        else []
+    )
+    
+    participations_data = (
+        participations_resp.json()
+        if participations_resp is not None
+        and not isinstance(participations_resp, Exception)
+        and getattr(participations_resp, "status_code", 500) == 200
+        else []
+    )
+
+    # 4. Делаем быстрый Set из ID розыгрышей, где юзер уже участвует
+    joined_raffle_ids = {p.get('raffle_id') for p in participations_data if isinstance(p, dict)}
     
     # 5. Пробегаемся по списку и проставляем статус в оперативной памяти
     for r in raffles:
