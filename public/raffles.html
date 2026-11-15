@@ -1034,8 +1034,8 @@
         </div>
     </main>
 
+    <script src="/bottom-nav.js"></script>
     <script src="/top_nav.js" defer></script>
-    <script src="/bottom-nav.js" defer></script>
 
     <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ (БЕЗ РАМОК) -->
     <div id="top-winners-modal" class="modal-overlay" onclick="if(event.target===this) closeTopWinnersModal()">
@@ -1165,10 +1165,11 @@
         let currentTab = 'active';
         let cachedTimerNodes = [];
         let lastRafflesData = null;
+        let paymentPollTimer = null;
 
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                '&': '&', '<': '<', '>': '>', '"': '"', "'": '''
             }[m]));
         }
 
@@ -1394,6 +1395,115 @@
             });
         }
 
+        // Принудительная синхронизация статуса подписки после оплаты в Робокассе
+        async function syncPremiumStatusFromServer(showSuccessToast = false) {
+            try {
+                try { sessionStorage.removeItem('__hl_fast_api_cache__'); } catch (e) {}
+                const res = await fetch('/api/v1/user/me', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData }),
+                    __bypassFastCache: true
+                });
+                if (!res.ok) return false;
+                const uData = await res.json();
+                if (!uData) return false;
+
+                const prevPasses = parseInt(localStorage.getItem('prev_raffles_free_passes') || '-1', 10);
+                const prevUntil = localStorage.getItem('prev_raffles_prem_until') || '';
+
+                userTickets = uData.tickets || 0;
+                updatePremiumBannerUI(uData);
+
+                const newPasses = parseInt(uData.free_raffle_passes || 0, 10);
+                const newUntil = String(uData.raffles_premium_until || '');
+
+                const isUpgraded = userHasRafflesPremium && (
+                    showSuccessToast ||
+                    (prevPasses >= 0 && newPasses > prevPasses) ||
+                    (newUntil && newUntil !== prevUntil)
+                );
+
+                if (isUpgraded && localStorage.getItem('pending_raffles_prem_payment')) {
+                    localStorage.removeItem('pending_raffles_prem_payment');
+                    localStorage.removeItem('prev_raffles_free_passes');
+                    localStorage.removeItem('prev_raffles_prem_until');
+                    if (paymentPollTimer) {
+                        clearInterval(paymentPollTimer);
+                        paymentPollTimer = null;
+                    }
+                    if (tg && tg.HapticFeedback) {
+                        try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+                    }
+                    const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
+                    showModal(
+                        'success',
+                        'Авто-участие активно!',
+                        `Подписка подключена до <b>${untilStr}</b>.<br>Доступно проходок без условий: <b>${userFreePasses} шт.</b>`
+                    );
+                    load(true);
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        function startPaymentReturnWatcher() {
+            if (paymentPollTimer) clearInterval(paymentPollTimer);
+            let attempts = 0;
+            paymentPollTimer = setInterval(async () => {
+                attempts++;
+                const pendingTs = parseInt(localStorage.getItem('pending_raffles_prem_payment') || '0', 10);
+                if (!pendingTs || (Date.now() - pendingTs > 600000) || attempts > 60) {
+                    clearInterval(paymentPollTimer);
+                    paymentPollTimer = null;
+                    return;
+                }
+                if (!document.hidden) {
+                    await syncPremiumStatusFromServer(false);
+                }
+            }, 3000);
+        }
+
+        // Проверяем возврат на вкладку после оплаты в браузере или по редиректу ?paid=1 / ?paid=0
+        function initPaymentReturnHandlers() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paidParam = urlParams.get('paid');
+
+            if (paidParam === '1') {
+                localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setTimeout(() => syncPremiumStatusFromServer(true), 300);
+                startPaymentReturnWatcher();
+            } else if (paidParam === '0') {
+                localStorage.removeItem('pending_raffles_prem_payment');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setTimeout(() => {
+                    showModal('error', 'Оплата не завершена', 'Платеж был отменен. Вы можете повторить попытку в любой момент.');
+                }, 300);
+            } else if (localStorage.getItem('pending_raffles_prem_payment')) {
+                const pendingTs = parseInt(localStorage.getItem('pending_raffles_prem_payment') || '0', 10);
+                if (Date.now() - pendingTs < 600000) {
+                    setTimeout(() => syncPremiumStatusFromServer(false), 400);
+                    startPaymentReturnWatcher();
+                } else {
+                    localStorage.removeItem('pending_raffles_prem_payment');
+                }
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && localStorage.getItem('pending_raffles_prem_payment')) {
+                    syncPremiumStatusFromServer(false);
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                if (localStorage.getItem('pending_raffles_prem_payment')) {
+                    syncPremiumStatusFromServer(false);
+                }
+            });
+        }
+
         async function buyRafflesPremium() {
             const btn = document.getElementById('buy-prem-btn');
             const oldText = btn.innerHTML;
@@ -1404,15 +1514,36 @@
                 const res = await fetch('/api/v1/payment/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg.initData, action_type: 'raffles_premium' })
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        action_type: 'raffles_premium',
+                        return_origin: window.location.origin
+                    })
                 });
                 const ans = await res.json();
                 if (res.ok && ans.url) {
+                    localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
+                    localStorage.setItem('prev_raffles_free_passes', String(userFreePasses));
+                    localStorage.setItem('prev_raffles_prem_until', String(userPremiumUntil || ''));
+                    try { sessionStorage.removeItem('__hl_fast_api_cache__'); } catch (e) {}
+
                     closePremiumModal();
-                    if (tg.openLink) { tg.openLink(ans.url); } else { window.location.href = ans.url; }
-                } else { showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку')); }
-            } catch (e) { showModal('error', 'Ошибка', 'Проверьте интернет-соединение'); } 
-            finally { btn.innerHTML = oldText; btn.disabled = false; }
+                    startPaymentReturnWatcher();
+
+                    if (tg && tg.openLink) {
+                        tg.openLink(ans.url);
+                    } else {
+                        window.location.href = ans.url;
+                    }
+                } else {
+                    showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку'));
+                }
+            } catch (e) {
+                showModal('error', 'Ошибка', 'Проверьте интернет-соединение');
+            } finally {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
         }
 
         function switchTab(tabName) {
@@ -1481,17 +1612,27 @@
             updateTimers();
         }, 1000);
 
-        async function load() {
+        async function load(bypassCache = false) {
             const payload = JSON.stringify({ initData: tg.initData });
             const reqHeaders = { 'Content-Type': 'application/json' };
 
             // Синхронная загрузка розыгрышей и профиля в один цикл без двойного рендера
             const [rafflesResult, userResult] = await Promise.allSettled([
-                fetch('/api/v1/raffles/active', { method: 'POST', headers: reqHeaders, body: payload }).then(r => {
+                fetch('/api/v1/raffles/active', {
+                    method: 'POST',
+                    headers: reqHeaders,
+                    body: payload,
+                    __bypassFastCache: bypassCache
+                }).then(r => {
                     if (!r.ok) throw new Error('Raffles fetch error');
                     return r.json();
                 }),
-                fetch('/api/v1/user/me', { method: 'POST', headers: reqHeaders, body: payload }).then(r => {
+                fetch('/api/v1/user/me', {
+                    method: 'POST',
+                    headers: reqHeaders,
+                    body: payload,
+                    __bypassFastCache: bypassCache
+                }).then(r => {
                     if (!r.ok) throw new Error('User fetch error');
                     return r.json();
                 })
@@ -1885,7 +2026,7 @@
                     } else {
                         showModal('success', 'Успех', cleanMsg);
                     }
-                    load(); 
+                    load(true); 
                 } else {
                     if (tg && tg.HapticFeedback) {
                         try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
@@ -1962,6 +2103,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkPremiumBannerVisibility();
             initPullToRefresh();
+            initPaymentReturnHandlers();
         });
         load();
     </script>
