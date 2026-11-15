@@ -60,21 +60,21 @@
             will-change: transform;
         }
         #pull-to-refresh i {
-            font-size: 20px; color: var(--primary-purple-light);
+            font-size: 16px; color: var(--primary-purple-light);
             transition: opacity 0.2s, transform 0.2s;
             text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
         }
 
         /* === ПРЕМИУМ GLASS-БАННЕР === */
         .premium-banner {
-            border-radius: 14px;
-            padding: 9px 10px 9px 12px;
-            margin-bottom: 8px;
+            border-radius: 13px;
+            padding: 8px 9px 8px 11px;
+            margin-bottom: 7px;
             background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(15, 15, 20, 0.78) 55%, rgba(109, 40, 217, 0.25) 100%);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(192, 132, 252, 0.35);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(124, 58, 237, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(192, 132, 252, 0.32);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 14px rgba(124, 58, 237, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -82,11 +82,12 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            animation: fadeUpIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         .premium-banner.active-sub {
             background: linear-gradient(135deg, rgba(52, 199, 89, 0.18) 0%, rgba(15, 15, 20, 0.82) 60%, rgba(52, 199, 89, 0.14) 100%);
-            border-color: rgba(52, 199, 89, 0.45);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(52, 199, 89, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+            border-color: rgba(52, 199, 89, 0.42);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 14px rgba(52, 199, 89, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.16);
         }
         .prem-left {
             display: flex;
@@ -96,7 +97,7 @@
             z-index: 1;
         }
         .prem-desc {
-            font-size: 11.5px;
+            font-size: 10.5px;
             font-weight: 600;
             color: #ffffff;
             line-height: 1.25;
@@ -105,7 +106,7 @@
         .prem-actions {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             z-index: 1;
             flex-shrink: 0;
         }
@@ -114,105 +115,109 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             color: #ffffff;
-            border: 1px solid rgba(196, 181, 253, 0.5);
-            padding: 6px 10px;
-            border-radius: 9px;
-            font-size: 11px;
+            border: 1px solid rgba(196, 181, 253, 0.48);
+            padding: 5px 9px;
+            border-radius: 8px;
+            font-size: 10px;
             font-weight: 700;
             white-space: nowrap;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            box-shadow: 0 0 12px rgba(139, 92, 246, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            transition: transform 0.1s ease;
+            gap: 4px;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.28);
+            transition: transform 0.12s ease;
         }
-        .prem-btn:active { transform: scale(0.95); }
+        .prem-btn:active { transform: scale3d(0.95, 0.95, 1); }
         .prem-btn.active-badge {
             background: linear-gradient(135deg, rgba(52, 199, 89, 0.3) 0%, rgba(16, 185, 129, 0.18) 100%);
             border-color: rgba(74, 222, 128, 0.5);
             color: #4ade80;
-            box-shadow: 0 0 12px rgba(52, 199, 89, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            box-shadow: 0 0 12px rgba(52, 199, 89, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.2);
         }
         .prem-close-btn {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.07);
             color: #e4e4e7;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            width: 24px;
-            height: 24px;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
             padding: 0;
+            transition: transform 0.12s ease;
         }
-        .prem-close-btn:active { transform: scale(0.9); color: #fff; }
+        .prem-close-btn:active { transform: scale3d(0.9, 0.9, 1); color: #fff; }
 
         /* === СТРОКА СТАТИСТИКИ + ТОП ПОБЕДИТЕЛЕЙ === */
         .stats-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(18, 18, 24, 0.75);
+            background: rgba(18, 18, 24, 0.72);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 7px 10px 7px 12px;
-            margin-bottom: 8px;
-            font-size: 11.5px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-radius: 11px;
+            padding: 6px 9px 6px 11px;
+            margin-bottom: 7px;
+            font-size: 10.5px;
             color: var(--text-secondary);
             cursor: pointer;
+            animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
         }
         .stats-left {
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
             font-weight: 600;
             color: #ffffff;
         }
         .stats-left i {
             color: var(--gold);
-            font-size: 12px;
-            filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+            font-size: 10.5px;
+            filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
         }
         .stats-count {
             color: var(--primary-purple-light);
             font-weight: 800;
-            font-size: 12.5px;
-            margin-left: 2px;
+            font-size: 11px;
+            margin-left: 1px;
             font-variant-numeric: tabular-nums;
         }
         .stats-right {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
         .top-winners-btn {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(85, 22, 183, 0.18) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(85, 22, 183, 0.2) 100%);
             border: 1px solid rgba(192, 132, 252, 0.38);
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
             color: #ffffff;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 10.5px;
+            border-radius: 7px;
+            padding: 3.5px 7px;
+            font-size: 9.5px;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             cursor: pointer;
+            transition: transform 0.12s ease;
         }
-        .top-winners-btn i { color: var(--gold); font-size: 10px; }
+        .top-winners-btn:active { transform: scale3d(0.95, 0.95, 1); }
+        .top-winners-btn i { color: var(--gold); font-size: 9px; }
         .restore-prem-pill {
             background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(217, 119, 6, 0.15) 100%);
             border: 1px solid rgba(251, 191, 36, 0.4);
             color: #fde68a;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 10.5px;
+            border-radius: 7px;
+            padding: 3.5px 7px;
+            font-size: 9.5px;
             font-weight: 700;
             cursor: pointer;
             display: none;
@@ -223,17 +228,19 @@
         /* === КОМПАКТНЫЕ GLASS-ТАБЫ === */
         .tabs-bar {
             display: flex; align-items: center;
-            background: rgba(18, 18, 24, 0.7); 
+            background: rgba(18, 18, 24, 0.68); 
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px; padding: 3px; margin-bottom: 10px; gap: 4px;
+            border-radius: 11px; padding: 3px; margin-bottom: 9px; gap: 4px;
+            animation: fadeUpIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
         }
         .tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            gap: 6px; padding: 7px 6px; border-radius: 9px; font-size: 11.5px; font-weight: 700;
+            gap: 5px; padding: 6px 6px; border-radius: 8px; font-size: 10.5px; font-weight: 700;
             color: var(--text-muted); background: transparent; border: 1px solid transparent; cursor: pointer;
-            transition: all 0.15s ease;
+            transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
         }
-        .tab-btn i { font-size: 11px; }
+        .tab-btn:active { transform: scale3d(0.97, 0.97, 1); }
+        .tab-btn i { font-size: 10px; }
         .tab-btn.active {
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.28) 100%);
             border-color: rgba(196, 181, 253, 0.4);
@@ -241,35 +248,36 @@
             color: #ffffff;
         }
         .tab-counter {
-            background: rgba(255, 255, 255, 0.18); color: #ffffff; font-size: 9.5px;
-            padding: 1px 6px; border-radius: 6px; min-width: 14px; text-align: center;
+            background: rgba(255, 255, 255, 0.18); color: #ffffff; font-size: 8.5px;
+            padding: 1px 5px; border-radius: 5px; min-width: 13px; text-align: center;
         }
 
         /* === КАРТОЧКА РОЗЫГРЫША (3 ШТУКИ НА ЭКРАН + БОЛЬШОЙ СКИН + ЧЕРНЫЙ БЛЮР) === */
         .card { 
             position: relative;
             overflow: hidden;
-            border-radius: 15px; 
-            margin-bottom: 9px; 
+            border-radius: 14px; 
+            margin-bottom: 8px; 
             background-color: var(--card);
             background-image: var(--card-bg-img);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.09); 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.09);
             display: flex;
             flex-direction: column;
             contain: content;
             content-visibility: auto;
-            contain-intrinsic-size: 140px;
+            contain-intrinsic-size: 132px;
+            animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        /* Черный блюр поверх фоновой картинки — никаких отдельных фонов под текстом */
+        /* Черный блюр поверх фоновой картинки */
         .card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, rgba(6, 6, 9, 0.90) 0%, rgba(8, 8, 12, 0.78) 54%, rgba(10, 10, 15, 0.35) 100%);
+            background: linear-gradient(90deg, rgba(6, 6, 9, 0.90) 0%, rgba(8, 8, 12, 0.78) 54%, rgba(10, 10, 15, 0.32) 100%);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             pointer-events: none;
@@ -277,13 +285,13 @@
         }
         .card.hidden-tab { display: none; }
 
-        /* Скин оружия — КРУПНЫЙ и находится на уровне фона (z-index: 1), НЕ перекрывая рамки */
+        /* Скин оружия на уровне фона (z-index: 1) */
         .prize-img-wrapper { 
             position: absolute;
             top: 2px;
             right: -6px; 
-            width: 185px;
-            height: 118px;
+            width: 180px;
+            height: 112px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -293,102 +301,103 @@
         .card.done .prize-img-wrapper {
             top: 50%;
             right: -4px;
-            width: 175px;
-            height: 106px;
+            width: 170px;
+            height: 100px;
             transform: translateY(-50%);
         }
         .prize-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transform: rotate(-4deg) scale(1.06) translateZ(0);
-            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.75));
+            transform: rotate(-4deg) scale(1.05) translateZ(0);
+            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.75));
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Контент карточки строго поверх скина (z-index: 2) */
+        /* Контент карточки поверх скина (z-index: 2) */
         .card_content {
-            padding: 10px 12px;
+            padding: 9px 11px;
             position: relative;
             z-index: 2;
             display: flex;
             flex-direction: column;
         }
         .card.done .card_content {
-            min-height: 92px;
+            min-height: 84px;
             justify-content: center;
         }
 
-        /* Верхняя строка: метка розыгрыша без лишнего фона */
+        /* Верхняя метка розыгрыша */
         .r-label { 
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            font-size: 9px;
+            gap: 4px;
+            font-size: 8px;
             font-weight: 800;
             color: var(--primary-purple-light);
             text-transform: uppercase;
             letter-spacing: 0.4px;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
         }
         .r-label-dot {
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--primary-purple-light);
-            box-shadow: 0 0 6px var(--primary-purple-light);
+            box-shadow: 0 0 5px var(--primary-purple-light);
         }
 
         .r-title {
-            font-size: 14.5px;
+            font-size: 12.5px;
             font-weight: 800;
             color: #ffffff;
-            margin: 0 0 5px 0;
+            margin: 0 0 4px 0;
             line-height: 1.15;
             max-width: 60%;
-            letter-spacing: -0.2px;
+            letter-spacing: -0.15px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
         }
 
-        /* Условия — чистый контрастный текст прямо на черном блюре без рамок и фонов */
+        /* Условия — аккуратный мелкий текст прямо на черном блюре */
         .conditions {
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
-            column-gap: 10px;
-            row-gap: 3px;
-            margin-bottom: 5px;
+            column-gap: 9px;
+            row-gap: 2px;
+            margin-bottom: 4px;
             max-width: 60%;
         }
         .cond-row {
-            font-size: 10.5px;
+            font-size: 9.5px;
             color: var(--text-secondary);
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 3.5px;
             font-weight: 600;
             line-height: 1.2;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .cond-row b {
             color: #ffffff;
-            font-weight: 800;
+            font-weight: 700;
         }
         .cond-row i {
             color: var(--primary-purple-light);
-            font-size: 9.5px;
+            font-size: 8.5px;
         }
 
-        /* Строка "Участники | Шанс" без тяжелых подложек */
+        /* Строка "Участники | Шанс" */
         .participants-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-            font-size: 10.5px;
+            gap: 7px;
+            margin-bottom: 5px;
+            font-size: 9.5px;
             color: var(--text-secondary);
             font-weight: 600;
             max-width: 60%;
@@ -396,12 +405,12 @@
         }
         .participants-info b {
             color: #ffffff;
-            font-weight: 800;
+            font-weight: 700;
         }
         .chance-badge {
             color: var(--gold);
-            font-size: 10.5px;
-            font-weight: 800;
+            font-size: 9.5px;
+            font-weight: 700;
             display: inline-flex;
             align-items: center;
             gap: 3px;
@@ -414,15 +423,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-top: 6px;
-            border-top: 1px solid rgba(255, 255, 255, 0.09);
+            padding-top: 5px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             gap: 8px;
         }
 
-        .timer_row { display: flex; align-items: center; gap: 8px; margin: 0; }
+        .timer_row { display: flex; align-items: center; gap: 7px; margin: 0; }
         .timer_item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .timer_val {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 800;
             color: #ffffff;
             line-height: 1;
@@ -430,15 +439,15 @@
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
         }
         .timer_lbl {
-            font-size: 8.5px;
+            font-size: 7.5px;
             color: var(--text-secondary);
-            margin-top: 2px;
+            margin-top: 1.5px;
             font-weight: 600;
         }
         .timer-divider {
             width: 1px;
-            height: 12px;
-            background: rgba(255, 255, 255, 0.18);
+            height: 10px;
+            background: rgba(255, 255, 255, 0.16);
             margin: 0 1px;
         }
 
@@ -451,38 +460,38 @@
 
         /* Кнопка Участвовать (Премиум Glass с легким подсвечиванием) */
         .btn-main {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.42) 0%, rgba(109, 40, 217, 0.28) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.44) 0%, rgba(109, 40, 217, 0.3) 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
             border: 1px solid rgba(196, 181, 253, 0.5);
-            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            padding: 7px 12px;
-            border-radius: 10px;
-            font-size: 11px;
+            box-shadow: 0 3px 12px rgba(124, 58, 237, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            padding: 6px 11px;
+            border-radius: 9px;
+            font-size: 10px;
             font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
             white-space: nowrap;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-            transition: transform 0.1s ease, box-shadow 0.15s ease;
+            transition: transform 0.12s ease, box-shadow 0.15s ease;
         }
-        .btn-main:active { transform: scale(0.95); }
+        .btn-main:active { transform: scale3d(0.95, 0.95, 1); }
         .btn-main.joined {
             background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%);
             border-color: rgba(74, 222, 128, 0.5);
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            box-shadow: 0 3px 10px rgba(52, 199, 89, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
             color: #4ade80;
             cursor: default;
         }
-        .btn-main i { font-size: 10.5px; }
+        .btn-main i { font-size: 9.5px; }
 
         .user-tickets-info {
             text-align: right;
-            font-size: 9.5px;
+            font-size: 8.5px;
             color: var(--text-secondary);
             font-weight: 600;
             line-height: 1;
@@ -490,37 +499,32 @@
         }
         .user-tickets-info b { color: var(--primary-purple-light); }
 
-        /* Блок победителя в завершенных — аккуратно слева, не пересекается с большим скином справа */
+        /* Победитель в завершенных — без рамочного фона, чистый текст поверх черного блюра */
         .winner_box { 
             margin-top: 2px;
             max-width: 56%;
-            background: rgba(15, 15, 20, 0.65);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: 10px; 
-            padding: 6px 10px;
-            border: 1px solid rgba(251, 191, 36, 0.28); 
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 2px 0 0 0;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 8px;
+             gap: 6px;
         }
         .w-title {
-            font-size: 8.5px;
+            font-size: 7.5px;
             color: var(--gold);
             text-transform: uppercase;
             font-weight: 800;
             margin-bottom: 1px;
             letter-spacing: 0.4px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .w-user {
-            font-size: 12px;
-            font-weight: 800;
+            font-size: 10.5px;
+            font-weight: 700;
             color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
 
         .bottom-spacer { height: 80px; width: 100%; pointer-events: none; }
@@ -533,67 +537,121 @@
             position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
             padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
         }
-        .footer-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #a1a1aa; text-decoration: none; flex: 1; font-size: 10px; }
-        .footer-item .icon-wrapper { font-size: 22px; }
+        .footer-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #a1a1aa; text-decoration: none; flex: 1; font-size: 9.5px; }
+        .footer-item .icon-wrapper { font-size: 20px; }
 
         .hidden { display: none !important; }
         
-        /* === МОДАЛКИ (GLASS DESIGN) === */
+        /* === ДИАЛОГОВЫЕ ОКНА (ТОЛЬКО ЧЕРНЫЙ БЛЮР, ТЕКСТ И GLASS-КНОПКИ БЕЗ РАМОЧНЫХ ФОНОВ) === */
         .modal-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.82);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            z-index: 3000; display: none; align-items: center; justify-content: center; 
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.86);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: overlayFade 0.18s ease-out forwards;
         }
         .modal-box { 
-            background: linear-gradient(160deg, rgba(24, 24, 32, 0.95) 0%, rgba(14, 14, 18, 0.98) 100%);
-            width: 88%; max-width: 340px; border-radius: 20px; padding: 22px 18px; 
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.12); 
-            animation: zoom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 20px 45px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.15);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            width: 86%;
+            max-width: 300px;
+            padding: 10px 6px; 
+            text-align: center;
+            animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            will-change: transform, opacity;
         }
         .modal-icon-badge {
-            width: 52px; height: 52px; border-radius: 14px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(109, 40, 217, 0.15) 100%);
-            border: 1px solid rgba(196, 181, 253, 0.35);
-            box-shadow: 0 0 16px rgba(139, 92, 246, 0.25);
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 12px; font-size: 22px; color: var(--primary-purple-light);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 24px;
+            color: var(--primary-purple-light);
+            filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.5));
         }
-        .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+        .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
         .m-btn-confirm {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.35) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.32) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(196, 181, 253, 0.5);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
-            color: #fff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.28);
+            color: #fff; flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 11px;
+            transition: transform 0.12s ease;
         }
+        .m-btn-confirm:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-cancel {
-            background: rgba(255,255,255,0.06); color: var(--text-secondary);
-            border: 1px solid rgba(255,255,255,0.1); flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
+            flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px;
+            transition: transform 0.12s ease;
         }
+        .m-btn-cancel:active { transform: scale3d(0.96, 0.96, 1); }
         
-        .m-head { font-size: 19px; font-weight: 800; margin-bottom: 8px; color: #fff; }
-        .m-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.45; }
-        .m-btn { 
-            background: rgba(255,255,255,0.06); color: #fff;
-            border: 1px solid rgba(255,255,255,0.1); width: 100%; 
-            padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-bottom: 8px;
-            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        .m-head {
+            font-size: 14.5px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: #ffffff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
         }
+        .m-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            line-height: 1.45;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+        }
+        .m-btn { 
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+            width: 100%; 
+            padding: 9px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            margin-bottom: 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: transform 0.12s ease;
+        }
+        .m-btn:active { transform: scale3d(0.96, 0.96, 1); }
         .m-btn-primary {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.35) 100%);
-            border: 1px solid rgba(196, 181, 253, 0.5);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.28);
-            color: #fff; font-weight: 700;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.34) 100%);
+            border: 1px solid rgba(196, 181, 253, 0.52);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-weight: 700;
         }
 
-        /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ */
+        /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ (БЕЗ РАМОЧНЫХ ФОНОВ) */
         .leaders-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            max-height: 260px;
+            gap: 2px;
+            max-height: 230px;
             overflow-y: auto;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             text-align: left;
             padding-right: 2px;
         }
@@ -601,42 +659,39 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 10px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 6px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
         }
         .leader-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
             min-width: 0;
         }
         .leader-rank {
-            width: 22px; height: 22px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-secondary);
-            font-size: 11px;
+            width: 18px;
+            color: var(--text-muted);
+            font-size: 10px;
             font-weight: 800;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
-        .leader-row.rank-1 .leader-rank { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
-        .leader-row.rank-2 .leader-rank { background: rgba(228, 228, 231, 0.2); color: #f4f4f5; border: 1px solid rgba(228, 228, 231, 0.35); }
-        .leader-row.rank-3 .leader-rank { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.35); }
+        .leader-row.rank-1 .leader-rank { color: #fbbf24; }
+        .leader-row.rank-2 .leader-rank { color: #f4f4f5; }
+        .leader-row.rank-3 .leader-rank { color: #f59e0b; }
         .leader-name {
-            font-size: 12.5px;
+            font-size: 11px;
             font-weight: 700;
             color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
         }
         .leader-wins {
-            font-size: 11.5px;
+            font-size: 10px;
             font-weight: 800;
             color: var(--primary-purple-light);
             white-space: nowrap;
@@ -646,30 +701,47 @@
         }
 
         /* АНИМАЦИИ И ЛОАДЕРЫ */
-        .icon-container { width: 60px; height: 60px; margin: 0 auto 12px; position: relative; }
-        .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--accent-green); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
-        .checkmark { width: 60px; height: 60px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 10% auto; box-shadow: inset 0px 0px 0px var(--accent-green); animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
-        .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
-        .cross-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--danger); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
-        .cross { width: 60px; height: 60px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 10% auto; box-shadow: inset 0px 0px 0px var(--danger); animation: fill-red .4s ease-in-out .4s forwards, shake .3s ease-in-out .9s both; }
-        .cross-path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+        .icon-container { width: 42px; height: 42px; margin: 0 auto 8px; position: relative; }
+        .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--accent-green); fill: none; animation: stroke 0.5s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .checkmark { width: 42px; height: 42px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--accent-green); animation: fill .35s ease-in-out .35s forwards, scale .25s ease-in-out .75s both; }
+        .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.25s cubic-bezier(0.65, 0, 0.45, 1) 0.65s forwards; }
+        .cross-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--danger); fill: none; animation: stroke 0.5s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .cross { width: 42px; height: 42px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--danger); animation: fill-red .35s ease-in-out .35s forwards, shake .25s ease-in-out .75s both; }
+        .cross-path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.25s cubic-bezier(0.65, 0, 0.45, 1) 0.65s forwards; }
 
         .verify-modal-content {
-            background: var(--card); padding: 24px 30px; border-radius: 20px; text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7); animation: zoom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 16px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .verify-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.08); border-top: 3px solid var(--primary-purple-light); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
-        .verify-text { font-size: 16px; font-weight: 700; color: #fff; margin: 0; }
-        .verify-subtext { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 4px; }
+        .verify-loader { width: 28px; height: 28px; border: 2.5px solid rgba(255,255,255,0.1); border-top: 2.5px solid var(--primary-purple-light); border-radius: 50%; animation: spin 0.85s linear infinite; margin: 0 auto 10px; }
+        .verify-text { font-size: 13px; font-weight: 700; color: #fff; margin: 0; }
+        .verify-subtext { font-size: 10.5px; color: var(--text-secondary); font-weight: 500; margin-top: 3px; }
 
+        @keyframes fadeUpIn {
+            0% { opacity: 0; transform: translate3d(0, 10px, 0); }
+            100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        @keyframes overlayFade {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        @keyframes modalPop {
+            0% { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); }
+            100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+        }
         @keyframes stroke { 100% { stroke-dashoffset: 0; } }
-        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
-        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 50px var(--accent-green); } }
-        @keyframes fill-red { 100% { box-shadow: inset 0px 0px 0px 50px var(--danger); } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.08, 1.08, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 40px var(--accent-green); } }
+        @keyframes fill-red { 100% { box-shadow: inset 0px 0px 0px 40px var(--danger); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes shake { 0%, 100% {transform: translateX(0);} 10%, 30%, 50%, 70%, 90% {transform: translateX(-5px);} 20%, 40%, 60%, 80% {transform: translateX(5px);} }
-        @keyframes zoom { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 20%, 60% {transform: translateX(-4px);} 40%, 80% {transform: translateX(4px);} }
         .fa-spin { animation: spin 1s linear infinite !important; }
     </style>
 </head>
@@ -728,40 +800,40 @@
 
         <!-- СПИСОК КАРТОЧЕК -->
         <div id="list">
-            <div style="text-align:center; margin-top:40px; color:var(--text-secondary);">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+            <div style="text-align:center; margin-top:36px; color:var(--text-secondary);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:18px;"></i>
             </div>
         </div>
 
         <div id="close-btn-container" class="close-container hidden" style="position: fixed; bottom: 80px; width: 100%; text-align: center; z-index: 99; left: 0;">
-            <button class="btn-main" style="width: auto; padding: 10px 30px;" onclick="tg.close()">Закрыть</button>
+            <button class="btn-main" style="width: auto; padding: 8px 24px;" onclick="tg.close()">Закрыть</button>
         </div>
     </main>
 
     <script src="/top_nav.js" defer></script>
     <script src="/bottom-nav.js"></script>
 
-    <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ -->
+    <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ (БЕЗ РАМОК) -->
     <div id="top-winners-modal" class="modal-overlay" onclick="if(event.target===this) closeTopWinnersModal()">
         <div class="modal-box">
-            <div class="modal-icon-badge" style="color: var(--gold); border-color: rgba(251, 191, 36, 0.4);">
+            <div class="modal-icon-badge" style="color: var(--gold);">
                 <i class="fa-solid fa-trophy"></i>
             </div>
             <div class="m-head">Топ победителей</div>
-            <div class="m-desc" style="margin-bottom: 12px;">Лидеры по количеству выигранных скинов в раздачах</div>
+            <div class="m-desc" style="margin-bottom: 10px;">Лидеры по количеству выигранных скинов</div>
             <div id="top-winners-list" class="leaders-list"></div>
             <button class="m-btn" onclick="closeTopWinnersModal()">Закрыть</button>
         </div>
     </div>
 
-    <!-- МОДАЛКА СПИСАНИЯ БИЛЕТОВ -->
-    <div id="confirm-modal" class="modal-overlay">
+    <!-- МОДАЛКА СПИСАНИЯ БИЛЕТОВ (БЕЗ РАМОК) -->
+    <div id="confirm-modal" class="modal-overlay" onclick="if(event.target===this) closeConfirm()">
         <div class="modal-box">
             <div class="modal-icon-badge">
                 <i class="fa-solid fa-ticket"></i>
             </div>
-            <div style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: #fff;">Подтвердите вход</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px; font-size: 13px;">Списать <b id="ticket-price" style="color:#fff">--</b> билетов за участие?</div>
+            <div class="m-head">Подтвердите вход</div>
+            <div class="m-desc">Списать <b id="ticket-price" style="color:#fff">--</b> билетов за участие?</div>
             <div class="modal-btns">
                 <button class="m-btn-cancel" onclick="closeConfirm()">Отмена</button>
                 <button class="m-btn-confirm" id="confirm-join-btn">Подтвердить</button>
@@ -769,24 +841,24 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА ПРЕМИУМ-ДОСТУПА -->
-    <div id="premium-modal" class="modal-overlay">
+    <!-- МОДАЛКА ПРЕМИУМ-ДОСТУПА (БЕЗ РАМОК) -->
+    <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
         <div class="modal-box">
             <div class="modal-icon-badge">
                 <i class="fa-solid fa-bolt"></i>
             </div>
             <div class="m-head">Премиум-доступ</div>
-            <div class="m-desc" id="prem-modal-desc" style="text-align: left; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08);">
-                <div style="margin-bottom: 8px; color: #fff; font-weight: 700;">Привилегия на 30 дней:</div>
-                <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-bolt" style="color:var(--primary-purple-light); width:14px;"></i>
+            <div class="m-desc" id="prem-modal-desc" style="text-align: left; padding: 4px 2px; margin-bottom: 14px;">
+                <div style="margin-bottom: 6px; color: #fff; font-weight: 700; font-size: 11px;">Привилегия на 30 дней:</div>
+                <div style="margin-bottom: 5px; display:flex; align-items:center; gap:7px;">
+                    <i class="fa-solid fa-bolt" style="color:var(--primary-purple-light); width:12px; font-size:10px;"></i>
                     <span><b>Авто-участие:</b> бот сам добавляет вас.</span>
                 </div>
-                <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-ticket" style="color:var(--accent-green); width:14px;"></i>
+                <div style="margin-bottom: 5px; display:flex; align-items:center; gap:7px;">
+                    <i class="fa-solid fa-ticket" style="color:var(--accent-green); width:12px; font-size:10px;"></i>
                     <span><b>4 пропуска:</b> участие без условий.</span>
                 </div>
-                <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+                <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 8px;">
                     Стоимость: <b style="color: var(--gold);">100 ₽</b> на 30 дней
                 </div>
             </div>
@@ -797,8 +869,8 @@
         </div>
     </div>
 
-    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА -->
-    <div id="modal" class="modal-overlay">
+    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА (БЕЗ РАМОК) -->
+    <div id="modal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
         <div class="modal-box">
             <div id="modal-icon" class="icon-container"></div>
             <div class="m-head" id="m-head"></div>
@@ -806,8 +878,8 @@
             <button id="btn-profile" class="m-btn m-btn-primary" style="display:none;" onclick="location.href='/profile'">
                 <i class="fa-solid fa-sliders"></i> Настроить профиль
             </button>
-            <button id="btn-bp" class="m-btn m-btn-primary" style="display:none; background: var(--gold); color: #000; border:none;" onclick="location.href='/checkpoint'">
-                <i class="fa-solid fa-star"></i> Открыть Battle Pass
+            <button id="btn-bp" class="m-btn m-btn-primary" style="display:none; background: linear-gradient(135deg, rgba(251, 191, 36, 0.45) 0%, rgba(217, 119, 6, 0.3) 100%); border-color: rgba(251, 191, 36, 0.5); color: #fff;" onclick="location.href='/checkpoint'">
+                <i class="fa-solid fa-star" style="color:var(--gold);"></i> Открыть Battle Pass
             </button>
             <button class="m-btn" onclick="document.getElementById('modal').style.display='none'">Понятно</button>
         </div>
@@ -879,7 +951,7 @@
             const listEl = document.getElementById('top-winners-list');
             if (listEl) {
                 if (!topWinnersData.length) {
-                    listEl.innerHTML = '<div style="text-align:center; padding: 18px 0; color:var(--text-muted); font-size:12.5px;">Статистика победителей формируется</div>';
+                    listEl.innerHTML = '<div style="text-align:center; padding: 14px 0; color:var(--text-muted); font-size:11px;">Статистика победителей формируется</div>';
                 } else {
                     let html = '';
                     topWinnersData.forEach((item, idx) => {
@@ -889,11 +961,11 @@
                         html += `
                             <div class="leader-row ${rankClass}">
                                 <div class="leader-left">
-                                    <span class="leader-rank">${rank}</span>
+                                    <span class="leader-rank">#${rank}</span>
                                     <span class="leader-name">${escapeHtml(item.name)}</span>
                                 </div>
                                 <div class="leader-wins">
-                                    <i class="fa-solid fa-award"></i>
+                                    <i class="fa-solid fa-award" style="font-size:9.5px;"></i>
                                     <span>${item.wins} ${winWord}</span>
                                 </div>
                             </div>
@@ -990,9 +1062,9 @@
             if (userHasRafflesPremium) {
                 const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
                 banner.classList.add('active-sub');
-                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#4ade80; margin-right:5px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
+                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#4ade80; margin-right:4px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
                 actionBtn.className = 'prem-btn active-badge';
-                actionBtn.innerHTML = `<i class="fa-solid fa-ticket"></i> ${userFreePasses}`;
+                actionBtn.innerHTML = `<i class="fa-solid fa-ticket" style="font-size:9px;"></i> ${userFreePasses}`;
                 if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Продлить (+30 дней) • 100 ₽';
             } else {
                 banner.classList.remove('active-sub');
@@ -1030,14 +1102,18 @@
             const activeBtn = document.getElementById('tab-' + tabName);
             if (activeBtn) activeBtn.classList.add('active');
 
+            let visibleIndex = 0;
             document.querySelectorAll('.card').forEach(card => {
                 const isCompleted = card.classList.contains('done');
-                if (tabName === 'active') {
-                    if (isCompleted) card.classList.add('hidden-tab');
-                    else card.classList.remove('hidden-tab');
-                } else if (tabName === 'completed') {
-                    if (!isCompleted) card.classList.add('hidden-tab');
-                    else card.classList.remove('hidden-tab');
+                const shouldShow = (tabName === 'active' && !isCompleted) || (tabName === 'completed' && isCompleted);
+                if (shouldShow) {
+                    card.classList.remove('hidden-tab');
+                    card.style.animation = 'none';
+                    void card.offsetWidth;
+                    card.style.animation = `fadeUpIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(visibleIndex * 30, 210)}ms both`;
+                    visibleIndex++;
+                } else {
+                    card.classList.add('hidden-tab');
                 }
             });
 
@@ -1065,7 +1141,7 @@
                 const diff = item.endTime - now;
                 if (diff <= 0) {
                     if (!item.expired) {
-                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:800; font-size:11px;">ЗАВЕРШАЕТСЯ...</span>';
+                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:800; font-size:10px;">ЗАВЕРШАЕТСЯ...</span>';
                         item.expired = true;
                     }
                     continue;
@@ -1096,7 +1172,7 @@
                 renderAll(Array.isArray(data) ? data : []);
                 checkDeepLink(); 
             } catch(e) {
-                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-secondary);">Ошибка сети</p>';
+                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11.5px; color:var(--text-secondary);">Ошибка сети</p>';
             }
         }
 
@@ -1142,6 +1218,8 @@
 
             const sortedData = [...activeRaffles, ...completedRaffles];
             let htmlBuffer = '';
+            let activeIdx = 0;
+            let completedIdx = 0;
 
             sortedData.forEach(r => {
                 const done = r.status === 'completed';
@@ -1187,12 +1265,12 @@
 
                 if (!done) {
                     if (isTwitch) {
-                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i></button>`;
+                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></button>`;
                         ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
                     } else {
-                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i>`;
+                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
                         if (!r.is_joined && s.ticket_cost > 0) {
-                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i>`;
+                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
                             ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
                         }
                         btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
@@ -1207,7 +1285,7 @@
                     pTextFinal = `
                         <div class="participants-info">
                             <span><b>${pCount}</b> ${getPlural(pCount, ['участник', 'участника', 'участников'])}</span>
-                            <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:9px; opacity:0.8;"></i></span>
+                            <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt" style="font-size:8.5px;"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:8px; opacity:0.8;"></i></span>
                         </div>
                     `;
                 } else if (!done && pCount === 0) {
@@ -1219,7 +1297,7 @@
                     const wName = escapeHtml(r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель');
                     winnerBoxContent = `<div class="w-user">${wName}</div>`;
                 } else {
-                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:10px;"></i>Выбор победителя...</div>`;
+                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:9px;"></i>Выбор победителя...</div>`;
                 }
 
                 let timerBlock = '';
@@ -1234,14 +1312,16 @@
                                 <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">сек</span></div>
                             </div>`;
                     } else if (isTwitch) {
-                        timerBlock = `<div style="font-size:11px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
+                        timerBlock = `<div style="font-size:10px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                     }
                 }
 
                 const isHidden = (currentTab === 'active' && done) || (currentTab === 'completed' && !done);
+                const staggerIdx = done ? completedIdx++ : activeIdx++;
+                const delayMs = Math.min(staggerIdx * 35, 240);
 
                 htmlBuffer += `
-                <div class="card ${done ? 'done' : ''} ${isHidden ? 'hidden-tab' : ''}">
+                <div class="card ${done ? 'done' : ''} ${isHidden ? 'hidden-tab' : ''}" style="animation-delay:${delayMs}ms;">
                     <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
                     <div class="card_content">
                         <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
@@ -1259,8 +1339,8 @@
                             </div>
                         ` : `
                             <div class="winner_box">
+                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:12px; flex-shrink:0;"></i>
                                 <div style="min-width:0;"><div class="w-title">Победитель</div>${winnerBoxContent}</div>
-                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:15px; flex-shrink:0;"></i>
                             </div>
                         `}
                     </div>
@@ -1268,10 +1348,10 @@
             });
 
             if (activeRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-secondary); font-size:13px;"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>Активных розыгрышей пока нет</div>`;
+                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11.5px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Активных розыгрышей пока нет</div>`;
             }
             if (completedRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-secondary); font-size:13px;"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>Завершённых розыгрышей пока нет</div>`;
+                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11.5px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Завершённых розыгрышей пока нет</div>`;
             }
             
             htmlBuffer += '<div class="bottom-spacer"></div>';
@@ -1329,7 +1409,7 @@
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
                     if (ans.detail && ans.detail.includes('Battle Pass')) {
-                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 12px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
+                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10.5px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
                         showModal('bp_error', 'Доступ закрыт', bpMsg);
                     } else { showModal('error', 'Ошибка доступа', ans.detail); }
 
@@ -1351,9 +1431,9 @@
             if(type === 'success') {
                 iconBox.innerHTML = `<svg class="checkmark" viewBox="0 0 52 52"><circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/><path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg>`;
             } else if (type === 'info') {
-                iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 50px; color: var(--primary-purple-light); margin-top: 5px;"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 34px; color: var(--primary-purple-light); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(192,132,252,0.4));"></i>';
             } else if (type === 'bp_error') {
-                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 50px; color: var(--gold); margin-top: 5px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 34px; color: var(--gold); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
                 btnBp.style.display = 'inline-flex';
             } else {
                 iconBox.innerHTML = `<svg class="cross" viewBox="0 0 52 52"><circle class="cross-circle" cx="26" cy="26" r="25" fill="none"/><path class="cross-path" fill="none" d="M16 16 36 36 M36 16 16 36"/></svg>`;
