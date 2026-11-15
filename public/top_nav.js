@@ -81,6 +81,66 @@
         window.makeApiRequest = fallbackFn;
     }
 
+    // Вспомогательное извлечение баланса монеток из любого формата объекта пользователя
+    let lastKnownCoins = undefined;
+    let lastKnownTickets = undefined;
+
+    function extractCoinsFromUserObj(u) {
+        if (!u || typeof u !== 'object') return undefined;
+        if (u.balance !== undefined && u.balance !== null && u.balance !== '') return Number(u.balance);
+        if (u.coins !== undefined && u.coins !== null && u.coins !== '') return Number(u.coins);
+        if (u.bot_t_coins !== undefined && u.bot_t_coins !== null && u.bot_t_coins !== '') return Number(u.bot_t_coins) / 100.0;
+        return undefined;
+    }
+
+    function resolveBestCoins(coinsArg) {
+        if (coinsArg !== undefined && coinsArg !== null && coinsArg !== '' && !isNaN(Number(coinsArg))) {
+            lastKnownCoins = Number(coinsArg);
+            return lastKnownCoins;
+        }
+        if (lastKnownCoins !== undefined) return lastKnownCoins;
+        try {
+            const cachedBal = JSON.parse(localStorage.getItem('smart_balance_cache') || 'null');
+            if (cachedBal && cachedBal.balance !== undefined && cachedBal.balance !== null && !isNaN(Number(cachedBal.balance))) {
+                lastKnownCoins = Number(cachedBal.balance);
+                return lastKnownCoins;
+            }
+            const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+            const bootCoins = extractCoinsFromUserObj(cachedBoot?.user);
+            if (bootCoins !== undefined && !isNaN(bootCoins)) {
+                lastKnownCoins = bootCoins;
+                return lastKnownCoins;
+            }
+        } catch (e) {}
+        return undefined;
+    }
+
+    function resolveBestTickets(ticketsArg) {
+        if (ticketsArg !== undefined && ticketsArg !== null && ticketsArg !== '' && !isNaN(Number(ticketsArg))) {
+            lastKnownTickets = Number(ticketsArg);
+            return lastKnownTickets;
+        }
+        if (lastKnownTickets !== undefined) return lastKnownTickets;
+        try {
+            const cachedBal = JSON.parse(localStorage.getItem('smart_balance_cache') || 'null');
+            if (cachedBal && cachedBal.tickets !== undefined && cachedBal.tickets !== null && !isNaN(Number(cachedBal.tickets))) {
+                lastKnownTickets = Number(cachedBal.tickets);
+                return lastKnownTickets;
+            }
+            const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+            if (cachedBoot?.user?.tickets !== undefined && cachedBoot.user.tickets !== null && !isNaN(Number(cachedBoot.user.tickets))) {
+                lastKnownTickets = Number(cachedBoot.user.tickets);
+                return lastKnownTickets;
+            }
+            const cachedPremBanner = JSON.parse(localStorage.getItem('rfl_prem_banner_cache') || 'null');
+            if (cachedPremBanner?.tickets !== undefined && cachedPremBanner.tickets !== null && !isNaN(Number(cachedPremBanner.tickets))) {
+                lastKnownTickets = Number(cachedPremBanner.tickets);
+                return lastKnownTickets;
+            }
+        } catch (e) {}
+        return undefined;
+    }
+
     // ==========================================
     // 1. CSS ШАПКИ И МЕНЮ 
     // ==========================================
@@ -803,13 +863,14 @@
             }
 
             // 2. Мгновенный баланс и билеты (0 мс без спиннеров)
-            const coins = cachedBal?.balance !== undefined ? cachedBal.balance : u?.balance;
+            const bootCoins = extractCoinsFromUserObj(u);
+            const coins = cachedBal?.balance !== undefined ? cachedBal.balance : bootCoins;
             const tickets = cachedBal?.tickets !== undefined
                 ? cachedBal.tickets
                 : (u?.tickets !== undefined ? u.tickets : cachedPremBanner?.tickets);
 
             if (coins !== undefined || tickets !== undefined) {
-                window.renderBalanceUI(coins ?? 0, tickets ?? 0);
+                window.renderBalanceUI(coins, tickets);
             }
 
             // 3. Мгновенные лимиты и траст
@@ -871,11 +932,16 @@
                 if (userData.is_admin) {
                     adminNav.classList.remove('hidden');
                 }
+                const extractedCoins = extractCoinsFromUserObj(userData);
+                if (extractedCoins !== undefined || userData.tickets !== undefined) {
+                    window.renderBalanceUI(extractedCoins, userData.tickets);
+                }
                 // Сохраняем полный объект профиля, чтобы не затирать поля премиума и баланса
                 try {
                     const nowTs = Date.now();
                     const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
                     cached.user = Object.assign({}, cached.user || {}, userData);
+                    if (extractedCoins !== undefined) cached.user.balance = extractedCoins;
                     cached._ts = nowTs;
                     localStorage.setItem('cache_bootstrap', JSON.stringify(cached));
 
@@ -1290,27 +1356,36 @@
     });
 
     lockGlobalFunction('renderBalanceUI', function(coins, tickets) {
-        const displayBalance = (coins !== undefined && coins !== null && coins !== '')
-            ? Number(coins).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-            : '<i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i>';
+        const resolvedCoins = resolveBestCoins(coins);
+        const resolvedTickets = resolveBestTickets(tickets);
 
         const balanceEl = document.getElementById('user-balance');
-        if (balanceEl && balanceEl.innerHTML !== displayBalance) { 
-            balanceEl.innerHTML = displayBalance; 
+        if (balanceEl) {
+            if (resolvedCoins !== undefined) {
+                const displayBalance = Number(resolvedCoins).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                if (balanceEl.innerHTML !== displayBalance) {
+                    balanceEl.innerHTML = displayBalance;
+                }
+            } else if (!balanceEl.innerHTML || balanceEl.innerHTML.includes('fa-spinner')) {
+                balanceEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i>';
+            }
         }
-
-        const displayTickets = (tickets !== undefined && tickets !== null && tickets !== '')
-            ? Number(tickets).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-            : '<i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i>';
 
         const ticketsEl = document.getElementById('ticketStats');
-        if (ticketsEl && ticketsEl.innerHTML !== displayTickets) { 
-            ticketsEl.innerHTML = displayTickets; 
+        if (ticketsEl) {
+            if (resolvedTickets !== undefined) {
+                const displayTickets = Number(resolvedTickets).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                if (ticketsEl.innerHTML !== displayTickets) {
+                    ticketsEl.innerHTML = displayTickets;
+                }
+            } else if (!ticketsEl.innerHTML || ticketsEl.innerHTML.includes('fa-spinner')) {
+                ticketsEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i>';
+            }
         }
 
-        if (tickets !== undefined && tickets !== null && tickets !== '') {
+        if (resolvedTickets !== undefined) {
             document.querySelectorAll('.js-user-tickets-val').forEach(el => {
-                el.textContent = tickets;
+                el.textContent = resolvedTickets;
             });
         }
     });
@@ -1318,9 +1393,16 @@
     let isBalanceLoading = false;
     lockGlobalFunction('checkBalance', async function(updateUI = true, forceSync = false) {
         const auth = getSafeAuthPayload();
-        if (!window.isVk && !auth.initData) return Promise.resolve();
+        if (!window.isVk && !auth.initData) {
+            // Если нет initData (гость) и кэш пуст — не оставляем вечный спиннер
+            if (lastKnownCoins === undefined && lastKnownTickets === undefined) {
+                window.renderBalanceUI(0, 0);
+            }
+            return Promise.resolve();
+        }
 
-        if (isBalanceLoading) return Promise.resolve();
+        // Не блокируем принудительный forceSync, даже если фоновый запрос еще идет
+        if (isBalanceLoading && !forceSync) return Promise.resolve();
         isBalanceLoading = true;
 
         const iconCoins = document.getElementById('refresh-icon');
@@ -1352,16 +1434,27 @@
             ]);
 
             if (updateUI && data) {
-                localStorage.setItem('smart_balance_cache', JSON.stringify(data));
-                window.renderBalanceUI(data.balance, data.tickets);
+                const newBal = data.balance !== undefined ? data.balance : extractCoinsFromUserObj(data);
+                const newTix = data.tickets !== undefined ? data.tickets : lastKnownTickets;
+                const savedObj = {
+                    balance: newBal !== undefined ? newBal : (lastKnownCoins ?? 0),
+                    tickets: newTix !== undefined ? newTix : (lastKnownTickets ?? 0)
+                };
+                localStorage.setItem('smart_balance_cache', JSON.stringify(savedObj));
+                window.renderBalanceUI(savedObj.balance, savedObj.tickets);
                 try {
                     const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
                     if (cachedBoot.user) {
-                        if (data.balance !== undefined) cachedBoot.user.balance = data.balance;
-                        if (data.tickets !== undefined) cachedBoot.user.tickets = data.tickets;
+                        cachedBoot.user.balance = savedObj.balance;
+                        cachedBoot.user.tickets = savedObj.tickets;
                         localStorage.setItem('cache_bootstrap', JSON.stringify(cachedBoot));
                     }
                 } catch (e) {}
+            } else if (updateUI) {
+                // Если smart_balance не ответил, берем данные из кэша или ставим 0, чтобы спиннер не крутился вечно
+                const fallbackCoins = resolveBestCoins(undefined) ?? 0;
+                const fallbackTickets = resolveBestTickets(undefined) ?? 0;
+                window.renderBalanceUI(fallbackCoins, fallbackTickets);
             }
 
             if (limitsData && typeof window.updateActivityLockUI === 'function') {
