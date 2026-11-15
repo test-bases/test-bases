@@ -19375,6 +19375,9 @@ ROBOX_TEST_PASS1 = os.getenv("ROBOX_TEST_PASS1", "ваш_тестовый_пар
 ROBOX_TEST_PASS2 = os.getenv("ROBOX_TEST_PASS2", "ваш_тестовый_пароль_2")
 ADMIN_TELEGRAM_IDS = os.getenv("ADMIN_TELEGRAM_IDS", "477521935")
 
+# Память обработанных заказов для защиты от дублей между callback и success
+PROCESSED_ROBOX_INVOICES = set()
+
 
 class PaymentCreateRequest(BaseModel):
     initData: str
@@ -19384,18 +19387,23 @@ class PaymentCreateRequest(BaseModel):
     return_origin: Optional[str] = None
 
 
-async def grant_raffles_premium_direct(supabase: httpx.AsyncClient, tgid: str):
+async def grant_raffles_premium_direct(
+    supabase: httpx.AsyncClient, tgid: str, is_fallback: bool = False
+):
     """Прямая бронебойная выдача подписки Авто-участия (+30 дней и +4 проходки) в таблицу users"""
     user_resp = await supabase.get(
         "/users",
         params={
             "telegram_id": f"eq.{tgid}",
             "select": (
-                "id,telegram_id,has_raffles_premium,raffles_premium_until,free_raffle_passes"
+                "telegram_id,has_raffles_premium,raffles_premium_until,free_raffle_passes"
             ),
         },
     )
     if not user_resp.is_success or not user_resp.json():
+        logging.error(
+            f"[ROBOKASSA] Пользователь {tgid} не найден или ошибка БД: {user_resp.status_code} {user_resp.text}"
+        )
         return {"status": "error", "message": f"Пользователь {tgid} не найден"}
 
     u_row = user_resp.json()[0]
@@ -19410,6 +19418,24 @@ async def grant_raffles_premium_direct(supabase: httpx.AsyncClient, tgid: str):
             )
             if parsed_dt.tzinfo is None:
                 parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+
+            # Если это страховочный вызов из /payment/success, а /payment/callback уже выдал подписку пару секунд назад — не начисляем дважды
+            if (
+                is_fallback
+                and u_row.get("has_raffles_premium")
+                and (parsed_dt - now_utc) > timedelta(days=29, hours=23, minutes=55)
+            ):
+                logging.info(
+                    f"[ROBOKASSA] Подписка для {tgid} уже была выдана через callback, пропускаем дубль в success."
+                )
+                return {
+                    "status": "success",
+                    "raffles_premium_until": parsed_dt.isoformat(),
+                    "free_raffle_passes": int(
+                        u_row.get("free_raffle_passes") or 0
+                    ),
+                }
+
             if parsed_dt > now_utc:
                 base_dt = parsed_dt
         except Exception:
@@ -19426,6 +19452,7 @@ async def grant_raffles_premium_direct(supabase: httpx.AsyncClient, tgid: str):
             "raffles_premium_until": new_until_iso,
             "free_raffle_passes": new_passes,
         },
+        headers={"Prefer": "return=representation"},
     )
     if upd_resp.is_success:
         return {
@@ -19433,6 +19460,9 @@ async def grant_raffles_premium_direct(supabase: httpx.AsyncClient, tgid: str):
             "raffles_premium_until": new_until_iso,
             "free_raffle_passes": new_passes,
         }
+    logging.error(
+        f"[ROBOKASSA] Ошибка обновления users для {tgid}: {upd_resp.status_code} {upd_resp.text}"
+    )
     return {"status": "error", "message": upd_resp.text}
 
 
@@ -19582,6 +19612,10 @@ async def robokassa_callback(
             logging.info(f"[ROBOKASSA] Успешный тестовый платеж {InvId}")
             return PlainTextResponse(content=f"OK{InvId}", status_code=200)
 
+        if InvId and InvId in PROCESSED_ROBOX_INVOICES:
+            logging.info(f"[ROBOKASSA] Заказ {InvId} уже обработан ранее")
+            return PlainTextResponse(content=f"OK{InvId}", status_code=200)
+
         action = shp_params.get("Shp_action")
         tgid = shp_params.get("Shp_tgid")
         exp_str = shp_params.get("Shp_exp")
@@ -19592,7 +19626,11 @@ async def robokassa_callback(
 
         # Если это подписка на розыгрыши — выдаем напрямую в таблицу users (гарантированная выдача)
         if action == "raffles_premium":
-            direct_res = await grant_raffles_premium_direct(supabase, str(tgid))
+            direct_res = await grant_raffles_premium_direct(
+                supabase, str(tgid), is_fallback=False
+            )
+            if direct_res.get("status") == "success" and InvId:
+                PROCESSED_ROBOX_INVOICES.add(InvId)
             logging.info(
                 f"[ROBOKASSA] Прямая выдача raffles_premium для {tgid}: {direct_res}"
             )
@@ -19608,6 +19646,8 @@ async def robokassa_callback(
             )
             if rpc_resp.is_success:
                 result_data = rpc_resp.json()
+                if result_data.get("status") == "success" and InvId:
+                    PROCESSED_ROBOX_INVOICES.add(InvId)
                 logging.info(
                     f"[ROBOKASSA] Выдача через RPC для {tgid}: {result_data}"
                 )
@@ -19623,30 +19663,86 @@ async def robokassa_callback(
 
 
 @app.api_route("/api/v1/payment/success", methods=["GET", "POST"])
-async def robokassa_success_redirect(request: Request):
+async def robokassa_success_redirect(
+    request: Request, supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    """
+    Умный редирект после оплаты: возвращает игрока именно на ту страницу, где он покупал,
+    и страхует выдачу товара, если Result URL в тестовом режиме не сработал.
+    В ЛК Робокассы укажи Success URL: https://hatelavka.online/api/v1/payment/success
+    """
     params = dict(request.query_params)
     if request.method == "POST":
         form_data = await request.form()
         params.update(dict(form_data))
 
-    action = params.get("Shp_action", "")
-    target_path = (
-        "/raffles?paid=1" if action == "raffles_premium" else "/checkpoint?paid=1"
-    )
+    OutSum = str(params.get("OutSum", ""))
+    InvId = str(params.get("InvId", ""))
+    SignatureValue = str(params.get("SignatureValue", ""))
+    action = str(params.get("Shp_action", ""))
+    tgid = str(params.get("Shp_tgid", ""))
 
-    # Если мы внутри WebView — мгновенно переходим на нужную страницу,
-    # а если во внешнем браузере — пробуем закрыть вкладку или вернуть в ТГ
-    html = f"""<!DOCTYPE html>
-    <html><head><meta charset="utf-8"><script>
-        if (window.opener || window.history.length <= 2) {{
-            window.location.replace("{target_path}");
-        }} else {{
-            window.location.replace("{target_path}");
-        }}
-    </script></head><body style="background:#09090b;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-        Возвращаемся в приложение...
-    </body></html>"""
-    return HTMLResponse(content=html)
+    # Страховочная проверка подписи и выдача товара при возврате пользователя
+    if OutSum and InvId and SignatureValue and action and tgid and (
+        InvId not in PROCESSED_ROBOX_INVOICES
+    ):
+        shp_params = {
+            k: str(v) for k, v in params.items() if k.startswith("Shp_")
+        }
+        sorted_shp = sorted(shp_params.items())
+        shp_string = ":".join(f"{k}={v}" for k, v in sorted_shp)
+
+        # На Success URL Робокасса считает подпись с Паролем #1 (проверяем и тестовый, и боевой Пароль #1 и #2)
+        valid_sig = False
+        for pwd in (
+            ROBOX_TEST_PASS1,
+            ROBOX_PASS1,
+            ROBOX_TEST_PASS2,
+            ROBOX_PASS2,
+        ):
+            if not pwd:
+                continue
+            base_s = f"{OutSum}:{InvId}:{pwd}"
+            if shp_string:
+                base_s += f":{shp_string}"
+            if (
+                hashlib.md5(base_s.encode("utf-8")).hexdigest().upper()
+                == SignatureValue.upper()
+            ):
+                valid_sig = True
+                break
+
+        if valid_sig:
+            try:
+                if action == "raffles_premium":
+                    res = await grant_raffles_premium_direct(
+                        supabase, str(tgid), is_fallback=True
+                    )
+                    if res.get("status") == "success":
+                        PROCESSED_ROBOX_INVOICES.add(InvId)
+                    logging.info(
+                        f"[ROBOKASSA SUCCESS] Страховочная выдача raffles_premium для {tgid}: {res}"
+                    )
+                else:
+                    exp_val = float(shp_params.get("Shp_exp") or 0.0)
+                    rpc_resp = await supabase.post(
+                        "/rpc/handle_robokassa_fulfillment",
+                        json={
+                            "p_telegram_id": str(tgid),
+                            "p_action": str(action),
+                            "p_value": exp_val,
+                        },
+                    )
+                    if rpc_resp.is_success:
+                        PROCESSED_ROBOX_INVOICES.add(InvId)
+            except Exception as e:
+                logging.error(
+                    f"[ROBOKASSA SUCCESS] Ошибка страховочной выдачи: {e}"
+                )
+
+    if action == "raffles_premium":
+        return RedirectResponse(url="/raffles?paid=1", status_code=302)
+    return RedirectResponse(url="/checkpoint?paid=1", status_code=302)
 
 
 @app.api_route("/api/v1/payment/fail", methods=["GET", "POST"])
@@ -19688,7 +19784,9 @@ async def simulate_transaction(
 
     try:
         if action == "raffles_premium":
-            res = await grant_raffles_premium_direct(supabase, str(tgid))
+            res = await grant_raffles_premium_direct(
+                supabase, str(tgid), is_fallback=False
+            )
             checklist["2_связь_с_базой_данных"] = (
                 "УСПЕШНО (Прямой запрос к таблице users)"
             )
