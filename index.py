@@ -19127,47 +19127,103 @@ async def get_checkpoint_content(supabase: httpx.AsyncClient = Depends(get_supab
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # РОБОКАССА  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # РОБО - КАССА  # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+from datetime import datetime, timedelta, timezone
 import hashlib
-import urllib.parse
-import time
-import os
 import json
 import logging
+import os
+import time
 from typing import Optional
-from fastapi import Form, Depends, HTTPException
-from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel
+import urllib.parse
+from fastapi import Depends, Form, HTTPException, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
 import httpx
+from pydantic import BaseModel
 
 # Достаем ключи из переменных окружения Vercel
 ROBOX_LOGIN = os.getenv("ROBOX_LOGIN", "hatelavka_pay")
 ROBOX_PASS1 = os.getenv("ROBOX_PASS1", "")
 ROBOX_PASS2 = os.getenv("ROBOX_PASS2", "")
 
-# Тестовые пароли и ID админов (читаем как строку, убрали int() чтобы не крашилось)
+# Тестовые пароли и ID админов
 ROBOX_TEST_PASS1 = os.getenv("ROBOX_TEST_PASS1", "ваш_тестовый_пароль_1")
 ROBOX_TEST_PASS2 = os.getenv("ROBOX_TEST_PASS2", "ваш_тестовый_пароль_2")
-ADMIN_TELEGRAM_IDS = os.getenv("ADMIN_TELEGRAM_IDS", "477521935") # Можно писать несколько через запятую
+ADMIN_TELEGRAM_IDS = os.getenv("ADMIN_TELEGRAM_IDS", "477521935")
+
 
 class PaymentCreateRequest(BaseModel):
     initData: str
     action_type: str  # 'premium', 'exp' или 'raffles_premium'
-    exp_amount: Optional[float] = 0.0  # Заменили levels на точное количество звезд от фронтенда
+    exp_amount: Optional[float] = 0.0
     price: Optional[float] = 199.00
+    return_origin: Optional[str] = None
+
+
+async def grant_raffles_premium_direct(supabase: httpx.AsyncClient, tgid: str):
+    """Прямая бронебойная выдача подписки Авто-участия (+30 дней и +4 проходки) в таблицу users"""
+    user_resp = await supabase.get(
+        "/users",
+        params={
+            "telegram_id": f"eq.{tgid}",
+            "select": (
+                "id,telegram_id,has_raffles_premium,raffles_premium_until,free_raffle_passes"
+            ),
+        },
+    )
+    if not user_resp.is_success or not user_resp.json():
+        return {"status": "error", "message": f"Пользователь {tgid} не найден"}
+
+    u_row = user_resp.json()[0]
+    now_utc = datetime.now(timezone.utc)
+    base_dt = now_utc
+
+    existing_until = u_row.get("raffles_premium_until")
+    if existing_until:
+        try:
+            parsed_dt = datetime.fromisoformat(
+                str(existing_until).replace("Z", "+00:00")
+            )
+            if parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+            if parsed_dt > now_utc:
+                base_dt = parsed_dt
+        except Exception:
+            pass
+
+    new_until_iso = (base_dt + timedelta(days=30)).isoformat()
+    current_passes = int(u_row.get("free_raffle_passes") or 0)
+    new_passes = current_passes + 4
+
+    upd_resp = await supabase.patch(
+        f"/users?telegram_id=eq.{tgid}",
+        json={
+            "has_raffles_premium": True,
+            "raffles_premium_until": new_until_iso,
+            "free_raffle_passes": new_passes,
+        },
+    )
+    if upd_resp.is_success:
+        return {
+            "status": "success",
+            "raffles_premium_until": new_until_iso,
+            "free_raffle_passes": new_passes,
+        }
+    return {"status": "error", "message": upd_resp.text}
+
 
 @app.post("/api/v1/payment/create")
 async def create_robokassa_link(
-    req: PaymentCreateRequest, 
-    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+    req: PaymentCreateRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
 ):
     """Генерация платежной ссылки для фронтенда с передачей чека для СМЗ"""
     user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
     if not user_info:
         raise HTTPException(status_code=401, detail="Не авторизован")
-    
-    tg_id = str(user_info["id"]) # Сразу переводим в строку для надежности
 
-   # Определяем детали заказа
+    tg_id = str(user_info["id"])
+
+    # Определяем детали заказа
     if req.action_type == "premium":
         out_sum = "199.00"
         item_name = "Premium Статус Battle Pass"
@@ -19175,24 +19231,21 @@ async def create_robokassa_link(
         if not req.price or req.price <= 0:
             raise HTTPException(status_code=400, detail="Неверная цена")
         out_sum = f"{float(req.price):.2f}"
-        
-        # ПРАВКА 1: Округляем опыт до целого числа и убираем спецсимволы (скобки) для ФНС
         exp_int = int(req.exp_amount) if req.exp_amount else 0
         item_name = f"Опыт Battle Pass {exp_int} звезд"
     elif req.action_type == "raffles_premium":
         out_sum = "100.00"
-        item_name = "Премиум-доступ к розыгрышам (30 дней)"
+        item_name = "Премиум-доступ к розыгрышам 30 дней"
     else:
         raise HTTPException(status_code=400, detail="Неизвестный тип покупки")
 
-    inv_id = int(time.time())  # Уникальный номер заказа на базе timestamp
-    
+    inv_id = int(time.time())
+
     # Кастомные параметры (СТРОГО по алфавиту: Shp_action -> Shp_exp -> Shp_tgid)
     shp_action = req.action_type
     shp_exp = str(req.exp_amount if req.exp_amount else 0.0)
     shp_tgid = str(tg_id)
 
-    # ПРАВКА 2: Убрали параметр "sno" из чека. Робокасса сама подтянет статус самозанятого.
     receipt = {
         "items": [
             {
@@ -19200,34 +19253,35 @@ async def create_robokassa_link(
                 "quantity": 1,
                 "sum": float(out_sum),
                 "tax": "none",
-                "payment_method": "full_payment", 
-                "payment_object": "service" 
+                "payment_method": "full_payment",
+                "payment_object": "service",
             }
         ]
     }
-    
+
     # 1. Формируем СЫРОЙ JSON (используется для подписи)
-    receipt_json = json.dumps(receipt, separators=(',', ':'))
-    
+    receipt_json = json.dumps(receipt, separators=(",", ":"))
+
     # 2. URL-кодируем чек (используется ТОЛЬКО для самой ссылки)
     receipt_url_encoded = urllib.parse.quote(receipt_json)
 
     # --- ЛОГИКА РАЗДЕЛЕНИЯ АДМИНОВ И ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ ---
-    # Разбиваем список админов по запятой и проверяем, есть ли там текущий юзер
-    admin_ids_list = [i.strip() for i in ADMIN_TELEGRAM_IDS.split(",")]
-    is_admin_request = tg_id in admin_ids_list
-    
-    # Если админ -> даем тестовый пароль и ставим IsTest=1
-    # Если обычный юзер -> даем боевой пароль и ставим IsTest=0
+    admin_ids_list = [
+        i.strip() for i in ADMIN_TELEGRAM_IDS.split(",") if i.strip()
+    ]
+    is_admin_request = (
+        tg_id in admin_ids_list
+        and ROBOX_TEST_PASS1 != "ваш_тестовый_пароль_1"
+        and bool(ROBOX_TEST_PASS1)
+    )
+
     current_pass1 = ROBOX_TEST_PASS1 if is_admin_request else ROBOX_PASS1
     current_is_test = 1 if is_admin_request else 0
     # --------------------------------------------------------
 
-    # ФОРМИРУЕМ ПОДПИСЬ ПРАВИЛЬНО: берем СЫРОЙ чек (receipt_json) и current_pass1
     signature_string = f"{ROBOX_LOGIN}:{out_sum}:{inv_id}:{receipt_json}:{current_pass1}:Shp_action={shp_action}:Shp_exp={shp_exp}:Shp_tgid={shp_tgid}"
-    signature = hashlib.md5(signature_string.encode('utf-8')).hexdigest()
+    signature = hashlib.md5(signature_string.encode("utf-8")).hexdigest()
 
-    # Итоговая ссылка (вставляем receipt_url_encoded и current_is_test)
     base_url = "https://auth.robokassa.ru/Merchant/Index.aspx"
     payment_url = (
         f"{base_url}?MerchantLogin={ROBOX_LOGIN}&OutSum={out_sum}&InvId={inv_id}"
@@ -19236,152 +19290,217 @@ async def create_robokassa_link(
         f"&Shp_action={shp_action}&Shp_exp={shp_exp}&Shp_tgid={shp_tgid}"
     )
 
-    return {"status": "success", "url": payment_url}
-    
-@app.post("/api/v1/payment/callback")
+    return {"status": "success", "url": payment_url, "inv_id": inv_id}
+
+
+@app.api_route("/api/v1/payment/callback", methods=["GET", "POST"])
 async def robokassa_callback(
-    OutSum: str = Form(...),
-    InvId: str = Form(...),
-    SignatureValue: str = Form(...),
-    IsTest: Optional[str] = Form(None),  # ДОБАВЛЕНО: Ловим флаг тестового платежа от Робокассы
-    Shp_action: Optional[str] = Form(None),
-    Shp_exp: Optional[str] = Form(None),
-    Shp_tgid: Optional[str] = Form(None),
-    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+    request: Request, supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
     """
-    Безопасный вебхук для Робокассы.
+    Универсальный вебхук для Робокассы (принимает и POST, и GET).
     """
-    # 1. Собираем только те Shp-параметры, которые РЕАЛЬНО пришли
-    shp_params = {}
-    if Shp_action is not None:
-        shp_params["Shp_action"] = Shp_action
-    if Shp_exp is not None:
-        shp_params["Shp_exp"] = Shp_exp
-    if Shp_tgid is not None:
-        shp_params["Shp_tgid"] = Shp_tgid
+    if request.method == "POST":
+        form_data = await request.form()
+        params = dict(form_data)
+    else:
+        params = dict(request.query_params)
 
-    # Робокасса требует сортировки Shp-параметров по алфавиту
+    # Объединяем query и form на случай смешанных запросов
+    for k, v in request.query_params.items():
+        if k not in params:
+            params[k] = v
+
+    OutSum = str(params.get("OutSum", ""))
+    InvId = str(params.get("InvId", ""))
+    SignatureValue = str(params.get("SignatureValue", ""))
+    IsTest = params.get("IsTest")
+
+    # 1. Собираем все Shp_ параметры, которые реально пришли
+    shp_params = {k: str(v) for k, v in params.items() if k.startswith("Shp_")}
     sorted_shp = sorted(shp_params.items())
-    
-    # Склеиваем их в строку вида Shp_action=premium:Shp_exp=665.0:Shp_tgid=123
     shp_string = ":".join(f"{k}={v}" for k, v in sorted_shp)
 
-    # --- ДОБАВЛЕНО: ЛОГИКА ВЫБОРА ПАРОЛЯ ---
-    # Если Робокасса присылает IsTest=1 (твой тестовый платеж), проверяем Тестовым Паролем #2.
-    # Если IsTest нет или он равен 0 (обычные юзеры), проверяем Боевым Паролем #2.
-    current_pass2 = ROBOX_TEST_PASS2 if IsTest == "1" else ROBOX_PASS2
-    # ---------------------------------------
+    # Выбираем пароль (проверяем сначала подходящий, а если не совпал — резервный на случай ручных тестов)
+    primary_pass2 = (
+        ROBOX_TEST_PASS2
+        if (str(IsTest) == "1" and ROBOX_TEST_PASS2 != "ваш_тестовый_пароль_2")
+        else ROBOX_PASS2
+    )
+    fallback_pass2 = (
+        ROBOX_PASS2 if primary_pass2 == ROBOX_TEST_PASS2 else ROBOX_TEST_PASS2
+    )
 
-    # 2. Формируем строку для проверки подписи
-    # База всегда одна: OutSum:InvId:Пароль2
-    signature_string = f"{OutSum}:{InvId}:{current_pass2}"
-    
-    # Если дополнительные параметры есть, приклеиваем их в конец
-    if shp_string:
-        signature_string += f":{shp_string}"
+    def calc_sign(pass2_val: str) -> str:
+        base_str = f"{OutSum}:{InvId}:{pass2_val}"
+        if shp_string:
+            base_str += f":{shp_string}"
+        return hashlib.md5(base_str.encode("utf-8")).hexdigest().upper()
 
-    # Считаем MD5
-    my_signature = hashlib.md5(signature_string.encode('utf-8')).hexdigest().upper()
+    my_signature = calc_sign(primary_pass2)
+    if (
+        my_signature != SignatureValue.upper()
+        and fallback_pass2
+        and calc_sign(fallback_pass2) == SignatureValue.upper()
+    ):
+        my_signature = calc_sign(fallback_pass2)
 
-    if my_signature != str(SignatureValue).upper():
-        logging.error(f"[ROBOKASSA] Неверная подпись! Пришла: {SignatureValue}, Ожидалась: {my_signature}. Строка: {signature_string}")
+    if my_signature != SignatureValue.upper():
+        logging.error(
+            f"[ROBOKASSA] Неверная подпись! Пришла: {SignatureValue}, Ожидалась: {my_signature}"
+        )
         return PlainTextResponse(content="bad sign", status_code=400)
 
-    # 3. Логика выдачи товара (переведена на RPC)
+    # 3. Логика выдачи товара
     try:
-        # Если это тестовый платеж без параметров, просто отдаем OK
         if not shp_params:
             logging.info(f"[ROBOKASSA] Успешный тестовый платеж {InvId}")
             return PlainTextResponse(content=f"OK{InvId}", status_code=200)
 
-        # Вытаскиваем значения
         action = shp_params.get("Shp_action")
         tgid = shp_params.get("Shp_tgid")
-        
-        # Безопасно преобразуем переданные звезды во float
         exp_str = shp_params.get("Shp_exp")
         try:
             exp_amount = float(exp_str) if exp_str else 0.0
         except ValueError:
             exp_amount = 0.0
 
-        # Вызываем созданную SQL-функцию через PostgREST API базы Supabase
-        rpc_resp = await supabase.post(
-            "/rpc/handle_robokassa_fulfillment",
-            json={
-                "p_telegram_id": str(tgid),
-                "p_action": str(action),
-                "p_value": exp_amount  # Передаем точное количество опыта
-            }
-        )
-        
-        if rpc_resp.is_success:
-            result_data = rpc_resp.json()
-            if result_data.get("status") == "success":
-                logging.info(f"[ROBOKASSA] Товар успешно выдан через RPC для {tgid}. Ответ: {result_data}")
-            else:
-                logging.error(f"[ROBOKASSA] Ошибка бизнес-логики в базе: {result_data.get('message')}")
+        # Если это подписка на розыгрыши — выдаем напрямую в таблицу users (гарантированная выдача)
+        if action == "raffles_premium":
+            direct_res = await grant_raffles_premium_direct(supabase, str(tgid))
+            logging.info(
+                f"[ROBOKASSA] Прямая выдача raffles_premium для {tgid}: {direct_res}"
+            )
         else:
-            logging.error(f"[ROBOKASSA] Сбой HTTP-запроса к RPC Supabase: {rpc_resp.status_code} - {rpc_resp.text}")
+            # Для Battle Pass ('premium', 'exp') вызываем RPC
+            rpc_resp = await supabase.post(
+                "/rpc/handle_robokassa_fulfillment",
+                json={
+                    "p_telegram_id": str(tgid),
+                    "p_action": str(action),
+                    "p_value": exp_amount,
+                },
+            )
+            if rpc_resp.is_success:
+                result_data = rpc_resp.json()
+                logging.info(
+                    f"[ROBOKASSA] Выдача через RPC для {tgid}: {result_data}"
+                )
+            else:
+                logging.error(
+                    f"[ROBOKASSA] Сбой RPC Supabase: {rpc_resp.status_code} - {rpc_resp.text}"
+                )
 
     except Exception as e:
         logging.error(f"[ROBOKASSA] Ошибка выдачи товара: {e}", exc_info=True)
 
-    # Робокасса ждет строго "OK<номер_заказа>" в ответ
     return PlainTextResponse(content=f"OK{InvId}", status_code=200)
+
+
+@app.api_route("/api/v1/payment/success", methods=["GET", "POST"])
+async def robokassa_success_redirect(request: Request):
+    """
+    Умный редирект после оплаты: возвращает игрока именно на ту страницу, где он покупал.
+    В ЛК Робокассы укажи Success URL: https://hatelavka.online/api/v1/payment/success
+    """
+    params = dict(request.query_params)
+    if request.method == "POST":
+        form_data = await request.form()
+        params.update(dict(form_data))
+
+    action = params.get("Shp_action", "")
+    if action == "raffles_premium":
+        return RedirectResponse(url="/raffles?paid=1", status_code=302)
+    return RedirectResponse(url="/checkpoint?paid=1", status_code=302)
+
+
+@app.api_route("/api/v1/payment/fail", methods=["GET", "POST"])
+async def robokassa_fail_redirect(request: Request):
+    """
+    Умный редирект при отмене оплаты.
+    В ЛК Робокассы укажи Fail URL: https://hatelavka.online/api/v1/payment/fail
+    """
+    params = dict(request.query_params)
+    if request.method == "POST":
+        form_data = await request.form()
+        params.update(dict(form_data))
+
+    action = params.get("Shp_action", "")
+    if action == "raffles_premium":
+        return RedirectResponse(url="/raffles?paid=0", status_code=302)
+    return RedirectResponse(url="/checkpoint?paid=0", status_code=302)
+
 
 @app.get("/api/v1/admin/test-transaction")
 async def simulate_transaction(
-    tgid: str, 
-    action: str, 
+    tgid: str,
+    action: str,
     exp_amount: float = 0.0,
-    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
 ):
     """
     Симулятор боевой транзакции для проверки всех этапов.
-    Использование в браузере: 
-    /api/v1/admin/test-transaction?tgid=123456789&action=exp&exp_amount=665
-    ИЛИ ДЛЯ ПОДПИСКИ:
-    /api/v1/admin/test-transaction?tgid=123456789&action=raffles_premium
+    Для розыгрышей: /api/v1/admin/test-transaction?tgid=123456789&action=raffles_premium
     """
-    # Создаем наш чек-лист
     checklist = {
-        "1_статус_входящих_данных": f"Получено: tgid={tgid}, action={action}, exp_amount={exp_amount}",
+        "1_статус_входящих_данных": (
+            f"Получено: tgid={tgid}, action={action}, exp_amount={exp_amount}"
+        ),
         "2_связь_с_базой_данных": "ожидание...",
-        "3_выполнение_rpc_логики": "ожидание...",
-        "4_финальный_результат": "ожидание..."
+        "3_выполнение_логики": "ожидание...",
+        "4_финальный_результат": "ожидание...",
     }
-    
+
     try:
-        # Этап 1: Пробуем дернуть RPC (имитируем успешный платеж)
+        if action == "raffles_premium":
+            res = await grant_raffles_premium_direct(supabase, str(tgid))
+            checklist["2_связь_с_базой_данных"] = (
+                "УСПЕШНО (Прямой запрос к таблице users)"
+            )
+            if res.get("status") == "success":
+                checklist["3_выполнение_логики"] = (
+                    "УСПЕШНО (Подписка +30 дней и +4 проходки начислены)"
+                )
+                checklist["4_финальный_результат"] = (
+                    f"✅ ТРАНЗАКЦИЯ ИДЕАЛЬНА! {res}"
+                )
+            else:
+                checklist["3_выполнение_логики"] = "❌ ОШИБКА ОБНОВЛЕНИЯ"
+                checklist["4_финальный_результат"] = str(res)
+            return checklist
+
         rpc_resp = await supabase.post(
             "/rpc/handle_robokassa_fulfillment",
             json={
                 "p_telegram_id": str(tgid),
                 "p_action": str(action),
-                "p_value": exp_amount
-            }
+                "p_value": exp_amount,
+            },
         )
-        checklist["2_связь_с_базой_данных"] = "УСПЕШНО (HTTP запрос прошел)"
-        
-        # Этап 2: Проверяем, что ответила сама база
+        checklist["2_связь_с_базой_данных"] = (
+            "УСПЕШНО (HTTP запрос к RPC прошел)"
+        )
+
         if rpc_resp.is_success:
-            checklist["3_выполнение_rpc_логики"] = "УСПЕШНО (Ошибок SQL нет)"
+            checklist["3_выполнение_логики"] = "УСПЕШНО (Ошибок SQL нет)"
             result_data = rpc_resp.json()
-            
-            # Этап 3: Проверяем бизнес-логику (нашел ли юзера, выдал ли товар)
             if result_data.get("status") == "success":
-                checklist["4_финальный_результат"] = f"✅ ТРАНЗАКЦИЯ ИДЕАЛЬНА! База ответила: {result_data}"
+                checklist["4_финальный_результат"] = (
+                    f"✅ ТРАНЗАКЦИЯ ИДЕАЛЬНА! База ответила: {result_data}"
+                )
             else:
-                checklist["4_финальный_результат"] = f"❌ ОШИБКА ЛОГИКИ: {result_data.get('message')} (Возможно, юзера нет в базе)"
+                checklist["4_финальный_результат"] = (
+                    f"❌ ОШИБКА ЛОГИКИ: {result_data.get('message')}"
+                )
         else:
-            checklist["3_выполнение_rpc_логики"] = f"❌ ОШИБКА SUPABASE: HTTP {rpc_resp.status_code}"
+            checklist["3_выполнение_логики"] = (
+                f"❌ ОШИБКА SUPABASE: HTTP {rpc_resp.status_code}"
+            )
             checklist["4_финальный_результат"] = rpc_resp.text
-            
+
     except Exception as e:
         checklist["2_связь_с_базой_данных"] = f"❌ КРИТИЧЕСКИЙ СБОЙ: {str(e)}"
-        
+
     return checklist
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # ROBOKASSA  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
