@@ -30,6 +30,7 @@
                 localStorage.setItem('tg_web_auth_token', webToken);
                 localStorage.removeItem('cache_bootstrap');
                 sessionStorage.removeItem('__hl_fast_api_cache__');
+                sessionStorage.removeItem('rfl_fast_cache');
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -99,7 +100,7 @@
         } catch (e) {}
         try {
             const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-            if (cachedBoot?.user) {
+            if (cachedBoot?.user && (cachedBoot.user.id || cachedBoot.user.telegram_id)) {
                 return {
                     id: cachedBoot.user.telegram_id || cachedBoot.user.id,
                     first_name: cachedBoot.user.full_name || 'Игрок',
@@ -232,6 +233,10 @@
     const ramCache = new Map();
     const inflightRequests = new Map();
     let syncTimer = null;
+    let cacheEpoch = 0;
+
+    // Делаем хранилище и сброс доступными глобально для всех страниц
+    window.__hlFastCacheStore = ramCache;
 
     // При старте страницы 1 раз поднимаем кэш из sessionStorage в RAM Map
     try {
@@ -262,7 +267,7 @@
                 }
                 sessionStorage.setItem(FAST_CACHE_KEY, JSON.stringify(obj));
             } catch (e) {}
-        }, 120);
+        }, 80);
     }
 
     function buildCacheKey(method, rawUrl, bodyObj) {
@@ -300,41 +305,115 @@
         return entry.jsonText;
     }
 
-    function setFastCacheRaw(key, jsonText) {
+    function setFastCacheRaw(key, jsonText, customTs) {
         if (!jsonText || typeof jsonText !== 'string') return;
         if (ramCache.size >= 35 && !ramCache.has(key)) {
             const oldestKey = ramCache.keys().next().value;
             if (oldestKey) ramCache.delete(oldestKey);
         }
-        ramCache.set(key, { ts: Date.now(), jsonText: jsonText });
+        ramCache.set(key, { ts: customTs || Date.now(), jsonText: jsonText });
         scheduleStorageSync();
     }
 
-    function clearFastCache() {
-        ramCache.clear();
-        try { sessionStorage.removeItem(FAST_CACHE_KEY); } catch (e) {}
+    // Синхронизация свежих ответов /api/v1/user/me и /api/v1/raffles/active обратно в cache_bootstrap
+    function syncEndpointToBootstrapStorage(lowerUrl, bodyText) {
+        try {
+            if (lowerUrl.includes('/api/v1/bootstrap')) {
+                const parsedBoot = JSON.parse(bodyText);
+                if (parsedBoot && typeof parsedBoot === 'object') {
+                    parsedBoot._ts = Date.now();
+                    localStorage.setItem('cache_bootstrap', JSON.stringify(parsedBoot));
+                    seedFromBootstrapData(parsedBoot, true);
+                }
+            } else if (lowerUrl.includes('/api/v1/user/me')) {
+                const parsedUser = JSON.parse(bodyText);
+                if (parsedUser && typeof parsedUser === 'object' && (parsedUser.id || parsedUser.telegram_id || parsedUser.tickets !== undefined)) {
+                    const existingBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    existingBoot.user = Object.assign({}, existingBoot.user || {}, parsedUser);
+                    existingBoot._ts = Date.now();
+                    localStorage.setItem('cache_bootstrap', JSON.stringify(existingBoot));
+
+                    if (parsedUser.balance !== undefined || parsedUser.tickets !== undefined) {
+                        const prevBal = JSON.parse(localStorage.getItem('smart_balance_cache') || '{}');
+                        localStorage.setItem('smart_balance_cache', JSON.stringify({
+                            balance: parsedUser.balance !== undefined ? parsedUser.balance : (prevBal.balance ?? 0),
+                            tickets: parsedUser.tickets !== undefined ? parsedUser.tickets : (prevBal.tickets ?? 0)
+                        }));
+                    }
+                }
+            } else if (lowerUrl.includes('/api/v1/raffles/active')) {
+                sessionStorage.setItem('rfl_fast_cache', bodyText);
+                const parsedRaffles = JSON.parse(bodyText);
+                if (Array.isArray(parsedRaffles)) {
+                    const existingBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    existingBoot.raffles = parsedRaffles;
+                    existingBoot._ts = Date.now();
+                    localStorage.setItem('cache_bootstrap', JSON.stringify(existingBoot));
+                }
+            }
+        } catch (e) {}
     }
 
-    // Кросс-прогрев кэша из данных bootstrap (чтобы Розыгрыши и Профиль уже лежали в RAM со старта)
-    function seedFromBootstrapData(bootData) {
-        if (!bootData || typeof bootData !== 'object') return;
+    function clearFastCache() {
+        cacheEpoch++;
+        if (syncTimer) {
+            clearTimeout(syncTimer);
+            syncTimer = null;
+        }
+        ramCache.clear();
+        inflightRequests.clear();
         try {
-            if (bootData.user) {
-                const userJson = JSON.stringify(bootData.user);
-                setFastCacheRaw('POST:/api/v1/user/me:{}', userJson);
+            sessionStorage.removeItem(FAST_CACHE_KEY);
+            sessionStorage.removeItem('rfl_fast_cache');
+            // Помечаем cache_bootstrap как устаревший для seedFromBootstrapData, сохраняя только базовую шапку
+            const existingBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
+            if (existingBoot && typeof existingBoot === 'object') {
+                existingBoot._ts = 0;
+                delete existingBoot.raffles;
+                localStorage.setItem('cache_bootstrap', JSON.stringify(existingBoot));
             }
-            if (Array.isArray(bootData.raffles)) {
+        } catch (e) {}
+    }
+
+    window.clearGlobalFastCache = clearFastCache;
+
+    // Кросс-прогрев кэша из данных bootstrap (только если данные свежие и в ramCache еще нет более новых)
+    function seedFromBootstrapData(bootData, forceOverwrite = false) {
+        if (!bootData || typeof bootData !== 'object') return;
+        const bootTs = Number(bootData._ts || 0);
+        const now = Date.now();
+
+        // Не засеваем RAM-кэш из старого localStorage при перезагрузке страницы
+        if (!forceOverwrite && (!bootTs || (now - bootTs > CACHE_TTL_MS))) {
+            return;
+        }
+
+        try {
+            const userKey = 'POST:/api/v1/user/me:{}';
+            const isFullUser = bootData.user && (
+                bootData.user.id !== undefined ||
+                bootData.user.telegram_id !== undefined ||
+                bootData.user.has_raffles_premium !== undefined ||
+                bootData.user.free_raffle_passes !== undefined
+            );
+            if (isFullUser && (forceOverwrite || !ramCache.has(userKey))) {
+                const userJson = JSON.stringify(bootData.user);
+                setFastCacheRaw(userKey, userJson, bootTs || now);
+            }
+
+            const rflKey = 'POST:/api/v1/raffles/active:{}';
+            if (Array.isArray(bootData.raffles) && (forceOverwrite || !ramCache.has(rflKey))) {
                 const rflJson = JSON.stringify(bootData.raffles);
-                setFastCacheRaw('POST:/api/v1/raffles/active:{}', rflJson);
+                setFastCacheRaw(rflKey, rflJson, bootTs || now);
                 try { sessionStorage.setItem('rfl_fast_cache', rflJson); } catch (e) {}
             }
         } catch (e) {}
     }
 
-    // Если в localStorage уже есть свежий bootstrap — сразу засеваем RAM-кэш
+    // Если в localStorage есть свежий bootstrap (младше 30 сек) и ключей еще нет в ramCache — засеваем
     try {
         const existingBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
-        if (existingBoot) seedFromBootstrapData(existingBoot);
+        if (existingBoot) seedFromBootstrapData(existingBoot, false);
     } catch (e) {}
 
     // Ключевые слова мутирующих запросов (сбрасывают кэш мгновенно)
@@ -368,6 +447,7 @@
 
         let cacheKey = null;
         let isCacheableRead = false;
+        const lowerUrl = url.toLowerCase();
 
         try {
             const auth = window.getGlobalAuthPayload();
@@ -400,7 +480,6 @@
                 }
             }
 
-            const lowerUrl = url.toLowerCase();
             const isMutation = MUTATION_KEYWORDS.some(k => lowerUrl.includes(k));
             const isExcluded = NEVER_CACHE_KEYWORDS.some(k => lowerUrl.includes(k));
 
@@ -410,23 +489,20 @@
                 isCacheableRead = true;
                 cacheKey = buildCacheKey(method, url, parsedBodyObj);
 
-                // А) Отдача из RAM-кэша за 0 мс + фоновая ревалидация (Stale-While-Revalidate)
+                // А) Отдача из RAM-кэша за 0 мс + фоновая ревалидация (если не передан __bypassFastCache)
                 if (!init.__bypassFastCache) {
                     const cachedJsonText = getFastCache(cacheKey);
                     if (cachedJsonText !== null) {
                         if (!inflightRequests.has(cacheKey)) {
+                            const reqEpoch = cacheEpoch;
                             const bgInit = Object.assign({}, init, { __bypassFastCache: true });
                             const bgPromise = nativeFetch(input, bgInit)
                                 .then(async r => {
-                                    if (r.ok) {
+                                    if (r.ok && reqEpoch === cacheEpoch) {
                                         const text = await r.text();
-                                        if (text) {
+                                        if (text && reqEpoch === cacheEpoch) {
                                             setFastCacheRaw(cacheKey, text);
-                                            if (lowerUrl.includes('/api/v1/bootstrap')) {
-                                                try { seedFromBootstrapData(JSON.parse(text)); } catch (e) {}
-                                            } else if (lowerUrl.includes('/api/v1/raffles/active')) {
-                                                try { sessionStorage.setItem('rfl_fast_cache', text); } catch (e) {}
-                                            }
+                                            syncEndpointToBootstrapStorage(lowerUrl, text);
                                         }
                                     }
                                 })
@@ -457,24 +533,25 @@
             console.warn('Fetch guard warning:', err);
         }
 
-        // Выполняем сетевой запрос с поддержкой дедупликации
-        if (isCacheableRead && cacheKey && !init.__bypassFastCache) {
+        // Выполняем сетевой запрос и ВСЕГДА обновляем кэш свежим ответом (даже при __bypassFastCache: true)
+        if (isCacheableRead && cacheKey) {
+            const reqEpoch = cacheEpoch;
             const networkPromise = (async () => {
-                const res = await nativeFetch(input, init);
+                const fetchInit = init.__bypassFastCache
+                    ? Object.assign({}, init, { cache: 'no-store' })
+                    : init;
+                const res = await nativeFetch(input, fetchInit);
                 const bodyText = await res.text();
-                if (res.ok && bodyText) {
+                if (res.ok && bodyText && (init.__bypassFastCache || reqEpoch === cacheEpoch)) {
                     setFastCacheRaw(cacheKey, bodyText);
-                    const lowerUrl = url.toLowerCase();
-                    if (lowerUrl.includes('/api/v1/bootstrap')) {
-                        try { seedFromBootstrapData(JSON.parse(bodyText)); } catch (e) {}
-                    } else if (lowerUrl.includes('/api/v1/raffles/active')) {
-                        try { sessionStorage.setItem('rfl_fast_cache', bodyText); } catch (e) {}
-                    }
+                    syncEndpointToBootstrapStorage(lowerUrl, bodyText);
                 }
                 return { status: res.status, bodyText };
             })();
 
-            inflightRequests.set(cacheKey, networkPromise);
+            if (!init.__bypassFastCache) {
+                inflightRequests.set(cacheKey, networkPromise);
+            }
             try {
                 const result = await networkPromise;
                 return new Response(result.bodyText, {
@@ -482,7 +559,9 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
             } finally {
-                inflightRequests.delete(cacheKey);
+                if (!init.__bypassFastCache) {
+                    inflightRequests.delete(cacheKey);
+                }
             }
         }
 
@@ -766,21 +845,16 @@
             '/checkpoint'
         ];
 
-        // А) Нативный Chromium Speculation Rules (мгновенное переключение вкладок)
+        // А) Нативный Chromium Speculation Rules (без prerender для страниц с частыми мутациями)
         if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
             try {
                 const specScript = document.createElement('script');
                 specScript.type = 'speculationrules';
                 specScript.textContent = JSON.stringify({
-                    prerender: [{
-                        source: 'list',
-                        urls: ['/leaderboard', '/quests', '/', '/events', '/event_page.html', '/raffles', '/profile'],
-                        eagerness: 'eager'
-                    }],
                     prefetch: [{
                         source: 'list',
                         urls: allCoreUrls,
-                        eagerness: 'eager'
+                        eagerness: 'moderate'
                     }]
                 });
                 document.head.appendChild(specScript);
