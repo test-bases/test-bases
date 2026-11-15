@@ -410,6 +410,14 @@
         .coupon-btn-activate:disabled { opacity: 0.6; pointer-events: none; }
     `;
 
+    // Синхронно (за 0 мс) инжектим стили шапки в <head> сразу при старте скрипта
+    if (document.head && !window.location.pathname.includes('/admin') && !document.getElementById('hatelavka-global-styles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'hatelavka-global-styles';
+        styleEl.innerHTML = navStyles;
+        document.head.appendChild(styleEl);
+    }
+
     // ==========================================
     // 2. HTML ШАПКИ, БОКОВОГО МЕНЮ И ACTIVITY LOCK
     // ==========================================
@@ -590,13 +598,25 @@
 
     function injectDOM() {
         if (window.location.pathname.includes('/admin')) return;
-        if (document.getElementById('universal-top-header')) return; 
+        if (!document.body) return;
 
-        if (!document.getElementById('hatelavka-global-styles')) {
+        if (!document.getElementById('hatelavka-global-styles') && document.head) {
             const styleEl = document.createElement('style');
             styleEl.id = 'hatelavka-global-styles';
             styleEl.innerHTML = navStyles;
             document.head.appendChild(styleEl);
+        }
+
+        const existingHeader = document.getElementById('universal-top-header');
+        const scrollable = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
+
+        if (existingHeader) {
+            // Если шапка уже создана, но еще не перенесена внутрь скролл-контейнера — переносим сразу
+            if (scrollable && existingHeader.parentNode !== scrollable) {
+                scrollable.insertBefore(existingHeader, scrollable.firstChild);
+                bindScrollBlur();
+            }
+            return;
         }
 
         const container = document.createElement('div');
@@ -610,14 +630,13 @@
         // ==========================================
         const header = document.getElementById('universal-top-header');
         // Поддерживаем все типы скролл-контейнеров на всех страницах (включая #main-content на raffles.html)
-        const scrollable = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
-        
         if (header && scrollable) {
             scrollable.insertBefore(header, scrollable.firstChild);
         }
 
-        bindEvents();
+        // Сначала синхронно заполняем кэшированные данные за 0 мс (до первой отрисовки кадра!), затем вешаем обработчики
         loadCachedHeaderStateSync();
+        bindEvents();
     }
 
     function moveShopButtonsToHeader() {
@@ -625,7 +644,7 @@
         if (!isPC) return; 
 
         const tryMove = () => {
-            if (!document.body.classList.contains('browser-mode')) return false;
+            if (!document.body || !document.body.classList.contains('browser-mode')) return false;
 
             const targetContainer = document.getElementById('desktop-shop-actions');
             const exchangeBtns = document.querySelectorAll('.premium-exchange-btn');
@@ -649,6 +668,41 @@
                 if (tryMove()) clearInterval(interval);
             }, 150);
             setTimeout(() => clearInterval(interval), 4000);
+        }
+    }
+
+    function bindScrollBlur() {
+        const scrollableContainer = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
+        const mainHeader = document.getElementById('universal-top-header');
+
+        if (scrollableContainer && mainHeader && !scrollableContainer.__hlBlurBound) {
+            scrollableContainer.__hlBlurBound = true;
+            let blurRafPending = false;
+
+            const applyHeaderBlurNow = () => {
+                const maxScroll = scrollableContainer.scrollHeight - scrollableContainer.clientHeight;
+                const isShortPage = maxScroll <= 165;
+                if (isShortPage || scrollableContainer.scrollTop > 5) {
+                    mainHeader.classList.add('scrolled');
+                } else {
+                    mainHeader.classList.remove('scrolled');
+                }
+            };
+
+            const updateHeaderBlur = () => {
+                if (blurRafPending) return;
+                blurRafPending = true;
+                requestAnimationFrame(() => {
+                    blurRafPending = false;
+                    applyHeaderBlurNow();
+                });
+            };
+
+            scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
+            applyHeaderBlurNow();
+
+            const observer = new MutationObserver(updateHeaderBlur);
+            observer.observe(scrollableContainer, { childList: true });
         }
     }
 
@@ -721,32 +775,7 @@
         // ==========================================
         // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ОПТИМИЗИРОВАНА ЧЕРЕЗ RAF)
         // ==========================================
-        const scrollableContainer = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
-        const mainHeader = document.getElementById('universal-top-header');
-
-        if (scrollableContainer && mainHeader) {
-            let blurRafPending = false;
-            const updateHeaderBlur = () => {
-                if (blurRafPending) return;
-                blurRafPending = true;
-                requestAnimationFrame(() => {
-                    blurRafPending = false;
-                    const maxScroll = scrollableContainer.scrollHeight - scrollableContainer.clientHeight;
-                    const isShortPage = maxScroll <= 165;
-                    if (isShortPage || scrollableContainer.scrollTop > 5) {
-                        mainHeader.classList.add('scrolled');
-                    } else {
-                        mainHeader.classList.remove('scrolled');
-                    }
-                });
-            };
-
-            scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
-            setTimeout(updateHeaderBlur, 60);
-
-            const observer = new MutationObserver(updateHeaderBlur);
-            observer.observe(scrollableContainer, { childList: true });
-        }
+        bindScrollBlur();
     }
     
     // Мгновенная 0-мс отрисовка аватарки, баланса, билетов, траста и лимитов из кэша
@@ -755,6 +784,7 @@
             const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
             const cachedBal = JSON.parse(localStorage.getItem('smart_balance_cache') || 'null');
             const cachedLimits = JSON.parse(localStorage.getItem('activity_limits_cache') || 'null');
+            const cachedPremBanner = JSON.parse(localStorage.getItem('rfl_prem_banner_cache') || 'null');
 
             // 1. Аватарка и админка
             const u = cachedBoot?.user;
@@ -767,11 +797,17 @@
                     const adminNav = document.getElementById('nav-admin');
                     if (adminNav) adminNav.classList.remove('hidden');
                 }
+            } else if (window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) {
+                const avatarEl = document.getElementById('user-avatar');
+                if (avatarEl) avatarEl.src = window.Telegram.WebApp.initDataUnsafe.user.photo_url;
             }
 
             // 2. Мгновенный баланс и билеты (0 мс без спиннеров)
             const coins = cachedBal?.balance !== undefined ? cachedBal.balance : u?.balance;
-            const tickets = cachedBal?.tickets !== undefined ? cachedBal.tickets : u?.tickets;
+            const tickets = cachedBal?.tickets !== undefined
+                ? cachedBal.tickets
+                : (u?.tickets !== undefined ? u.tickets : cachedPremBanner?.tickets);
+
             if (coins !== undefined || tickets !== undefined) {
                 window.renderBalanceUI(coins ?? 0, tickets ?? 0);
             }
@@ -799,7 +835,7 @@
             window.vkParams = rawParams;
         }
 
-        if (!window.isVk && window.Telegram && window.Telegram.WebApp) {
+        if (!window.isVk && window.Telegram && window.Telegram.WebApp && document.body) {
             const tg = window.Telegram.WebApp;
             const platform = tg.platform || 'unknown';
             if (platform === 'tdesktop' || platform === 'macos' || platform === 'web' || platform === 'webk') {
@@ -837,10 +873,22 @@
                 }
                 // Сохраняем полный объект профиля, чтобы не затирать поля премиума и баланса
                 try {
+                    const nowTs = Date.now();
                     const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
                     cached.user = Object.assign({}, cached.user || {}, userData);
-                    cached._ts = Date.now();
+                    cached._ts = nowTs;
                     localStorage.setItem('cache_bootstrap', JSON.stringify(cached));
+
+                    if (userData.raffles_premium_until !== undefined || userData.has_raffles_premium !== undefined) {
+                        localStorage.setItem('rfl_prem_banner_cache', JSON.stringify({
+                            free_raffle_passes: parseInt(userData.free_raffle_passes ?? 0, 10) || 0,
+                            raffles_premium_until: userData.raffles_premium_until || null,
+                            has_raffles_premium: Boolean(userData.has_raffles_premium),
+                            tickets: userData.tickets ?? 0,
+                            total_raffled: userData.total_raffled || userData.raffled_skins_count || 0,
+                            _ts: nowTs
+                        }));
+                    }
                 } catch(e){}
             }
         } catch (e) {}
@@ -1607,7 +1655,11 @@
     // 5. ИНИЦИАЛИЗАЦИЯ И ЗАЩИТА DOM
     // ==========================================
     function bootstrap() {
-        if (isInitialized) return;
+        if (isInitialized) {
+            injectDOM();
+            return;
+        }
+        if (!document.body) return;
         isInitialized = true;
 
         detectPlatforms();
@@ -1630,6 +1682,13 @@
                 if (window.location.pathname.includes('/admin')) return;
                 if (!document.getElementById('universal-top-header')) {
                     injectDOM();
+                } else {
+                    const hdr = document.getElementById('universal-top-header');
+                    const scrl = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
+                    if (hdr && scrl && hdr.parentNode !== scrl) {
+                        scrl.insertBefore(hdr, scrl.firstChild);
+                        bindScrollBlur();
+                    }
                 }
                 moveShopButtonsToHeader();
             });
@@ -1638,9 +1697,13 @@
         observer.observe(document.body, { childList: true });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
-    } else {
+    // Если document.body уже создан — монтируем шапку СИНХРОННО в тот же кадр (0 мс) без ожидания DOMContentLoaded!
+    if (document.body) {
         bootstrap();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => injectDOM(), { once: true });
+        }
+    } else {
+        document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
     }
 })();
