@@ -411,14 +411,20 @@
             z-index: 1;
             pointer-events: none; 
         }
-        /* Мягкое световое пятно позади оружия, чтобы скин не сливался с фоном карточки */
+        /* Яркий выраженный блик позади оружия */
         .prize-img-wrapper::before {
             content: '';
             position: absolute;
-            width: 145px;
-            height: 75px;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.22) 0%, rgba(192, 132, 252, 0.25) 42%, transparent 72%);
-            filter: blur(8px);
+            width: 170px;
+            height: 88px;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(255, 255, 255, 0.75) 0%,
+                rgba(233, 213, 255, 0.6) 28%,
+                rgba(168, 85, 247, 0.35) 55%,
+                transparent 76%
+            );
+            filter: blur(9px);
             z-index: -1;
             pointer-events: none;
         }
@@ -427,8 +433,8 @@
             height: 100%;
             object-fit: contain;
             transform: rotate(-5deg) scale(1.16) translateZ(0);
-            /* Осветление, сочность и четкий контур скина */
-            filter: brightness(1.2) contrast(1.08) saturate(1.18) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 10px rgba(216, 180, 254, 0.35));
+            /* Естественный цвет скина + плотная тень + яркий контурный блик */
+            filter: brightness(1.03) contrast(1.08) saturate(1.12) drop-shadow(0 6px 10px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.45));
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
