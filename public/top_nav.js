@@ -1,5 +1,86 @@
 (function() {
     // ==========================================
+    // 0. ВСТРОЕННЫЙ ЩИТ АВТОРИЗАЦИИ И API (ЧТОБЫ НИКОГДА НЕ ПАДАЛ)
+    // ==========================================
+    function getSafeAuthPayload() {
+        if (typeof window.getGlobalAuthPayload === 'function') {
+            return window.getGlobalAuthPayload();
+        }
+        const ua = navigator.userAgent || '';
+        const deviceType = (/android|ipad|iphone|ipod/i.test(ua)) ? 'mobile' : 'pc';
+
+        if (window.isVk) {
+            return { initData: window.vkParams || '', platform: 'vk', platform_type: deviceType };
+        }
+
+        const tgData = window.Telegram?.WebApp?.initData
+            || sessionStorage.getItem('hatelavka_tg_init_data')
+            || localStorage.getItem('hatelavka_tg_init_data_backup')
+            || '';
+
+        if (tgData) {
+            return { initData: tgData, platform: 'tg', platform_type: deviceType };
+        }
+
+        const webToken = localStorage.getItem('tg_web_auth_token') || '';
+        return { initData: webToken, platform: 'web', platform_type: deviceType };
+    }
+
+    async function safeApiRequest(url, data = {}, method = 'POST', isSilent = true) {
+        const auth = getSafeAuthPayload();
+        const validInitData = data.initData || auth.initData || '';
+        const validPlatform = validInitData === auth.initData ? auth.platform : (data.platform || auth.platform || 'tg');
+
+        // Если на странице есть свой makeApiRequest — используем его, но гарантируем непустой initData
+        if (typeof window.makeApiRequest === 'function' && !window.makeApiRequest.__isTopNavFallback) {
+            const payload = Object.assign({}, data, {
+                initData: validInitData,
+                platform: validPlatform,
+                platform_type: auth.platform_type
+            });
+            return await window.makeApiRequest(url, payload, method, isSilent);
+        }
+
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Device-Id': localStorage.getItem('frontend_device_id') || ''
+            }
+        };
+
+        if (method !== 'GET') {
+            options.body = JSON.stringify({
+                ...data,
+                initData: validInitData,
+                platform: validPlatform,
+                platform_type: auth.platform_type
+            });
+        } else if (validInitData && !url.includes('initData=')) {
+            const sep = url.includes('?') ? '&' : '?';
+            url += `${sep}initData=${encodeURIComponent(validInitData)}&platform=${encodeURIComponent(validPlatform)}&platform_type=${encodeURIComponent(auth.platform_type)}`;
+        }
+
+        const response = await fetch(url, options);
+        if (response.status === 204) return null;
+        const result = await response.json();
+        if (!response.ok) {
+            const rawError = typeof result.detail === 'string' ? result.detail : (result.message || 'API Error');
+            throw new Error(rawError);
+        }
+        return result;
+    }
+
+    // Если страница вообще не объявила window.makeApiRequest — ставим наш резервный, чтобы ничего не падало
+    if (typeof window.makeApiRequest !== 'function') {
+        const fallbackFn = function(url, data = {}, method = 'POST', isSilent = false) {
+            return safeApiRequest(url, data, method, isSilent);
+        };
+        fallbackFn.__isTopNavFallback = true;
+        window.makeApiRequest = fallbackFn;
+    }
+
+    // ==========================================
     // 1. CSS ШАПКИ И МЕНЮ 
     // ==========================================
     const navStyles = `
@@ -48,7 +129,7 @@
             content: ''; display: block; height: 160px; width: 100%; flex-shrink: 0; pointer-events: none;
         }
 
-       /* 🔥 ШАПКА (ПРИЛИПАЕТ ПРИ СКРОЛЛЕ) 🔥 */
+        /* 🔥 ШАПКА (ПРИЛИПАЕТ ПРИ СКРОЛЛЕ) 🔥 */
         .top-header {
             display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; 
             padding-top: calc(var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 24px))) + 74px) !important;
@@ -331,6 +412,8 @@
     // ==========================================
     // 2. HTML ШАПКИ, БОКОВОГО МЕНЮ И ACTIVITY LOCK
     // ==========================================
+    const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64' fill='%232c2c2e'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffd700' font-family='sans-serif' font-weight='800' font-size='28'>U</text></svg>";
+
     const navHtml = `
         <!-- БОКОВОЕ МЕНЮ -->
         <div id="side-menu-overlay" class="side-menu-overlay">
@@ -413,7 +496,7 @@
             </div>
 
             <div class="header-right-group">
-                <div class="balance-pill" onclick="if(typeof checkBalance === 'function') checkBalance(true)">
+                <div class="balance-pill" onclick="if(typeof checkBalance === 'function') checkBalance(true, true)">
                     <div class="balance-col">
                         <div class="balance-row"><span id="user-balance"><i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i></span> <i class="fa-solid fa-coins" style="color: #FFD700;"></i></div>
                         <div class="balance-row"><span id="ticketStats"><i class="fa-solid fa-spinner fa-spin" style="font-size: 10px;"></i></span> <i class="fa-solid fa-ticket" style="color: #bdecff;"></i></div>
@@ -422,7 +505,7 @@
                         <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>
                     </div>
                 </div>
-                <img src="https://via.placeholder.com/64x64/555555/ffffff?text=U" alt="Avatar" class="user-avatar" id="user-avatar" onclick="window.location.href='public/profile/profile_menu.html'">
+                <img src="${DEFAULT_AVATAR_SVG}" alt="Avatar" class="user-avatar" id="user-avatar" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR_SVG}';" onclick="window.location.href='public/profile/profile_menu.html'">
                 <button id="open-menu-btn" class="glass-burger">
                     <span></span><span></span><span></span>
                 </button>
@@ -493,12 +576,15 @@
     let isInitialized = false;
 
     function lockGlobalFunction(name, fn) {
-        if (window[name]) return;
-        Object.defineProperty(window, name, {
-            value: fn,
-            writable: false,      
-            configurable: false   
-        });
+        try {
+            Object.defineProperty(window, name, {
+                value: fn,
+                writable: true,
+                configurable: true
+            });
+        } catch (e) {
+            window[name] = fn;
+        }
     }
 
     function injectDOM() {
@@ -522,15 +608,15 @@
         // 🔥 МАГИЯ: ПЕРЕНОСИМ ШАПКУ ВНУТРЬ СВИТКА 🔥
         // ==========================================
         const header = document.getElementById('universal-top-header');
-        // ИЩЕМ ЛЮБОЙ ИЗ КОНТЕЙНЕРОВ НА СТРАНИЦЕ
-        const scrollable = document.querySelector('.main-content-scrollable, .main-content, .mobile-wrapper');
+        // Поддерживаем все типы скролл-контейнеров на всех страницах (включая #main-content на raffles.html)
+        const scrollable = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
         
         if (header && scrollable) {
             scrollable.insertBefore(header, scrollable.firstChild);
         }
 
         bindEvents();
-        loadCachedAvatar();
+        loadCachedHeaderStateSync();
     }
 
     function moveShopButtonsToHeader() {
@@ -560,8 +646,8 @@
         if (!tryMove()) {
             const interval = setInterval(() => {
                 if (tryMove()) clearInterval(interval);
-            }, 100);
-            setTimeout(() => clearInterval(interval), 5000);
+            }, 150);
+            setTimeout(() => clearInterval(interval), 4000);
         }
     }
 
@@ -632,48 +718,68 @@
         };
 
         // ==========================================
-        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (С ПРОВЕРКОЙ ВЫСОТЫ)
+        // 🔥 ЛОГИКА ПОЯВЛЕНИЯ БЛЮРА (ОПТИМИЗИРОВАНА ЧЕРЕЗ RAF)
         // ==========================================
-        const scrollableContainer = document.querySelector('.main-content-scrollable, .main-content, .mobile-wrapper');
+        const scrollableContainer = document.querySelector('.main-content-scrollable, #main-content, .main-content, .mobile-wrapper');
         const mainHeader = document.getElementById('universal-top-header');
 
         if (scrollableContainer && mainHeader) {
+            let blurRafPending = false;
             const updateHeaderBlur = () => {
-                // Вычисляем максимальный скролл
-                const maxScroll = scrollableContainer.scrollHeight - scrollableContainer.clientHeight;
-                
-                // У нас есть искусственный ::after блок на 160px снизу.
-                // Если скроллить можно меньше чем на 165px, значит реального контента мало!
-                const isShortPage = maxScroll <= 165;
-                
-                // Включаем блюр, если страница короткая ИЛИ если пролистали вниз больше 5px
-                if (isShortPage || scrollableContainer.scrollTop > 5) {
-                    mainHeader.classList.add('scrolled');
-                } else {
-                    mainHeader.classList.remove('scrolled');
-                }
+                if (blurRafPending) return;
+                blurRafPending = true;
+                requestAnimationFrame(() => {
+                    blurRafPending = false;
+                    const maxScroll = scrollableContainer.scrollHeight - scrollableContainer.clientHeight;
+                    const isShortPage = maxScroll <= 165;
+                    if (isShortPage || scrollableContainer.scrollTop > 5) {
+                        mainHeader.classList.add('scrolled');
+                    } else {
+                        mainHeader.classList.remove('scrolled');
+                    }
+                });
             };
 
-            // 1. Слушаем скролл
             scrollableContainer.addEventListener('scroll', updateHeaderBlur, { passive: true });
-            
-            // 2. Вызываем при старте с небольшой задержкой
-            setTimeout(updateHeaderBlur, 100);
+            setTimeout(updateHeaderBlur, 60);
 
-            // 3. Обсервер: если контент подгрузится позже, он перепроверит высоту
             const observer = new MutationObserver(updateHeaderBlur);
-            observer.observe(scrollableContainer, { childList: true, subtree: true });
+            observer.observe(scrollableContainer, { childList: true });
         }
     }
     
-    function loadCachedAvatar() {
+    // Мгновенная 0-мс отрисовка аватарки, баланса, билетов, траста и лимитов из кэша
+    function loadCachedHeaderStateSync() {
         try {
-            const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-            if (cached && cached.user && cached.user.photo_url) {
-                const avatarEl = document.getElementById('user-avatar');
-                if (avatarEl) avatarEl.src = cached.user.photo_url;
+            const cachedBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+            const cachedBal = JSON.parse(localStorage.getItem('smart_balance_cache') || 'null');
+            const cachedLimits = JSON.parse(localStorage.getItem('activity_limits_cache') || 'null');
+
+            // 1. Аватарка и админка
+            const u = cachedBoot?.user;
+            if (u) {
+                if (u.photo_url) {
+                    const avatarEl = document.getElementById('user-avatar');
+                    if (avatarEl) avatarEl.src = u.photo_url;
+                }
+                if (u.is_admin) {
+                    const adminNav = document.getElementById('nav-admin');
+                    if (adminNav) adminNav.classList.remove('hidden');
+                }
             }
-        } catch(e){}
+
+            // 2. Мгновенный баланс и билеты (0 мс без спиннеров)
+            const coins = cachedBal?.balance !== undefined ? cachedBal.balance : u?.balance;
+            const tickets = cachedBal?.tickets !== undefined ? cachedBal.tickets : u?.tickets;
+            if (coins !== undefined || tickets !== undefined) {
+                window.renderBalanceUI(coins ?? 0, tickets ?? 0);
+            }
+
+            // 3. Мгновенные лимиты и траст
+            if (cachedLimits && typeof window.updateActivityLockUI === 'function') {
+                window.updateActivityLockUI(cachedLimits);
+            }
+        } catch(e) {}
     }
 
     function detectPlatforms() {
@@ -713,44 +819,27 @@
 
         try {
             const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-            if (cached?.user?.is_admin) {
-                adminNav.classList.remove('hidden');
+            if (cached?.user?.is_admin !== undefined) {
+                if (cached.user.is_admin) adminNav.classList.remove('hidden');
                 return; 
             }
         } catch (e) {}
 
+        const auth = getSafeAuthPayload();
+        if (!auth.initData) return;
+
         try {
-            if (typeof window.makeApiRequest === 'function') {
-                const userData = await window.makeApiRequest('/api/v1/user/me', {}, 'POST', true);
-                if (userData && userData.is_admin) {
-                    adminNav.classList.remove('hidden');
-                    try {
-                        const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-                        if (!cached.user) cached.user = {};
-                        cached.user.is_admin = true;
-                        localStorage.setItem('cache_bootstrap', JSON.stringify(cached));
-                    } catch(e){}
-                }
+            const userData = await safeApiRequest('/api/v1/user/me', {}, 'POST', true);
+            if (userData && userData.is_admin) {
+                adminNav.classList.remove('hidden');
+                try {
+                    const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (!cached.user) cached.user = {};
+                    cached.user.is_admin = true;
+                    localStorage.setItem('cache_bootstrap', JSON.stringify(cached));
+                } catch(e){}
             }
-        } catch (e) {
-            console.warn("Не удалось проверить статус админа", e);
-        }
-    }
-
-    function waitForDependencies(callback) {
-        let attempts = 0;
-        const maxAttempts = 50; 
-
-        const check = setInterval(() => {
-            attempts++;
-            const isTgReady = window.isVk || (window.Telegram?.WebApp?.initData);
-            const isApiReady = typeof window.makeApiRequest === 'function';
-
-            if ((isTgReady && isApiReady) || attempts >= maxAttempts) {
-                clearInterval(check);
-                callback(); 
-            }
-        }, 100);
+        } catch (e) {}
     }
 
     // ==========================================
@@ -1066,8 +1155,7 @@
             }
 
             try {
-                if(typeof window.makeApiRequest !== 'function') throw new Error("API недоступно");
-                await window.makeApiRequest('/api/v1/user/trust/amnesty', {}, 'POST');
+                await safeApiRequest('/api/v1/user/trust/amnesty', {}, 'POST', false);
 
                 if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
 
@@ -1170,20 +1258,21 @@
 
     let isBalanceLoading = false;
     lockGlobalFunction('checkBalance', async function(updateUI = true, forceSync = false) {
-        if (!window.isVk && (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData)) return Promise.resolve();
+        const auth = getSafeAuthPayload();
+        if (!window.isVk && !auth.initData) return Promise.resolve();
 
         if (isBalanceLoading) return Promise.resolve();
         isBalanceLoading = true;
 
         const iconCoins = document.getElementById('refresh-icon');
-        if (iconCoins) iconCoins.classList.add('fa-spin');
+        if (iconCoins && forceSync) iconCoins.classList.add('fa-spin');
 
         if (updateUI && !forceSync) {
             try {
-                const cached = JSON.parse(localStorage.getItem('smart_balance_cache'));
+                const cached = JSON.parse(localStorage.getItem('smart_balance_cache') || 'null');
                 if (cached) window.renderBalanceUI(cached.balance, cached.tickets);
 
-                const cachedLimits = JSON.parse(localStorage.getItem('activity_limits_cache'));
+                const cachedLimits = JSON.parse(localStorage.getItem('activity_limits_cache') || 'null');
                 if (cachedLimits && typeof window.updateActivityLockUI === 'function') {
                     window.updateActivityLockUI(cachedLimits);
                 }
@@ -1191,13 +1280,11 @@
         }
 
         try {
-            if(typeof window.makeApiRequest !== 'function') throw new Error("makeApiRequest not found");
-
             const url = forceSync ? '/api/v1/shop/smart_balance?force=true' : '/api/v1/shop/smart_balance';
 
             const [data, limitsData] = await Promise.all([
-                window.makeApiRequest(url, {}, 'POST', true),
-                window.makeApiRequest('/api/v1/user/limits', {}, 'POST', true).catch(() => null)
+                safeApiRequest(url, {}, 'POST', true).catch(() => null),
+                safeApiRequest('/api/v1/user/limits', {}, 'POST', true).catch(() => null)
             ]);
 
             if (updateUI && data) {
@@ -1211,13 +1298,13 @@
             }
 
         } catch (err) {
-            console.error("Ошибка баланса/лимитов:", err);
+            console.warn("Ошибка баланса/лимитов:", err);
         } finally {
             isBalanceLoading = false; 
             setTimeout(() => { 
                 const currentIcon = document.getElementById('refresh-icon');
                 if (currentIcon) currentIcon.classList.remove('fa-spin'); 
-            }, 500); 
+            }, 350); 
         }
     });
 
@@ -1255,9 +1342,8 @@
         if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверка...'; }
 
         try {
-            if(typeof window.makeApiRequest !== 'function') throw new Error("makeApiRequest not found");
-            const res = await window.makeApiRequest('/api/cs/check_code', { code: code }, 'POST');
-            if (res.valid) {
+            const res = await safeApiRequest('/api/cs/check_code', { code: code }, 'POST', false);
+            if (res && res.valid) {
                 window.customAlert("✅ " + res.message);
                 window.closeCouponModal();
                 if (!window.activeFreeCases) window.activeFreeCases = [];
@@ -1267,7 +1353,7 @@
                 const shopTab = document.querySelector('.toggle-option[data-target="view-shop"]');
                 if (shopTab) shopTab.click();
                 if(typeof window.loadCategory === 'function') window.loadCategory(window.currentCategoryId || 2716312); 
-            } else {
+            } else if (res) {
                 window.customAlert("❌ " + res.message);
             }
         } catch (e) {
@@ -1311,9 +1397,12 @@
         if(m) m.classList.remove('hidden');
 
         setTimeout(() => {
-            document.getElementById('modal-money-bar').style.width = window._al_money_percent || '0%';
-            document.getElementById('modal-items-bar').style.width = window._al_items_percent || '0%';
-            document.getElementById('modal-msgs-bar').style.width = window._al_msgs_percent || '0%';
+            const mb = document.getElementById('modal-money-bar');
+            const ib = document.getElementById('modal-items-bar');
+            const msgb = document.getElementById('modal-msgs-bar');
+            if (mb) mb.style.width = window._al_money_percent || '0%';
+            if (ib) ib.style.width = window._al_items_percent || '0%';
+            if (msgb) msgb.style.width = window._al_msgs_percent || '0%';
         }, 50);
     });
 
@@ -1321,9 +1410,12 @@
         const m = document.getElementById('activity-lock-modal');
         if(m) m.classList.add('hidden');
 
-        document.getElementById('modal-money-bar').style.width = '0%';
-        document.getElementById('modal-items-bar').style.width = '0%';
-        document.getElementById('modal-msgs-bar').style.width = '0%';
+        const mb = document.getElementById('modal-money-bar');
+        const ib = document.getElementById('modal-items-bar');
+        const msgb = document.getElementById('modal-msgs-bar');
+        if (mb) mb.style.width = '0%';
+        if (ib) ib.style.width = '0%';
+        if (msgb) msgb.style.width = '0%';
     });
 
     // 🔥 ГЛАВНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ ДАННЫХ 🔥
@@ -1335,7 +1427,6 @@
         const summary = document.getElementById('ui-limits-summary');
 
         if (dot && text) {
-            // 1. Достаем точный счет (из пришедших лимитов или из кэша)
             let scoreVal = 30.0;
             if (data.trust_score !== undefined) {
                 scoreVal = parseFloat(data.trust_score);
@@ -1347,7 +1438,6 @@
                 } catch(e) {}
             }
 
-            // 2. Убираем десятичные (округляем вниз до целого)
             const intScore = Math.floor(scoreVal);
 
             dot.className = 'trust-dot'; 
@@ -1406,39 +1496,43 @@
             }
         }
 
-        document.getElementById('modal-money-val').innerText = `${Math.round(data.spent_money)} / ${data.money_limit} ₽`;
-        document.getElementById('modal-items-val').innerText = `${data.spent_items} / ${data.items_limit} шт.`;
-        document.getElementById('modal-msgs-val').innerText = `${data.current_msgs} / ${data.required_msgs}`;
+        const mMoneyVal = document.getElementById('modal-money-val');
+        const mItemsVal = document.getElementById('modal-items-val');
+        const mMsgsVal = document.getElementById('modal-msgs-val');
+        if (mMoneyVal) mMoneyVal.innerText = `${Math.round(data.spent_money)} / ${data.money_limit} ₽`;
+        if (mItemsVal) mItemsVal.innerText = `${data.spent_items} / ${data.items_limit} шт.`;
+        if (mMsgsVal) mMsgsVal.innerText = `${data.current_msgs} / ${data.required_msgs}`;
 
         const moneyBar = document.getElementById('modal-money-bar');
         const itemsBar = document.getElementById('modal-items-bar');
         const msgsBar = document.getElementById('modal-msgs-bar');
+        const msgsDesc = document.getElementById('modal-msgs-desc');
 
-        if(moneyPercent >= 100) moneyBar.classList.add('fill-danger'); else moneyBar.classList.remove('fill-danger');
-        if(itemsPercent >= 100) itemsBar.classList.add('fill-danger'); else itemsBar.classList.remove('fill-danger');
+        if (moneyBar) { if(moneyPercent >= 100) moneyBar.classList.add('fill-danger'); else moneyBar.classList.remove('fill-danger'); }
+        if (itemsBar) { if(itemsPercent >= 100) itemsBar.classList.add('fill-danger'); else itemsBar.classList.remove('fill-danger'); }
 
-        if(msgsPercent < 100) {
-            msgsBar.classList.remove('fill-danger');
-            document.getElementById('modal-msgs-desc').innerHTML = `Осталось <b style="color:#fff">${data.required_msgs - data.current_msgs}</b> сообщений.`;
-        } else {
-            document.getElementById('modal-msgs-desc').innerHTML = `<span style="color: #fff; font-weight: 800; text-shadow: 0 0 10px rgba(255,255,255,0.3);"><i class="fa-solid fa-check" style="margin-right: 4px;"></i> Активность выполнена</span>`;
+        if (msgsBar && msgsDesc) {
+            if(msgsPercent < 100) {
+                msgsBar.classList.remove('fill-danger');
+                msgsDesc.innerHTML = `Осталось <b style="color:#fff">${data.required_msgs - data.current_msgs}</b> сообщений.`;
+            } else {
+                msgsDesc.innerHTML = `<span style="color: #fff; font-weight: 800; text-shadow: 0 0 10px rgba(255,255,255,0.3);"><i class="fa-solid fa-check" style="margin-right: 4px;"></i> Активность выполнена</span>`;
+            }
         }
 
         if (window.alTimer) clearInterval(window.alTimer);
         const timeEl = document.getElementById('modal-unlock-time');
         const detailsEl = document.getElementById('modal-unlock-details');
 
+        if (!timeEl) return;
         timeEl.innerHTML = "";
-        if (detailsEl) detailsEl.style.display = 'none'; // По умолчанию скрываем
+        if (detailsEl) detailsEl.style.display = 'none';
 
-        // 🔥 НОВАЯ ЛОГИКА: ТАЙМЕР + ДЕТАЛИ СГОРАНИЯ 🔥
-        // ИСПРАВЛЕНИЕ: Теперь показываем таймер всегда, если есть дата (data.unlock_time_iso)
         if (data.unlock_time_iso) {
             const targetDate = new Date(data.unlock_time_iso).getTime();
 
             if (detailsEl) {
                 if (data.is_critical) {
-                    // Теперь для общака тоже показываем точную сумму возврата!
                     detailsEl.innerHTML = `Из суточного лимита лавки сгорит старая покупка. Для вывода будет доступно: <b style="color:#34c759">+${Math.round(data.next_unlock_money)} ₽</b>`;
                     detailsEl.style.display = 'block';
                 } else if (data.next_unlock_money) {
@@ -1448,7 +1542,8 @@
             }
 
             const tick = () => {
-                const now = new Date().getTime();
+                if (document.hidden) return;
+                const now = Date.now();
                 const dist = targetDate - now;
 
                 if (dist <= 0) {
@@ -1469,7 +1564,6 @@
 
                 const timerText = d > 0 ? `${d} дн. ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
 
-                // Если лимит заблокирован полностью (150/150), пишем строго. Если еще есть место (135/150) — мягко.
                 const isBlocked = (moneyPercent >= 100 || itemsPercent >= 100);
                 const prefix = isBlocked ? "ЗАБРАТЬ СКИН МОЖНО ЧЕРЕЗ:" : "СЛЕДУЮЩЕЕ ВОССТАНОВЛЕНИЕ:";
                 const color = isBlocked ? "#ffcc00" : "#34c759";
@@ -1481,7 +1575,6 @@
             window.alTimer = setInterval(tick, 1000);
 
         } else if (data.unlock_time) {
-            // Если покупок нет вообще (0/150), просто пишем статус
             timeEl.innerHTML = `<span style="color: rgba(255,255,255,0.5);">Статус:</span> <span style="color: #fff; font-weight: 800;">${data.unlock_time}</span>`;
         }
     });
@@ -1493,30 +1586,36 @@
         if (isInitialized) return;
         isInitialized = true;
 
-        injectDOM();
         detectPlatforms();
+        injectDOM();
 
-        waitForDependencies(() => {
-            window.checkBalance(true);
+        // Сразу запускаем фоновую синхронизацию баланса и админ-прав без ожидания 5 секунд
+        setTimeout(() => {
+            window.checkBalance(true, false);
             checkAdminAccess();
-        });
+        }, 50);
 
         moveShopButtonsToHeader();
 
+        let domCheckRaf = false;
         const observer = new MutationObserver(() => {
-            if (window.location.pathname.includes('/admin')) return;
-            if (!document.getElementById('universal-top-header')) {
-                console.warn('HATElavka: Обнаружено удаление шапки. Восстанавливаем...');
-                injectDOM();
-            }
-            moveShopButtonsToHeader();
+            if (domCheckRaf) return;
+            domCheckRaf = true;
+            requestAnimationFrame(() => {
+                domCheckRaf = false;
+                if (window.location.pathname.includes('/admin')) return;
+                if (!document.getElementById('universal-top-header')) {
+                    injectDOM();
+                }
+                moveShopButtonsToHeader();
+            });
         });
 
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { childList: true });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootstrap);
+        document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
     } else {
         bootstrap();
     }
