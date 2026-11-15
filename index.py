@@ -29649,7 +29649,7 @@ async def join_raffle(
 
     if conditions_met and min_msgs > 0 and user_msgs < min_msgs:
         conditions_met = False
-        error_msg = f"⚠️ Мало актива на стриме! Нужно: {min_msgs} сообщ. {period_text} (у тебя: {user_msgs})"
+        error_msg = f"⚠️ Нужно: {min_msgs} сообщ. {period_text} (у тебя: {user_msgs})"
 
     # --- ПРОВЕРКА БИЛЕТОВ НА ВХОД ---
     ticket_cost = int(settings.get('ticket_cost') or 0)
