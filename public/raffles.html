@@ -1515,10 +1515,10 @@
             });
         }
 
-        async function buyRafflesPremium() {
+       async function buyRafflesPremium() {
             const btn = document.getElementById('buy-prem-btn');
             const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Создаём ссылку...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Переход к оплате...';
             btn.disabled = true;
 
             try {
@@ -1539,19 +1539,16 @@
                     try { sessionStorage.removeItem('__hl_fast_api_cache__'); } catch (e) {}
 
                     closePremiumModal();
-                    startPaymentReturnWatcher();
 
-                    if (tg && tg.openLink) {
-                        tg.openLink(ans.url);
-                    } else {
-                        window.location.href = ans.url;
-                    }
+                    // Открываем оплату прямо внутри WebView без окна "Перейти по ссылке?" и без выброса в браузер
+                    window.location.href = ans.url;
                 } else {
                     showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку'));
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
                 }
             } catch (e) {
                 showModal('error', 'Ошибка', 'Проверьте интернет-соединение');
-            } finally {
                 btn.innerHTML = oldText;
                 btn.disabled = false;
             }
