@@ -1426,6 +1426,77 @@
             document.querySelectorAll('.js-user-tickets-val').forEach(el => {
                 el.textContent = userTickets;
             });
+
+            try {
+                localStorage.setItem('rfl_prem_banner_cache', JSON.stringify({
+                    free_raffle_passes: userFreePasses,
+                    raffles_premium_until: userPremiumUntil,
+                    has_raffles_premium: userHasRafflesPremium,
+                    tickets: userTickets,
+                    total_raffled: userTotalRaffledFromProfile,
+                    _ts: Date.now()
+                }));
+            } catch (e) {}
+        }
+
+        // Мгновенная (0 мс) отрисовка подписки и карточек из кэша в первом кадре до ответа сети
+        function hydrateInstantUI() {
+            try {
+                let bestUser = null;
+                let bestTs = 0;
+
+                // 1. Проверяем локальный кэш баннера розыгрышей
+                const rawPremCache = localStorage.getItem('rfl_prem_banner_cache');
+                if (rawPremCache) {
+                    const parsedPrem = JSON.parse(rawPremCache);
+                    if (parsedPrem && typeof parsedPrem === 'object') {
+                        bestUser = parsedPrem;
+                        bestTs = Number(parsedPrem._ts || 0);
+                    }
+                }
+
+                // 2. Проверяем глобальный кэш bootstrap
+                const rawBoot = localStorage.getItem('cache_bootstrap');
+                if (rawBoot) {
+                    const parsedBoot = JSON.parse(rawBoot);
+                    const bootTs = Number(parsedBoot?._ts || 0);
+                    if (parsedBoot?.user && (parsedBoot.user.raffles_premium_until !== undefined || parsedBoot.user.has_raffles_premium !== undefined)) {
+                        if (!bestUser || bootTs >= bestTs) {
+                            bestUser = parsedBoot.user;
+                            bestTs = bootTs;
+                        }
+                    }
+                }
+
+                // 3. Проверяем оперативный кэш сессии /api/v1/user/me
+                const rawFast = sessionStorage.getItem('__hl_fast_api_cache__');
+                if (rawFast) {
+                    const parsedFast = JSON.parse(rawFast);
+                    const meEntry = parsedFast && parsedFast['POST:/api/v1/user/me:{}'];
+                    if (meEntry && meEntry.jsonText && Number(meEntry.ts || 0) >= bestTs) {
+                        const meData = JSON.parse(meEntry.jsonText);
+                        if (meData && typeof meData === 'object') {
+                            bestUser = meData;
+                            bestTs = Number(meEntry.ts || 0);
+                        }
+                    }
+                }
+
+                if (bestUser) {
+                    if (bestUser.tickets !== undefined) userTickets = bestUser.tickets;
+                    updatePremiumBannerUI(bestUser);
+                }
+
+                // 4. Мгновенно рендерим закэшированный список розыгрышей без ожидания спиннера
+                const rawRaffles = sessionStorage.getItem('rfl_fast_cache');
+                if (rawRaffles && !lastRafflesData) {
+                    const parsedRaffles = JSON.parse(rawRaffles);
+                    if (Array.isArray(parsedRaffles) && parsedRaffles.length) {
+                        lastRafflesData = parsedRaffles;
+                        renderAll(parsedRaffles, true);
+                    }
+                }
+            } catch (e) {}
         }
 
         // Принудительная синхронизация статуса подписки после оплаты в Робокассе
@@ -2220,12 +2291,12 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            checkPremiumBannerVisibility();
-            initPullToRefresh();
-            const shouldForceFreshLoad = initPaymentReturnHandlers();
-            load(shouldForceFreshLoad);
-        });
+        // Выполняем синхронно (за 0 мс) в первом кадре до завершения загрузки внешних скриптов
+        checkPremiumBannerVisibility();
+        hydrateInstantUI();
+        initPullToRefresh();
+        const shouldForceFreshLoad = initPaymentReturnHandlers();
+        load(shouldForceFreshLoad);
     </script>
 </body>
 </html>
