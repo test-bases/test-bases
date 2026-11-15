@@ -27,6 +27,7 @@
         * {
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         html, body {
@@ -34,7 +35,7 @@
             width: 100%; height: 100%;
             background: var(--bg);
             color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             position: fixed; 
             overflow: hidden; 
             overscroll-behavior-y: none;
@@ -65,43 +66,77 @@
             text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
         }
 
-        /* === ПРЕМИУМ GLASS-БАННЕР === */
+        /* === ПРЕМИУМ GLASS-БАННЕР (НОВАЯ ИЕРАРХИЯ ТЕКСТА) === */
         .premium-banner {
             border-radius: 13px;
-            padding: 8px 9px 8px 11px;
+            padding: 8px 9px 8px 12px;
             margin-bottom: 7px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(15, 15, 20, 0.78) 55%, rgba(109, 40, 217, 0.25) 100%);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(14, 14, 19, 0.82) 55%, rgba(109, 40, 217, 0.26) 100%);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(192, 132, 252, 0.32);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 14px rgba(124, 58, 237, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(192, 132, 252, 0.34);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), 0 0 14px rgba(124, 58, 237, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
             cursor: pointer;
             position: relative;
             overflow: hidden;
             animation: fadeUpIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         .premium-banner.active-sub {
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.18) 0%, rgba(15, 15, 20, 0.82) 60%, rgba(52, 199, 89, 0.14) 100%);
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.18) 0%, rgba(14, 14, 19, 0.84) 60%, rgba(52, 199, 89, 0.14) 100%);
             border-color: rgba(52, 199, 89, 0.42);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 14px rgba(52, 199, 89, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.16);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), 0 0 14px rgba(52, 199, 89, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.16);
         }
         .prem-left {
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
             flex: 1;
             min-width: 0;
             z-index: 1;
         }
-        .prem-desc {
-            font-size: 10.5px;
-            font-weight: 600;
+        .prem-title-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 800;
             color: #ffffff;
-            line-height: 1.25;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+            letter-spacing: -0.2px;
+            line-height: 1.15;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .prem-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--primary-purple-light);
+            box-shadow: 0 0 6px var(--primary-purple-light);
+            flex-shrink: 0;
+        }
+        .premium-banner.active-sub .prem-dot {
+            background: #4ade80;
+            box-shadow: 0 0 6px #4ade80;
+        }
+        .prem-sub-line {
+            font-size: 9.5px;
+            font-weight: 500;
+            color: #d4d4d8;
+            letter-spacing: -0.1px;
+            line-height: 1.15;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .prem-sub-line b {
+            color: #ffffff;
+            font-weight: 700;
         }
         .prem-actions {
             display: flex;
@@ -111,21 +146,22 @@
             flex-shrink: 0;
         }
         .prem-btn {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.45) 0%, rgba(109, 40, 217, 0.3) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.32) 100%);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             color: #ffffff;
-            border: 1px solid rgba(196, 181, 253, 0.48);
-            padding: 5px 9px;
+            border: 1px solid rgba(196, 181, 253, 0.52);
+            padding: 5.5px 10px;
             border-radius: 8px;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 700;
+            letter-spacing: -0.1px;
             white-space: nowrap;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            box-shadow: 0 0 12px rgba(139, 92, 246, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.28);
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
             transition: transform 0.12s ease;
         }
         .prem-btn:active { transform: scale3d(0.95, 0.95, 1); }
@@ -133,19 +169,19 @@
             background: linear-gradient(135deg, rgba(52, 199, 89, 0.3) 0%, rgba(16, 185, 129, 0.18) 100%);
             border-color: rgba(74, 222, 128, 0.5);
             color: #4ade80;
-            box-shadow: 0 0 12px rgba(52, 199, 89, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 10px rgba(52, 199, 89, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
         }
         .prem-close-btn {
-            background: rgba(255, 255, 255, 0.07);
-            color: #e4e4e7;
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.06);
+            color: #a1a1aa;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             width: 22px;
             height: 22px;
             border-radius: 7px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 9.5px;
             cursor: pointer;
             padding: 0;
             transition: transform 0.12s ease;
@@ -163,9 +199,9 @@
             border: 1px solid rgba(255, 255, 255, 0.09);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border-radius: 11px;
-            padding: 6px 9px 6px 11px;
+            padding: 5.5px 9px 5.5px 11px;
             margin-bottom: 7px;
-            font-size: 10.5px;
+            font-size: 10px;
             color: var(--text-secondary);
             cursor: pointer;
             animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
@@ -175,17 +211,18 @@
             align-items: center;
             gap: 6px;
             font-weight: 600;
-            color: #ffffff;
+            color: #e4e4e7;
+            letter-spacing: -0.1px;
         }
         .stats-left i {
             color: var(--gold);
-            font-size: 10.5px;
+            font-size: 10px;
             filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
         }
         .stats-count {
-            color: var(--primary-purple-light);
+            color: #ffffff;
             font-weight: 800;
-            font-size: 11px;
+            font-size: 10.5px;
             margin-left: 1px;
             font-variant-numeric: tabular-nums;
         }
@@ -195,14 +232,15 @@
             gap: 5px;
         }
         .top-winners-btn {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(85, 22, 183, 0.2) 100%);
-            border: 1px solid rgba(192, 132, 252, 0.38);
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(85, 22, 183, 0.18) 100%);
+            border: 1px solid rgba(192, 132, 252, 0.36);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.2);
             color: #ffffff;
             border-radius: 7px;
-            padding: 3.5px 7px;
-            font-size: 9.5px;
+            padding: 3.5px 7.5px;
+            font-size: 9px;
             font-weight: 700;
+            letter-spacing: -0.1px;
             display: inline-flex;
             align-items: center;
             gap: 4px;
@@ -210,14 +248,14 @@
             transition: transform 0.12s ease;
         }
         .top-winners-btn:active { transform: scale3d(0.95, 0.95, 1); }
-        .top-winners-btn i { color: var(--gold); font-size: 9px; }
+        .top-winners-btn i { color: var(--gold); font-size: 8.5px; }
         .restore-prem-pill {
             background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(217, 119, 6, 0.15) 100%);
             border: 1px solid rgba(251, 191, 36, 0.4);
             color: #fde68a;
             border-radius: 7px;
             padding: 3.5px 7px;
-            font-size: 9.5px;
+            font-size: 9px;
             font-weight: 700;
             cursor: pointer;
             display: none;
@@ -235,12 +273,13 @@
         }
         .tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            gap: 5px; padding: 6px 6px; border-radius: 8px; font-size: 10.5px; font-weight: 700;
+            gap: 5px; padding: 5.5px 6px; border-radius: 8px; font-size: 10px; font-weight: 700;
+            letter-spacing: -0.1px;
             color: var(--text-muted); background: transparent; border: 1px solid transparent; cursor: pointer;
             transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
         }
         .tab-btn:active { transform: scale3d(0.97, 0.97, 1); }
-        .tab-btn i { font-size: 10px; }
+        .tab-btn i { font-size: 9.5px; }
         .tab-btn.active {
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.28) 100%);
             border-color: rgba(196, 181, 253, 0.4);
@@ -252,7 +291,7 @@
             padding: 1px 5px; border-radius: 5px; min-width: 13px; text-align: center;
         }
 
-        /* === КАРТОЧКА РОЗЫГРЫША (3 ШТУКИ НА ЭКРАН + БОЛЬШОЙ СКИН + ЧЕРНЫЙ БЛЮР) === */
+        /* === КАРТОЧКА РОЗЫГРЫША (ЧЕТКИЙ ФОН БЕЗ БЛЮРА + ПРИПОДНЯТЫЙ КРУПНЫЙ СКИН) === */
         .card { 
             position: relative;
             overflow: hidden;
@@ -263,35 +302,33 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            border: 1px solid rgba(255, 255, 255, 0.09); 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             contain: content;
             content-visibility: auto;
-            contain-intrinsic-size: 132px;
+            contain-intrinsic-size: 130px;
             animation: fadeUpIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        /* Черный блюр поверх фоновой картинки */
+        /* Мягкое затемнение только слева под текстом БЕЗ БЛЮРА, чтобы фон сиял во всей красе */
         .card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, rgba(6, 6, 9, 0.90) 0%, rgba(8, 8, 12, 0.78) 54%, rgba(10, 10, 15, 0.32) 100%);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            background: linear-gradient(90deg, rgba(7, 7, 10, 0.84) 0%, rgba(7, 7, 10, 0.56) 46%, rgba(7, 7, 10, 0.04) 100%);
             pointer-events: none;
             z-index: 0;
         }
         .card.hidden-tab { display: none; }
 
-        /* Скин оружия на уровне фона (z-index: 1) */
+        /* Скин оружия — ПРИПОДНЯТ НАД КНОПКОЙ И УВЕЛИЧЕН */
         .prize-img-wrapper { 
             position: absolute;
-            top: 2px;
-            right: -6px; 
-            width: 180px;
-            height: 112px;
+            top: -10px;
+            right: -8px; 
+            width: 198px;
+            height: 94px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -300,30 +337,30 @@
         }
         .card.done .prize-img-wrapper {
             top: 50%;
-            right: -4px;
-            width: 170px;
-            height: 100px;
+            right: -6px;
+            width: 188px;
+            height: 98px;
             transform: translateY(-50%);
         }
         .prize-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transform: rotate(-4deg) scale(1.05) translateZ(0);
-            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.75));
+            transform: rotate(-5deg) scale(1.16) translateZ(0);
+            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.8));
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* Контент карточки поверх скина (z-index: 2) */
         .card_content {
-            padding: 9px 11px;
+            padding: 9px 11px 8px 11px;
             position: relative;
             z-index: 2;
             display: flex;
             flex-direction: column;
         }
         .card.done .card_content {
-            min-height: 84px;
+            min-height: 82px;
             justify-content: center;
         }
 
@@ -332,53 +369,54 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 8px;
+            font-size: 7.5px;
             font-weight: 800;
-            color: var(--primary-purple-light);
+            color: #d8b4fe;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.55px;
             margin-bottom: 2px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .r-label-dot {
             width: 4px;
             height: 4px;
             border-radius: 50%;
             background: var(--primary-purple-light);
-            box-shadow: 0 0 5px var(--primary-purple-light);
+            box-shadow: 0 0 6px var(--primary-purple-light);
         }
 
         .r-title {
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 800;
             color: #ffffff;
             margin: 0 0 4px 0;
-            line-height: 1.15;
-            max-width: 60%;
-            letter-spacing: -0.15px;
+            line-height: 1.18;
+            max-width: 56%;
+            letter-spacing: -0.2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95);
         }
 
-        /* Условия — аккуратный мелкий текст прямо на черном блюре */
+        /* Условия — аккуратная строгая типографика */
         .conditions {
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
-            column-gap: 9px;
+            column-gap: 8px;
             row-gap: 2px;
             margin-bottom: 4px;
-            max-width: 60%;
+            max-width: 56%;
         }
         .cond-row {
-            font-size: 9.5px;
-            color: var(--text-secondary);
+            font-size: 9px;
+            color: #e4e4e7;
             display: inline-flex;
             align-items: center;
             gap: 3.5px;
-            font-weight: 600;
+            font-weight: 500;
+            letter-spacing: -0.1px;
             line-height: 1.2;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
@@ -388,7 +426,7 @@
         }
         .cond-row i {
             color: var(--primary-purple-light);
-            font-size: 8.5px;
+            font-size: 8px;
         }
 
         /* Строка "Участники | Шанс" */
@@ -397,10 +435,11 @@
             align-items: center;
             gap: 7px;
             margin-bottom: 5px;
-            font-size: 9.5px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            max-width: 60%;
+            font-size: 9px;
+            color: #d4d4d8;
+            font-weight: 500;
+            letter-spacing: -0.1px;
+            max-width: 56%;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .participants-info b {
@@ -409,7 +448,7 @@
         }
         .chance-badge {
             color: var(--gold);
-            font-size: 9.5px;
+            font-size: 9px;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
@@ -426,28 +465,32 @@
             padding-top: 5px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             gap: 8px;
+            position: relative;
+            z-index: 3;
         }
 
-        .timer_row { display: flex; align-items: center; gap: 7px; margin: 0; }
+        .timer_row { display: flex; align-items: center; gap: 6px; margin: 0; }
         .timer_item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .timer_val {
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 800;
             color: #ffffff;
             line-height: 1;
+            letter-spacing: -0.2px;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .timer_lbl {
-            font-size: 7.5px;
-            color: var(--text-secondary);
+            font-size: 7px;
+            color: #a1a1aa;
             margin-top: 1.5px;
             font-weight: 600;
+            letter-spacing: 0.1px;
         }
         .timer-divider {
             width: 1px;
             height: 10px;
-            background: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.15);
             margin: 0 1px;
         }
 
@@ -460,16 +503,17 @@
 
         /* Кнопка Участвовать (Премиум Glass с легким подсвечиванием) */
         .btn-main {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.44) 0%, rgba(109, 40, 217, 0.3) 100%);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.48) 0%, rgba(109, 40, 217, 0.34) 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: #ffffff;
-            border: 1px solid rgba(196, 181, 253, 0.5);
-            box-shadow: 0 3px 12px rgba(124, 58, 237, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            padding: 6px 11px;
+            border: 1px solid rgba(196, 181, 253, 0.52);
+            box-shadow: 0 3px 12px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.32);
+            padding: 5.5px 11px;
             border-radius: 9px;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 700;
+            letter-spacing: -0.1px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -487,40 +531,41 @@
             color: #4ade80;
             cursor: default;
         }
-        .btn-main i { font-size: 9.5px; }
+        .btn-main i { font-size: 9px; }
 
         .user-tickets-info {
             text-align: right;
-            font-size: 8.5px;
-            color: var(--text-secondary);
-            font-weight: 600;
+            font-size: 8px;
+            color: #d4d4d8;
+            font-weight: 500;
             line-height: 1;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
-        .user-tickets-info b { color: var(--primary-purple-light); }
+        .user-tickets-info b { color: var(--primary-purple-light); font-weight: 700; }
 
-        /* Победитель в завершенных — без рамочного фона, чистый текст поверх черного блюра */
+        /* Победитель в завершенных */
         .winner_box { 
             margin-top: 2px;
             max-width: 56%;
             padding: 2px 0 0 0;
             display: flex;
             align-items: center;
-             gap: 6px;
+            gap: 6px;
         }
         .w-title {
-            font-size: 7.5px;
+            font-size: 7px;
             color: var(--gold);
             text-transform: uppercase;
             font-weight: 800;
             margin-bottom: 1px;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.45px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
         .w-user {
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 700;
             color: #ffffff;
+            letter-spacing: -0.1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -542,7 +587,7 @@
 
         .hidden { display: none !important; }
         
-        /* === ДИАЛОГОВЫЕ ОКНА (ТОЛЬКО ЧЕРНЫЙ БЛЮР, ТЕКСТ И GLASS-КНОПКИ БЕЗ РАМОЧНЫХ ФОНОВ) === */
+        /* === ДИАЛОГОВЫЕ ОКНА (ЧЕРНЫЙ БЛЮР, ИДЕАЛЬНАЯ ТИПОГРАФИКА И GLASS-КНОПКИ) === */
         .modal-overlay { 
             position: fixed;
             inset: 0;
@@ -560,8 +605,8 @@
             border: none;
             box-shadow: none;
             width: 86%;
-            max-width: 300px;
-            padding: 10px 6px; 
+            max-width: 285px;
+            padding: 8px 4px; 
             text-align: center;
             animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             will-change: transform, opacity;
@@ -573,8 +618,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 8px;
-            font-size: 24px;
+            margin: 0 auto 6px;
+            font-size: 22px;
             color: var(--primary-purple-light);
             filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.5));
         }
@@ -585,7 +630,8 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(196, 181, 253, 0.5);
             box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.28);
-            color: #fff; flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 11px;
+            color: #fff; flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 10.5px;
+            letter-spacing: -0.1px;
             transition: transform 0.12s ease;
         }
         .m-btn-confirm:active { transform: scale3d(0.96, 0.96, 1); }
@@ -596,23 +642,26 @@
             color: var(--text-secondary);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
-            flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px;
+            flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 10.5px;
+            letter-spacing: -0.1px;
             transition: transform 0.12s ease;
         }
         .m-btn-cancel:active { transform: scale3d(0.96, 0.96, 1); }
         
         .m-head {
-            font-size: 14.5px;
+            font-size: 14px;
             font-weight: 800;
-            margin-bottom: 6px;
+            letter-spacing: -0.25px;
+            margin-bottom: 4px;
             color: #ffffff;
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
         }
         .m-desc {
-            font-size: 11px;
-            color: var(--text-secondary);
+            font-size: 10.5px;
+            color: #d4d4d8;
             margin-bottom: 14px;
             line-height: 1.45;
+            letter-spacing: -0.1px;
             text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
         .m-btn { 
@@ -626,7 +675,8 @@
             padding: 9px 14px;
             border-radius: 10px;
             font-weight: 600;
-            font-size: 11px;
+            font-size: 10.5px;
+            letter-spacing: -0.1px;
             cursor: pointer;
             margin-bottom: 7px;
             display: inline-flex;
@@ -644,12 +694,72 @@
             font-weight: 700;
         }
 
-        /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ (БЕЗ РАМОЧНЫХ ФОНОВ) */
+        /* === НОВАЯ ТИПОГРАФИКА ВНУТРИ ОКНА АВТО-УЧАСТИЯ ЗА 100 ₽ === */
+        .prem-modal-subtitle {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--primary-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 14px;
+        }
+        .prem-features-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+        .prem-feat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .prem-feat-title {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .prem-feat-sub {
+            font-size: 10px;
+            font-weight: 500;
+            color: #a1a1aa;
+            line-height: 1.35;
+            max-width: 245px;
+        }
+        .prem-price-line {
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            width: 75%;
+        }
+        .prem-price-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+        .prem-price-period {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ */
         .leaders-list {
             display: flex;
             flex-direction: column;
             gap: 2px;
-            max-height: 230px;
+            max-height: 220px;
             overflow-y: auto;
             margin-bottom: 14px;
             text-align: left;
@@ -671,7 +781,7 @@
         .leader-rank {
             width: 18px;
             color: var(--text-muted);
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 800;
             display: inline-flex;
             align-items: center;
@@ -682,17 +792,18 @@
         .leader-row.rank-2 .leader-rank { color: #f4f4f5; }
         .leader-row.rank-3 .leader-rank { color: #f59e0b; }
         .leader-name {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 700;
             color: #ffffff;
+            letter-spacing: -0.1px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
         }
         .leader-wins {
-            font-size: 10px;
-            font-weight: 800;
+            font-size: 9.5px;
+            font-weight: 700;
             color: var(--primary-purple-light);
             white-space: nowrap;
             display: inline-flex;
@@ -701,12 +812,12 @@
         }
 
         /* АНИМАЦИИ И ЛОАДЕРЫ */
-        .icon-container { width: 42px; height: 42px; margin: 0 auto 8px; position: relative; }
+        .icon-container { width: 40px; height: 40px; margin: 0 auto 8px; position: relative; }
         .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--accent-green); fill: none; animation: stroke 0.5s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
-        .checkmark { width: 42px; height: 42px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--accent-green); animation: fill .35s ease-in-out .35s forwards, scale .25s ease-in-out .75s both; }
+        .checkmark { width: 40px; height: 40px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--accent-green); animation: fill .35s ease-in-out .35s forwards, scale .25s ease-in-out .75s both; }
         .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.25s cubic-bezier(0.65, 0, 0.45, 1) 0.65s forwards; }
         .cross-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--danger); fill: none; animation: stroke 0.5s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
-        .cross { width: 42px; height: 42px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--danger); animation: fill-red .35s ease-in-out .35s forwards, shake .25s ease-in-out .75s both; }
+        .cross { width: 40px; height: 40px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto; box-shadow: inset 0px 0px 0px var(--danger); animation: fill-red .35s ease-in-out .35s forwards, shake .25s ease-in-out .75s both; }
         .cross-path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.25s cubic-bezier(0.65, 0, 0.45, 1) 0.65s forwards; }
 
         .verify-modal-content {
@@ -720,9 +831,9 @@
             align-items: center;
             animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .verify-loader { width: 28px; height: 28px; border: 2.5px solid rgba(255,255,255,0.1); border-top: 2.5px solid var(--primary-purple-light); border-radius: 50%; animation: spin 0.85s linear infinite; margin: 0 auto 10px; }
-        .verify-text { font-size: 13px; font-weight: 700; color: #fff; margin: 0; }
-        .verify-subtext { font-size: 10.5px; color: var(--text-secondary); font-weight: 500; margin-top: 3px; }
+        .verify-loader { width: 26px; height: 26px; border: 2.5px solid rgba(255,255,255,0.1); border-top: 2.5px solid var(--primary-purple-light); border-radius: 50%; animation: spin 0.85s linear infinite; margin: 0 auto 10px; }
+        .verify-text { font-size: 12.5px; font-weight: 700; color: #fff; margin: 0; letter-spacing: -0.15px; }
+        .verify-subtext { font-size: 10px; color: var(--text-secondary); font-weight: 500; margin-top: 3px; }
 
         @keyframes fadeUpIn {
             0% { opacity: 0; transform: translate3d(0, 10px, 0); }
@@ -752,14 +863,18 @@
     </div>
 
     <main id="main-content">
-        <!-- GLASS-БАННЕР ПРЕМИУМ-ДОСТУПА -->
+        <!-- GLASS-БАННЕР АВТО-УЧАСТИЯ (ДВУХЪЯРУСНАЯ ТИПОГРАФИКА) -->
         <div id="premium-banner" class="premium-banner" onclick="openPremiumModal()">
-            <div class="prem-left">
-                <div class="prem-desc" id="prem-desc-text">Авто-участие + 4 входа без условий на 30 дней</div>
+            <div class="prem-left" id="prem-desc-text">
+                <div class="prem-title-line">
+                    <span class="prem-dot"></span>
+                    <span>Авто-участие в раздачах</span>
+                </div>
+                <div class="prem-sub-line">+ <b>4 входа</b> без условий на 30 дней</div>
             </div>
             <div class="prem-actions">
                 <button class="prem-btn" id="prem-action-btn" onclick="event.stopPropagation(); openPremiumModal();">
-                    Купить • 100 ₽
+                    Подключить • 100 ₽
                 </button>
                 <button class="prem-close-btn" title="Скрыть" onclick="hidePremiumBanner(event)">
                     <i class="fa-solid fa-xmark"></i>
@@ -776,7 +891,7 @@
             </div>
             <div class="stats-right">
                 <button id="restore-prem-btn" class="restore-prem-pill" onclick="event.stopPropagation(); restorePremiumBanner();">
-                    <i class="fa-solid fa-bolt"></i> Премиум
+                    <i class="fa-solid fa-bolt"></i> Авто-вход
                 </button>
                 <button class="top-winners-btn" onclick="event.stopPropagation(); openTopWinnersModal();">
                     <i class="fa-solid fa-ranking-star"></i>
@@ -801,7 +916,7 @@
         <!-- СПИСОК КАРТОЧЕК -->
         <div id="list">
             <div style="text-align:center; margin-top:36px; color:var(--text-secondary);">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size:18px;"></i>
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:16px;"></i>
             </div>
         </div>
 
@@ -841,29 +956,39 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА ПРЕМИУМ-ДОСТУПА (БЕЗ РАМОК) -->
+    <!-- МОДАЛКА АВТО-УЧАСТИЯ ЗА 100 ₽ (НОВАЯ ВОЗДУШНАЯ ТИПОГРАФИКА) -->
     <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
         <div class="modal-box">
             <div class="modal-icon-badge">
                 <i class="fa-solid fa-bolt"></i>
             </div>
-            <div class="m-head">Премиум-доступ</div>
-            <div class="m-desc" id="prem-modal-desc" style="text-align: left; padding: 4px 2px; margin-bottom: 14px;">
-                <div style="margin-bottom: 6px; color: #fff; font-weight: 700; font-size: 11px;">Привилегия на 30 дней:</div>
-                <div style="margin-bottom: 5px; display:flex; align-items:center; gap:7px;">
-                    <i class="fa-solid fa-bolt" style="color:var(--primary-purple-light); width:12px; font-size:10px;"></i>
-                    <span><b>Авто-участие:</b> бот сам добавляет вас.</span>
+            <div class="m-head">Авто-участие</div>
+            <div class="prem-modal-subtitle">Полный доступ на 30 дней</div>
+            
+            <div class="prem-features-stack" id="prem-modal-desc">
+                <div class="prem-feat-item">
+                    <div class="prem-feat-title">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary-purple-light); font-size:10px;"></i>
+                        <span>Автоматический вход</span>
+                    </div>
+                    <div class="prem-feat-sub">Бот сам записывает вас во все новые раздачи без вашего участия</div>
                 </div>
-                <div style="margin-bottom: 5px; display:flex; align-items:center; gap:7px;">
-                    <i class="fa-solid fa-ticket" style="color:var(--accent-green); width:12px; font-size:10px;"></i>
-                    <span><b>4 пропуска:</b> участие без условий.</span>
-                </div>
-                <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 8px;">
-                    Стоимость: <b style="color: var(--gold);">100 ₽</b> на 30 дней
+                <div class="prem-feat-item">
+                    <div class="prem-feat-title">
+                        <i class="fa-solid fa-ticket" style="color:var(--accent-green); font-size:10px;"></i>
+                        <span>4 пропуска без условий</span>
+                    </div>
+                    <div class="prem-feat-sub">Мгновенный вход в закрытые розыгрыши без проверки сообщений и уровня</div>
                 </div>
             </div>
+
+            <div class="prem-price-line">
+                <span class="prem-price-val">100 ₽</span>
+                <span class="prem-price-period">/ 30 дней</span>
+            </div>
+
             <button id="buy-prem-btn" class="m-btn m-btn-primary" onclick="buyRafflesPremium()">
-                <i class="fa-solid fa-credit-card"></i> Оплатить 100 ₽
+                <i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽
             </button>
             <button class="m-btn" onclick="closePremiumModal()">Закрыть</button>
         </div>
@@ -951,7 +1076,7 @@
             const listEl = document.getElementById('top-winners-list');
             if (listEl) {
                 if (!topWinnersData.length) {
-                    listEl.innerHTML = '<div style="text-align:center; padding: 14px 0; color:var(--text-muted); font-size:11px;">Статистика победителей формируется</div>';
+                    listEl.innerHTML = '<div style="text-align:center; padding: 14px 0; color:var(--text-muted); font-size:10.5px;">Статистика победителей формируется</div>';
                 } else {
                     let html = '';
                     topWinnersData.forEach((item, idx) => {
@@ -965,7 +1090,7 @@
                                     <span class="leader-name">${escapeHtml(item.name)}</span>
                                 </div>
                                 <div class="leader-wins">
-                                    <i class="fa-solid fa-award" style="font-size:9.5px;"></i>
+                                    <i class="fa-solid fa-award" style="font-size:9px;"></i>
                                     <span>${item.wins} ${winWord}</span>
                                 </div>
                             </div>
@@ -1062,16 +1187,28 @@
             if (userHasRafflesPremium) {
                 const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
                 banner.classList.add('active-sub');
-                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#4ade80; margin-right:4px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
+                descText.innerHTML = `
+                    <div class="prem-title-line">
+                        <span class="prem-dot"></span>
+                        <span>Авто-участие активно</span>
+                    </div>
+                    <div class="prem-sub-line">До ${untilStr} • Доступно <b>${userFreePasses}</b> проп.</div>
+                `;
                 actionBtn.className = 'prem-btn active-badge';
-                actionBtn.innerHTML = `<i class="fa-solid fa-ticket" style="font-size:9px;"></i> ${userFreePasses}`;
-                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Продлить (+30 дней) • 100 ₽';
+                actionBtn.innerHTML = `<i class="fa-solid fa-ticket" style="font-size:8.5px;"></i> ${userFreePasses} проп.`;
+                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Продлить (+30 дней)';
             } else {
                 banner.classList.remove('active-sub');
-                descText.innerText = `Авто-участие + 4 входа без условий на 30 дней`;
+                descText.innerHTML = `
+                    <div class="prem-title-line">
+                        <span class="prem-dot"></span>
+                        <span>Авто-участие в раздачах</span>
+                    </div>
+                    <div class="prem-sub-line">+ <b>4 входа</b> без условий на 30 дней</div>
+                `;
                 actionBtn.className = 'prem-btn';
-                actionBtn.innerHTML = `Купить • 100 ₽`;
-                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Оплатить 100 ₽';
+                actionBtn.innerHTML = `Подключить • 100 ₽`;
+                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽';
             }
         }
 
@@ -1141,7 +1278,7 @@
                 const diff = item.endTime - now;
                 if (diff <= 0) {
                     if (!item.expired) {
-                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:800; font-size:10px;">ЗАВЕРШАЕТСЯ...</span>';
+                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:800; font-size:9.5px;">ЗАВЕРШАЕТСЯ...</span>';
                         item.expired = true;
                     }
                     continue;
@@ -1172,7 +1309,7 @@
                 renderAll(Array.isArray(data) ? data : []);
                 checkDeepLink(); 
             } catch(e) {
-                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11.5px; color:var(--text-secondary);">Ошибка сети</p>';
+                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:11px; color:var(--text-secondary);">Ошибка сети</p>';
             }
         }
 
@@ -1265,12 +1402,12 @@
 
                 if (!done) {
                     if (isTwitch) {
-                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></button>`;
+                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i></button>`;
                         ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
                     } else {
-                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
+                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i>`;
                         if (!r.is_joined && s.ticket_cost > 0) {
-                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
+                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:7.5px;"></i>`;
                             ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
                         }
                         btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
@@ -1285,7 +1422,7 @@
                     pTextFinal = `
                         <div class="participants-info">
                             <span><b>${pCount}</b> ${getPlural(pCount, ['участник', 'участника', 'участников'])}</span>
-                            <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt" style="font-size:8.5px;"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:8px; opacity:0.8;"></i></span>
+                            <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt" style="font-size:8px;"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:7.5px; opacity:0.8;"></i></span>
                         </div>
                     `;
                 } else if (!done && pCount === 0) {
@@ -1297,7 +1434,7 @@
                     const wName = escapeHtml(r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель');
                     winnerBoxContent = `<div class="w-user">${wName}</div>`;
                 } else {
-                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:9px;"></i>Выбор победителя...</div>`;
+                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:8.5px;"></i>Выбор победителя...</div>`;
                 }
 
                 let timerBlock = '';
@@ -1312,7 +1449,7 @@
                                 <div class="timer_item"><span class="timer_val s-v">0</span><span class="timer_lbl">сек</span></div>
                             </div>`;
                     } else if (isTwitch) {
-                        timerBlock = `<div style="font-size:10px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
+                        timerBlock = `<div style="font-size:9.5px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                     }
                 }
 
@@ -1339,7 +1476,7 @@
                             </div>
                         ` : `
                             <div class="winner_box">
-                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:12px; flex-shrink:0;"></i>
+                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:11.5px; flex-shrink:0;"></i>
                                 <div style="min-width:0;"><div class="w-title">Победитель</div>${winnerBoxContent}</div>
                             </div>
                         `}
@@ -1348,10 +1485,10 @@
             });
 
             if (activeRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11.5px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Активных розыгрышей пока нет</div>`;
+                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Активных розыгрышей пока нет</div>`;
             }
             if (completedRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11.5px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Завершённых розыгрышей пока нет</div>`;
+                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:36px; color:var(--text-secondary); font-size:11px;"><i class="fa-solid fa-box-open" style="margin-right:5px;"></i>Завершённых розыгрышей пока нет</div>`;
             }
             
             htmlBuffer += '<div class="bottom-spacer"></div>';
@@ -1409,7 +1546,7 @@
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
                     if (ans.detail && ans.detail.includes('Battle Pass')) {
-                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10.5px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
+                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
                         showModal('bp_error', 'Доступ закрыт', bpMsg);
                     } else { showModal('error', 'Ошибка доступа', ans.detail); }
 
@@ -1431,9 +1568,9 @@
             if(type === 'success') {
                 iconBox.innerHTML = `<svg class="checkmark" viewBox="0 0 52 52"><circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/><path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg>`;
             } else if (type === 'info') {
-                iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 34px; color: var(--primary-purple-light); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(192,132,252,0.4));"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 30px; color: var(--primary-purple-light); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(192,132,252,0.4));"></i>';
             } else if (type === 'bp_error') {
-                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 34px; color: var(--gold); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 30px; color: var(--gold); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
                 btnBp.style.display = 'inline-flex';
             } else {
                 iconBox.innerHTML = `<svg class="cross" viewBox="0 0 52 52"><circle class="cross-circle" cx="26" cy="26" r="25" fill="none"/><path class="cross-path" fill="none" d="M16 16 36 36 M36 16 16 36"/></svg>`;
