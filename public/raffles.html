@@ -387,7 +387,7 @@
             text-align: right;
         }
 
-        /* === ЧЕТКИЙ ОРИГИНАЛЬНЫЙ СКИН (ЧУТЬ КРУПНЕЕ И НИЖЕ, БЕЗ ЗАСВЕТОВ И МЫЛА) === */
+        /* === ЧЕТКИЙ ОРИГИНАЛЬНЫЙ СКИН === */
         .prize-img-wrapper { 
             position: absolute;
             top: -12px;
@@ -568,7 +568,7 @@
             gap: 2.5px;
         }
 
-        /* Увеличенная главная кнопка Участвовать (без тяжелого backdrop-filter в списке) */
+        /* Увеличенная главная кнопка Участвовать */
         .btn-main {
             background: linear-gradient(135deg, rgba(124, 58, 237, 0.88) 0%, rgba(85, 22, 183, 0.82) 100%);
             color: #ffffff;
@@ -702,7 +702,7 @@
             font-size: 14.5px;
             font-weight: 800;
             letter-spacing: -0.25px;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             color: #ffffff;
             text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
         }
@@ -714,6 +714,33 @@
             letter-spacing: -0.1px;
             text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
         }
+
+        /* Стилизация структурированных ошибок доступа */
+        .err-main-line {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.35;
+        }
+        .err-req-line {
+            margin-top: 6px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #d8b4fe;
+            line-height: 1.35;
+        }
+        .err-req-line b {
+            color: var(--gold);
+            font-weight: 800;
+        }
+        .err-hint-line {
+            margin-top: 6px;
+            font-size: 9.5px;
+            font-weight: 500;
+            color: #d4d4d8;
+            line-height: 1.35;
+        }
+
         .m-btn { 
             background: rgba(255, 255, 255, 0.1);
             color: #ffffff;
@@ -739,6 +766,27 @@
             border: 1px solid rgba(216, 180, 254, 0.58);
             box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
             color: #fff;
+            font-weight: 700;
+        }
+        .m-btn-twitch {
+            background: linear-gradient(135deg, rgba(145, 70, 255, 0.62) 0%, rgba(100, 65, 165, 0.45) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.6);
+            box-shadow: 0 4px 16px rgba(145, 70, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .m-btn-tg {
+            background: linear-gradient(135deg, rgba(36, 161, 222, 0.58) 0%, rgba(2, 132, 199, 0.42) 100%);
+            border: 1px solid rgba(125, 211, 252, 0.58);
+            box-shadow: 0 4px 16px rgba(36, 161, 222, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .m-btn-bp {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.45) 0%, rgba(217, 119, 6, 0.3) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.55);
+            box-shadow: 0 4px 16px rgba(251, 191, 36, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            color: #ffffff;
             font-weight: 700;
         }
 
@@ -1055,18 +1103,33 @@
         </div>
     </div>
 
-    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА (БЕЗ РАМОК) -->
+    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА С УМНЫМИ КНОПКАМИ ДЕЙСТВИЙ -->
     <div id="modal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
         <div class="modal-box">
             <div id="modal-icon" class="icon-container"></div>
             <div class="m-head" id="m-head"></div>
             <div class="m-desc" id="m-desc"></div>
+
+            <!-- Кнопка перехода на Twitch (при нехватке сообщений/актива на стриме) -->
+            <button id="btn-twitch" class="m-btn m-btn-twitch" style="display:none;" onclick="openTwitchChannel()">
+                <i class="fa-brands fa-twitch"></i> Перейти на Twitch • hatelove_ttv
+            </button>
+
+            <!-- Кнопка подписки на Telegram-канал -->
+            <button id="btn-tg" class="m-btn m-btn-tg" style="display:none;" onclick="openTelegramChannel()">
+                <i class="fa-brands fa-telegram"></i> Подписаться в Telegram
+            </button>
+
+            <!-- Кнопка настройки профиля (привязка Twitch / Trade URL) -->
             <button id="btn-profile" class="m-btn m-btn-primary" style="display:none;" onclick="location.href='/profile'">
                 <i class="fa-solid fa-sliders"></i> Настроить профиль
             </button>
-            <button id="btn-bp" class="m-btn m-btn-primary" style="display:none; background: linear-gradient(135deg, rgba(251, 191, 36, 0.45) 0%, rgba(217, 119, 6, 0.3) 100%); border-color: rgba(251, 191, 36, 0.5); color: #fff;" onclick="location.href='/checkpoint'">
+
+            <!-- Кнопка перехода в Battle Pass -->
+            <button id="btn-bp" class="m-btn m-btn-bp" style="display:none;" onclick="location.href='/checkpoint'">
                 <i class="fa-solid fa-star" style="color:var(--gold);"></i> Открыть Battle Pass
             </button>
+
             <button class="m-btn" onclick="document.getElementById('modal').style.display='none'">Понятно</button>
         </div>
     </div>
@@ -1092,6 +1155,9 @@
         tg.expand();
         tg.BackButton.hide();
 
+        const TWITCH_CHANNEL_URL = 'https://www.twitch.tv/hatelove_ttv';
+        const TG_CHANNEL_URL = 'https://t.me/hatelove_ttv';
+
         let userTickets = 0;
         let userHasRafflesPremium = false;
         let userFreePasses = 0;
@@ -1106,6 +1172,32 @@
             return String(str || '').replace(/[&<>"']/g, m => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
             }[m]));
+        }
+
+        // Удаление любых эмодзи из серверных ответов для сохранения строгого дизайна
+        function stripEmojis(text) {
+            return String(text || '')
+                .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}\u{1FA70}-\u{1FAFF}\u{FE0F}\u{200D}]/gu, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+        }
+
+        function openTwitchChannel() {
+            if (tg && tg.openLink) {
+                tg.openLink(TWITCH_CHANNEL_URL);
+            } else {
+                window.open(TWITCH_CHANNEL_URL, '_blank');
+            }
+        }
+
+        function openTelegramChannel() {
+            if (tg && tg.openTelegramLink) {
+                tg.openTelegramLink(TG_CHANNEL_URL);
+            } else if (tg && tg.openLink) {
+                tg.openLink(TG_CHANNEL_URL);
+            } else {
+                window.open(TG_CHANNEL_URL, '_blank');
+            }
         }
 
         function checkPremiumBannerVisibility() {
@@ -1277,7 +1369,6 @@
                 if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽';
             }
 
-            // Обновляем отображение баланса билетов на уже отрендеренных карточках
             document.querySelectorAll('.js-user-tickets-val').forEach(el => {
                 el.textContent = userTickets;
             });
@@ -1299,7 +1390,7 @@
                 if (res.ok && ans.url) {
                     closePremiumModal();
                     if (tg.openLink) { tg.openLink(ans.url); } else { window.location.href = ans.url; }
-                } else { showModal('error', 'Ошибка оплаты', ans.detail || 'Не удалось получить ссылку'); }
+                } else { showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку')); }
             } catch (e) { showModal('error', 'Ошибка', 'Проверьте интернет-соединение'); } 
             finally { btn.innerHTML = oldText; btn.disabled = false; }
         }
@@ -1369,7 +1460,7 @@
             const payload = JSON.stringify({ initData: tg.initData });
             const reqHeaders = { 'Content-Type': 'application/json' };
 
-            // 1. Мгновенная отрисовка из sessionStorage (0 мс при повторном заходе)
+            // 1. Мгновенная отрисовка из sessionStorage
             try {
                 const cachedRaffles = sessionStorage.getItem('rfl_fast_cache');
                 if (cachedRaffles && !lastRafflesData) {
@@ -1380,7 +1471,7 @@
                 }
             } catch (err) {}
 
-            // 2. Независимая загрузка списка розыгрышей (не ждет ответа /user/me!)
+            // 2. Независимая загрузка списка розыгрышей
             const rafflesPromise = fetch('/api/v1/raffles/active', { method: 'POST', headers: reqHeaders, body: payload })
                 .then(r => r.json())
                 .then(data => {
@@ -1440,7 +1531,6 @@
             const tabCountEl = document.getElementById('active-tab-count');
             if (tabCountEl) tabCountEl.textContent = activeRaffles.length;
 
-            // Считаем статистику и строим топ победителей
             buildTopWinners(completedRaffles);
             const statsCountEl = document.getElementById('raffled-skins-count');
             if (statsCountEl) {
@@ -1526,7 +1616,7 @@
 
                 let btnHtml = ""; let ticketInfo = "";
                 if (isTwitch) {
-                    btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></button>`;
+                    btnHtml = `<button class="btn-main" onclick="openTwitchChannel()"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></button>`;
                     ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
                 } else {
                     let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i>`;
@@ -1566,7 +1656,6 @@
                     timerBlock = `<div style="font-size:9.5px; font-weight:800; color:var(--primary-purple-light); letter-spacing: 0.2px;"><i class="fa-solid fa-bolt"></i> ИТОГИ НА СТРИМЕ</div>`;
                 }
 
-                // Первые 4 скина грузим сразу с высоким приоритетом, остальные — лениво
                 const imgLoadAttr = activeIdx <= 4 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
 
                 htmlBuffer += `
@@ -1625,6 +1714,104 @@
             } else { join(id); }
         }
 
+        // Форматирование текста ошибки и определение нужной кнопки действия
+        function handleAccessError(rawDetail) {
+            const cleanDetail = stripEmojis(rawDetail || 'Условия участия не выполнены');
+            const low = cleanDetail.toLowerCase();
+
+            // 1. Ошибка уровня Battle Pass
+            if (low.includes('battle pass') || low.includes('баттл') || low.includes('бп') || low.includes('уровен')) {
+                let mainPart = cleanDetail;
+                let reqPart = '';
+                const reqMatch = cleanDetail.match(/^(.*?)([!?.]\s*|\s+)((?:нужно|требуется|необходимо|минимальный).*)$/i);
+                if (reqMatch && reqMatch[1].trim()) {
+                    mainPart = reqMatch[1].trim();
+                    reqPart = reqMatch[3].trim();
+                }
+                const html = `
+                    <div class="err-main-line">${escapeHtml(mainPart)}</div>
+                    ${reqPart ? `<div class="err-req-line">${escapeHtml(reqPart)}</div>` : ''}
+                    <div class="err-hint-line">Перейдите в Battle Pass и повысьте уровень для доступа к раздаче</div>
+                `;
+                showModal('bp_error', 'Доступ закрыт', html, { bp: true });
+                return;
+            }
+
+            // 2. Ошибка привязки профиля (не привязан Twitch или Steam Trade URL)
+            if (low.includes('привяж') || low.includes('привяз') || low.includes('trade') || low.includes('трейд') || low.includes('профил') || low.includes('ссылк')) {
+                const html = `
+                    <div class="err-main-line">${escapeHtml(cleanDetail)}</div>
+                    <div class="err-hint-line">Заполните необходимые данные в настройках профиля</div>
+                `;
+                showModal('error', 'Настройте профиль', html, { profile: true });
+                return;
+            }
+
+            // 3. Ошибка мало актива на стриме / нехватка сообщений в чате Twitch
+            if (low.includes('актив') || low.includes('сообщ') || low.includes('стрим') || low.includes('чат') || low.includes('трансляц')) {
+                let mainPart = cleanDetail;
+                let reqPart = '';
+
+                // Отделяем фразу "Нужно 100 сообщений за неделю..." на отдельную строку ниже
+                const splitMatch = cleanDetail.match(/^(.*?)([!?.]\s*|\s+)((?:нужно|требуется|необходимо|минимум)\s+.*)$/i);
+                if (splitMatch && splitMatch[1].trim()) {
+                    mainPart = splitMatch[1].trim().replace(/[!?.]+$/, '');
+                    reqPart = splitMatch[3].trim();
+                } else if (/^(?:нужно|требуется|необходимо)\s+/i.test(cleanDetail)) {
+                    mainPart = 'Мало актива на стриме';
+                    reqPart = cleanDetail;
+                }
+
+                // Подсвечиваем числа внутри строки требования ("Нужно 100 сообщений за неделю")
+                const highlightedReq = escapeHtml(reqPart).replace(/(\d+)/g, '<b>$1</b>');
+
+                const html = `
+                    <div class="err-main-line">${escapeHtml(mainPart)}</div>
+                    ${highlightedReq ? `<div class="err-req-line">${highlightedReq}</div>` : ''}
+                    <div class="err-hint-line">Общайтесь в чате на трансляции hatelove_ttv, чтобы выполнить условие</div>
+                `;
+                showModal('error', 'Мало активности', html, { twitch: true });
+                return;
+            }
+
+            // 4. Ошибка подписки на Telegram-канал
+            if (low.includes('подпис') || low.includes('канал') || low.includes('telegram') || low.includes('телеграм')) {
+                let mainPart = cleanDetail;
+                let reqPart = '';
+                const splitMatch = cleanDetail.match(/^(.*?)([!?.]\s*|\s+)((?:нужно|требуется|необходимо|подпишитесь)\s+.*)$/i);
+                if (splitMatch && splitMatch[1].trim()) {
+                    mainPart = splitMatch[1].trim().replace(/[!?.]+$/, '');
+                    reqPart = splitMatch[3].trim();
+                }
+
+                const html = `
+                    <div class="err-main-line">${escapeHtml(mainPart)}</div>
+                    ${reqPart ? `<div class="err-req-line">${escapeHtml(reqPart)}</div>` : '<div class="err-req-line">Требуется подписка на канал @hatelove_ttv</div>'}
+                    <div class="err-hint-line">Подпишитесь на наш Telegram-канал и нажмите «Участвовать» повторно</div>
+                `;
+                showModal('error', 'Нет подписки', html, { tg: true });
+                return;
+            }
+
+            // 5. Прочие ошибки (например, нехватка билетов)
+            let mainPart = cleanDetail;
+            let reqPart = '';
+            const genericSplit = cleanDetail.match(/^(.*?)([!?.]\s*|\s+)((?:нужно|требуется|необходимо)\s+.*)$/i);
+            if (genericSplit && genericSplit[1].trim()) {
+                mainPart = genericSplit[1].trim().replace(/[!?.]+$/, '');
+                reqPart = genericSplit[3].trim();
+            }
+            const highlightedGenericReq = escapeHtml(reqPart).replace(/(\d+)/g, '<b>$1</b>');
+
+            const html = `
+                <div class="err-main-line">${escapeHtml(mainPart)}</div>
+                ${highlightedGenericReq ? `<div class="err-req-line">${highlightedGenericReq}</div>` : ''}
+            `;
+            showModal('error', 'Ошибка доступа', html, {
+                profile: low.includes('билет')
+            });
+        }
+
         async function join(id, isAuto = false) {
             let btn = null; let oldHtml = '';
             
@@ -1648,18 +1835,16 @@
                 
                 if(res.ok) {
                     tg.HapticFeedback.notificationOccurred('success');
-                    if (ans.message.includes("снижены на 20%")) {
-                        const formattedMsg = ans.message.replace(/\n/g, '<br>');
-                        showModal('info', 'Внимание', formattedMsg);
-                    } else { showModal('success', 'Успех', ans.message.replace(/\n/g, '<br>')); }
+                    const cleanMsg = stripEmojis(ans.message || 'Вы успешно зарегистрированы').replace(/\n/g, '<br>');
+                    if (ans.message && ans.message.includes("снижены на 20%")) {
+                        showModal('info', 'Внимание', cleanMsg);
+                    } else {
+                        showModal('success', 'Успех', cleanMsg);
+                    }
                     load(); 
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
-                    if (ans.detail && ans.detail.includes('Battle Pass')) {
-                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 10.5px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
-                        showModal('bp_error', 'Доступ закрыт', bpMsg);
-                    } else { showModal('error', 'Ошибка доступа', ans.detail); }
-
+                    handleAccessError(ans.detail);
                     if(btn) { btn.innerHTML = oldHtml; btn.style.opacity = '1'; }
                 }
             } catch(e) {
@@ -1669,11 +1854,18 @@
             }
         }
 
-        function showModal(type, title, msg) {
-            const m = document.getElementById('modal'); const iconBox = document.getElementById('modal-icon');
-            const btnProfile = document.getElementById('btn-profile'); const btnBp = document.getElementById('btn-bp');
+        function showModal(type, title, msg, actions = {}) {
+            const m = document.getElementById('modal');
+            const iconBox = document.getElementById('modal-icon');
+            const btnTwitch = document.getElementById('btn-twitch');
+            const btnTg = document.getElementById('btn-tg');
+            const btnProfile = document.getElementById('btn-profile');
+            const btnBp = document.getElementById('btn-bp');
             
-            btnProfile.style.display = 'none'; btnBp.style.display = 'none';
+            btnTwitch.style.display = actions.twitch ? 'inline-flex' : 'none';
+            btnTg.style.display = actions.tg ? 'inline-flex' : 'none';
+            btnProfile.style.display = actions.profile ? 'inline-flex' : 'none';
+            btnBp.style.display = actions.bp ? 'inline-flex' : 'none';
 
             if(type === 'success') {
                 iconBox.innerHTML = `<svg class="checkmark" viewBox="0 0 52 52"><circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/><path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg>`;
@@ -1681,11 +1873,8 @@
                 iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 30px; color: var(--primary-purple-light); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(192,132,252,0.4));"></i>';
             } else if (type === 'bp_error') {
                 iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 30px; color: var(--gold); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
-                btnBp.style.display = 'inline-flex';
             } else {
                 iconBox.innerHTML = `<svg class="cross" viewBox="0 0 52 52"><circle class="cross-circle" cx="26" cy="26" r="25" fill="none"/><path class="cross-path" fill="none" d="M16 16 36 36 M36 16 16 36"/></svg>`;
-                const mLow = msg ? msg.toLowerCase() : '';
-                btnProfile.style.display = (mLow.includes('trade') || mLow.includes('twitch') || mLow.includes('профиль') || mLow.includes('билет')) ? 'inline-flex' : 'none';
             }
 
             document.getElementById('m-head').innerText = title;
