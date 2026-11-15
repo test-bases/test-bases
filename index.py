@@ -4974,72 +4974,105 @@ async def calculate_user_streak(telegram_id: int, supabase) -> dict:
     }
 
 # =================================================================
-# ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ)
+# ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ С ПОДДЕРЖКОЙ ПОДПИСКИ РОЗЫГРЫШЕЙ)
 # =================================================================
 @app.post("/api/v1/bootstrap")
 async def get_bootstrap_data(
     request: Request,
     req: InitDataRequest,
-    user_info: dict = Depends(optional_acc_protection), # 🔥 ИСПОЛЬЗУЕМ МЯГКУЮ ЗАЩИТУ
-    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+    user_info: dict = Depends(optional_acc_protection),
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
 ):
-    platform = getattr(req, 'platform', 'tg')
+    platform = getattr(req, "platform", "tg")
 
     # =================================================================
     # 🌐 ГОСТЕВОЙ РЕЖИМ (Браузер без авторизации)
     # =================================================================
     if not user_info:
-        # 🔥 ПАРАЛЛЕЛЬНО собираем все глобальные ивенты и баннеры напрямую из нужных таблиц
         settings_task = supabase.get("/settings")
-        admin_task = supabase.get("/admin_settings", params={"limit": 1}) # 👈 Тут лежат картинки баннеров
-        cauldron_task = supabase.get("/cauldron", params={"limit": 1}) # 👈 Тут лежит Хэллоуин
+        admin_task = supabase.get("/admin_settings", params={"limit": 1})
+        cauldron_task = supabase.get("/cauldron", params={"limit": 1})
         raffles_task = supabase.get("/raffles", params={"status": "eq.active"})
-        auctions_task = supabase.post("/rpc/get_public_auctions_for_user", json={"p_user_id": 0})
-        
-        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 Загружаем конфиг для гостя тоже
-        streak_config_task = supabase.get("/streak_rewards_config", params={"order": "step_target.asc"})
-        
-        s_res, admin_res, c_res, r_res, a_res, streak_conf_res = await asyncio.gather(
-            settings_task, admin_task, cauldron_task, raffles_task, auctions_task, streak_config_task, return_exceptions=True
+        auctions_task = supabase.post(
+            "/rpc/get_public_auctions_for_user", json={"p_user_id": 0}
         )
-        
-        # 1. Парсим настройки (Монетки и базовые тумблеры)
+        streak_config_task = supabase.get(
+            "/streak_rewards_config", params={"order": "step_target.asc"}
+        )
+
+        s_res, admin_res, c_res, r_res, a_res, streak_conf_res = (
+            await asyncio.gather(
+                settings_task,
+                admin_task,
+                cauldron_task,
+                raffles_task,
+                auctions_task,
+                streak_config_task,
+                return_exceptions=True,
+            )
+        )
+
         global_settings = {}
-        if not isinstance(s_res, Exception) and getattr(s_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(s_res, Exception)
+            and getattr(s_res, "status_code", 500) == 200
+        ):
             s_data = s_res.json()
             if isinstance(s_data, list):
-                global_settings = {item.get('key'): item.get('value') for item in s_data if 'key' in item}
+                global_settings = {
+                    item.get("key"): item.get("value")
+                    for item in s_data
+                    if "key" in item
+                }
 
-        # 2. Парсим админские настройки (ИМЕННО ТУТ ЛЕЖАТ БАННЕРЫ БП И СЛАЙДЕРЫ!)
         menu_content = {}
-        if not isinstance(admin_res, Exception) and getattr(admin_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(admin_res, Exception)
+            and getattr(admin_res, "status_code", 500) == 200
+        ):
             a_data = admin_res.json()
             if isinstance(a_data, list) and len(a_data) > 0:
                 menu_content = a_data[0]
             elif isinstance(a_data, dict):
                 menu_content = a_data
-                
-        # Сливаем настройки
-        menu_content["coins_purchases_enabled"] = global_settings.get("coins_purchases_enabled", True)
-        menu_content["grind_enabled"] = global_settings.get("grind_enabled", True)
 
-        # 3. Парсим Хэллоуин (Котел)
+        menu_content["coins_purchases_enabled"] = global_settings.get(
+            "coins_purchases_enabled", True
+        )
+        menu_content["grind_enabled"] = global_settings.get(
+            "grind_enabled", True
+        )
+
         cauldron_data = {"is_visible_to_users": False}
-        if not isinstance(c_res, Exception) and getattr(c_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(c_res, Exception)
+            and getattr(c_res, "status_code", 500) == 200
+        ):
             c_data = c_res.json()
             if isinstance(c_data, list) and len(c_data) > 0:
                 cauldron_data = c_data[0]
             elif isinstance(c_data, dict):
                 cauldron_data = c_data
 
-        # 4. Аукционы и Розыгрыши
-        raffles_list = r_res.json() if not isinstance(r_res, Exception) and getattr(r_res, 'status_code', 500) == 200 else []
-        auctions_list = a_res.json() if not isinstance(a_res, Exception) and getattr(a_res, 'status_code', 500) == 200 else []
+        raffles_list = (
+            r_res.json()
+            if not isinstance(r_res, Exception)
+            and getattr(r_res, "status_code", 500) == 200
+            else []
+        )
+        auctions_list = (
+            a_res.json()
+            if not isinstance(a_res, Exception)
+            and getattr(a_res, "status_code", 500) == 200
+            else []
+        )
+        streak_config = (
+            streak_conf_res.json()
+            if not isinstance(streak_conf_res, Exception)
+            and getattr(streak_conf_res, "status_code", 500) == 200
+            else []
+        )
 
-        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 
-        streak_config = streak_conf_res.json() if not isinstance(streak_conf_res, Exception) and getattr(streak_conf_res, 'status_code', 500) == 200 else []
-
-        # Отдаем профиль Гостя, но с ПОЛНЫМИ массивами ивентов!
         return {
             "user": {
                 "id": None,
@@ -5053,138 +5086,229 @@ async def get_bootstrap_data(
                 "last_grind_at": None,
                 "last_free_ticket_claimed_at": None,
                 "streak_days": 1,
-                "challenge": None
+                "has_raffles_premium": False,
+                "raffles_premium_until": None,
+                "free_raffle_passes": 0,
+                "challenge": None,
             },
             "challenge": None,
             "menu": menu_content,
             "quests": [],
-            "weekly_goals": {"goals": [], "system_enabled": menu_content.get("weekly_goals_enabled", False)},
+            "weekly_goals": {
+                "goals": [],
+                "system_enabled": menu_content.get(
+                    "weekly_goals_enabled", False
+                ),
+            },
             "cauldron": cauldron_data,
-            "auctions": auctions_list, 
-            "raffles": raffles_list,                  
+            "auctions": auctions_list,
+            "raffles": raffles_list,
             "my_active_cases": [],
             "unread_notifications": 0,
             "gift_available": False,
             "p2p_trades": [],
             "matrix_quest": None,
-            "streak_config": streak_config,  # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
-            "user_streak": {"total_streak": 0, "visual_tier": 0, "current_week_str": ""} # У гостя серия 0
+            "streak_config": streak_config,
+            "user_streak": {
+                "total_streak": 0,
+                "visual_tier": 0,
+                "current_week_str": "",
+            },
         }
 
     # =================================================================
-    # 👤 АВТОРИЗОВАННЫЙ РЕЖИМ (Твой старый код 1в1)
+    # 👤 АВТОРИЗОВАННЫЙ РЕЖИМ
     # =================================================================
     telegram_id = user_info.get("id")
     photo_url = user_info.get("photo_url")
 
-    # --- 🛡️ ЗАЩИТА: ПРОВЕРКА ТЕХ. РЕЖИМА 🛡️ ---
     is_admin = telegram_id in ADMIN_IDS
     if sleep_cache["is_sleeping"] and not is_admin:
         return JSONResponse(
-            status_code=200, 
-            content={"maintenance": True, "detail": "Maintenance Mode"}
+            status_code=200,
+            content={"maintenance": True, "detail": "Maintenance Mode"},
         )
 
-    # 🔥 ОПТИМИЗАЦИЯ 1: Кидаем в фон через asyncio (сберегает CPU Vercel)
     if platform != "vk":
         asyncio.create_task(silent_update_twitch_user(telegram_id))
 
     try:
-        # Подготавливаем данные для авто-регистрации
         raw_full_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-        full_name_tg = clean_user_name_text(raw_full_name) 
+        full_name_tg = clean_user_name_text(raw_full_name)
         username_tg = user_info.get("username")
 
-        # --- ВЫТАСКИВАЕМ IP, DEVICE ID И PLATFORM ИЗ ХЕДЕРОВ ---
         client_ip = request.headers.get("X-Forwarded-For", request.client.host)
         if client_ip:
             client_ip = client_ip.split(",")[0].strip()
         device_id = request.headers.get("X-Device-Id")
         platform_type = request.headers.get("X-Platform-Type")
 
-        # 🔥 ОПТИМИЗАЦИЯ: ЗАПУСКАЕМ ВСЕ ЗАПРОСЫ ПАРАЛЛЕЛЬНО! 🔥
-        rpc_task = supabase.post("/rpc/get_bootstrap_all_data", json={
-            "p_telegram_id": telegram_id,
-            "p_username": username_tg,
-            "p_full_name": full_name_tg,
-            "p_photo_url": photo_url,
-            "p_client_ip": client_ip,        
-            "p_device_id": device_id,        
-            "p_platform_type": platform_type 
-        })
-        
-        notifs_task = supabase.get("/in_app_notifications", params={"user_id": f"eq.{telegram_id}", "is_read": "is.false", "select": "id"})
-        p2p_task = supabase.get("/p2p_trades", params={"user_id": f"eq.{telegram_id}", "order": "created_at.desc"})
-        balance_task = supabase.get("/users", params={"telegram_id": f"eq.{telegram_id}", "select": "bot_t_coins, tickets, last_new_year_gift_at, last_grind_at, last_free_ticket_claimed_at, streak_days"})
-        auctions_task = supabase.post("/rpc/get_public_auctions_for_user", json={"p_user_id": telegram_id})
-        matrix_task = supabase.get("/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"})
-        
-        # 👇 ДОБАВЛЯЕМ ПОЛУЧЕНИЕ КУПОНОВ
-        coupons_task = supabase.get("/cs_codes", params={
-            "or": f"(activated_by_ids.cs.{{{telegram_id}}},assigned_to.eq.{telegram_id})",
-            "is_active": "eq.true",
-            "select": "code, target_case_name, activated_by_ids, used_by_ids, assigned_to, bypass_lock" 
-        })
-        
-        equipped_ach_task = supabase.get("/user_achievements", params={
-            "telegram_id": f"eq.{telegram_id}", 
-            "select": "*, achievements(title,glow_color)" 
-        })
-        settings_task = supabase.get("/settings")
-        # 👇 ДОБАВЛЕНО ДЛЯ ГАРАНТА 👇
-        counters_task = supabase.post("/rpc/get_user_case_counters", json={"p_user_id": telegram_id})
-        # 👇 ДОБАВЛЕНО ДЛЯ КОНСТРУКТОРА ЗАДАНИЙ 👇
-        constructor_task = supabase.post("/rpc/get_user_constructor_state", json={"p_user_id": telegram_id})
-        
-        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 
-        streak_config_task = supabase.get("/streak_rewards_config", params={"order": "step_target.asc"})
-
-        db_res, notifs_res, p2p_res, balance_res, auctions_res, matrix_res, coupons_res, settings_res, equipped_ach_res, counters_res, constructor_res, streak_conf_res = await asyncio.gather(
-            rpc_task, notifs_task, p2p_task, balance_task, auctions_task, matrix_task, coupons_task, settings_task, equipped_ach_task, counters_task, constructor_task, streak_config_task, return_exceptions=True
+        rpc_task = supabase.post(
+            "/rpc/get_bootstrap_all_data",
+            json={
+                "p_telegram_id": telegram_id,
+                "p_username": username_tg,
+                "p_full_name": full_name_tg,
+                "p_photo_url": photo_url,
+                "p_client_ip": client_ip,
+                "p_device_id": device_id,
+                "p_platform_type": platform_type,
+            },
         )
 
-        # Распаковываем Конструктор Заданий
+        notifs_task = supabase.get(
+            "/in_app_notifications",
+            params={
+                "user_id": f"eq.{telegram_id}",
+                "is_read": "is.false",
+                "select": "id",
+            },
+        )
+        p2p_task = supabase.get(
+            "/p2p_trades",
+            params={"user_id": f"eq.{telegram_id}", "order": "created_at.desc"},
+        )
+        # 👇 ДОБАВЛЕНЫ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ В SELECT 👇
+        balance_task = supabase.get(
+            "/users",
+            params={
+                "telegram_id": f"eq.{telegram_id}",
+                "select": (
+                    "bot_t_coins, tickets, last_new_year_gift_at, last_grind_at, last_free_ticket_claimed_at, streak_days, has_raffles_premium, raffles_premium_until, free_raffle_passes"
+                ),
+            },
+        )
+        auctions_task = supabase.post(
+            "/rpc/get_public_auctions_for_user",
+            json={"p_user_id": telegram_id},
+        )
+        matrix_task = supabase.get(
+            "/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"}
+        )
+
+        coupons_task = supabase.get(
+            "/cs_codes",
+            params={
+                "or": (
+                    f"(activated_by_ids.cs.{{{telegram_id}}},assigned_to.eq.{telegram_id})"
+                ),
+                "is_active": "eq.true",
+                "select": (
+                    "code, target_case_name, activated_by_ids, used_by_ids, assigned_to, bypass_lock"
+                ),
+            },
+        )
+
+        equipped_ach_task = supabase.get(
+            "/user_achievements",
+            params={
+                "telegram_id": f"eq.{telegram_id}",
+                "select": "*, achievements(title,glow_color)",
+            },
+        )
+        settings_task = supabase.get("/settings")
+        counters_task = supabase.post(
+            "/rpc/get_user_case_counters", json={"p_user_id": telegram_id}
+        )
+        constructor_task = supabase.post(
+            "/rpc/get_user_constructor_state", json={"p_user_id": telegram_id}
+        )
+        streak_config_task = supabase.get(
+            "/streak_rewards_config", params={"order": "step_target.asc"}
+        )
+
+        (
+            db_res,
+            notifs_res,
+            p2p_res,
+            balance_res,
+            auctions_res,
+            matrix_res,
+            coupons_res,
+            settings_res,
+            equipped_ach_res,
+            counters_res,
+            constructor_res,
+            streak_conf_res,
+        ) = await asyncio.gather(
+            rpc_task,
+            notifs_task,
+            p2p_task,
+            balance_task,
+            auctions_task,
+            matrix_task,
+            coupons_task,
+            settings_task,
+            equipped_ach_task,
+            counters_task,
+            constructor_task,
+            streak_config_task,
+            return_exceptions=True,
+        )
+
         constructor_state = None
-        if not isinstance(constructor_res, Exception) and getattr(constructor_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(constructor_res, Exception)
+            and getattr(constructor_res, "status_code", 500) == 200
+        ):
             constructor_state = constructor_res.json()
-        
-        # Распаковываем Матрицу
+
         matrix_state = None
-        if not isinstance(matrix_res, Exception) and getattr(matrix_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(matrix_res, Exception)
+            and getattr(matrix_res, "status_code", 500) == 200
+        ):
             m_data = matrix_res.json()
             if isinstance(m_data, list) and len(m_data) > 0:
                 matrix_state = m_data[0]
-                
-        # Распаковываем глобальные настройки (Key-Value)
+
         global_settings = {}
-        if not isinstance(settings_res, Exception) and getattr(settings_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(settings_res, Exception)
+            and getattr(settings_res, "status_code", 500) == 200
+        ):
             s_data = settings_res.json()
             if isinstance(s_data, list):
-                global_settings = {item.get('key'): item.get('value') for item in s_data if 'key' in item}
+                global_settings = {
+                    item.get("key"): item.get("value")
+                    for item in s_data
+                    if "key" in item
+                }
 
-        # 👇 РАСПАКОВЫВАЕМ СЧЕТЧИКИ ГАРАНТА 👇
         case_counters = {}
-        if not isinstance(counters_res, Exception) and getattr(counters_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(counters_res, Exception)
+            and getattr(counters_res, "status_code", 500) == 200
+        ):
             case_counters = counters_res.json()
-        
-        if isinstance(db_res, Exception) or getattr(db_res, 'status_code', 500) != 200:
-            raise Exception(f"Database RPC Error: {getattr(db_res, 'text', str(db_res))}")
+
+        if (
+            isinstance(db_res, Exception)
+            or getattr(db_res, "status_code", 500) != 200
+        ):
+            raise Exception(
+                f"Database RPC Error: {getattr(db_res, 'text', str(db_res))}"
+            )
 
         db_data = db_res.json()
 
         if db_data.get("error") == "BANNED":
             raise HTTPException(status_code=403, detail="BANNED")
 
-        menu_content = db_data.get('admin_settings') or {}
+        menu_content = db_data.get("admin_settings") or {}
         if not isinstance(menu_content, dict):
             menu_content = {}
-            
-        menu_content["coins_purchases_enabled"] = global_settings.get("coins_purchases_enabled", True)
-        menu_content["grind_enabled"] = global_settings.get("grind_enabled", True)
 
-        rpc_data = db_data.get('dashboard', {})
-        user_data = rpc_data.get('profile')
-        
+        menu_content["coins_purchases_enabled"] = global_settings.get(
+            "coins_purchases_enabled", True
+        )
+        menu_content["grind_enabled"] = global_settings.get(
+            "grind_enabled", True
+        )
+
+        rpc_data = db_data.get("dashboard", {})
+        user_data = rpc_data.get("profile")
+
         if not user_data:
             user_data = {
                 "telegram_id": telegram_id,
@@ -5195,11 +5319,14 @@ async def get_bootstrap_data(
                 "coins": 0,
                 "challenge": None,
                 "event_participations": {},
-                "trust_level": "gray", 
+                "trust_level": "gray",
                 "trust_score": 30,
                 "last_grind_at": None,
                 "last_free_ticket_claimed_at": None,
-                "streak_days": 1
+                "streak_days": 1,
+                "has_raffles_premium": False,
+                "raffles_premium_until": None,
+                "free_raffle_passes": 0,
             }
         else:
             if not user_data.get("trust_level"):
@@ -5209,131 +5336,190 @@ async def get_bootstrap_data(
         trade_status_map = {
             "pending": "creating",
             "active": "confirming",
-            "review": "sending"
+            "review": "sending",
         }
 
         user_data.update({
-            'event_participations': rpc_data.get('event_participations', {}),
-            'is_admin': is_admin,
-            'is_checkpoint_globally_enabled': menu_content.get('checkpoint_enabled', False),
-            'quest_rewards_enabled': menu_content.get('quest_promocodes_enabled', False),
-            'is_stream_online': db_data.get('stream_status', False),
-            'is_telegram_subscribed': bool(user_data.get('referral_activated_at')), 
-            'active_referrals_count': db_data.get('ref_count', 0),
-            'active_trade_status': trade_status_map.get(db_data.get('trade_status'), "none"),
-            'active_secret_code': db_data.get('secret_code'),
-            
-            'bp_quests': db_data.get('bp_quests', []), 
-            'checkpoint_level': user_data.get('checkpoint_level', 0),
-            'case_counters': case_counters, 
-            
-            **db_data.get('user_extra', {}),
-            **db_data.get('user_settings', {}) 
+            "event_participations": rpc_data.get("event_participations", {}),
+            "is_admin": is_admin,
+            "is_checkpoint_globally_enabled": menu_content.get(
+                "checkpoint_enabled", False
+            ),
+            "quest_rewards_enabled": menu_content.get(
+                "quest_promocodes_enabled", False
+            ),
+            "is_stream_online": db_data.get("stream_status", False),
+            "is_telegram_subscribed": bool(
+                user_data.get("referral_activated_at")
+            ),
+            "active_referrals_count": db_data.get("ref_count", 0),
+            "active_trade_status": trade_status_map.get(
+                db_data.get("trade_status"), "none"
+            ),
+            "active_secret_code": db_data.get("secret_code"),
+            "bp_quests": db_data.get("bp_quests", []),
+            "checkpoint_level": user_data.get("checkpoint_level", 0),
+            "case_counters": case_counters,
+            **db_data.get("user_extra", {}),
+            **db_data.get("user_settings", {}),
         })
 
-        # 🔥 НОВЫЙ ДНЕВНОЙ ПЕРСОНАЛЬНЫЙ ЧЕЛЛЕНДЖ (С ИКОНКАМИ И РАНДОМОМ) 🔥
-        # Вызываем строго ПОСЛЕ user_data.update, чтобы ни одно поле базы его не затерло!
         try:
-            daily_challenge = await get_or_sync_daily_challenge(telegram_id, supabase)
-            user_data['challenge'] = daily_challenge
+            daily_challenge = await get_or_sync_daily_challenge(
+                telegram_id, supabase
+            )
+            user_data["challenge"] = daily_challenge
         except Exception as chal_err:
-            logging.error(f"[BOOTSTRAP] Ошибка загрузки daily_challenge для {telegram_id}: {chal_err}", exc_info=True)
-            user_data['challenge'] = None
+            logging.error(
+                f"[BOOTSTRAP] Ошибка загрузки daily_challenge для {telegram_id}: {chal_err}",
+                exc_info=True,
+            )
+            user_data["challenge"] = None
 
-        user_data['equipped_title'] = None
-        user_data['equipped_glow'] = None
-        
-        if not isinstance(equipped_ach_res, Exception) and getattr(equipped_ach_res, 'status_code', 500) == 200:
+        user_data["equipped_title"] = None
+        user_data["equipped_glow"] = None
+
+        if (
+            not isinstance(equipped_ach_res, Exception)
+            and getattr(equipped_ach_res, "status_code", 500) == 200
+        ):
             ach_data = equipped_ach_res.json()
             if isinstance(ach_data, list):
-                active_ach = next((a for a in ach_data if a.get("is_equipped") is True), None)
+                active_ach = next(
+                    (a for a in ach_data if a.get("is_equipped") is True), None
+                )
                 if active_ach:
-                    inner_ach = active_ach.get("achievements") or active_ach.get("achievement")
+                    inner_ach = active_ach.get("achievements") or active_ach.get(
+                        "achievement"
+                    )
                     if inner_ach:
-                        user_data['equipped_title'] = inner_ach.get("title")
-                        user_data['equipped_glow'] = inner_ach.get("glow_color")
+                        user_data["equipped_title"] = inner_ach.get("title")
+                        user_data["equipped_glow"] = inner_ach.get("glow_color")
 
         gift_available = True
-        if not isinstance(balance_res, Exception) and getattr(balance_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(balance_res, Exception)
+            and getattr(balance_res, "status_code", 500) == 200
+        ):
             b_data = balance_res.json()
             if b_data:
                 user_data["balance"] = b_data[0].get("bot_t_coins", 0) / 100.0
                 user_data["tickets"] = b_data[0].get("tickets", 0)
-                
-                # Записываем даты таймеров для мгновенной работы плашки на фронтенде
-                user_data["last_grind_at"] = b_data[0].get("last_grind_at") or user_data.get("last_grind_at")
-                user_data["last_free_ticket_claimed_at"] = b_data[0].get("last_free_ticket_claimed_at") or user_data.get("last_free_ticket_claimed_at")
+                user_data["last_grind_at"] = b_data[0].get(
+                    "last_grind_at"
+                ) or user_data.get("last_grind_at")
+                user_data["last_free_ticket_claimed_at"] = b_data[0].get(
+                    "last_free_ticket_claimed_at"
+                ) or user_data.get("last_free_ticket_claimed_at")
                 if "streak_days" in b_data[0]:
                     user_data["streak_days"] = b_data[0].get("streak_days", 1)
 
-                last_gift = b_data[0].get('last_new_year_gift_at')
+                # 👇 ЗАПИСЫВАЕМ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ НАПРЯМУЮ ИЗ ТАБЛИЦЫ USERS 👇
+                user_data["has_raffles_premium"] = bool(
+                    b_data[0].get("has_raffles_premium", False)
+                )
+                user_data["raffles_premium_until"] = b_data[0].get(
+                    "raffles_premium_until"
+                )
+                user_data["free_raffle_passes"] = int(
+                    b_data[0].get("free_raffle_passes") or 0
+                )
+
+                last_gift = b_data[0].get("last_new_year_gift_at")
                 if last_gift:
-                    last_dt = datetime.fromisoformat(last_gift.replace('Z', '+00:00'))
+                    last_dt = datetime.fromisoformat(
+                        last_gift.replace("Z", "+00:00")
+                    )
                     if last_dt.date() == datetime.now(timezone.utc).date():
                         gift_available = False
 
         unread_count = 0
-        if not isinstance(notifs_res, Exception) and getattr(notifs_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(notifs_res, Exception)
+            and getattr(notifs_res, "status_code", 500) == 200
+        ):
             n_data = notifs_res.json()
             if isinstance(n_data, list):
                 unread_count = len(n_data)
 
         p2p_trades = []
-        if not isinstance(p2p_res, Exception) and getattr(p2p_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(p2p_res, Exception)
+            and getattr(p2p_res, "status_code", 500) == 200
+        ):
             p_data = p2p_res.json()
             if isinstance(p_data, list):
                 p2p_trades = p_data
 
         auctions_list = []
-        if not isinstance(auctions_res, Exception) and getattr(auctions_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(auctions_res, Exception)
+            and getattr(auctions_res, "status_code", 500) == 200
+        ):
             auctions_list = auctions_res.json()
 
-        quests_list = db_data.get('quests', [])
-        try: quests_list = fill_missing_quest_data(quests_list)
-        except: pass
+        quests_list = db_data.get("quests", [])
+        try:
+            quests_list = fill_missing_quest_data(quests_list)
+        except Exception:
+            pass
 
-        goals_data = db_data.get('goals', {"goals": []})
-        goals_data["system_enabled"] = menu_content.get('weekly_goals_enabled', False)
-        cauldron_data = db_data.get('cauldron', {"is_visible_to_users": False})
+        goals_data = db_data.get("goals", {"goals": []})
+        goals_data["system_enabled"] = menu_content.get(
+            "weekly_goals_enabled", False
+        )
+        cauldron_data = db_data.get("cauldron", {"is_visible_to_users": False})
 
         my_active_cases = []
-        if not isinstance(coupons_res, Exception) and getattr(coupons_res, 'status_code', 500) == 200:
+        if (
+            not isinstance(coupons_res, Exception)
+            and getattr(coupons_res, "status_code", 500) == 200
+        ):
             my_active_cases = coupons_res.json()
 
-        # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥 Вытаскиваем распаршенные данные
-        streak_config = streak_conf_res.json() if not isinstance(streak_conf_res, Exception) and getattr(streak_conf_res, 'status_code', 500) == 200 else []
-        
-        # Считаем текущий стрик юзера
+        streak_config = (
+            streak_conf_res.json()
+            if not isinstance(streak_conf_res, Exception)
+            and getattr(streak_conf_res, "status_code", 500) == 200
+            else []
+        )
+
         try:
             user_streak = await calculate_user_streak(telegram_id, supabase)
         except Exception as e:
             logging.error(f"[STREAK] Ошибка расчета серии: {e}")
-            user_streak = {"total_streak": 0, "visual_tier": 0, "current_week_str": ""}
+            user_streak = {
+                "total_streak": 0,
+                "visual_tier": 0,
+                "current_week_str": "",
+            }
 
         return {
             "user": user_data,
-            "challenge": user_data.get('challenge'), 
-            "constructor": constructor_state,        
+            "challenge": user_data.get("challenge"),
+            "constructor": constructor_state,
             "menu": menu_content,
             "quests": quests_list,
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
-            "auctions": auctions_list, 
-            "raffles": db_data.get('raffles', []),                    
+            "auctions": auctions_list,
+            "raffles": db_data.get("raffles", []),
             "my_active_cases": my_active_cases,
             "unread_notifications": unread_count,
             "gift_available": gift_available,
             "p2p_trades": p2p_trades,
             "matrix_quest": matrix_state,
-            "streak_config": streak_config,  # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
-            "user_streak": user_streak       # 🔥 ИДЕАЛЬНАЯ СЕРИЯ 🔥
+            "streak_config": streak_config,
+            "user_streak": user_streak,
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"🔥 CRITICAL Bootstrap Error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Bootstrap Failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Bootstrap Failed: {str(e)}"
+        )
         
 class ScheduleRequest(BaseModel):
     initData: str
@@ -12447,187 +12633,226 @@ async def check_channel_subscription(
     
 @app.post("/api/v1/user/me")
 async def get_current_user_data(
-    request: Request, 
+    request: Request,
     request_data: InitDataRequest,
     background_tasks: BackgroundTasks,
-    supabase: httpx.AsyncClient = Depends(get_supabase_client) 
-): 
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
     """
-    Получение профиля пользователя.
-    🔥 ТУРБО-ВЕРСИЯ: С детальным логированием и трассировкой ошибок.
+    Получение профиля пользователя с прямой подгрузкой статуса подписки на розыгрыши.
     """
-    # 1. Авторизация
-    logging.info(f"🚨 СЫРЫЕ ДАННЫЕ ОТ ФРОНТА: {request_data.dict()}") # <--- ВСТАВЬ ЭТО
+    logging.info(f"🚨 СЫРЫЕ ДАННЫЕ ОТ ФРОНТА: {request_data.dict()}")
     user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
     if not user_info or "id" not in user_info:
         logging.warning("[USER/ME] Невалидные initData или отсутствует ID")
         return JSONResponse(content={"is_guest": True})
 
     telegram_id = user_info["id"]
-    logging.info(f"[USER/ME] Старт обработки профиля для telegram_id={telegram_id}")
+    logging.info(
+        f"[USER/ME] Старт обработки профиля для telegram_id={telegram_id}"
+    )
 
-    # --- ВЫТАСКИВАЕМ IP И DEVICE ID ИЗ ХЕДЕРОВ ---
     client_ip = request.headers.get("X-Forwarded-For", request.client.host)
     if client_ip:
         client_ip = client_ip.split(",")[0].strip()
-        
-    # Извлекаем метку устройства, которую фронтенд генерирует и шлет в заголовках
-    device_id = request.headers.get("X-Device-Id") 
-    
-    # 🔥 Читаем платформу из тела запроса (JSON), так как фронтенд шлет ее именно там
-    platform_type = getattr(request_data, 'platform_type', None)
-    # ---------------------------------------------
 
-    # 2. Проверка режима сна
+    device_id = request.headers.get("X-Device-Id")
+    platform_type = getattr(request_data, "platform_type", None)
+
     if sleep_cache["is_sleeping"] and telegram_id not in ADMIN_IDS:
         logging.info(f"[USER/ME] От ворот поворот для {telegram_id}: ботик спит")
         return JSONResponse(
-            status_code=503, 
-            content={"detail": "Ботик спит 😴", "maintenance": True}
+            status_code=503,
+            content={"detail": "Ботик спит 😴", "maintenance": True},
         )
-        
-    # Фоновые задачи
+
     background_tasks.add_task(silent_update_twitch_user, telegram_id)
 
     try:
-        # 🔥 ОПТИМИЗАЦИЯ ТАЙМИНГОВ: Запускаем долгие независимые таски СРАЗУ
-        # Они будут скачиваться в фоне, пока мы обновляем Водопад и дергаем RPC
+        # 👇 ПАРАЛЛЕЛЬНО ЗАПРАШИВАЕМ ПРЯМЫЕ ДАННЫЕ ПОДПИСКИ РОЗЫГРЫШЕЙ ИЗ ТАБЛИЦЫ USERS 👇
+        direct_user_prem_task = supabase.get(
+            "/users",
+            params={
+                "telegram_id": f"eq.{telegram_id}",
+                "select": (
+                    "has_raffles_premium, raffles_premium_until, free_raffle_passes, tickets, bot_t_coins"
+                ),
+            },
+        )
+
         settings_task = asyncio.gather(
             get_grind_settings_async_global(),
             get_admin_settings_async_global(),
-            return_exceptions=True 
+            direct_user_prem_task,
+            return_exceptions=True,
         )
 
-        # 3. Синхронизация БП (Водопад)
         try:
             await sync_current_week_bp_progress(telegram_id, supabase)
         except Exception as bp_err:
-            # Логируем, но не роняем весь профиль, если упала только синхронизация квестов
-            logging.error(f"[USER/ME] Ошибка в sync_current_week_bp_progress для {telegram_id}: {bp_err}", exc_info=True)
-        
-        # 4. Запрос профиля (RPC) - запускаем сразу после Водопада
+            logging.error(
+                f"[USER/ME] Ошибка в sync_current_week_bp_progress для {telegram_id}: {bp_err}",
+                exc_info=True,
+            )
+
         logging.info(f"[USER/ME] Запуск вызова RPC для {telegram_id}")
-        rpc_resp = await supabase.post("/rpc/get_user_dashboard_data", json={
-            "p_telegram_id": telegram_id,
-            "p_client_ip": None,           # 🔥 ОТКЛЮЧАЕМ ПОИСК ПО IP ДЛЯ ЭКОНОМИИ РЕСУРСОВ
-            "p_device_id": device_id,       # 🔥 Передаем Device ID в RPC-функцию
-            "p_platform_type": platform_type # 🔥 Прокидываем в базу
-        })
-        
-        # Разбираем RPC (сохранил твою логику обработки Exception от httpx)
+        rpc_resp = await supabase.post(
+            "/rpc/get_user_dashboard_data",
+            json={
+                "p_telegram_id": telegram_id,
+                "p_client_ip": None,
+                "p_device_id": device_id,
+                "p_platform_type": platform_type,
+            },
+        )
+
         data = None
         if isinstance(rpc_resp, Exception):
-            logging.error(f"[USER/ME] Критическая ошибка вызова RPC для {telegram_id}: {rpc_resp}", exc_info=rpc_resp)
+            logging.error(
+                f"[USER/ME] Критическая ошибка вызова RPC для {telegram_id}: {rpc_resp}",
+                exc_info=rpc_resp,
+            )
         elif rpc_resp.status_code != 200:
-            logging.error(f"[USER/ME] RPC вернул статус {rpc_resp.status_code} для {telegram_id}. Боди: {rpc_resp.text}")
+            logging.error(
+                f"[USER/ME] RPC вернул статус {rpc_resp.status_code} для {telegram_id}. Боди: {rpc_resp.text}"
+            )
         else:
             data = rpc_resp.json()
-            logging.info(f"[USER/ME] RPC успешно вернул данные для {telegram_id}")
+            logging.info(
+                f"[USER/ME] RPC успешно вернул данные для {telegram_id}"
+            )
 
-        # Дожидаемся настроек (они 100% уже скачались, пока работал Водопад и RPC)
-        grind_settings, admin_settings = await settings_task
+        grind_settings, admin_settings, direct_prem_res = await settings_task
 
-        # --- Разбор логов настроек ---
-        if isinstance(grind_settings, Exception):
-            logging.error(f"[USER/ME] Ошибка таска get_grind_settings_async_global: {grind_settings}", exc_info=grind_settings)
-        else:
-            logging.info(f"[USER/ME] grind_settings успешно получены")
+        if not data or not data.get("profile"):
+            logging.warning(
+                f"[USER/ME] Профиль для {telegram_id} не найден в БД. Запускаем регистрацию..."
+            )
+            full_name_tg = (
+                f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                or "Без имени"
+            )
+            reg_resp = await supabase.post(
+                "/users",
+                json={
+                    "telegram_id": telegram_id,
+                    "username": user_info.get("username"),
+                    "full_name": full_name_tg,
+                },
+                headers={"Prefer": "resolution=merge-duplicates"},
+            )
 
-        if isinstance(admin_settings, Exception):
-            logging.error(f"[USER/ME] Ошибка таска get_admin_settings_async_global: {admin_settings}", exc_info=admin_settings)
-        else:
-            logging.info(f"[USER/ME] admin_settings успешно получены")
+            retry_resp = await supabase.post(
+                "/rpc/get_user_dashboard_data",
+                json={
+                    "p_telegram_id": telegram_id,
+                    "p_client_ip": None,
+                    "p_device_id": device_id,
+                    "p_platform_type": platform_type,
+                },
+            )
 
-        # 5. Обработка профиля и Ретрай создания
-        if not data or not data.get('profile'):
-            logging.warning(f"[USER/ME] Профиль для {telegram_id} не найден в БД или RPC вернул пустой объект. Запускаем регистрацию...")
-            
-            full_name_tg = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip() or "Без имени"
-            reg_resp = await supabase.post("/users", json={
-                 "telegram_id": telegram_id, 
-                 "username": user_info.get("username"), 
-                 "full_name": full_name_tg
-            }, headers={"Prefer": "resolution=merge-duplicates"})
-            
-            logging.info(f"[USER/ME] Статус создания пользователя {telegram_id}: {reg_resp.status_code}")
-            
-            # Повторный запрос RPC
-            logging.info(f"[USER/ME] Повторный вызов RPC для {telegram_id} после регистрации")
-            retry_resp = await supabase.post("/rpc/get_user_dashboard_data", json={
-                "p_telegram_id": telegram_id,
-                "p_client_ip": None,       # 🔥 ОТКЛЮЧАЕМ ПОИСК ПО IP ЗДЕСЬ ТОЖЕ      
-                "p_device_id": device_id,       
-                "p_platform_type": platform_type # 🔥 ДОБАВЛЕНО! Иначе у новичков платформа будет пустой
-            })
-            
             if retry_resp.status_code == 200:
                 data = retry_resp.json()
-                logging.info(f"[USER/ME] Повторный RPC выполнен успешно для {telegram_id}")
             else:
-                logging.error(f"[USER/ME] Повторный RPC упал со статусом {retry_resp.status_code}. Ответ базы: {retry_resp.text}")
                 data = None
 
-        if not data or not data.get('profile'): 
-            logging.error(f"[USER/ME] Фатально: Данные профиля {telegram_id} отсутствуют после всех проверок и ретраев. Структура data: {data}")
-            raise HTTPException(status_code=500, detail="Не удалось загрузить профиль")
+        if not data or not data.get("profile"):
+            raise HTTPException(
+                status_code=500, detail="Не удалось загрузить профиль"
+            )
 
-        # --- 🔥 НОВЫЙ БЛОК: ИЗВЛЕЧЕНИЕ ТВИНКОВ И ЗАПУСК ФОНОВОЙ ЗАДАЧИ АЛЕРТА ---
-        # Выдергиваем массив из JSON ответа базы, убирая его из структуры, чтобы не слать на фронтенд юзеру
-        twinks = data.pop('twinks_detected', [])
+        twinks = data.pop("twinks_detected", [])
         if twinks:
-            # 🔥 Достаем статус бана текущего пользователя из загруженного профиля
-            user_is_banned = data.get('profile', {}).get('is_banned', False)
-            
+            user_is_banned = data.get("profile", {}).get("is_banned", False)
             background_tasks.add_task(
                 check_twinks_and_send_alert,
                 telegram_id=telegram_id,
                 username=user_info.get("username"),
                 client_ip=client_ip,
                 device_id=device_id,
-                platform_type=platform_type, # 🔥 Прокидываем сюда значение
+                platform_type=platform_type,
                 twinks=twinks,
-                is_banned=user_is_banned     # 🔥 Передаем флаг в функцию алертов
+                is_banned=user_is_banned,
             )
-        # ------------------------------------------------------------------------
 
-        # 6. Сборка финального ответа
-        logging.info(f"[USER/ME] Начало маппинга final_response для {telegram_id}")
-        final_response = data.get('profile', {})
-        final_response['challenge'] = data.get('challenge')
-        final_response['event_participations'] = data.get('event_participations', {})
-        final_response['active_referrals_count'] = data.get('active_referrals_count', 0)
-        final_response['is_stream_online'] = data.get('is_stream_online', False)
-        final_response['fake_message_codes'] = data.get('fake_message_codes', {})
-        final_response['my_active_cases'] = data.get('my_active_cases', []) # 👈 ДОБАВИТЬ ЭТУ СТРОКУ
-        final_response['bp_quests'] = data.get('bp_quests', [])
-        final_response['topskin_views'] = final_response.get('topskin_views') or data.get('topskin_views') or 0
+        final_response = data.get("profile", {})
+        final_response["challenge"] = data.get("challenge")
+        final_response["event_participations"] = data.get(
+            "event_participations", {}
+        )
+        final_response["active_referrals_count"] = data.get(
+            "active_referrals_count", 0
+        )
+        final_response["is_stream_online"] = data.get("is_stream_online", False)
+        final_response["fake_message_codes"] = data.get(
+            "fake_message_codes", {}
+        )
+        final_response["my_active_cases"] = data.get("my_active_cases", [])
+        final_response["bp_quests"] = data.get("bp_quests", [])
+        final_response["topskin_views"] = (
+            final_response.get("topskin_views")
+            or data.get("topskin_views")
+            or 0
+        )
 
-        # Вшиваем локальные настройки (с проверкой на инстанс ошибок)
-        final_response['is_admin'] = telegram_id in ADMIN_IDS
-        
-        if not isinstance(grind_settings, Exception) and hasattr(grind_settings, 'dict'):
-            final_response['grind_settings'] = grind_settings.dict()
+        # 👇 ГАРАНТИРОВАННО ВШИВАЕМ СТАТУС ПОДПИСКИ РОЗЫГРЫШЕЙ И АКТУАЛЬНЫЕ БИЛЕТЫ ИЗ USERS 👇
+        if (
+            not isinstance(direct_prem_res, Exception)
+            and getattr(direct_prem_res, "status_code", 500) == 200
+        ):
+            prem_rows = direct_prem_res.json()
+            if isinstance(prem_rows, list) and len(prem_rows) > 0:
+                p_row = prem_rows[0]
+                final_response["has_raffles_premium"] = bool(
+                    p_row.get("has_raffles_premium", False)
+                )
+                final_response["raffles_premium_until"] = p_row.get(
+                    "raffles_premium_until"
+                )
+                final_response["free_raffle_passes"] = int(
+                    p_row.get("free_raffle_passes") or 0
+                )
+                if p_row.get("tickets") is not None:
+                    final_response["tickets"] = p_row.get("tickets")
+
+        final_response["is_admin"] = telegram_id in ADMIN_IDS
+
+        if not isinstance(grind_settings, Exception) and hasattr(
+            grind_settings, "dict"
+        ):
+            final_response["grind_settings"] = grind_settings.dict()
         else:
-            final_response['grind_settings'] = {}
-            
+            final_response["grind_settings"] = {}
+
         if not isinstance(admin_settings, Exception):
-            final_response['is_checkpoint_globally_enabled'] = getattr(admin_settings, 'checkpoint_enabled', True)
-            final_response['quest_rewards_enabled'] = getattr(admin_settings, 'quest_promocodes_enabled', True)
+            final_response["is_checkpoint_globally_enabled"] = getattr(
+                admin_settings, "checkpoint_enabled", True
+            )
+            final_response["quest_rewards_enabled"] = getattr(
+                admin_settings, "quest_promocodes_enabled", True
+            )
         else:
-            final_response['is_checkpoint_globally_enabled'] = True
-            final_response['quest_rewards_enabled'] = True
-            
-        final_response['is_telegram_subscribed'] = True if final_response.get('referral_activated_at') else False
+            final_response["is_checkpoint_globally_enabled"] = True
+            final_response["quest_rewards_enabled"] = True
+
+        final_response["is_telegram_subscribed"] = (
+            True if final_response.get("referral_activated_at") else False
+        )
 
         logging.info(f"[USER/ME] Успешная отправка ответа для {telegram_id}")
         return JSONResponse(content=final_response)
 
     except HTTPException as http_ex:
-        # Прокидываем честные HTTPException наружу без изменений
         raise http_ex
     except Exception as e:
-        logging.error(f"[USER/ME] Глобальный сбой эндпоинта /user/me для {telegram_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Ошибка загрузки профиля")
+        logging.error(
+            f"[USER/ME] Глобальный сбой эндпоинта /user/me для {telegram_id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail="Ошибка загрузки профиля"
+        )
         
 # --- ГЛОБАЛЬНЫЙ КЭШ ---
 HEARTBEAT_DB_CACHE = {}
