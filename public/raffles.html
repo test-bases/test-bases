@@ -1170,6 +1170,17 @@
         let lastRafflesData = null;
         let paymentPollTimer = null;
 
+        // Полный сброс всех клиентских кэшей (sessionStorage + возможные in-memory структуры)
+        function clearFastCaches() {
+            try {
+                sessionStorage.removeItem('__hl_fast_api_cache__');
+                sessionStorage.removeItem('rfl_fast_cache');
+                if (window.__hlFastCacheStore && typeof window.__hlFastCacheStore.clear === 'function') {
+                    window.__hlFastCacheStore.clear();
+                }
+            } catch (e) {}
+        }
+
         // Защищенная от искажений при копировании функция экранирования HTML
         const HTML_ESCAPE_MAP = {
             '&': '&' + 'amp;',
@@ -1316,7 +1327,7 @@
                 }
             }, { passive: false });
 
-            content.addEventListener('touchend', () => {
+            content.addEventListener('touchend', async () => {
                 if (!isPulling) return;
                 isPulling = false;
                 if (pulledDistance <= 0) return;
@@ -1327,8 +1338,11 @@
                     ptrContainer.style.transform = `translateY(80px)`;
                     icon.style.transform = '';
                     icon.classList.add('fa-spin');
-                    if (window.Telegram && Telegram.WebApp.HapticFeedback) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); }
-                    setTimeout(() => { window.location.reload(); }, 500);
+                    if (window.Telegram && Telegram.WebApp.HapticFeedback) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    clearFastCaches();
+                    setTimeout(() => { window.location.reload(); }, 350);
                 } else {
                     content.style.transform = '';
                     ptrContainer.style.transform = '';
@@ -1352,21 +1366,26 @@
         function closePremiumModal() { document.getElementById('premium-modal').style.display = 'none'; }
 
         function updatePremiumBannerUI(uData) {
-            userFreePasses = parseInt(uData.free_raffle_passes || 0);
+            userFreePasses = Math.max(0, parseInt(uData.free_raffle_passes ?? 0, 10) || 0);
             userPremiumUntil = uData.raffles_premium_until || null;
             userHasRafflesPremium = false;
 
             if (uData.total_raffled || uData.raffled_skins_count) {
-                userTotalRaffledFromProfile = parseInt(uData.total_raffled || uData.raffled_skins_count || 0);
+                userTotalRaffledFromProfile = parseInt(uData.total_raffled || uData.raffled_skins_count || 0, 10);
                 const statsCountEl = document.getElementById('raffled-skins-count');
-                if (statsCountEl && userTotalRaffledFromProfile > parseInt(statsCountEl.textContent || 0)) {
+                if (statsCountEl && userTotalRaffledFromProfile > parseInt(statsCountEl.textContent || 0, 10)) {
                     statsCountEl.textContent = userTotalRaffledFromProfile;
                 }
             }
 
-            if (uData.has_raffles_premium && userPremiumUntil) {
+            // Определяем активность подписки по дате окончания (даже если бесплатные проходки = 0)
+            if (userPremiumUntil) {
                 const dtUntil = new Date(userPremiumUntil);
-                if (dtUntil > new Date()) { userHasRafflesPremium = true; }
+                if (!isNaN(dtUntil.getTime()) && dtUntil > new Date()) {
+                    userHasRafflesPremium = true;
+                }
+            } else if (uData.has_raffles_premium) {
+                userHasRafflesPremium = true;
             }
 
             const banner = document.getElementById('premium-banner');
@@ -1375,7 +1394,7 @@
             const buyBtn = document.getElementById('buy-prem-btn');
 
             if (userHasRafflesPremium) {
-                const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
+                const untilStr = userPremiumUntil ? new Date(userPremiumUntil).toLocaleDateString('ru-RU') : 'активно';
                 banner.classList.add('active-sub');
                 descText.innerHTML = `
                     <div class="prem-title-line">
@@ -1409,11 +1428,12 @@
         // Принудительная синхронизация статуса подписки после оплаты в Робокассе
         async function syncPremiumStatusFromServer(showSuccessToast = false) {
             try {
-                try { sessionStorage.removeItem('__hl_fast_api_cache__'); } catch (e) {}
+                clearFastCaches();
                 const res = await fetch('/api/v1/user/me', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ initData: tg.initData }),
+                    cache: 'no-store',
                     __bypassFastCache: true
                 });
                 if (!res.ok) return false;
@@ -1426,7 +1446,7 @@
                 userTickets = uData.tickets || 0;
                 updatePremiumBannerUI(uData);
 
-                const newPasses = parseInt(uData.free_raffle_passes || 0, 10);
+                const newPasses = parseInt(uData.free_raffle_passes ?? 0, 10);
                 const newUntil = String(uData.raffles_premium_until || '');
 
                 const isUpgraded = userHasRafflesPremium && (
@@ -1446,13 +1466,13 @@
                     if (tg && tg.HapticFeedback) {
                         try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
                     }
-                    const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
+                    const untilStr = userPremiumUntil ? new Date(userPremiumUntil).toLocaleDateString('ru-RU') : '';
                     showModal(
                         'success',
                         'Авто-участие активно!',
                         `Подписка подключена до <b>${untilStr}</b>.<br>Доступно проходок без условий: <b>${userFreePasses} шт.</b>`
                     );
-                    load(true);
+                    await load(true);
                     return true;
                 }
             } catch (e) {}
@@ -1480,11 +1500,13 @@
         function initPaymentReturnHandlers() {
             const urlParams = new URLSearchParams(window.location.search);
             const paidParam = urlParams.get('paid');
+            let shouldForceFreshLoad = false;
 
             if (paidParam === '1') {
+                shouldForceFreshLoad = true;
                 localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
                 window.history.replaceState({}, document.title, window.location.pathname);
-                setTimeout(() => syncPremiumStatusFromServer(true), 300);
+                setTimeout(() => syncPremiumStatusFromServer(true), 250);
                 startPaymentReturnWatcher();
             } else if (paidParam === '0') {
                 localStorage.removeItem('pending_raffles_prem_payment');
@@ -1495,7 +1517,8 @@
             } else if (localStorage.getItem('pending_raffles_prem_payment')) {
                 const pendingTs = parseInt(localStorage.getItem('pending_raffles_prem_payment') || '0', 10);
                 if (Date.now() - pendingTs < 600000) {
-                    setTimeout(() => syncPremiumStatusFromServer(false), 400);
+                    shouldForceFreshLoad = true;
+                    setTimeout(() => syncPremiumStatusFromServer(false), 300);
                     startPaymentReturnWatcher();
                 } else {
                     localStorage.removeItem('pending_raffles_prem_payment');
@@ -1513,9 +1536,11 @@
                     syncPremiumStatusFromServer(false);
                 }
             });
+
+            return shouldForceFreshLoad;
         }
 
-       async function buyRafflesPremium() {
+        async function buyRafflesPremium() {
             const btn = document.getElementById('buy-prem-btn');
             const oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Переход к оплате...';
@@ -1529,14 +1554,16 @@
                         initData: tg.initData,
                         action_type: 'raffles_premium',
                         return_origin: window.location.origin
-                    })
+                    }),
+                    cache: 'no-store',
+                    __bypassFastCache: true
                 });
                 const ans = await res.json();
                 if (res.ok && ans.url) {
                     localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
                     localStorage.setItem('prev_raffles_free_passes', String(userFreePasses));
                     localStorage.setItem('prev_raffles_prem_until', String(userPremiumUntil || ''));
-                    try { sessionStorage.removeItem('__hl_fast_api_cache__'); } catch (e) {}
+                    clearFastCaches();
 
                     closePremiumModal();
 
@@ -1621,8 +1648,13 @@
         }, 1000);
 
         async function load(bypassCache = false) {
+            if (bypassCache) {
+                clearFastCaches();
+            }
+
             const payload = JSON.stringify({ initData: tg.initData });
             const reqHeaders = { 'Content-Type': 'application/json' };
+            const fetchCacheMode = bypassCache ? 'no-store' : 'default';
 
             // Синхронная загрузка розыгрышей и профиля в один цикл без двойного рендера
             const [rafflesResult, userResult] = await Promise.allSettled([
@@ -1630,6 +1662,7 @@
                     method: 'POST',
                     headers: reqHeaders,
                     body: payload,
+                    cache: fetchCacheMode,
                     __bypassFastCache: bypassCache
                 }).then(r => {
                     if (!r.ok) throw new Error('Raffles fetch error');
@@ -1639,6 +1672,7 @@
                     method: 'POST',
                     headers: reqHeaders,
                     body: payload,
+                    cache: fetchCacheMode,
                     __bypassFastCache: bypassCache
                 }).then(r => {
                     if (!r.ok) throw new Error('User fetch error');
@@ -2012,12 +2046,18 @@
             
             try {
                 const res = await fetch('/api/v1/raffles/join', { 
-                    method: 'POST', headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify({initData:tg.initData, raffle_id:id}) 
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({initData: tg.initData, raffle_id: id}),
+                    cache: 'no-store',
+                    __bypassFastCache: true
                 });
                 const ans = await res.json();
                 
-                if(res.ok) {
+                if (res.ok) {
+                    // Сразу сбрасываем клиентский кэш после участия и списания лимита
+                    clearFastCaches();
+
                     if (tg && tg.HapticFeedback) {
                         try { tg.HapticFeedback.notificationOccurred('success'); } catch (err) {}
                     }
@@ -2034,13 +2074,13 @@
                     } else {
                         showModal('success', 'Успех', cleanMsg);
                     }
-                    load(true); 
+                    await load(true); 
                 } else {
                     if (tg && tg.HapticFeedback) {
                         try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
                     }
                     handleAccessError(ans.detail);
-                    if(btn) {
+                    if (btn) {
                         btn.dataset.loading = '0';
                         btn.disabled = false;
                         btn.innerHTML = oldHtml;
@@ -2052,7 +2092,7 @@
                     try { tg.HapticFeedback.notificationOccurred('error'); } catch (err) {}
                 }
                 showModal('error', 'Ошибка', 'Проверьте соединение с сетью');
-                if(btn) {
+                if (btn) {
                     btn.dataset.loading = '0';
                     btn.disabled = false;
                     btn.innerHTML = oldHtml;
@@ -2074,7 +2114,7 @@
             btnProfile.style.display = actions.profile ? 'inline-flex' : 'none';
             btnBp.style.display = actions.bp ? 'inline-flex' : 'none';
 
-            if(type === 'success') {
+            if (type === 'success') {
                 iconBox.innerHTML = `<svg class="checkmark" viewBox="0 0 52 52"><circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/><path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg>`;
             } else if (type === 'info') {
                 iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 30px; color: var(--primary-purple-light); margin-top: 4px; filter: drop-shadow(0 0 10px rgba(192,132,252,0.4));"></i>';
@@ -2093,17 +2133,17 @@
             const startParam = tg.initDataUnsafe.start_param; 
             if (startParam && startParam.startsWith('raffle_')) {
                 const closeBtn = document.getElementById('close-btn-container');
-                if(closeBtn) closeBtn.classList.remove('hidden');
+                if (closeBtn) closeBtn.classList.remove('hidden');
 
                 const raffleId = startParam.split('_')[1];
                 if (!sessionStorage.getItem('checked_raffle_' + raffleId)) {
                     const vModal = document.getElementById('verify-modal');
-                    if(vModal) vModal.style.display = 'flex';
+                    if (vModal) vModal.style.display = 'flex';
                     tg.HapticFeedback.impactOccurred('light');
                     await new Promise(r => setTimeout(r, 1000));
                     sessionStorage.setItem('checked_raffle_' + raffleId, 'true');
                     await join(raffleId, true); 
-                    if(vModal) vModal.style.display = 'none';
+                    if (vModal) vModal.style.display = 'none';
                 }
             }
         }
@@ -2111,9 +2151,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkPremiumBannerVisibility();
             initPullToRefresh();
-            initPaymentReturnHandlers();
+            const shouldForceFreshLoad = initPaymentReturnHandlers();
+            load(shouldForceFreshLoad);
         });
-        load();
     </script>
 </body>
 </html>
