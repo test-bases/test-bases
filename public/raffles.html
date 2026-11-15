@@ -9,18 +9,24 @@
     <style>
         :root {
             --bg: #09090b; 
-            --card: #131316; 
-            --primary-blue: #5516b7;
+            --card: #111115; 
+            --primary-blue: #6d28d9;
             --primary-purple: #7c3aed;
-            --primary-purple-light: #9f36f1;
+            --primary-purple-light: #c084fc;
             --text: #ffffff;
-            --text-muted: #84848a;
+            --text-secondary: #e4e4e7;
+            --text-muted: #a1a1aa;
             --accent-green: #34c759;
             --danger: #ff453a;
-            --gold: #ffd700;
+            --gold: #fbbf24;
             
             /* Локальный неоновый фон из папки public/static */
             --card-bg-img: url('/static/bg-neon.png'); 
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
         }
 
         html, body {
@@ -43,7 +49,6 @@
             flex: 1;
             overflow-y: auto !important; 
             -webkit-overflow-scrolling: touch;
-            box-sizing: border-box;
             padding: 8px 12px 110px 12px;
         }
 
@@ -57,19 +62,19 @@
         #pull-to-refresh i {
             font-size: 20px; color: var(--primary-purple-light);
             transition: opacity 0.2s, transform 0.2s;
-            text-shadow: 0 0 10px rgba(124, 58, 237, 0.7);
+            text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
         }
 
-        /* === ПРЕМИУМ GLASS-БАННЕР (УЛЬТРА-КОМПАКТНЫЙ) === */
+        /* === ПРЕМИУМ GLASS-БАННЕР === */
         .premium-banner {
             border-radius: 14px;
             padding: 9px 10px 9px 12px;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(19, 19, 24, 0.65) 55%, rgba(85, 22, 183, 0.22) 100%);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(15, 15, 20, 0.78) 55%, rgba(109, 40, 217, 0.25) 100%);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(159, 54, 241, 0.35);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(192, 132, 252, 0.35);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(124, 58, 237, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -77,19 +82,11 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        .premium-banner::before {
-            content: '';
-            position: absolute;
-            top: -60%; left: -20%;
-            width: 140px; height: 140px;
-            background: radial-gradient(circle, rgba(159, 54, 241, 0.25) 0%, transparent 70%);
-            pointer-events: none;
         }
         .premium-banner.active-sub {
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.16) 0%, rgba(19, 19, 24, 0.7) 60%, rgba(52, 199, 89, 0.12) 100%);
-            border-color: rgba(52, 199, 89, 0.4);
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.18) 0%, rgba(15, 15, 20, 0.82) 60%, rgba(52, 199, 89, 0.14) 100%);
+            border-color: rgba(52, 199, 89, 0.45);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(52, 199, 89, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.18);
         }
         .prem-left {
             display: flex;
@@ -99,11 +96,11 @@
             z-index: 1;
         }
         .prem-desc {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.92);
+            color: #ffffff;
             line-height: 1.25;
-            letter-spacing: -0.1px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
         }
         .prem-actions {
             display: flex;
@@ -113,9 +110,11 @@
             flex-shrink: 0;
         }
         .prem-btn {
-            background: linear-gradient(135deg, #6d28d9 0%, #5516b7 100%);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.45) 0%, rgba(109, 40, 217, 0.3) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #ffffff;
+            border: 1px solid rgba(196, 181, 253, 0.5);
             padding: 6px 10px;
             border-radius: 9px;
             font-size: 11px;
@@ -124,20 +123,21 @@
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            box-shadow: 0 2px 8px rgba(85, 22, 183, 0.5);
+            gap: 5px;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            transition: transform 0.1s ease;
         }
         .prem-btn:active { transform: scale(0.95); }
         .prem-btn.active-badge {
-            background: rgba(52, 199, 89, 0.18);
-            border-color: rgba(52, 199, 89, 0.35);
-            color: #34c759;
-            box-shadow: none;
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.3) 0%, rgba(16, 185, 129, 0.18) 100%);
+            border-color: rgba(74, 222, 128, 0.5);
+            color: #4ade80;
+            box-shadow: 0 0 12px rgba(52, 199, 89, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.22);
         }
         .prem-close-btn {
-            background: rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e4e4e7;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             width: 24px;
             height: 24px;
             border-radius: 8px;
@@ -150,57 +150,69 @@
         }
         .prem-close-btn:active { transform: scale(0.9); color: #fff; }
 
-        /* === СТРОКА СТАТИСТИКИ ПОД ПРЕМИУМОМ === */
+        /* === СТРОКА СТАТИСТИКИ + ТОП ПОБЕДИТЕЛЕЙ === */
         .stats-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.025);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(18, 18, 24, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
             border-radius: 12px;
-            padding: 7px 12px;
+            padding: 7px 10px 7px 12px;
             margin-bottom: 8px;
-            font-size: 11px;
-            color: var(--text-muted);
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            cursor: pointer;
         }
         .stats-left {
             display: flex;
             align-items: center;
             gap: 7px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #ffffff;
         }
-        .stats-icon {
-            width: 20px; height: 20px;
-            border-radius: 6px;
-            background: rgba(159, 54, 241, 0.15);
+        .stats-left i {
+            color: var(--gold);
+            font-size: 12px;
+            filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+        }
+        .stats-count {
             color: var(--primary-purple-light);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
+            font-weight: 800;
+            font-size: 12.5px;
+            margin-left: 2px;
+            font-variant-numeric: tabular-nums;
         }
         .stats-right {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
-        .stats-count {
-            color: #fff;
-            font-weight: 800;
-            font-size: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            padding: 2px 8px;
-            border-radius: 7px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            font-variant-numeric: tabular-nums;
+        .top-winners-btn {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(85, 22, 183, 0.18) 100%);
+            border: 1px solid rgba(192, 132, 252, 0.38);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 10.5px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
         }
+        .top-winners-btn i { color: var(--gold); font-size: 10px; }
         .restore-prem-pill {
-            background: rgba(255, 215, 0, 0.12);
-            border: 1px solid rgba(255, 215, 0, 0.25);
-            color: var(--gold);
-            border-radius: 7px;
-            padding: 2px 7px;
-            font-size: 10px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(217, 119, 6, 0.15) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            color: #fde68a;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 10.5px;
             font-weight: 700;
             cursor: pointer;
             display: none;
@@ -208,141 +220,226 @@
             gap: 4px;
         }
 
-        /* === КОМПАКТНЫЕ ТАБЫ === */
+        /* === КОМПАКТНЫЕ GLASS-ТАБЫ === */
         .tabs-bar {
-            display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); 
+            display: flex; align-items: center;
+            background: rgba(18, 18, 24, 0.7); 
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px; padding: 3px; margin-bottom: 10px; gap: 4px;
         }
         .tab-btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            gap: 5px; padding: 7px 6px; border-radius: 9px; font-size: 11px; font-weight: 600;
-            color: var(--text-muted); background: transparent; border: none; cursor: pointer;
-            transition: color 0.15s ease, background 0.15s ease;
+            gap: 6px; padding: 7px 6px; border-radius: 9px; font-size: 11.5px; font-weight: 700;
+            color: var(--text-muted); background: transparent; border: 1px solid transparent; cursor: pointer;
+            transition: all 0.15s ease;
         }
         .tab-btn i { font-size: 11px; }
-        .tab-btn.active { background: var(--primary-blue); color: #fff; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.28) 100%);
+            border-color: rgba(196, 181, 253, 0.4);
+            box-shadow: 0 2px 10px rgba(124, 58, 237, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
         .tab-counter {
-            background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 9px;
-            padding: 1px 5px; border-radius: 6px; min-width: 12px; text-align: center;
+            background: rgba(255, 255, 255, 0.18); color: #ffffff; font-size: 9.5px;
+            padding: 1px 6px; border-radius: 6px; min-width: 14px; text-align: center;
         }
 
-        /* === КАРТОЧКА РОЗЫГРЫША (СУЖЕНА ПОД 3 ШТУКИ НА ЭКРАН + ОПТИМИЗИРОВАНА) === */
+        /* === КАРТОЧКА РОЗЫГРЫША (3 ШТУКИ НА ЭКРАН + БОЛЬШОЙ СКИН + ЧЕРНЫЙ БЛЮР) === */
         .card { 
-            position: relative; overflow: hidden; border-radius: 14px; 
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px; 
             margin-bottom: 9px; 
             background-color: var(--card);
             background-image: var(--card-bg-img);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            border: 1px solid rgba(255, 255, 255, 0.06); 
-            display: flex; flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
             contain: content;
+            content-visibility: auto;
+            contain-intrinsic-size: 140px;
         }
-        /* Затемняющая подложка для читаемости текста поверх bg-neon.png */
+        /* Черный блюр поверх фоновой картинки — никаких отдельных фонов под текстом */
         .card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, rgba(12, 12, 16, 0.88) 0%, rgba(12, 12, 16, 0.68) 60%, rgba(12, 12, 16, 0.35) 100%);
+            background: linear-gradient(90deg, rgba(6, 6, 9, 0.90) 0%, rgba(8, 8, 12, 0.78) 54%, rgba(10, 10, 15, 0.35) 100%);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             pointer-events: none;
             z-index: 0;
         }
         .card.hidden-tab { display: none; }
 
+        /* Скин оружия — КРУПНЫЙ и находится на уровне фона (z-index: 1), НЕ перекрывая рамки */
+        .prize-img-wrapper { 
+            position: absolute;
+            top: 2px;
+            right: -6px; 
+            width: 185px;
+            height: 118px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            pointer-events: none; 
+        }
+        .card.done .prize-img-wrapper {
+            top: 50%;
+            right: -4px;
+            width: 175px;
+            height: 106px;
+            transform: translateY(-50%);
+        }
+        .prize-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform: rotate(-4deg) scale(1.06) translateZ(0);
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.75));
+        }
+
+        /* Контент карточки строго поверх скина (z-index: 2) */
         .card_content {
             padding: 10px 12px;
             position: relative;
-            z-index: 1;
+            z-index: 2;
             display: flex;
             flex-direction: column;
         }
-
-        /* Верхняя строка карточки: Плашка + Участники/Шанс */
-        .card-top-meta {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-            flex-wrap: wrap;
-            max-width: 66%;
+        .card.done .card_content {
+            min-height: 92px;
+            justify-content: center;
         }
 
+        /* Верхняя строка: метка розыгрыша без лишнего фона */
         .r-label { 
-            display: inline-flex; align-items: center; gap: 4px;
-            background: rgba(43, 10, 89, 0.85); 
-            border: 1px solid rgba(159, 54, 241, 0.3);
-            border-radius: 8px; padding: 2px 7px;
-            font-size: 8px; font-weight: 800; color: var(--primary-purple-light);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--primary-purple-light);
             text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 3px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
         }
-        .r-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary-purple-light); }
+        .r-label-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--primary-purple-light);
+            box-shadow: 0 0 6px var(--primary-purple-light);
+        }
 
         .r-title {
-            font-size: 14px; font-weight: 800; color: #fff;
-            margin: 0 0 6px 0; line-height: 1.15;
-            max-width: 64%; letter-spacing: -0.2px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 14.5px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0 0 5px 0;
+            line-height: 1.15;
+            max-width: 60%;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
         }
 
-        /* Условия (компактными чипсами в ряд для экономии высоты) */
+        /* Условия — чистый контрастный текст прямо на черном блюре без рамок и фонов */
         .conditions {
-            display: flex; flex-direction: row; flex-wrap: wrap;
-            gap: 4px; margin-bottom: 6px; max-width: 66%;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            column-gap: 10px;
+            row-gap: 3px;
+            margin-bottom: 5px;
+            max-width: 60%;
         }
         .cond-row {
-            font-size: 10px; color: #d4d4d8;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 2px 6px; border-radius: 6px;
-            display: inline-flex; align-items: center; gap: 4px; font-weight: 500;
+            font-size: 10.5px;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
             line-height: 1.2;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
-        .cond-row b, .cond-row span.val { color: #fff; font-weight: 700; }
-        .cond-icon-box {
-            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        .cond-row b {
+            color: #ffffff;
+            font-weight: 800;
         }
-        .cond-icon-box i { color: var(--primary-purple-light); font-size: 9px; }
-
-        /* Картинка оружия (компактная и без тяжелого drop-shadow для слабых телефонов) */
-        .prize-img-wrapper { 
-            position: absolute; top: 6px; right: -6px; 
-            width: 132px; height: 84px;
-            display: flex; align-items: center; justify-content: center;
-            z-index: 2; pointer-events: none; 
-        }
-        .prize-img {
-            width: 100%; max-height: 100%; object-fit: contain;
-            transform: rotate(-3deg) translateZ(0);
+        .cond-row i {
+            color: var(--primary-purple-light);
+            font-size: 9.5px;
         }
 
-        /* Строка "Участники | Шанс" */
+        /* Строка "Участники | Шанс" без тяжелых подложек */
         .participants-info {
-            display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-            font-size: 10px; color: var(--text-muted); font-weight: 500;
-            max-width: 66%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 10.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            max-width: 60%;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
-        .participants-info b { color: #fff; font-weight: 700; }
+        .participants-info b {
+            color: #ffffff;
+            font-weight: 800;
+        }
         .chance-badge {
-            background: rgba(255, 215, 0, 0.1); color: var(--gold); padding: 1px 6px;
-            border-radius: 7px; font-size: 9px; font-weight: 700; display: inline-flex;
-            align-items: center; gap: 3px; border: 1px solid rgba(255, 215, 0, 0.2); cursor: pointer;
+            color: var(--gold);
+            font-size: 10.5px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
         }
 
-        /* === ТАЙМЕР И КНОПКА (НИЖНЯЯ ПАНЕЛЬ КАРТОЧКИ) === */
+        /* === ТАЙМЕР И PREM-GLASS КНОПКА === */
         .card-footer-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.09);
             gap: 8px;
         }
 
         .timer_row { display: flex; align-items: center; gap: 8px; margin: 0; }
         .timer_item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .timer_val { font-size: 14px; font-weight: 800; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums; }
-        .timer_lbl { font-size: 8px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
-        
+        .timer_val {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+        .timer_lbl {
+            font-size: 8.5px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 600;
+        }
         .timer-divider {
-            width: 1px; height: 12px; background: rgba(255,255,255,0.12); margin: 0 1px;
+            width: 1px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 1px;
         }
 
         .footer-right-col {
@@ -352,27 +449,79 @@
             gap: 2px;
         }
 
-        /* Кнопка Участвовать (Компактная) */
+        /* Кнопка Участвовать (Премиум Glass с легким подсвечиванием) */
         .btn-main {
-            background: var(--primary-blue); color: #fff; border: none;
-            padding: 7px 12px; border-radius: 10px; font-size: 11px; font-weight: 700;
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;
-            transition: transform 0.1s ease;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.42) 0%, rgba(109, 40, 217, 0.28) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #ffffff;
+            border: 1px solid rgba(196, 181, 253, 0.5);
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            padding: 7px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
         }
         .btn-main:active { transform: scale(0.95); }
-        .btn-main.joined { background: rgba(52, 199, 89, 0.18); color: var(--accent-green); cursor: default; }
-        .btn-main i { font-size: 11px; }
+        .btn-main.joined {
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%);
+            border-color: rgba(74, 222, 128, 0.5);
+            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            color: #4ade80;
+            cursor: default;
+        }
+        .btn-main i { font-size: 10.5px; }
 
-        .user-tickets-info { text-align: right; font-size: 9px; color: var(--text-muted); font-weight: 500; line-height: 1; }
+        .user-tickets-info {
+            text-align: right;
+            font-size: 9.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            line-height: 1;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
         .user-tickets-info b { color: var(--primary-purple-light); }
 
+        /* Блок победителя в завершенных — аккуратно слева, не пересекается с большим скином справа */
         .winner_box { 
-            margin-top: 4px; background: rgba(255,255,255,0.03); border-radius: 10px; 
-            padding: 7px 10px; border: 1px solid rgba(255,255,255,0.05); 
-            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 2px;
+            max-width: 56%;
+            background: rgba(15, 15, 20, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 10px; 
+            padding: 6px 10px;
+            border: 1px solid rgba(251, 191, 36, 0.28); 
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
-        .w-title { font-size: 8px; color: var(--gold); text-transform: uppercase; font-weight: 800; margin-bottom: 1px; letter-spacing: 0.4px; }
-        .w-user { font-size: 12px; font-weight: 700; color: #fff; }
+        .w-title {
+            font-size: 8.5px;
+            color: var(--gold);
+            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 1px;
+            letter-spacing: 0.4px;
+        }
+        .w-user {
+            font-size: 12px;
+            font-weight: 800;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         .bottom-spacer { height: 80px; width: 100%; pointer-events: none; }
 
@@ -380,7 +529,7 @@
         .app-footer {
             display: flex; justify-content: space-around; align-items: center;
             background-color: rgba(9, 9, 11, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
             padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
         }
@@ -389,27 +538,112 @@
 
         .hidden { display: none !important; }
         
-        /* МОДАЛКИ */
+        /* === МОДАЛКИ (GLASS DESIGN) === */
         .modal-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 3000; display: none; align-items: center; justify-content: center; 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.82);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            z-index: 3000; display: none; align-items: center; justify-content: center; 
         }
         .modal-box { 
-            background: var(--card); width: 85%; max-width: 320px; border-radius: 20px; padding: 24px 20px; 
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.07); 
-            animation: zoom 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            background: linear-gradient(160deg, rgba(24, 24, 32, 0.95) 0%, rgba(14, 14, 18, 0.98) 100%);
+            width: 88%; max-width: 340px; border-radius: 20px; padding: 22px 18px; 
+            text-align: center; border: 1px solid rgba(255, 255, 255, 0.12); 
+            animation: zoom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .modal-icon-badge {
+            width: 52px; height: 52px; border-radius: 14px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(109, 40, 217, 0.15) 100%);
+            border: 1px solid rgba(196, 181, 253, 0.35);
+            box-shadow: 0 0 16px rgba(139, 92, 246, 0.25);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 12px; font-size: 22px; color: var(--primary-purple-light);
         }
         .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
-        .m-btn-confirm { background: var(--primary-blue); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px; }
-        .m-btn-cancel { background: rgba(255,255,255,0.05); color: #fff; border: none; flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px; }
-        
-        .m-head { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #fff; }
-        .m-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
-        .m-btn { 
-            background: rgba(255,255,255,0.05); color: #fff; border: none; width: 100%; 
-            padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 8px;
+        .m-btn-confirm {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.35) 100%);
+            border: 1px solid rgba(196, 181, 253, 0.5);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            color: #fff; flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px;
         }
-        .m-btn-primary { background: var(--primary-blue); color: #fff; font-weight: 700; }
+        .m-btn-cancel {
+            background: rgba(255,255,255,0.06); color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.1); flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px;
+        }
+        
+        .m-head { font-size: 19px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+        .m-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.45; }
+        .m-btn { 
+            background: rgba(255,255,255,0.06); color: #fff;
+            border: 1px solid rgba(255,255,255,0.1); width: 100%; 
+            padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-bottom: 8px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .m-btn-primary {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(109, 40, 217, 0.35) 100%);
+            border: 1px solid rgba(196, 181, 253, 0.5);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.28);
+            color: #fff; font-weight: 700;
+        }
+
+        /* СПИСОК ТОП ПОБЕДИТЕЛЕЙ В МОДАЛКЕ */
+        .leaders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            text-align: left;
+            padding-right: 2px;
+        }
+        .leader-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .leader-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .leader-rank {
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .leader-row.rank-1 .leader-rank { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+        .leader-row.rank-2 .leader-rank { background: rgba(228, 228, 231, 0.2); color: #f4f4f5; border: 1px solid rgba(228, 228, 231, 0.35); }
+        .leader-row.rank-3 .leader-rank { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.35); }
+        .leader-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .leader-wins {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: var(--primary-purple-light);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
 
         /* АНИМАЦИИ И ЛОАДЕРЫ */
         .icon-container { width: 60px; height: 60px; margin: 0 auto 12px; position: relative; }
@@ -422,12 +656,12 @@
 
         .verify-modal-content {
             background: var(--card); padding: 24px 30px; border-radius: 20px; text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6); animation: zoom 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7); animation: zoom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .verify-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.05); border-top: 3px solid var(--primary-purple-light); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+        .verify-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.08); border-top: 3px solid var(--primary-purple-light); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
         .verify-text { font-size: 16px; font-weight: 700; color: #fff; margin: 0; }
-        .verify-subtext { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-top: 4px; }
+        .verify-subtext { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 4px; }
 
         @keyframes stroke { 100% { stroke-dashoffset: 0; } }
         @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
@@ -446,7 +680,7 @@
     </div>
 
     <main id="main-content">
-        <!-- 🔥 GLASS-БАННЕР ПРЕМИУМ-ДОСТУПА (СКРЫВАЕМЫЙ) 🔥 -->
+        <!-- GLASS-БАННЕР ПРЕМИУМ-ДОСТУПА -->
         <div id="premium-banner" class="premium-banner" onclick="openPremiumModal()">
             <div class="prem-left">
                 <div class="prem-desc" id="prem-desc-text">Авто-участие + 4 входа без условий на 30 дней</div>
@@ -461,17 +695,21 @@
             </div>
         </div>
 
-        <!-- 🔥 СТАТИСТИКА РАЗЫГРАННЫХ СКИНОВ 🔥 -->
-        <div class="stats-bar">
+        <!-- СТАТИСТИКА РАЗЫГРАННЫХ СКИНОВ + ТОП ПОБЕДИТЕЛЕЙ -->
+        <div class="stats-bar" onclick="openTopWinnersModal()">
             <div class="stats-left">
-                <span class="stats-icon"><i class="fa-solid fa-trophy"></i></span>
+                <i class="fa-solid fa-trophy"></i>
                 <span>Разыграно скинов:</span>
+                <span class="stats-count" id="raffled-skins-count">0</span>
             </div>
             <div class="stats-right">
-                <button id="restore-prem-btn" class="restore-prem-pill" onclick="restorePremiumBanner()">
+                <button id="restore-prem-btn" class="restore-prem-pill" onclick="event.stopPropagation(); restorePremiumBanner();">
                     <i class="fa-solid fa-bolt"></i> Премиум
                 </button>
-                <span class="stats-count" id="raffled-skins-count">0</span>
+                <button class="top-winners-btn" onclick="event.stopPropagation(); openTopWinnersModal();">
+                    <i class="fa-solid fa-ranking-star"></i>
+                    <span>Топ победителей</span>
+                </button>
             </div>
         </div>
 
@@ -490,45 +728,70 @@
 
         <!-- СПИСОК КАРТОЧЕК -->
         <div id="list">
-            <div style="text-align:center; margin-top:40px; color:var(--text-muted);">
+            <div style="text-align:center; margin-top:40px; color:var(--text-secondary);">
                 <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
             </div>
         </div>
 
         <div id="close-btn-container" class="close-container hidden" style="position: fixed; bottom: 80px; width: 100%; text-align: center; z-index: 99; left: 0;">
-            <button class="btn-main" style="width: auto; padding: 10px 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="tg.close()">Закрыть</button>
+            <button class="btn-main" style="width: auto; padding: 10px 30px;" onclick="tg.close()">Закрыть</button>
         </div>
     </main>
 
     <script src="/top_nav.js" defer></script>
     <script src="/bottom-nav.js"></script>
 
+    <!-- МОДАЛКА ТОП ПОБЕДИТЕЛЕЙ -->
+    <div id="top-winners-modal" class="modal-overlay" onclick="if(event.target===this) closeTopWinnersModal()">
+        <div class="modal-box">
+            <div class="modal-icon-badge" style="color: var(--gold); border-color: rgba(251, 191, 36, 0.4);">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div class="m-head">Топ победителей</div>
+            <div class="m-desc" style="margin-bottom: 12px;">Лидеры по количеству выигранных скинов в раздачах</div>
+            <div id="top-winners-list" class="leaders-list"></div>
+            <button class="m-btn" onclick="closeTopWinnersModal()">Закрыть</button>
+        </div>
+    </div>
+
     <!-- МОДАЛКА СПИСАНИЯ БИЛЕТОВ -->
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-box">
-            <div style="font-size: 40px; margin-bottom: 10px;">🎫</div>
-            <div style="font-size: 20px; font-weight: 800; margin-bottom: 6px; color: #fff;">Подтвердите</div>
-            <div style="color: var(--text-muted); margin-bottom: 20px; font-size: 13px;">Списать <b id="ticket-price" style="color:#fff">--</b> билетов?</div>
+            <div class="modal-icon-badge">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+            <div style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: #fff;">Подтвердите вход</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px; font-size: 13px;">Списать <b id="ticket-price" style="color:#fff">--</b> билетов за участие?</div>
             <div class="modal-btns">
                 <button class="m-btn-cancel" onclick="closeConfirm()">Отмена</button>
-                <button class="m-btn-confirm" id="confirm-join-btn">Да, списать</button>
+                <button class="m-btn-confirm" id="confirm-join-btn">Подтвердить</button>
             </div>
         </div>
     </div>
 
-    <!-- 🔥 МОДАЛКА ПРЕМИУМ-ДОСТУПА 🔥 -->
+    <!-- МОДАЛКА ПРЕМИУМ-ДОСТУПА -->
     <div id="premium-modal" class="modal-overlay">
         <div class="modal-box">
-            <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
+            <div class="modal-icon-badge">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
             <div class="m-head">Премиум-доступ</div>
-            <div class="m-desc" id="prem-modal-desc" style="text-align: left; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="margin-bottom: 6px; color: #fff; font-weight: 700;">Привилегия на 30 дней:</div>
-                <div style="margin-bottom: 4px;">⚡ <b>Авто-участие:</b> бот сам добавляет вас.</div>
-                <div style="margin-bottom: 4px;">🎟 <b>4 пропуска:</b> участие без условий.</div>
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Стоимость: <b style="color: var(--gold);">100 ₽</b> на 30 дней</div>
+            <div class="m-desc" id="prem-modal-desc" style="text-align: left; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08);">
+                <div style="margin-bottom: 8px; color: #fff; font-weight: 700;">Привилегия на 30 дней:</div>
+                <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-bolt" style="color:var(--primary-purple-light); width:14px;"></i>
+                    <span><b>Авто-участие:</b> бот сам добавляет вас.</span>
+                </div>
+                <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-ticket" style="color:var(--accent-green); width:14px;"></i>
+                    <span><b>4 пропуска:</b> участие без условий.</span>
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+                    Стоимость: <b style="color: var(--gold);">100 ₽</b> на 30 дней
+                </div>
             </div>
             <button id="buy-prem-btn" class="m-btn m-btn-primary" onclick="buyRafflesPremium()">
-                💳 Оплатить 100 ₽
+                <i class="fa-solid fa-credit-card"></i> Оплатить 100 ₽
             </button>
             <button class="m-btn" onclick="closePremiumModal()">Закрыть</button>
         </div>
@@ -540,8 +803,12 @@
             <div id="modal-icon" class="icon-container"></div>
             <div class="m-head" id="m-head"></div>
             <div class="m-desc" id="m-desc"></div>
-            <button id="btn-profile" class="m-btn m-btn-primary" style="display:none;" onclick="location.href='/profile'">⚙️ Настроить профиль</button>
-            <button id="btn-bp" class="m-btn m-btn-primary" style="display:none; background: var(--gold); color: #000;" onclick="location.href='/checkpoint'">🌟 Battle Pass</button>
+            <button id="btn-profile" class="m-btn m-btn-primary" style="display:none;" onclick="location.href='/profile'">
+                <i class="fa-solid fa-sliders"></i> Настроить профиль
+            </button>
+            <button id="btn-bp" class="m-btn m-btn-primary" style="display:none; background: var(--gold); color: #000; border:none;" onclick="location.href='/checkpoint'">
+                <i class="fa-solid fa-star"></i> Открыть Battle Pass
+            </button>
             <button class="m-btn" onclick="document.getElementById('modal').style.display='none'">Понятно</button>
         </div>
     </div>
@@ -572,10 +839,16 @@
         let userFreePasses = 0;
         let userPremiumUntil = null;
         let userTotalRaffledFromProfile = 0;
+        let topWinnersData = [];
         let currentTab = 'active';
         let cachedTimerNodes = [];
 
-        // Управление скрытием/показом Премиум-баннера
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
         function checkPremiumBannerVisibility() {
             const isHidden = localStorage.getItem('hide_raffles_prem_banner') === '1';
             const banner = document.getElementById('premium-banner');
@@ -600,6 +873,40 @@
         function restorePremiumBanner() {
             localStorage.removeItem('hide_raffles_prem_banner');
             checkPremiumBannerVisibility();
+        }
+
+        function openTopWinnersModal() {
+            const listEl = document.getElementById('top-winners-list');
+            if (listEl) {
+                if (!topWinnersData.length) {
+                    listEl.innerHTML = '<div style="text-align:center; padding: 18px 0; color:var(--text-muted); font-size:12.5px;">Статистика победителей формируется</div>';
+                } else {
+                    let html = '';
+                    topWinnersData.forEach((item, idx) => {
+                        const rank = idx + 1;
+                        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                        const winWord = getPlural(item.wins, ['скин', 'скина', 'скинов']);
+                        html += `
+                            <div class="leader-row ${rankClass}">
+                                <div class="leader-left">
+                                    <span class="leader-rank">${rank}</span>
+                                    <span class="leader-name">${escapeHtml(item.name)}</span>
+                                </div>
+                                <div class="leader-wins">
+                                    <i class="fa-solid fa-award"></i>
+                                    <span>${item.wins} ${winWord}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = html;
+                }
+            }
+            document.getElementById('top-winners-modal').style.display = 'flex';
+        }
+
+        function closeTopWinnersModal() {
+            document.getElementById('top-winners-modal').style.display = 'none';
         }
 
         function initPullToRefresh() {
@@ -649,7 +956,7 @@
         }
             
         document.body.addEventListener('click', (e) => {
-            const selector = `a, button, .history-btn, .card, .m-btn, .chance-span, .premium-banner, .tab-btn`;
+            const selector = `a, button, .history-btn, .card, .m-btn, .chance-span, .premium-banner, .tab-btn, .stats-bar`;
             if (e.target.closest(selector)) {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                     try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (err) {}
@@ -683,16 +990,16 @@
             if (userHasRafflesPremium) {
                 const untilStr = new Date(userPremiumUntil).toLocaleDateString('ru-RU');
                 banner.classList.add('active-sub');
-                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34c759; margin-right:4px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
+                descText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#4ade80; margin-right:5px;"></i>Активен до ${untilStr} • Авто-участие + <b>${userFreePasses}</b> проп.`;
                 actionBtn.className = 'prem-btn active-badge';
-                actionBtn.innerHTML = `🎟 ${userFreePasses}`;
-                if (buyBtn) buyBtn.innerText = '💳 Продлить (+30 дней) • 100 ₽';
+                actionBtn.innerHTML = `<i class="fa-solid fa-ticket"></i> ${userFreePasses}`;
+                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Продлить (+30 дней) • 100 ₽';
             } else {
                 banner.classList.remove('active-sub');
                 descText.innerText = `Авто-участие + 4 входа без условий на 30 дней`;
                 actionBtn.className = 'prem-btn';
                 actionBtn.innerHTML = `Купить • 100 ₽`;
-                if (buyBtn) buyBtn.innerText = '💳 Оплатить 100 ₽';
+                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Оплатить 100 ₽';
             }
         }
 
@@ -717,7 +1024,6 @@
             finally { btn.innerHTML = oldText; btn.disabled = false; }
         }
 
-        // CSS-логика переключения табов без перерендера
         function switchTab(tabName) {
             currentTab = tabName;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -743,23 +1049,23 @@
 
         function showChanceInfo(e) {
             e.stopPropagation(); 
-            showModal('info', 'Шанс победы', 'Процент победы рассчитывается делением 100% на количество участников. Чем больше участников, тем ниже шанс, но победить может каждый! 🍀');
+            showModal('info', 'Шанс победы', 'Процент победы рассчитывается делением 100% на количество участников. Чем больше участников, тем ниже шанс, но победить может каждый.');
         }
 
         function getPlural(n, titles) {
             return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
         }
 
-        // Оптимизированный таймер по кэшированным узлам (без поиска по всему DOM каждую секунду)
+        // Оптимизированный таймер с паузой при фоновом режиме экрана
         setInterval(() => {
-            if (currentTab !== 'active' || !cachedTimerNodes.length) return;
+            if (document.hidden || currentTab !== 'active' || !cachedTimerNodes.length) return;
             const now = Date.now();
             for (let i = 0; i < cachedTimerNodes.length; i++) {
                 const item = cachedTimerNodes[i];
                 const diff = item.endTime - now;
                 if (diff <= 0) {
                     if (!item.expired) {
-                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:700; font-size:11px;">ЗАВЕРШАЕТСЯ...</span>';
+                        item.el.innerHTML = '<span style="color:var(--danger); font-weight:800; font-size:11px;">ЗАВЕРШАЕТСЯ...</span>';
                         item.expired = true;
                     }
                     continue;
@@ -777,7 +1083,6 @@
 
         async function load() {
             try {
-                // Параллельная загрузка обоих эндпоинтов для максимальной скорости на слабых устройствах
                 const [uRes, res] = await Promise.all([
                     fetch('/api/v1/user/me', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) }),
                     fetch('/api/v1/raffles/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({initData:tg.initData}) })
@@ -791,8 +1096,22 @@
                 renderAll(Array.isArray(data) ? data : []);
                 checkDeepLink(); 
             } catch(e) {
-                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-muted);">Ошибка сети</p>';
+                document.getElementById('list').innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-secondary);">Ошибка сети</p>';
             }
+        }
+
+        function buildTopWinners(completedRaffles) {
+            const countsMap = new Map();
+            completedRaffles.forEach(r => {
+                if (!r.winner) return;
+                const name = (r.winner.full_name || r.winner.username || r.winner.twitch_login || '').trim();
+                if (!name) return;
+                countsMap.set(name, (countsMap.get(name) || 0) + 1);
+            });
+            topWinnersData = Array.from(countsMap.entries())
+                .map(([name, wins]) => ({ name, wins }))
+                .sort((a, b) => b.wins - a.wins)
+                .slice(0, 20);
         }
 
         function renderAll(data) {
@@ -813,7 +1132,8 @@
             const tabCountEl = document.getElementById('active-tab-count');
             if (tabCountEl) tabCountEl.textContent = activeRaffles.length;
 
-            // Обновляем статистику разыгранных скинов
+            // Считаем статистику и строим топ победителей
+            buildTopWinners(completedRaffles);
             const statsCountEl = document.getElementById('raffled-skins-count');
             if (statsCountEl) {
                 const totalRaffled = userTotalRaffledFromProfile > completedRaffles.length ? userTotalRaffledFromProfile : completedRaffles.length;
@@ -836,13 +1156,13 @@
                 let conditions = '';
                 if (!done) {
                     if (isTwitch) {
-                        conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-brands fa-twitch"></i></span> <span>Стрим</span></div>`;
-                        if (s.cost) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-coins" style="color:#ffd700;"></i></span> <span>${s.cost} баллов</span></div>`;
-                        if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>Сообщ: <b>${s.min_lifetime_msgs}</b></span></div>`;
-                        if (s.is_for_newbies) conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-seedling" style="color:#34c759;"></i></span> <span>Новичкам</span></div>`;
+                        conditions += `<div class="cond-row"><i class="fa-brands fa-twitch"></i> <span>Стрим</span></div>`;
+                        if (s.cost) conditions += `<div class="cond-row"><i class="fa-solid fa-coins" style="color:var(--gold);"></i> <span><b>${s.cost}</b> баллов</span></div>`;
+                        if (s.min_lifetime_msgs > 0) conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span>От <b>${s.min_lifetime_msgs}</b> сообщ.</span></div>`;
+                        if (s.is_for_newbies) conditions += `<div class="cond-row"><i class="fa-solid fa-seedling" style="color:var(--accent-green);"></i> <span>Новичкам</span></div>`;
                     } else {
                         if (s.requires_telegram_sub) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-paper-plane"></i></span> <span>Подписка</span></div>`;
+                            conditions += `<div class="cond-row"><i class="fa-solid fa-paper-plane"></i> <span>Подписка</span></div>`;
                         }
                         
                         const minMsgs = s.min_messages || s.min_daily_messages || 0;
@@ -851,14 +1171,14 @@
                         const periodStr = periodMap[msgPeriod] || 'стрим';
 
                         if (minMsgs > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-comment-dots"></i></span> <span>${minMsgs} сообщ/${periodStr}</span></div>`;
+                            conditions += `<div class="cond-row"><i class="fa-solid fa-comment-dots"></i> <span><b>${minMsgs}</b> сообщ/${periodStr}</span></div>`;
                         }
                         
                         if (s.min_participants > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-users"></i></span> <span>От <b>${s.min_participants}</b> уч.</span></div>`;
+                            conditions += `<div class="cond-row"><i class="fa-solid fa-users"></i> <span>От <b>${s.min_participants}</b> уч.</span></div>`;
                         }
                         if (s.min_bp_level > 0) {
-                            conditions += `<div class="cond-row"><span class="cond-icon-box"><i class="fa-solid fa-star" style="color: #ffd700;"></i></span> <span>БП <b>${s.min_bp_level}</b> ур.</span></div>`;
+                            conditions += `<div class="cond-row"><i class="fa-solid fa-star" style="color: var(--gold);"></i> <span>БП <b>${s.min_bp_level}</b> ур.</span></div>`;
                         }
                     }
                 }
@@ -867,12 +1187,12 @@
 
                 if (!done) {
                     if (isTwitch) {
-                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <span>→</span></button>`;
+                        btnHtml = `<button class="btn-main" onclick="window.Telegram.WebApp.openLink('https://twitch.tv/hatelove_ttv')"><i class="fa-brands fa-twitch"></i> На Twitch <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i></button>`;
                         ticketInfo = `<div class="user-tickets-info">Чат: <b>!розыгрыш</b></div>`;
                     } else {
-                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <span>→</span>`;
+                        let btnLabel = `<i class="fa-solid fa-ticket"></i> Участвовать <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i>`;
                         if (!r.is_joined && s.ticket_cost > 0) {
-                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <span>→</span>`;
+                            btnLabel = `<i class="fa-solid fa-ticket"></i> ${s.ticket_cost} бил. <i class="fa-solid fa-chevron-right" style="font-size:9px;"></i>`;
                             ticketInfo = `<div class="user-tickets-info">У вас: <b>${userTickets}</b> бил.</div>`;
                         }
                         btnHtml = `<button class="btn-main ${r.is_joined ? 'joined' : ''}" onclick="handleJoin(${r.id}, ${s.ticket_cost || 0}, ${r.is_joined})">
@@ -887,7 +1207,7 @@
                     pTextFinal = `
                         <div class="participants-info">
                             <span><b>${pCount}</b> ${getPlural(pCount, ['участник', 'участника', 'участников'])}</span>
-                            <span class="chance-badge" onclick="showChanceInfo(event)">🔥 ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:8px;"></i></span>
+                            <span class="chance-badge" onclick="showChanceInfo(event)"><i class="fa-solid fa-bolt"></i> ${chanceVal}% <i class="fa-solid fa-circle-info" style="font-size:9px; opacity:0.8;"></i></span>
                         </div>
                     `;
                 } else if (!done && pCount === 0) {
@@ -895,8 +1215,12 @@
                 }
                 
                 let winnerBoxContent = '';
-                if (r.winner) { winnerBoxContent = `<div class="w-user">🏆 ${r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель'}</div>`; } 
-                else { winnerBoxContent = `<div class="w-user">⏳ Выбор победителя...</div>`; }
+                if (r.winner) {
+                    const wName = escapeHtml(r.winner.full_name || r.winner.username || r.winner.twitch_login || 'Победитель');
+                    winnerBoxContent = `<div class="w-user">${wName}</div>`;
+                } else {
+                    winnerBoxContent = `<div class="w-user"><i class="fa-solid fa-hourglass-half" style="margin-right:4px; font-size:10px;"></i>Выбор победителя...</div>`;
+                }
 
                 let timerBlock = '';
                 if (!done) {
@@ -918,12 +1242,10 @@
 
                 htmlBuffer += `
                 <div class="card ${done ? 'done' : ''} ${isHidden ? 'hidden-tab' : ''}">
+                    <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
                     <div class="card_content">
-                        <div class="prize-img-wrapper"><img src="${img}" class="prize-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
-                        <div class="card-top-meta">
-                            <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
-                        </div>
-                        <h3 class="r-title">${fullPrizeName}</h3>
+                        <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
+                        <h3 class="r-title">${escapeHtml(fullPrizeName)}</h3>
                         ${!done && conditions ? `<div class="conditions">${conditions}</div>` : ''}
                         ${!done ? pTextFinal : ''}
 
@@ -937,8 +1259,8 @@
                             </div>
                         ` : `
                             <div class="winner_box">
-                                <div><div class="w-title">Победитель</div>${winnerBoxContent}</div>
-                                <i class="fa-solid fa-trophy" style="color:#ffd700; font-size:16px; opacity:0.85;"></i>
+                                <div style="min-width:0;"><div class="w-title">Победитель</div>${winnerBoxContent}</div>
+                                <i class="fa-solid fa-trophy" style="color:var(--gold); font-size:15px; flex-shrink:0;"></i>
                             </div>
                         `}
                     </div>
@@ -946,18 +1268,16 @@
             });
 
             if (activeRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Активных розыгрышей нет 👻</div>`;
+                htmlBuffer += `<div id="empty-active-msg" style="display:${currentTab === 'active' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-secondary); font-size:13px;"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>Активных розыгрышей пока нет</div>`;
             }
             if (completedRaffles.length === 0) {
-                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-muted); font-size:13px;">Завершённых розыгрышей пока нет 👻</div>`;
+                htmlBuffer += `<div id="empty-completed-msg" style="display:${currentTab === 'completed' ? 'block' : 'none'}; text-align:center; margin-top:40px; color:var(--text-secondary); font-size:13px;"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>Завершённых розыгрышей пока нет</div>`;
             }
             
             htmlBuffer += '<div class="bottom-spacer"></div>';
 
-            // Единовременная вставка в DOM без фризов
             list.innerHTML = htmlBuffer;
 
-            // Кэшируем элементы таймера один раз после рендера
             cachedTimerNodes = Array.from(document.querySelectorAll('.timer-data')).map(el => ({
                 el: el,
                 endTime: new Date(el.dataset.time).getTime(),
@@ -1003,21 +1323,21 @@
                     tg.HapticFeedback.notificationOccurred('success');
                     if (ans.message.includes("снижены на 20%")) {
                         const formattedMsg = ans.message.replace(/\n/g, '<br>');
-                        showModal('info', '⚠️ Внимание! ⚠️', formattedMsg);
-                    } else { showModal('success', 'Успех!', ans.message.replace(/\n/g, '<br>')); }
+                        showModal('info', 'Внимание', formattedMsg);
+                    } else { showModal('success', 'Успех', ans.message.replace(/\n/g, '<br>')); }
                     load(); 
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
                     if (ans.detail && ans.detail.includes('Battle Pass')) {
-                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 12px; color: var(--text-muted);">Перейдите в Баттл-пасс и наберите необходимый уровень, чтобы участвовать в таких розыгрышах!</span>`;
-                        showModal('bp_error', 'Доступ закрыт 🛑', bpMsg);
-                    } else { showModal('error', 'Упс...', ans.detail); }
+                        const bpMsg = `${ans.detail}<br><br><span style="font-size: 12px; color: var(--text-secondary);">Перейдите в Battle Pass и наберите необходимый уровень для участия в этом розыгрыше.</span>`;
+                        showModal('bp_error', 'Доступ закрыт', bpMsg);
+                    } else { showModal('error', 'Ошибка доступа', ans.detail); }
 
                     if(btn) { btn.innerHTML = oldHtml; btn.style.opacity = '1'; }
                 }
             } catch(e) {
                 tg.HapticFeedback.notificationOccurred('error');
-                showModal('error', 'Ошибка', 'Проверьте соединение');
+                showModal('error', 'Ошибка', 'Проверьте соединение с сетью');
                 if(btn) { btn.innerHTML = oldHtml; btn.style.opacity = '1'; }
             }
         }
@@ -1033,12 +1353,12 @@
             } else if (type === 'info') {
                 iconBox.innerHTML = '<i class="fa-solid fa-circle-info" style="font-size: 50px; color: var(--primary-purple-light); margin-top: 5px;"></i>';
             } else if (type === 'bp_error') {
-                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 50px; color: #ffd700; margin-top: 5px; filter: drop-shadow(0 0 10px rgba(255,215,0,0.4));"></i>';
-                btnBp.style.display = 'block';
+                iconBox.innerHTML = '<i class="fa-solid fa-star" style="font-size: 50px; color: var(--gold); margin-top: 5px; filter: drop-shadow(0 0 10px rgba(251,191,36,0.4));"></i>';
+                btnBp.style.display = 'inline-flex';
             } else {
                 iconBox.innerHTML = `<svg class="cross" viewBox="0 0 52 52"><circle class="cross-circle" cx="26" cy="26" r="25" fill="none"/><path class="cross-path" fill="none" d="M16 16 36 36 M36 16 16 36"/></svg>`;
                 const mLow = msg ? msg.toLowerCase() : '';
-                btnProfile.style.display = (mLow.includes('trade') || mLow.includes('twitch') || mLow.includes('профиль') || mLow.includes('билет')) ? 'block' : 'none';
+                btnProfile.style.display = (mLow.includes('trade') || mLow.includes('twitch') || mLow.includes('профиль') || mLow.includes('билет')) ? 'inline-flex' : 'none';
             }
 
             document.getElementById('m-head').innerText = title;
