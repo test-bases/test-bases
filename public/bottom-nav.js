@@ -1,5 +1,5 @@
 // =========================================================================
-// 🛡️ 0. ГЛОБАЛЬНЫЙ ЩИТ АККАУНТА, АВТОРИЗАЦИИ И МОСТОВ TELEGRAM (0 МС)
+// 🛡️ 0. ГЛОБАЛЬНОЕ ЯДРО HATELAVKA: ЗАЩИТА АККАУНТА, ДЕДУПЛИКАЦИЯ И 0-МС RAM-КЭШ
 // =========================================================================
 (function initGlobalHatelavkaCore() {
     if (window.__hatelavkaCoreInitialized) return;
@@ -9,78 +9,86 @@
     const hash = window.location.hash || '';
     const search = window.location.search || '';
 
-    // 1. Гарантируем наличие уникального Device ID на любой странице
+    // 1. Уникальный Device ID (кэшируем в памяти, чтобы не дергать localStorage на каждый запрос)
+    let cachedDeviceId = '';
     try {
-        if (!localStorage.getItem('frontend_device_id')) {
-            const uuid = typeof crypto.randomUUID === 'function'
+        cachedDeviceId = localStorage.getItem('frontend_device_id') || '';
+        if (!cachedDeviceId) {
+            cachedDeviceId = typeof crypto.randomUUID === 'function'
                 ? crypto.randomUUID()
                 : 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            localStorage.setItem('frontend_device_id', uuid);
+            localStorage.setItem('frontend_device_id', cachedDeviceId);
         }
     } catch (e) {}
 
-    // 2. Перехватываем web_token после входа через Twitch на любой странице
+    // 2. Перехват web_token после авторизации через Twitch на любой странице
     try {
-        const urlParams = new URLSearchParams(search);
-        const webToken = urlParams.get('web_token');
-        if (webToken) {
-            localStorage.setItem('tg_web_auth_token', webToken);
-            localStorage.removeItem('cache_bootstrap');
-            sessionStorage.removeItem('__hl_fast_api_cache__');
-            window.history.replaceState({}, document.title, window.location.pathname);
+        if (search.includes('web_token=')) {
+            const urlParams = new URLSearchParams(search);
+            const webToken = urlParams.get('web_token');
+            if (webToken) {
+                localStorage.setItem('tg_web_auth_token', webToken);
+                localStorage.removeItem('cache_bootstrap');
+                sessionStorage.removeItem('__hl_fast_api_cache__');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         }
     } catch (e) {}
 
-    // 3. Вытаскиваем и бронируем initData из всех доступных источников
+    // 3. Извлечение и бронирование initData в памяти и хранилищах
+    let memoryInitData = '';
     function extractSavedInitData() {
-        let data = window.Telegram?.WebApp?.initData || '';
+        const liveTgData = window.Telegram?.WebApp?.initData || '';
+        if (liveTgData) {
+            memoryInitData = liveTgData;
+        }
 
-        if (!data && hash.includes('tgWebAppData=')) {
+        if (!memoryInitData && hash.includes('tgWebAppData=')) {
             try {
                 const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-                data = hashParams.get('tgWebAppData') || '';
+                memoryInitData = hashParams.get('tgWebAppData') || '';
             } catch (e) {}
         }
 
-        if (!data) {
+        if (!memoryInitData) {
             try {
                 const rawInitParams = sessionStorage.getItem('__telegram__initParams');
                 if (rawInitParams) {
                     const parsed = JSON.parse(rawInitParams);
-                    if (parsed.tgWebAppData) data = parsed.tgWebAppData;
+                    if (parsed.tgWebAppData) memoryInitData = parsed.tgWebAppData;
                 }
             } catch (e) {}
         }
 
-        if (!data) {
+        if (!memoryInitData) {
             try {
-                data = sessionStorage.getItem('hatelavka_tg_init_data')
+                memoryInitData = sessionStorage.getItem('hatelavka_tg_init_data')
                     || localStorage.getItem('hatelavka_tg_init_data_backup')
                     || '';
             } catch (e) {}
         }
 
-        // Если нашли живой initData — сохраняем во все резервные хранилища
-        if (data) {
+        if (memoryInitData && !window.__hlInitDataPersisted) {
+            window.__hlInitDataPersisted = true;
             try {
-                sessionStorage.setItem('hatelavka_tg_init_data', data);
-                localStorage.setItem('hatelavka_tg_init_data_backup', data);
+                sessionStorage.setItem('hatelavka_tg_init_data', memoryInitData);
+                localStorage.setItem('hatelavka_tg_init_data_backup', memoryInitData);
                 sessionStorage.setItem('hatelavka_is_tg_session', 'true');
                 localStorage.setItem('hatelavka_ever_had_tg', 'true');
 
                 if (!sessionStorage.getItem('__telegram__initParams')) {
                     sessionStorage.setItem('__telegram__initParams', JSON.stringify({
-                        tgWebAppData: data,
+                        tgWebAppData: memoryInitData,
                         tgWebAppPlatform: (/iphone|ipad|ipod/i.test(ua) ? 'ios' : (/android/i.test(ua) ? 'android' : 'tdesktop'))
                     }));
                 }
             } catch (e) {}
         }
 
-        return data;
+        return memoryInitData;
     }
 
-    // 4. Восстанавливаем объект user из строки initData или кэша бутстрапа
+    // 4. Восстановление объекта user из initData или кэша бутстрапа
     function parseUserFromInitData(rawInitData) {
         try {
             if (rawInitData) {
@@ -122,7 +130,7 @@
         ? (/iphone|ipad|ipod/i.test(ua) ? 'ios' : (/android/i.test(ua) ? 'android' : 'tdesktop'))
         : 'web';
 
-    // 5. РЕАНИМАЦИЯ window.Telegram.WebApp (Если /api/v1/telegram-js отдал 404 Not Found)
+    // 5. Реанимация window.Telegram.WebApp (защита от 404 на /api/v1/telegram-js)
     if (!window.Telegram) window.Telegram = {};
     if (!window.Telegram.WebApp) {
         const parsedUser = parseUserFromInitData(savedInitData);
@@ -150,7 +158,6 @@
             }
         };
 
-        // Если скрипт не загрузился из-за 404 на /api/v1/telegram-js — подгружаем официальный SDK
         if (isTelegramEnv && !document.querySelector('script[src*="telegram.org/js/telegram-web-app.js"]')) {
             const s = document.createElement('script');
             s.src = 'https://telegram.org/js/telegram-web-app.js';
@@ -158,7 +165,6 @@
             document.head.appendChild(s);
         }
     } else {
-        // Если SDK есть, но потерял initData или platform при переходе между страницами — возвращаем!
         if (!window.Telegram.WebApp.initData && savedInitData) {
             try {
                 Object.defineProperty(window.Telegram.WebApp, 'initData', {
@@ -188,7 +194,7 @@
         }
     }
 
-    // 6. Защита от ложного включения browser-mode внутри Telegram
+    // 6. Принудительная защита от browser-mode внутри Telegram
     if (isTelegramEnv) {
         const enforceTgMode = () => {
             if (document.body) {
@@ -199,7 +205,7 @@
             if (strayWebModal) strayWebModal.remove();
         };
         if (document.body) enforceTgMode();
-        else document.addEventListener('DOMContentLoaded', enforceTgMode);
+        else document.addEventListener('DOMContentLoaded', enforceTgMode, { once: true });
     }
 
     // 7. Глобальная функция получения авторизационного пэйлоада
@@ -218,473 +224,631 @@
         };
     };
 
-    // 8. БЫСТРЫЙ КЭШ API В ПАМЯТИ (0 МС ОТКРЫТИЕ ВКЛАДОК)
+    // =========================================================================
+    // ⚡ 8. СВЕРХБЫСТРЫЙ RAM + SESSION КЭШ И ДЕДУПЛИКАЦИЯ ЗАПРОСОВ
+    // =========================================================================
     const FAST_CACHE_KEY = '__hl_fast_api_cache__';
-    const CACHE_TTL_MS = 20000; // 20 секунд мгновенной отдачи при переходах
+    const CACHE_TTL_MS = 30000; // 30 секунд мгновенной отдачи из RAM при переходах
+    const ramCache = new Map();
+    const inflightRequests = new Map();
+    let syncTimer = null;
 
-    function getFastCache(urlKey) {
-        try {
-            const store = JSON.parse(sessionStorage.getItem(FAST_CACHE_KEY) || '{}');
-            const entry = store[urlKey];
-            if (entry && (Date.now() - entry.ts < CACHE_TTL_MS)) {
-                return entry.data;
+    // При старте страницы 1 раз поднимаем кэш из sessionStorage в RAM Map
+    try {
+        const rawStore = sessionStorage.getItem(FAST_CACHE_KEY);
+        if (rawStore) {
+            const parsedStore = JSON.parse(rawStore);
+            const now = Date.now();
+            for (const [k, v] of Object.entries(parsedStore)) {
+                if (v && (now - v.ts < CACHE_TTL_MS)) {
+                    ramCache.set(k, v);
+                }
             }
-        } catch (e) {}
-        return null;
+        }
+    } catch (e) {}
+
+    // Асинхронная запись RAM-кэша в sessionStorage без блокировки рендера
+    function scheduleStorageSync() {
+        if (syncTimer) return;
+        syncTimer = setTimeout(() => {
+            syncTimer = null;
+            try {
+                const obj = {};
+                const now = Date.now();
+                for (const [k, v] of ramCache.entries()) {
+                    if (now - v.ts < CACHE_TTL_MS) {
+                        obj[k] = v;
+                    }
+                }
+                sessionStorage.setItem(FAST_CACHE_KEY, JSON.stringify(obj));
+            } catch (e) {}
+        }, 120);
     }
 
-    function setFastCache(urlKey, data) {
+    function buildCacheKey(method, rawUrl, bodyObj) {
         try {
-            const store = JSON.parse(sessionStorage.getItem(FAST_CACHE_KEY) || '{}');
-            store[urlKey] = { ts: Date.now(), data: data };
-            sessionStorage.setItem(FAST_CACHE_KEY, JSON.stringify(store));
-        } catch (e) {}
+            const u = new URL(rawUrl, window.location.origin);
+            u.searchParams.delete('initData');
+            u.searchParams.delete('platform');
+            u.searchParams.delete('platform_type');
+
+            let bodyPart = '';
+            if (bodyObj && typeof bodyObj === 'object') {
+                const cleanBody = {};
+                const keys = Object.keys(bodyObj).sort();
+                for (let i = 0; i < keys.length; i++) {
+                    const k = keys[i];
+                    if (k !== 'initData' && k !== 'platform' && k !== 'platform_type') {
+                        cleanBody[k] = bodyObj[k];
+                    }
+                }
+                bodyPart = JSON.stringify(cleanBody);
+            }
+            return `${method}:${u.pathname}${u.search}:${bodyPart}`;
+        } catch (e) {
+            return `${method}:${rawUrl}`;
+        }
+    }
+
+    function getFastCache(key) {
+        const entry = ramCache.get(key);
+        if (!entry) return null;
+        if (Date.now() - entry.ts > CACHE_TTL_MS) {
+            ramCache.delete(key);
+            return null;
+        }
+        return entry.jsonText;
+    }
+
+    function setFastCacheRaw(key, jsonText) {
+        if (!jsonText || typeof jsonText !== 'string') return;
+        if (ramCache.size >= 35 && !ramCache.has(key)) {
+            const oldestKey = ramCache.keys().next().value;
+            if (oldestKey) ramCache.delete(oldestKey);
+        }
+        ramCache.set(key, { ts: Date.now(), jsonText: jsonText });
+        scheduleStorageSync();
     }
 
     function clearFastCache() {
+        ramCache.clear();
         try { sessionStorage.removeItem(FAST_CACHE_KEY); } catch (e) {}
     }
 
-    // Список мутирующих действий, которые сбрасывают кэш, чтобы баланс и статусы обновлялись сразу
+    // Кросс-прогрев кэша из данных bootstrap (чтобы Розыгрыши и Профиль уже лежали в RAM со старта)
+    function seedFromBootstrapData(bootData) {
+        if (!bootData || typeof bootData !== 'object') return;
+        try {
+            if (bootData.user) {
+                const userJson = JSON.stringify(bootData.user);
+                setFastCacheRaw('POST:/api/v1/user/me:{}', userJson);
+            }
+            if (Array.isArray(bootData.raffles)) {
+                const rflJson = JSON.stringify(bootData.raffles);
+                setFastCacheRaw('POST:/api/v1/raffles/active:{}', rflJson);
+                try { sessionStorage.setItem('rfl_fast_cache', rflJson); } catch (e) {}
+            }
+        } catch (e) {}
+    }
+
+    // Если в localStorage уже есть свежий bootstrap — сразу засеваем RAM-кэш
+    try {
+        const existingBoot = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
+        if (existingBoot) seedFromBootstrapData(existingBoot);
+    } catch (e) {}
+
+    // Ключевые слова мутирующих запросов (сбрасывают кэш мгновенно)
     const MUTATION_KEYWORDS = [
         '/join', '/buy', '/claim', '/sell', '/withdraw', '/activate',
         '/choose', '/amnesty', '/save', '/create', '/confirm', '/delete',
-        '/read', '/update', '/reset', '/check_code', '/execute'
+        '/update', '/reset', '/check_code', '/execute', '/bid', '/bet',
+        '/spin', '/open', '/upgrade', '/complete', '/start', '/submit'
     ];
 
-    // Список эндпоинтов чтения, которые можно отдавать за 0 мс при переходе по вкладкам
-    const READ_CACHEABLE_ENDPOINTS = [
-        '/api/v1/user/me',
-        '/api/v1/raffles/active',
-        '/api/v1/bootstrap',
-        '/api/v1/stats/general',
-        '/api/v1/schedule/get'
+    // Служебные запросы, которые никогда не кэшируются
+    const NEVER_CACHE_KEYWORDS = [
+        '/heartbeat', '/telegram-js', '/payment/', '/oauth',
+        '/login', '/check_subscription', '/notifications/read', '/admin/'
     ];
 
-    // 9. ГЛОБАЛЬНЫЙ ПЕРЕХВАТЧИК FETCH (АВТО-ПОДПИСЬ ЗАПРОСОВ И 0 МС КЭШ)
+    // 9. ГЛОБАЛЬНЫЙ ПЕРЕХВАТЧИК FETCH
     const nativeFetch = window.fetch.bind(window);
     window.fetch = async function(input, init = {}) {
         let url = typeof input === 'string' ? input : (input?.url || '');
 
-        // Проверяем, что это запрос к нашему бэкенду (НЕ трогаем Supabase и внешние API)
         const isInternalApi = (
             url.startsWith('/api/') ||
             url.includes(window.location.origin + '/api/') ||
             url.includes('api.hatelavka.online/api/')
         ) && !url.includes('supabase.co');
 
-        if (isInternalApi) {
-            try {
-                const auth = window.getGlobalAuthPayload();
-                const deviceId = localStorage.getItem('frontend_device_id') || '';
+        if (!isInternalApi) {
+            return nativeFetch(input, init);
+        }
 
-                init.headers = Object.assign({}, init.headers || {}, {
-                    'X-Device-Id': deviceId
-                });
+        let cacheKey = null;
+        let isCacheableRead = false;
 
-                const method = (init.method || 'GET').toUpperCase();
+        try {
+            const auth = window.getGlobalAuthPayload();
+            init.headers = Object.assign({}, init.headers || {}, {
+                'X-Device-Id': cachedDeviceId
+            });
 
-                if (method === 'POST' || method === 'PUT') {
-                    let bodyObj = {};
-                    if (typeof init.body === 'string' && init.body.trim().startsWith('{')) {
-                        try { bodyObj = JSON.parse(init.body); } catch (e) {}
-                    }
-                    // Если страница отправила пустой initData — автоматически вшиваем наш сохранённый!
-                    if (!bodyObj.initData && auth.initData) {
-                        bodyObj.initData = auth.initData;
-                    }
-                    if (!bodyObj.platform) {
-                        bodyObj.platform = auth.platform;
-                    }
-                    if (!bodyObj.platform_type) {
-                        bodyObj.platform_type = auth.platform_type;
-                    }
-                    init.body = JSON.stringify(bodyObj);
-                } else if (method === 'GET' && typeof input === 'string') {
-                    if (!url.includes('initData=') && auth.initData) {
-                        const sep = url.includes('?') ? '&' : '?';
-                        input = `${url}${sep}initData=${encodeURIComponent(auth.initData)}&platform=${encodeURIComponent(auth.platform)}&platform_type=${encodeURIComponent(auth.platform_type)}`;
-                        url = input;
-                    }
+            const method = (init.method || 'GET').toUpperCase();
+            let parsedBodyObj = {};
+
+            if (method === 'POST' || method === 'PUT') {
+                if (typeof init.body === 'string' && init.body.trim().startsWith('{')) {
+                    try { parsedBodyObj = JSON.parse(init.body); } catch (e) {}
                 }
+                if (!parsedBodyObj.initData && auth.initData) {
+                    parsedBodyObj.initData = auth.initData;
+                }
+                if (!parsedBodyObj.platform) {
+                    parsedBodyObj.platform = auth.platform;
+                }
+                if (!parsedBodyObj.platform_type) {
+                    parsedBodyObj.platform_type = auth.platform_type;
+                }
+                init.body = JSON.stringify(parsedBodyObj);
+            } else if (method === 'GET' && typeof input === 'string') {
+                if (!url.includes('initData=') && auth.initData) {
+                    const sep = url.includes('?') ? '&' : '?';
+                    input = `${url}${sep}initData=${encodeURIComponent(auth.initData)}&platform=${encodeURIComponent(auth.platform)}&platform_type=${encodeURIComponent(auth.platform_type)}`;
+                    url = input;
+                }
+            }
 
-                // Если это действие игрока (покупка, вход в розыгрыш, вывод) — сбрасываем быстрый кэш
-                if (MUTATION_KEYWORDS.some(k => url.includes(k))) {
-                    clearFastCache();
-                } else {
-                    // Проверяем, можно ли отдать мгновенный ответ из прогретого кэша (0 мс)
-                    const matchedEndpoint = READ_CACHEABLE_ENDPOINTS.find(ep => url.includes(ep));
-                    if (matchedEndpoint && !init.__bypassFastCache) {
-                        const cachedData = getFastCache(matchedEndpoint);
-                        if (cachedData) {
-                            // Фоном тихо обновляем кэш для следующего раза (Stale-While-Revalidate)
+            const lowerUrl = url.toLowerCase();
+            const isMutation = MUTATION_KEYWORDS.some(k => lowerUrl.includes(k));
+            const isExcluded = NEVER_CACHE_KEYWORDS.some(k => lowerUrl.includes(k));
+
+            if (isMutation) {
+                clearFastCache();
+            } else if (!isExcluded && (method === 'GET' || method === 'POST')) {
+                isCacheableRead = true;
+                cacheKey = buildCacheKey(method, url, parsedBodyObj);
+
+                // А) Отдача из RAM-кэша за 0 мс + фоновая ревалидация (Stale-While-Revalidate)
+                if (!init.__bypassFastCache) {
+                    const cachedJsonText = getFastCache(cacheKey);
+                    if (cachedJsonText !== null) {
+                        if (!inflightRequests.has(cacheKey)) {
                             const bgInit = Object.assign({}, init, { __bypassFastCache: true });
-                            nativeFetch(input, bgInit)
-                                .then(r => r.ok ? r.json() : null)
-                                .then(fresh => {
-                                    if (fresh) {
-                                        setFastCache(matchedEndpoint, fresh);
-                                        if (matchedEndpoint === '/api/v1/raffles/active' && Array.isArray(fresh)) {
-                                            try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(fresh)); } catch (e) {}
+                            const bgPromise = nativeFetch(input, bgInit)
+                                .then(async r => {
+                                    if (r.ok) {
+                                        const text = await r.text();
+                                        if (text) {
+                                            setFastCacheRaw(cacheKey, text);
+                                            if (lowerUrl.includes('/api/v1/bootstrap')) {
+                                                try { seedFromBootstrapData(JSON.parse(text)); } catch (e) {}
+                                            } else if (lowerUrl.includes('/api/v1/raffles/active')) {
+                                                try { sessionStorage.setItem('rfl_fast_cache', text); } catch (e) {}
+                                            }
                                         }
                                     }
                                 })
-                                .catch(() => {});
+                                .catch(() => {})
+                                .finally(() => inflightRequests.delete(cacheKey));
+                            inflightRequests.set(cacheKey, bgPromise);
+                        }
 
-                            // Возвращаем ответ за 0 мс без ожидания сети!
-                            return new Response(JSON.stringify(cachedData), {
-                                status: 200,
+                        return new Response(cachedJsonText, {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    }
+
+                    // Б) Склейка одновременных одинаковых запросов (Request Deduplication)
+                    if (inflightRequests.has(cacheKey)) {
+                        const sharedResult = await inflightRequests.get(cacheKey);
+                        if (sharedResult && sharedResult.bodyText !== undefined) {
+                            return new Response(sharedResult.bodyText, {
+                                status: sharedResult.status,
                                 headers: { 'Content-Type': 'application/json' }
                             });
                         }
                     }
                 }
-            } catch (err) {
-                console.warn('Fetch guard warning:', err);
             }
+        } catch (err) {
+            console.warn('Fetch guard warning:', err);
         }
 
-        const response = await nativeFetch(input, init);
-
-        // Сохраняем свежие ответы в быстрый кэш
-        if (isInternalApi && response.ok) {
-            const matchedEndpoint = READ_CACHEABLE_ENDPOINTS.find(ep => url.includes(ep));
-            if (matchedEndpoint) {
-                response.clone().json().then(data => {
-                    if (data) {
-                        setFastCache(matchedEndpoint, data);
-                        if (matchedEndpoint === '/api/v1/raffles/active' && Array.isArray(data)) {
-                            try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(data)); } catch (e) {}
-                        }
-                        if (matchedEndpoint === '/api/v1/bootstrap' && data.raffles) {
-                            setFastCache('/api/v1/raffles/active', data.raffles);
-                            if (data.user) setFastCache('/api/v1/user/me', data.user);
-                            try { sessionStorage.setItem('rfl_fast_cache', JSON.stringify(data.raffles)); } catch (e) {}
-                        }
+        // Выполняем сетевой запрос с поддержкой дедупликации
+        if (isCacheableRead && cacheKey && !init.__bypassFastCache) {
+            const networkPromise = (async () => {
+                const res = await nativeFetch(input, init);
+                const bodyText = await res.text();
+                if (res.ok && bodyText) {
+                    setFastCacheRaw(cacheKey, bodyText);
+                    const lowerUrl = url.toLowerCase();
+                    if (lowerUrl.includes('/api/v1/bootstrap')) {
+                        try { seedFromBootstrapData(JSON.parse(bodyText)); } catch (e) {}
+                    } else if (lowerUrl.includes('/api/v1/raffles/active')) {
+                        try { sessionStorage.setItem('rfl_fast_cache', bodyText); } catch (e) {}
                     }
-                }).catch(() => {});
+                }
+                return { status: res.status, bodyText };
+            })();
+
+            inflightRequests.set(cacheKey, networkPromise);
+            try {
+                const result = await networkPromise;
+                return new Response(result.bodyText, {
+                    status: result.status,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } finally {
+                inflightRequests.delete(cacheKey);
             }
         }
 
-        return response;
+        return nativeFetch(input, init);
     };
 })();
 
 
 // =========================================================================
-// 🎨 ТВОЙ ОРИГИНАЛЬНЫЙ КОД НИЖНЕГО МЕНЮ + МГНОВЕННЫЙ ОТКЛИК
+// 🎨 1. НАВИГАЦИОННЫЙ БАР, ИГРОВОЙ СТАТУС И ДВИЖОК МГНОВЕННЫХ ПЕРЕХОДОВ
 // =========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-    // 🔥 ОПРЕДЕЛЯЕМ ПЛАТФОРМУ 🔥
-    // На андроиде делаем отступ в 14px, чтобы поднять над системными кнопками
-    let androidPadding = "0px";
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform === 'android') {
-        androidPadding = "25px"; 
-    }
+(function initBottomNavAndPrewarmer() {
+    function mountBottomNav() {
+        // Защита от повторного рендера
+        if (document.querySelector('.floating-bottom-bar')) return;
 
-    // 1. Надежное подключение шрифта (если его еще нет на странице)
-    if (!document.querySelector('link[href*="Montserrat"]')) {
-        const fontLink = document.createElement('link');
-        fontLink.rel = 'stylesheet';
-        fontLink.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap';
-        document.head.appendChild(fontLink);
-    }
-
-    // 2. Вставляем стили
-    const style = document.createElement('style');
-    style.innerHTML = `
-        /* 🔥 ИЗОЛЯЦИЯ ШРИФТА ТОЛЬКО ДЛЯ ТЕКСТА 🔥 */
-        /* Применяем Montserrat только к самому бару и текстовым блокам, НЕ трогая <i> с иконками */
-        .floating-bottom-bar,
-        .floating-bottom-bar span,
-        .floating-bottom-bar .comic-badge {
-            font-family: 'Montserrat', sans-serif !important;
+        let androidPadding = "0px";
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform === 'android') {
+            androidPadding = "25px";
         }
 
-        /* --- ПЛАВНАЯ ТЕНЬ ПОД НИЖНИМ БАРОМ --- */
-        .bottom-fade-shadow {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: calc(110px + ${androidPadding}); /* Учитываем паддинг андроида */
-            /* Аккуратный градиент, чтобы не было "прям темени" */
-            background: linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.5) 45%, rgba(5, 5, 5, 0) 100%);
-            pointer-events: none; /* КРИТИЧЕСКИ ВАЖНО: пропускает клики сквозь себя на карточки */
-            z-index: 998; /* Ставим прямо под навигационным баром */
+        // 1. Подключение шрифта Montserrat
+        if (!document.querySelector('link[href*="Montserrat"]')) {
+            const fontLink = document.createElement('link');
+            fontLink.rel = 'stylesheet';
+            fontLink.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap';
+            document.head.appendChild(fontLink);
         }
 
-        .floating-bottom-bar {
-            /* 🔥 ЖЕЛЕЗОБЕТОННАЯ ШИРИНА И ЦЕНТРОВКА (Игнорирует скроллбар) 🔥 */
-            position: fixed; 
-            bottom: calc(15px + ${androidPadding}); 
-            left: 50vw; 
-            transform: translateX(-50%); 
-            width: 85vw; 
-            max-width: 360px;
-            box-sizing: border-box;
+        // 2. Стили нижнего меню
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .floating-bottom-bar,
+            .floating-bottom-bar span,
+            .floating-bottom-bar .comic-badge {
+                font-family: 'Montserrat', sans-serif !important;
+            }
 
-            /* БАЗОВЫЙ ФОН ДЛЯ СТАРЫХ/СЛАБЫХ УСТРОЙСТВ */
-            background: rgba(40, 40, 40, 0.95); 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 35px; 
-            /* Тень полностью убрана */
-            display: flex; justify-content: space-around; align-items: center; 
-            padding: 6px 12px; z-index: 1000;
-        }
+            .bottom-fade-shadow {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: calc(110px + ${androidPadding});
+                background: linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.5) 45%, rgba(5, 5, 5, 0) 100%);
+                pointer-events: none;
+                z-index: 998;
+            }
 
-        /* 🔥 СОЧНЫЙ ЭФФЕКТ СТЕКЛА ТОЛЬКО ДЛЯ НОВЫХ УСТРОЙСТВ 🔥 */
-        @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
             .floating-bottom-bar {
-                background: rgba(25, 25, 28, 0.65); /* Больше прозрачности, чтобы блюр было видно */
-                backdrop-filter: blur(25px) saturate(150%);
-                -webkit-backdrop-filter: blur(25px) saturate(150%);
-                border-top: 1px solid rgba(255, 255, 255, 0.15); /* Легкий блик света сверху */
+                position: fixed;
+                bottom: calc(15px + ${androidPadding});
+                left: 50vw;
+                transform: translateX(-50%);
+                width: 85vw;
+                max-width: 360px;
+                box-sizing: border-box;
+                background: rgba(40, 40, 40, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 35px;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                padding: 6px 12px;
+                z-index: 1000;
             }
-        }
-        
-        .nav-item { 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            color: #8E8E93; text-decoration: none; gap: 2px; padding: 6px 10px; 
-            border-radius: 20px; transition: all 0.3s ease; position: relative;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        
-        .nav-item i { font-size: 18px; transition: all 0.3s ease; }
-        .nav-item span { font-size: 9px; font-weight: 600; transition: all 0.3s ease; }
-        .nav-item.active { background: transparent; color: #FFFFFF; }
 
-        /* --- БЕЙДЖ ДЛЯ ИГРЫ --- */
-        .comic-badge {
-            position: absolute;
-            top: -26px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #ff3b30, #ff4d4d);
-            color: #fff;
-            font-size: 7px;
-            font-weight: 900;
-            text-transform: uppercase;
-            padding: 4px 6px;
-            border-radius: 6px;
-            line-height: 1.1;
-            text-align: center;
-            white-space: nowrap;
-            border: 1px solid #cc0000;
-            pointer-events: none;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            animation: comicPulse 1.5s infinite ease-in-out;
-            z-index: 10;
-        }
-
-        .comic-badge::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 5px 5px 0;
-            border-style: solid;
-            border-color: #ff3b30 transparent transparent transparent;
-        }
-
-        @keyframes comicPulse {
-            0% { transform: translateX(-50%) scale(1) rotate(-2deg); }
-            50% { transform: translateX(-50%) scale(1.05) rotate(2deg); }
-            100% { transform: translateX(-50%) scale(1) rotate(-2deg); }
-        }
-
-        /* КОГДА ИГРА АКТИВНА */
-        .nav-item.game-live .comic-badge {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .nav-item.game-live i {
-            color: #ff4d4d !important;
-            filter: drop-shadow(0 0 10px rgba(255, 77, 77, 0.8));
-            animation: shakeIcon 2s infinite;
-        }
-
-        .nav-item.game-live span {
-            color: #ff4d4d !important;
-            font-weight: 900;
-            text-shadow: 0 0 5px rgba(255, 77, 77, 0.4);
-        }
-
-        @keyframes shakeIcon {
-            0% { transform: rotate(0deg); }
-            10% { transform: rotate(-10deg); }
-            20% { transform: rotate(10deg); }
-            30% { transform: rotate(-10deg); }
-            40% { transform: rotate(10deg); }
-            50% { transform: rotate(0deg); }
-            100% { transform: rotate(0deg); }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // 3. Вставляем HTML меню (ВМЕСТЕ С ТЕНЬЮ)
-    const navHTML = `
-        <div class="bottom-fade-shadow"></div>
-        <nav class="floating-bottom-bar">
-            <a href="/leaderboard" class="nav-item" data-path="leaderboard">
-                <i class="fa-solid fa-trophy"></i><span>Топ</span>
-            </a>
-            <a href="/quests" class="nav-item" data-path="quests">
-                <i class="fa-solid fa-check-double"></i><span>Задания</span>
-            </a>
-            <a href="/" class="nav-item" data-path="/">
-                <i class="fa-solid fa-house"></i><span>Главная</span>
-            </a>
-            <a href="/events" class="nav-item" data-path="events">
-                <i class="fa-solid fa-fire"></i><span>Гринд</span>
-            </a>
-            <a href="/event_page.html" class="nav-item" data-path="event_page" id="nav-games-btn">
-                <div class="comic-badge">ИГРА<br>НАЧАЛАСЬ</div>
-                <i class="fa-solid fa-gamepad"></i><span>Игры</span>
-            </a>
-        </nav>
-    `;
-    document.body.insertAdjacentHTML('beforeend', navHTML);
-
-    // 4. Умная логика подсветки активной кнопки и добавление вибрации
-    let currentPath = window.location.pathname.replace('.html', '');
-    
-    // Приводим пути главной к одному виду
-    if (currentPath === '/menu' || currentPath === '' || currentPath === '/index') {
-        currentPath = '/';
-    }
-
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.classList.remove('active');
-        const dataPath = item.getAttribute('data-path');
-        
-        if (dataPath === '/' && currentPath === '/') {
-            item.classList.add('active');
-        } else if (dataPath !== '/' && currentPath.includes(dataPath)) {
-            item.classList.add('active');
-        }
-
-        // 🔥 МГНОВЕННАЯ ВИБРАЦИЯ И ОТКЛИК В 0 МС ПРИ КАСАНИИ 🔥
-        item.addEventListener('pointerdown', () => {
-            navItems.forEach(n => n.classList.remove('active'));
-            item.classList.add('active');
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                try { window.Telegram.WebApp.HapticFeedback.selectionChanged(); } catch (e) {}
-            }
-        });
-    });
-
-    // 5. АВТОНОМНАЯ ПРОВЕРКА СТАТУСА ИГРЫ И СТРИМА (МУЛЬТИАККАУНТ)
-    const checkGameStatus = async () => {
-        try {
-            const headers = { 
-                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg', 
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg' 
-            };
-
-            // 🔥 Запрашиваем ОДНОВРЕМЕННО статус игры и статусы обоих стримеров
-            const [guessRes, settingsRes] = await Promise.all([
-                fetch('https://pyeuckjcrsiaseyqrsek.supabase.co/rest/v1/guess_state?id=eq.1&select=is_active', { headers }),
-                fetch('https://pyeuckjcrsiaseyqrsek.supabase.co/rest/v1/settings?key=in.(twitch_status_883996654,twitch_status_755238101)&select=value', { headers })
-            ]);
-
-            const guessData = await guessRes.json();
-            const settingsData = await settingsRes.json();
-            
-            const gamesBtn = document.getElementById('nav-games-btn');
-            
-            if (gamesBtn && guessData && guessData.length > 0) {
-                // Проверяем, есть ли хотя бы один стрим со статусом true
-                // (учитываем, что value может прийти как boolean или как строка 'true')
-                const isStreamOnline = settingsData && settingsData.some(s => s.value === true || s.value === 'true') || false;
-                
-                // Если игра активна И хотя бы один канал онлайн -> показываем бейдж
-                if (guessData[0].is_active && isStreamOnline) {
-                    gamesBtn.classList.add('game-live');
-                } else {
-                    gamesBtn.classList.remove('game-live');
+            @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+                .floating-bottom-bar {
+                    background: rgba(25, 25, 28, 0.65);
+                    backdrop-filter: blur(25px) saturate(150%);
+                    -webkit-backdrop-filter: blur(25px) saturate(150%);
+                    border-top: 1px solid rgba(255, 255, 255, 0.15);
                 }
             }
-        } catch(e) {
-            console.warn('Game status checker error:', e);
+
+            .nav-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #8E8E93;
+                text-decoration: none;
+                gap: 2px;
+                padding: 6px 10px;
+                border-radius: 20px;
+                transition: all 0.2s ease;
+                position: relative;
+                -webkit-tap-highlight-color: transparent;
+                user-select: none;
+            }
+
+            .nav-item i { font-size: 18px; transition: all 0.2s ease; }
+            .nav-item span { font-size: 9px; font-weight: 600; transition: all 0.2s ease; }
+            .nav-item.active { background: transparent; color: #FFFFFF; }
+
+            .comic-badge {
+                position: absolute;
+                top: -26px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, #ff3b30, #ff4d4d);
+                color: #fff;
+                font-size: 7px;
+                font-weight: 900;
+                text-transform: uppercase;
+                padding: 4px 6px;
+                border-radius: 6px;
+                line-height: 1.1;
+                text-align: center;
+                white-space: nowrap;
+                border: 1px solid #cc0000;
+                pointer-events: none;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, transform 0.3s ease;
+                animation: comicPulse 1.5s infinite ease-in-out;
+                z-index: 10;
+            }
+
+            .comic-badge::after {
+                content: '';
+                position: absolute;
+                bottom: -4px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 5px 5px 0;
+                border-style: solid;
+                border-color: #ff3b30 transparent transparent transparent;
+            }
+
+            @keyframes comicPulse {
+                0% { transform: translateX(-50%) scale(1) rotate(-2deg); }
+                50% { transform: translateX(-50%) scale(1.05) rotate(2deg); }
+                100% { transform: translateX(-50%) scale(1) rotate(-2deg); }
+            }
+
+            .nav-item.game-live .comic-badge {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .nav-item.game-live i {
+                color: #ff4d4d !important;
+                filter: drop-shadow(0 0 10px rgba(255, 77, 77, 0.8));
+                animation: shakeIcon 2s infinite;
+            }
+
+            .nav-item.game-live span {
+                color: #ff4d4d !important;
+                font-weight: 900;
+                text-shadow: 0 0 5px rgba(255, 77, 77, 0.4);
+            }
+
+            @keyframes shakeIcon {
+                0% { transform: rotate(0deg); }
+                10% { transform: rotate(-10deg); }
+                20% { transform: rotate(10deg); }
+                30% { transform: rotate(-10deg); }
+                40% { transform: rotate(10deg); }
+                50% { transform: rotate(0deg); }
+                100% { transform: rotate(0deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 3. Мгновенно проверяем закэшированный статус игры, чтобы бейдж не мигал при переходах
+        const isCachedGameLive = sessionStorage.getItem('__hl_game_live__') === '1';
+
+        const navHTML = `
+            <div class="bottom-fade-shadow"></div>
+            <nav class="floating-bottom-bar">
+                <a href="/leaderboard" class="nav-item" data-path="leaderboard">
+                    <i class="fa-solid fa-trophy"></i><span>Топ</span>
+                </a>
+                <a href="/quests" class="nav-item" data-path="quests">
+                    <i class="fa-solid fa-check-double"></i><span>Задания</span>
+                </a>
+                <a href="/" class="nav-item" data-path="/">
+                    <i class="fa-solid fa-house"></i><span>Главная</span>
+                </a>
+                <a href="/events" class="nav-item" data-path="events">
+                    <i class="fa-solid fa-fire"></i><span>Гринд</span>
+                </a>
+                <a href="/event_page.html" class="nav-item ${isCachedGameLive ? 'game-live' : ''}" data-path="event_page" id="nav-games-btn">
+                    <div class="comic-badge">ИГРА<br>НАЧАЛАСЬ</div>
+                    <i class="fa-solid fa-gamepad"></i><span>Игры</span>
+                </a>
+            </nav>
+        `;
+        document.body.insertAdjacentHTML('beforeend', navHTML);
+
+        // 4. Подсветка активной вкладки и мгновенный отклик
+        let currentPath = window.location.pathname.replace('.html', '');
+        if (currentPath === '/menu' || currentPath === '' || currentPath === '/index') {
+            currentPath = '/';
         }
-    };
-    
-    checkGameStatus();
-    setInterval(checkGameStatus, 10000);
 
-    // =========================================================================
-    // 🚀 6. ДВИЖОК 0 МС PRERENDER (SPECULATION RULES) + ФОНОВЫЙ ПРОГРЕВ ВСЕХ СТРАНИЦ
-    // =========================================================================
-    const allCoreUrls = [
-        '/',
-        '/leaderboard',
-        '/quests',
-        '/events',
-        '/event_page.html',
-        '/raffles',
-        '/auction',
-        '/profile',
-        '/checkpoint'
-    ];
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.classList.remove('active');
+            const dataPath = item.getAttribute('data-path');
+            const isCurrentTab = (dataPath === '/' && currentPath === '/') || (dataPath !== '/' && currentPath.includes(dataPath));
 
-    // А) Включаем нативный Chromium Prerender (страницы рендерятся в памяти до клика = 0 мс переход)
-    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
-        try {
-            const specScript = document.createElement('script');
-            specScript.type = 'speculationrules';
-            specScript.textContent = JSON.stringify({
-                prerender: [{
-                    source: 'list',
-                    urls: ['/leaderboard', '/quests', '/', '/events', '/event_page.html', '/raffles', '/profile'],
-                    eagerness: 'eager'
-                }],
-                prefetch: [{
-                    source: 'list',
-                    urls: allCoreUrls,
-                    eagerness: 'eager'
-                }]
+            if (isCurrentTab) {
+                item.classList.add('active');
+            }
+
+            item.addEventListener('pointerdown', () => {
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    try { window.Telegram.WebApp.HapticFeedback.selectionChanged(); } catch (e) {}
+                }
             });
-            document.head.appendChild(specScript);
-        } catch (e) {}
-    }
 
-    // Б) Фоновый прогрев HTML и API-данных всех разделов на старте
-    function runBackgroundPrewarm() {
-        if (sessionStorage.getItem('__hl_prewarm_done__') === '1') return;
-        sessionStorage.setItem('__hl_prewarm_done__', '1');
-
-        // 1. Кладем HTML всех вкладок в кэш браузера
-        allCoreUrls.forEach((url, i) => {
-            if (window.location.pathname === url) return;
-            setTimeout(() => {
-                const link = document.createElement('link');
-                link.rel = 'prefetch';
-                link.href = url;
-                link.as = 'document';
-                document.head.appendChild(link);
-            }, i * 120);
+            // Защита от лишней перезагрузки, если юзер нажал на уже открытую вкладку
+            item.addEventListener('click', (e) => {
+                if (isCurrentTab) {
+                    e.preventDefault();
+                    const mainScroll = document.getElementById('main-content');
+                    if (mainScroll) mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
         });
 
-        // 2. Прогреваем API-ответы (user/me, raffles/active, bootstrap) в 0-мс кэш
-        const auth = window.getGlobalAuthPayload ? window.getGlobalAuthPayload() : { initData: '' };
-        if (auth.initData) {
-            setTimeout(() => {
-                fetch('/api/v1/user/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(auth) }).catch(() => {});
-                fetch('/api/v1/raffles/active', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(auth) }).catch(() => {});
-            }, 400);
+        // 5. Оптимизированная проверка статуса игры в Supabase (с троттлингом между переходами и паузой в фоне)
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXVja2pjcnNpYXNleXFyc2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0NzEyOTgsImV4cCI6MjA3MDA0NzI5OH0.srRwuUygiF7jr3-b2AwyRNAmrChlW3Bzp3I-9Ju2TVg';
+        const sbHeaders = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY
+        };
+
+        const checkGameStatus = async (force = false) => {
+            if (document.hidden) return;
+            try {
+                const lastCheck = parseInt(sessionStorage.getItem('__hl_game_check_ts__') || '0', 10);
+                if (!force && (Date.now() - lastCheck < 8000)) return;
+                sessionStorage.setItem('__hl_game_check_ts__', String(Date.now()));
+
+                const [guessRes, settingsRes] = await Promise.all([
+                    fetch('https://pyeuckjcrsiaseyqrsek.supabase.co/rest/v1/guess_state?id=eq.1&select=is_active', { headers: sbHeaders }),
+                    fetch('https://pyeuckjcrsiaseyqrsek.supabase.co/rest/v1/settings?key=in.(twitch_status_883996654,twitch_status_755238101)&select=value', { headers: sbHeaders })
+                ]);
+
+                if (!guessRes.ok || !settingsRes.ok) return;
+
+                const guessData = await guessRes.json();
+                const settingsData = await settingsRes.json();
+                const gamesBtn = document.getElementById('nav-games-btn');
+
+                if (gamesBtn && Array.isArray(guessData) && guessData.length > 0) {
+                    const isStreamOnline = Array.isArray(settingsData) && settingsData.some(s => s.value === true || s.value === 'true');
+                    const isLive = Boolean(guessData[0].is_active && isStreamOnline);
+
+                    sessionStorage.setItem('__hl_game_live__', isLive ? '1' : '0');
+                    if (isLive) {
+                        gamesBtn.classList.add('game-live');
+                    } else {
+                        gamesBtn.classList.remove('game-live');
+                    }
+                }
+            } catch (e) {}
+        };
+
+        checkGameStatus(false);
+        setInterval(() => checkGameStatus(true), 12000);
+
+        // =========================================================================
+        // 🚀 6. ДВИЖОК 0-МС PRERENDER + ФОНОВЫЙ ПРОГРЕВ ВСЕХ СТРАНИЦ И API
+        // =========================================================================
+        const allCoreUrls = [
+            '/',
+            '/leaderboard',
+            '/quests',
+            '/events',
+            '/event_page.html',
+            '/raffles',
+            '/auction',
+            '/profile',
+            '/checkpoint'
+        ];
+
+        // А) Нативный Chromium Speculation Rules (мгновенное переключение вкладок)
+        if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+            try {
+                const specScript = document.createElement('script');
+                specScript.type = 'speculationrules';
+                specScript.textContent = JSON.stringify({
+                    prerender: [{
+                        source: 'list',
+                        urls: ['/leaderboard', '/quests', '/', '/events', '/event_page.html', '/raffles', '/profile'],
+                        eagerness: 'eager'
+                    }],
+                    prefetch: [{
+                        source: 'list',
+                        urls: allCoreUrls,
+                        eagerness: 'eager'
+                    }]
+                });
+                document.head.appendChild(specScript);
+            } catch (e) {}
+        }
+
+        // Б) Мгновенная подгрузка любой внутренней ссылки при касании пальцем (до события click)
+        const prefetchedLinks = new Set();
+        document.body.addEventListener('pointerdown', (e) => {
+            const linkEl = e.target.closest('a[href]');
+            if (!linkEl) return;
+            const href = linkEl.getAttribute('href');
+            if (!href || !href.startsWith('/') || href.startsWith('//') || prefetchedLinks.has(href)) return;
+            prefetchedLinks.add(href);
+
+            const l = document.createElement('link');
+            l.rel = 'prefetch';
+            l.href = href;
+            l.as = 'document';
+            document.head.appendChild(l);
+        }, { passive: true });
+
+        // В) Фоновый прогрев HTML и API-данных всех разделов после отрисовки стартового экрана
+        function runBackgroundPrewarm() {
+            if (sessionStorage.getItem('__hl_prewarm_done__') === '1') return;
+            sessionStorage.setItem('__hl_prewarm_done__', '1');
+
+            allCoreUrls.forEach((url, i) => {
+                if (window.location.pathname === url) return;
+                setTimeout(() => {
+                    prefetchedLinks.add(url);
+                    const link = document.createElement('link');
+                    link.rel = 'prefetch';
+                    link.href = url;
+                    link.as = 'document';
+                    document.head.appendChild(link);
+                }, i * 90);
+            });
+
+            const auth = window.getGlobalAuthPayload ? window.getGlobalAuthPayload() : { initData: '' };
+            if (auth.initData) {
+                const runIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 250));
+                runIdle(() => {
+                    const postOpts = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(auth)
+                    };
+                    fetch('/api/v1/user/me', postOpts).catch(() => {});
+                    fetch('/api/v1/raffles/active', postOpts).catch(() => {});
+                    if (currentPath !== '/') {
+                        fetch('/api/v1/bootstrap', postOpts).catch(() => {});
+                    }
+                });
+            }
+        }
+
+        if (document.readyState === 'complete') {
+            setTimeout(runBackgroundPrewarm, 200);
+        } else {
+            window.addEventListener('load', () => setTimeout(runBackgroundPrewarm, 200), { once: true });
         }
     }
 
-    if (document.readyState === 'complete') {
-        setTimeout(runBackgroundPrewarm, 300);
+    // Надежный запуск независимо от того, подключен скрипт с defer или без него
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mountBottomNav, { once: true });
     } else {
-        window.addEventListener('load', () => setTimeout(runBackgroundPrewarm, 300));
+        mountBottomNav();
     }
-});
+})();
