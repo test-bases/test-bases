@@ -982,6 +982,37 @@
                 </button>
             </div>
         </div>
+        <script>
+            // 0-мс синхронная инициализация баннера ДО первого кадра рендера и до загрузки bottom-nav.js
+            (function() {
+                try {
+                    if (localStorage.getItem('hide_raffles_prem_banner') === '1') {
+                        document.getElementById('premium-banner').classList.add('hidden');
+                    }
+                    var raw = localStorage.getItem('rfl_prem_banner_cache');
+                    var u = raw ? JSON.parse(raw) : null;
+                    if (!u || (!u.raffles_premium_until && !u.has_raffles_premium)) {
+                        var boot = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                        if (boot && boot.user) u = boot.user;
+                    }
+                    if (u) {
+                        var until = u.raffles_premium_until;
+                        var isAct = until ? (new Date(until) > new Date()) : Boolean(u.has_raffles_premium);
+                        if (isAct) {
+                            var passes = Math.max(0, parseInt(u.free_raffle_passes ?? 0, 10) || 0);
+                            var untilStr = until ? new Date(until).toLocaleDateString('ru-RU') : 'активно';
+                            var b = document.getElementById('premium-banner');
+                            var d = document.getElementById('prem-desc-text');
+                            var a = document.getElementById('prem-action-btn');
+                            b.classList.add('active-sub');
+                            d.innerHTML = '<div class="prem-title-line"><span class="prem-dot"></span><span>Авто-участие активно</span></div><div class="prem-sub-line">До ' + untilStr + ' • Доступно <b>' + passes + '</b> проп.</div>';
+                            a.className = 'prem-btn active-badge';
+                            a.innerHTML = '<i class="fa-solid fa-ticket" style="font-size:8.5px;"></i> ' + passes + ' проп.';
+                        }
+                    }
+                } catch (e) {}
+            })();
+        </script>
 
         <!-- СТРОКА ВОЗВРАТА АВТО-ВХОДА (ВСЕГДА ВЫШЕ БЛОКА ТОП ПОБЕДИТЕЛЕЙ) -->
         <div id="restore-prem-row" class="restore-prem-row">
@@ -1427,15 +1458,29 @@
                 el.textContent = userTickets;
             });
 
-            try {
+           try {
+                const nowTs = Date.now();
                 localStorage.setItem('rfl_prem_banner_cache', JSON.stringify({
                     free_raffle_passes: userFreePasses,
                     raffles_premium_until: userPremiumUntil,
                     has_raffles_premium: userHasRafflesPremium,
                     tickets: userTickets,
                     total_raffled: userTotalRaffledFromProfile,
-                    _ts: Date.now()
+                    _ts: nowTs
                 }));
+
+                // Синхронизируем поля подписки в cache_bootstrap, чтобы bottom-nav.js не затирал их старым кэшем
+                const rawBoot = localStorage.getItem('cache_bootstrap');
+                if (rawBoot) {
+                    const parsedBoot = JSON.parse(rawBoot);
+                    if (parsedBoot && parsedBoot.user) {
+                        parsedBoot.user.has_raffles_premium = userHasRafflesPremium;
+                        parsedBoot.user.raffles_premium_until = userPremiumUntil;
+                        parsedBoot.user.free_raffle_passes = userFreePasses;
+                        parsedBoot.user.tickets = userTickets;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(parsedBoot));
+                    }
+                }
             } catch (e) {}
         }
 
@@ -1443,41 +1488,25 @@
         function hydrateInstantUI() {
             try {
                 let bestUser = null;
-                let bestTs = 0;
 
-                // 1. Проверяем локальный кэш баннера розыгрышей
+                // 1. Приоритетно берем прямой кэш баннера розыгрышей (он никогда не затирается чужими страницами)
                 const rawPremCache = localStorage.getItem('rfl_prem_banner_cache');
                 if (rawPremCache) {
                     const parsedPrem = JSON.parse(rawPremCache);
                     if (parsedPrem && typeof parsedPrem === 'object') {
                         bestUser = parsedPrem;
-                        bestTs = Number(parsedPrem._ts || 0);
                     }
                 }
 
-                // 2. Проверяем глобальный кэш bootstrap
+                // 2. Если прямого кэша еще нет (или в bootstrap появилась новая подписка) — берем из bootstrap
                 const rawBoot = localStorage.getItem('cache_bootstrap');
                 if (rawBoot) {
                     const parsedBoot = JSON.parse(rawBoot);
-                    const bootTs = Number(parsedBoot?._ts || 0);
-                    if (parsedBoot?.user && (parsedBoot.user.raffles_premium_until !== undefined || parsedBoot.user.has_raffles_premium !== undefined)) {
-                        if (!bestUser || bootTs >= bestTs) {
-                            bestUser = parsedBoot.user;
-                            bestTs = bootTs;
-                        }
-                    }
-                }
-
-                // 3. Проверяем оперативный кэш сессии /api/v1/user/me
-                const rawFast = sessionStorage.getItem('__hl_fast_api_cache__');
-                if (rawFast) {
-                    const parsedFast = JSON.parse(rawFast);
-                    const meEntry = parsedFast && parsedFast['POST:/api/v1/user/me:{}'];
-                    if (meEntry && meEntry.jsonText && Number(meEntry.ts || 0) >= bestTs) {
-                        const meData = JSON.parse(meEntry.jsonText);
-                        if (meData && typeof meData === 'object') {
-                            bestUser = meData;
-                            bestTs = Number(meEntry.ts || 0);
+                    const bUser = parsedBoot?.user;
+                    if (bUser) {
+                        const bootHasActivePrem = bUser.raffles_premium_until && (new Date(bUser.raffles_premium_until) > new Date());
+                        if (!bestUser || (!bestUser.has_raffles_premium && bootHasActivePrem)) {
+                            bestUser = bUser;
                         }
                     }
                 }
@@ -1487,7 +1516,7 @@
                     updatePremiumBannerUI(bestUser);
                 }
 
-                // 4. Мгновенно рендерим закэшированный список розыгрышей без ожидания спиннера
+                // 3. Мгновенно рендерим закэшированный список розыгрышей без ожидания спиннера
                 const rawRaffles = sessionStorage.getItem('rfl_fast_cache');
                 if (rawRaffles && !lastRafflesData) {
                     const parsedRaffles = JSON.parse(rawRaffles);
@@ -1498,7 +1527,7 @@
                 }
             } catch (e) {}
         }
-
+        
         // Принудительная синхронизация статуса подписки после оплаты в Робокассе
         async function syncPremiumStatusFromServer(showSuccessToast = false) {
             try {
@@ -1731,13 +1760,13 @@
             const fetchCacheMode = bypassCache ? 'no-store' : 'default';
             const isSilentRefresh = Boolean(lastRafflesData);
 
-            // Запускаем оба запроса параллельно, но обновляем UI мгновенно по мере прихода каждого ответа
+            // Запускаем оба запроса параллельно (профиль всегда берем напрямую с сервера в обход старого RAM-кэша bottom-nav.js)
             const userPromise = fetch('/api/v1/user/me', {
                 method: 'POST',
                 headers: reqHeaders,
                 body: payload,
-                cache: fetchCacheMode,
-                __bypassFastCache: bypassCache
+                cache: 'no-store',
+                __bypassFastCache: true
             })
                 .then(r => {
                     if (!r.ok) throw new Error('User fetch error');
