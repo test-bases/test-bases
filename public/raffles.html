@@ -1288,7 +1288,8 @@
 
                 <label class="checkbox-label" style="margin-bottom: 5px;">
                     <input type="checkbox" id="raffles-terms-checkbox" onchange="window.toggleRafflesAgreementNext(this.checked)">
-                    <span>Я принимаю условия <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.Telegram.WebApp.openLink(window.location.origin + '/agreement.html');" style="color: var(--primary-purple-light); text-decoration: none; border-bottom: 1px dashed var(--primary-purple-light);">соглашения</a> и подтверждаю, что мне есть 18 лет.</span>
+                    <!-- 👇 Заменили открытие ссылки на window.location.href 👇 -->
+                    <span>Я принимаю условия <a href="/agreement.html" onclick="event.preventDefault(); event.stopPropagation(); window.location.href = '/agreement.html';" style="color: var(--primary-purple-light); text-decoration: none; border-bottom: 1px dashed var(--primary-purple-light);">соглашения</a> и подтверждаю, что мне есть 18 лет.</span>
                 </label>
 
                 <button id="raffles-next-stage-btn" class="m-btn m-btn-primary disabled-terms" style="margin-top: 15px;" disabled onclick="acceptRafflesTermsAndContinue()">
