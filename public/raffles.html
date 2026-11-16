@@ -1033,10 +1033,11 @@
             object-fit: contain;
         }
         
-        /* Оригинальные фоны не трогаем, меняем цвет только у Трейда */
-        .pay-card.robo .pay-icon { background: rgba(139, 92, 246, 0.2); color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
-        .pay-card.skins .pay-icon { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
-        .pay-card.trade .pay-icon { background: rgba(42, 71, 94, 0.4); color: #66c0f4; box-shadow: 0 0 10px rgba(102,192,244,0.3); }
+        /* Белые фоны для иконок Робокассы и Skinsback */
+        .pay-card.robo .pay-icon { background: #ffffff; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+        .pay-card.skins .pay-icon { background: #ffffff; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
+        /* Фон для трейда (в стиле Steam) */
+        .pay-card.trade .pay-icon { background: #ffffff; box-shadow: 0 0 10px rgba(102,192,244,0.3); }
 
         .pay-info {
             display: flex;
@@ -1274,14 +1275,15 @@
                     </div>
 
                     <div class="pay-card trade" style="animation-delay: 0.15s;" onclick="showTradeStep()">
-                        <!-- Добавлена картинка кейса вместо иконки -->
-                        <div class="pay-icon"><img src="/static/case_raffles.webp" alt="Case" class="pay-svg-logo" style="width: 28px; height: 28px; object-fit: contain;"></div>
+                        <!-- Существенно увеличили картинку кейса -->
+                        <div class="pay-icon"><img src="/static/case_raffles.webp" alt="Case" class="pay-svg-logo" style="width: 36px; height: 36px; object-fit: contain;"></div>
                         <div class="pay-info">
                             <span class="pay-title">Прямой трейд</span>
                             <span class="pay-desc">Кейс «Грёзы и кошмары»</span>
                         </div>
                         <div class="pay-value">2 шт.</div>
                     </div>
+                  </div>
 
                 <button class="m-btn" style="margin-top: 14px; background: transparent; border: none; box-shadow: none; color: #a1a1aa;" onclick="backToStep0()">
                     <i class="fa-solid fa-arrow-left" style="margin-right: 4px;"></i> Назад
