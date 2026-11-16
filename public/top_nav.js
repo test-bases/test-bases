@@ -10,24 +10,26 @@
         const isPC = ['tdesktop', 'macos', 'web', 'webk'].includes(tg.platform);
 
         try {
-            // Красим рамку в цвет фона (на случай если у юзера старый ТГ и requestFullscreen не сработает)
-            if (tg.setHeaderColor) {
-                tg.setHeaderColor('#121212');
-            }
-            if (tg.setBackgroundColor) {
-                tg.setBackgroundColor('#121212');
-            }
+            if (tg.setHeaderColor) tg.setHeaderColor('#121212');
+            if (tg.setBackgroundColor) tg.setBackgroundColor('#121212');
         } catch(e) {}
 
-        // 2. Если это мобилка — разворачиваем и скрываем шапку с названием HATElavka_bot
+        // 2. Если это мобилка — разворачиваем и скрываем шапку
         if (!isPC) {
             tg.expand();  // Растягиваем на 100%
             
-            try {
-                if (tg.requestFullscreen) {
-                    tg.requestFullscreen(); // Убиваем верхнюю системную рамку (Telegram API 8.0+)
-                }
-            } catch(e) {}
+            const makeFullscreen = () => {
+                try {
+                    if (tg.requestFullscreen) tg.requestFullscreen();
+                } catch(e) {}
+            };
+
+            // Вызываем сразу (идеально срабатывает при переходах между страницами)
+            makeFullscreen();
+
+            // 🔥 ФИКС ДЛЯ ПЕРВОГО ЗАПУСКА 🔥
+            // Ждем 400мс, пока закончится анимация открытия Телеграм-шторки, и скрываем рамку
+            setTimeout(makeFullscreen, 400);
         }
     }
     // ==========================================
