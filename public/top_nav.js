@@ -1769,14 +1769,26 @@
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
             tg.ready();
-            tg.expand();
+
+            // Проверяем, сидит ли пользователь с компьютера (ПК)
+            const isPC = tg.platform === 'tdesktop' || tg.platform === 'macos' || tg.platform === 'web' || tg.platform === 'webk';
+            
+            // Красим системную рамку Телеграма в цвет нашего фона (чтобы она слилась и стала невидимой)
             try {
-                if (tg.requestFullscreen) tg.requestFullscreen();
                 if (tg.setHeaderColor) tg.setHeaderColor('#121212');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#121212');
             } catch(e) {}
+
+            // Если это мобилка — разворачиваем на весь экран и убиваем рамку (где поддерживается)
+            if (!isPC) {
+                tg.expand();
+                try {
+                    if (tg.requestFullscreen) tg.requestFullscreen();
+                } catch(e) {}
+            }
         }
 
-        // 2. Если HTML-тело еще не загрузилось — тормозим (ТГ мы уже развернули, а кнопки отрисуем позже)
+        // 2. Если HTML-тело еще не загрузилось — тормозим
         if (!document.body) return;
 
         // 3. Защита от двойного построения интерфейса
@@ -1825,14 +1837,12 @@
     // 🚀 СТАРТ СКРИПТА
     // ==========================================
     
-    // Вызываем bootstrap СРАЗУ ЖЕ, чтобы Телеграм мгновенно развернулся на весь экран
     bootstrap();
 
-    // А для отрисовки нашего HTML ждем полной готовности страницы
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            bootstrap(); // Второй вызов, теперь уже для отрисовки интерфейса
-            injectDOM(); // Подстраховка для инжекта
+            bootstrap(); 
+            injectDOM(); 
         }, { once: true });
     } else if (document.body) {
         injectDOM();
