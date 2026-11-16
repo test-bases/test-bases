@@ -823,34 +823,57 @@
         .prem-features-stack {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             margin-bottom: 14px;
-            text-align: center;
+            width: 100%;
         }
         .prem-feat-item {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 3px;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px 12px;
+            text-align: left;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        }
+        .prem-feat-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(109, 40, 217, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #d8b4fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.1);
+        }
+        .prem-feat-item.gold-feat .prem-feat-icon {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%);
+            border-color: rgba(251, 191, 36, 0.3);
+            color: var(--gold);
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
+        }
+        .prem-feat-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
         .prem-feat-title {
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 800;
             color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 0.25px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+            letter-spacing: -0.1px;
         }
         .prem-feat-sub {
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 500;
-            color: #f4f4f5;
-            line-height: 1.38;
-            max-width: 260px;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+            color: #a1a1aa;
+            line-height: 1.3;
         }
         .prem-price-line {
             display: inline-flex;
@@ -1307,12 +1330,22 @@
                 
                 <div class="prem-features-stack" id="prem-modal-desc">
                     <div class="prem-feat-item">
-                        <div class="prem-feat-title"><span>Автоматический вход</span></div>
-                        <div class="prem-feat-sub">Гарантированное участие в каждой раздаче даже оффлайн</div>
+                        <div class="prem-feat-icon">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div class="prem-feat-text">
+                            <div class="prem-feat-title">Автоматический вход</div>
+                            <div class="prem-feat-sub">Гарантированное участие в каждой раздаче даже оффлайн</div>
+                        </div>
                     </div>
-                    <div class="prem-feat-item">
-                        <div class="prem-feat-title"><span>4 розыгрыша без условий</span></div>
-                        <div class="prem-feat-sub">Заходите в закрытые раздачи в один клик</div>
+                    <div class="prem-feat-item gold-feat">
+                        <div class="prem-feat-icon">
+                            <i class="fa-solid fa-unlock-keyhole"></i>
+                        </div>
+                        <div class="prem-feat-text">
+                            <div class="prem-feat-title">4 розыгрыша без условий</div>
+                            <div class="prem-feat-sub">Заходите в закрытые раздачи в один клик</div>
+                        </div>
                     </div>
                 </div>
 
