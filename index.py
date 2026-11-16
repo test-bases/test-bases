@@ -8102,13 +8102,47 @@ async def update_telegram_web_app_script():
 # ==========================================
 # 3. РОУТЫ (Вызывают функции, описанные выше)
 # ==========================================
+async def trigger_raffles_auto_join(supabase: httpx.AsyncClient):
+    """Запускает авто-вход подписчиков во все активные розыгрыши (где выполнены условия) и обновляет кнопки в ТГ"""
+    try:
+        rpc_resp = await supabase.post("/rpc/sync_raffles_auto_join", json={})
+        if rpc_resp.is_success:
+            data = rpc_resp.json() or {}
+            updated_list = data.get("updated_raffles") or []
+            for item in updated_list:
+                p_msg_id = item.get("post_message_id")
+                p_chan_id = item.get("post_channel_id")
+                r_id = item.get("raffle_id")
+                new_cnt = item.get("new_count")
+                if p_msg_id and p_chan_id and r_id and new_cnt is not None:
+                    asyncio.create_task(
+                        update_raffle_button(
+                            bot, p_chan_id, int(p_msg_id), int(r_id), int(new_cnt)
+                        )
+                    )
+            return data
+    except Exception as e:
+        logging.error(f"[AUTO-JOIN] Ошибка синхронизации авто-участия: {e}")
+    return {"status": "error"}
+
+
 @app.get("/api/v1/ping")
-async def keep_alive_ping(background_tasks: BackgroundTasks):
-    """Пинг для поддержания Vercel в горячем состоянии + запуск фоновых задач"""
+async def keep_alive_ping(
+    background_tasks: BackgroundTasks,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    """Пинг каждые 5 минут: держит сервер в тонусе + закидывает подписчиков в розыгрыши"""
     background_tasks.add_task(cleanup_local_caches)
     background_tasks.add_task(update_telegram_web_app_script)
-    
-    return {"status": "ok", "message": "HateLavka Backend is warm, background tasks running!"}
+
+    # Проверяем всех с активным авто-участием и закидываем в подходящие активные раздачи
+    auto_join_res = await trigger_raffles_auto_join(supabase)
+
+    return {
+        "status": "ok",
+        "message": "HateLavka Backend is warm, background tasks running!",
+        "raffles_auto_join": auto_join_res,
+    }
 
 @app.get("/api/v1/telegram-js")
 async def serve_telegram_js(background_tasks: BackgroundTasks):
@@ -19457,7 +19491,8 @@ async def grant_raffles_premium_direct(
             if (
                 is_fallback
                 and u_row.get("has_raffles_premium")
-                and (parsed_dt - now_utc) > timedelta(days=29, hours=23, minutes=55)
+                and (parsed_dt - now_utc)
+                > timedelta(days=29, hours=23, minutes=55)
             ):
                 logging.info(
                     f"[ROBOKASSA] Подписка для {tgid} уже была выдана через callback, пропускаем дубль в success."
@@ -19489,6 +19524,8 @@ async def grant_raffles_premium_direct(
         headers={"Prefer": "return=representation"},
     )
     if upd_resp.is_success:
+        # 👇 СРАЗУ ПОСЛЕ ОПЛАТЫ ЗАКИДЫВАЕМ ИГРОКА ВО ВСЕ АКТИВНЫЕ РОЗЫГРЫШИ 👇
+        await trigger_raffles_auto_join(supabase)
         return {
             "status": "success",
             "raffles_premium_until": new_until_iso,
