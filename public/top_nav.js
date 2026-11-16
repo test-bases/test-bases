@@ -5,16 +5,30 @@
     if (window.Telegram && window.Telegram.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready();   // Сообщаем ТГ, что приложение стартовало
-        tg.expand();  // Мгновенно растягиваем на 100%
         
+        // 1. Проверяем, сидит ли юзер с компьютера/веб-версии
+        const isPC = ['tdesktop', 'macos', 'web', 'webk'].includes(tg.platform);
+
         try {
-            if (tg.requestFullscreen) {
-                tg.requestFullscreen(); // Убиваем верхнюю системную рамку
-            }
+            // Красим рамку в цвет фона (на случай если у юзера старый ТГ и requestFullscreen не сработает)
             if (tg.setHeaderColor) {
-                tg.setHeaderColor('#121212'); // Красим козырек в цвет фона
+                tg.setHeaderColor('#121212');
+            }
+            if (tg.setBackgroundColor) {
+                tg.setBackgroundColor('#121212');
             }
         } catch(e) {}
+
+        // 2. Если это мобилка — разворачиваем и скрываем шапку с названием HATElavka_bot
+        if (!isPC) {
+            tg.expand();  // Растягиваем на 100%
+            
+            try {
+                if (tg.requestFullscreen) {
+                    tg.requestFullscreen(); // Убиваем верхнюю системную рамку (Telegram API 8.0+)
+                }
+            } catch(e) {}
+        }
     }
     // ==========================================
     // 0. ВСТРОЕННЫЙ ЩИТ АВТОРИЗАЦИИ И API (ЧТОБЫ НИКОГДА НЕ ПАДАЛ)
