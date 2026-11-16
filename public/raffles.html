@@ -795,6 +795,20 @@
             color: #ffffff;
             font-weight: 700;
         }
+        .m-btn-skins {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.58) 0%, rgba(5, 150, 105, 0.42) 100%);
+            border: 1px solid rgba(52, 211, 153, 0.58);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .m-btn-trade {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.58) 0%, rgba(217, 119, 6, 0.42) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.58);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-weight: 700;
+        }
 
         /* === ПРОДАЮЩАЯ СВЕТЛАЯ ТИПОГРАФИКА В ОКНЕ ПОДПИСКИ ЗА 100 ₽ === */
         .prem-modal-subtitle {
@@ -1099,39 +1113,63 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА АВТО-УЧАСТИЯ ЗА 100 ₽ (ПРОДАЮЩИЙ СВЕТЛЫЙ ТЕКСТ БЕЗ УПОМИНАНИЯ БОТОВ) -->
+   <!-- МОДАЛКА АВТО-УЧАСТИЯ С ВЫБОРОМ ОПЛАТЫ -->
     <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
         <div class="modal-box">
-            <div class="modal-icon-badge">
-                <i class="fa-solid fa-bolt"></i>
-            </div>
-            <div class="m-head">Максимум шансов на дроп</div>
-            <div class="prem-modal-subtitle">Привилегия активна 30 дней</div>
-            
-            <div class="prem-features-stack" id="prem-modal-desc">
-                <div class="prem-feat-item">
-                    <div class="prem-feat-title">
-                        <span>Автоматический вход в розыгрыши в течение месяца</span>
-                    </div>
-                    <div class="prem-feat-sub">Вы гарантированно попадаете в каждую новую раздачу скинов в первые секунды - даже когда вы не в сети</div>
+            <!-- ЭТАП 1: Выбор способа оплаты -->
+            <div id="prem-step-1">
+                <div class="modal-icon-badge">
+                    <i class="fa-solid fa-bolt"></i>
                 </div>
-                <div class="prem-feat-item">
-                    <div class="prem-feat-title">
-                        <span>4 розыгрыша без условий</span>
+                <div class="m-head">Максимум шансов на дроп</div>
+                <div class="prem-modal-subtitle">Привилегия активна 30 дней</div>
+                
+                <div class="prem-features-stack" id="prem-modal-desc" style="margin-bottom: 8px;">
+                    <div class="prem-feat-item">
+                        <div class="prem-feat-title"><span>Автоматический вход на месяц</span></div>
+                        <div class="prem-feat-sub">Гарантированное участие в каждой раздаче даже оффлайн</div>
                     </div>
-                    <div class="prem-feat-sub">Заходите в самые ценные закрытые раздачи в один клик — без обязательных условий розыгрыша</div>
+                    <div class="prem-feat-item">
+                        <div class="prem-feat-title"><span>4 розыгрыша без условий</span></div>
+                        <div class="prem-feat-sub">Заходите в закрытые раздачи в один клик</div>
+                    </div>
                 </div>
+
+                <div class="prem-price-line">
+                    <span class="prem-price-val" style="font-size:14px;">100 ₽</span>
+                    <span class="prem-price-period">или скинами</span>
+                </div>
+
+                <button id="buy-prem-btn" class="m-btn m-btn-primary" onclick="buyRafflesPremium()">
+                    <i class="fa-solid fa-credit-card"></i> Банковской картой
+                </button>
+                <button id="buy-skinsback-btn" class="m-btn m-btn-skins" onclick="buyRafflesPremiumSkinsback()">
+                    <i class="fa-solid fa-gun"></i> Оплатить скинами
+                </button>
+                <button class="m-btn m-btn-trade" onclick="showTradeStep()">
+                    <i class="fa-solid fa-box-open"></i> Трейдом (2 кейса)
+                </button>
+                <button class="m-btn" style="margin-top: 4px;" onclick="closePremiumModal()">Отмена</button>
             </div>
 
-            <div class="prem-price-line">
-                <span class="prem-price-val">100 ₽</span>
-                <span class="prem-price-period">/ 30 дней</span>
-            </div>
+            <!-- ЭТАП 2: Оплата трейдом -->
+            <div id="prem-step-2" style="display: none;">
+                <div class="modal-icon-badge" style="color: var(--gold);">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="m-head">Оплата кейсами</div>
+                <div class="prem-modal-subtitle" style="color: var(--gold);">Грёзы и кошмары (2 шт.)</div>
+                
+                <div class="m-desc" style="font-size: 11px; line-height: 1.5; margin-bottom: 16px;">
+                    Цена на кейсы нестабильна, поэтому стоимость в них немного выше.<br><br>
+                    Выдача происходит <b>вручную</b>. Напиши модератору и отправь трейд-ссылку, чтобы активировать подписку!
+                </div>
 
-            <button id="buy-prem-btn" class="m-btn m-btn-primary" onclick="buyRafflesPremium()">
-                <i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽
-            </button>
-            <button class="m-btn" onclick="closePremiumModal()">Закрыть</button>
+                <button class="m-btn m-btn-primary" onclick="openModeratorTradeDM()">
+                    <i class="fa-brands fa-telegram"></i> Написать в Telegram
+                </button>
+                <button class="m-btn" onclick="backToStep1()">Назад к выбору</button>
+            </div>
         </div>
     </div>
 
@@ -1456,8 +1494,8 @@
                     <div class="prem-sub-line">+ <b>4 входа</b> без условий на 30 дней</div>
                 `;
                 actionBtn.className = 'prem-btn';
-                actionBtn.innerHTML = `Подключить • 100 ₽`;
-                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Подключить за 100 ₽';
+                actionBtn.innerHTML = `<i class="fa-solid fa-bolt" style="font-size:9px;"></i> Подключить`;
+                // Текст кнопок внутри модалки теперь статический в HTML
             }
 
             document.querySelectorAll('.js-user-tickets-val').forEach(el => {
@@ -1688,6 +1726,76 @@
                 btn.innerHTML = oldText;
                 btn.disabled = false;
             }
+        }
+
+        async function buyRafflesPremiumSkinsback() {
+            const btn = document.getElementById('buy-skinsback-btn');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Подготовка...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/payment/skinsback/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        action_type: 'raffles_premium'
+                    }),
+                    cache: 'no-store',
+                    __bypassFastCache: true
+                });
+                const ans = await res.json();
+                
+                if (res.ok && ans.url) {
+                    localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
+                    localStorage.setItem('prev_raffles_free_passes', String(userFreePasses));
+                    localStorage.setItem('prev_raffles_prem_until', String(userPremiumUntil || ''));
+                    clearFastCaches();
+                    closePremiumModal();
+                    window.location.href = ans.url;
+                } else {
+                    showModal('error', 'Ошибка Skinsback', stripEmojis(ans.detail || 'Не удалось получить ссылку оплаты'));
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                showModal('error', 'Ошибка', 'Проверьте интернет-соединение');
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        }
+
+        function showTradeStep() {
+            document.getElementById('prem-step-1').style.display = 'none';
+            document.getElementById('prem-step-2').style.display = 'block';
+        }
+
+        function backToStep1() {
+            document.getElementById('prem-step-2').style.display = 'none';
+            document.getElementById('prem-step-1').style.display = 'block';
+        }
+
+        function openModeratorTradeDM() {
+            const message = "Привет! Готов обменять 2 кейса грёзы и кошмары на премиум доступ в розыгрышах, жду твою трейд ссылку.";
+            const tgLink = `https://t.me/hatelove_twitch?text=${encodeURIComponent(message)}`;
+            
+            if (tg && tg.openTelegramLink) {
+                tg.openTelegramLink(tgLink);
+            } else if (tg && tg.openLink) {
+                tg.openLink(tgLink);
+            } else {
+                window.open(tgLink, '_blank');
+            }
+        }
+
+        // Обновляем функцию закрытия модалки, чтобы она сбрасывала состояние этапов
+        function closePremiumModal() { 
+            document.getElementById('premium-modal').style.display = 'none'; 
+            setTimeout(() => {
+                document.getElementById('prem-step-1').style.display = 'block';
+                document.getElementById('prem-step-2').style.display = 'none';
+            }, 250); // Ждем завершения анимации скрытия
         }
 
         function switchTab(tabName) {
