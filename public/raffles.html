@@ -400,6 +400,12 @@
             z-index: 1;
             pointer-events: none; 
         }
+        .prize-img-wrapper.is-compact {
+            top: 4px;
+            right: -4px;
+            width: 175px;
+            height: 92px;
+        }
         .prize-img {
             width: 100%;
             height: 100%;
@@ -1981,10 +1987,11 @@
                 }
 
                 const imgLoadAttr = activeIdx <= 4 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
+                const isSmallGun = /usp|glock|deagle|desert eagle|p250|five-seven|tec-9|cz75|dual berettas|p2000|r8 revolver|revolver|zeus|mac-10|mp9|mp7|mp5-sd|pp-bizon|p90|sawed-off|mag-7|обреза|пистолет|револьвер/i.test(fullPrizeName);
 
                htmlBuffer += `
                 <div class="card ${isHidden ? 'hidden-tab' : ''}" style="${animStyle}">
-                    <div class="prize-img-wrapper"><img src="${img}" class="prize-img" ${imgLoadAttr} onerror="this.style.display='none'"></div>
+                    <div class="prize-img-wrapper ${isSmallGun ? 'is-compact' : ''}"><img src="${img}" class="prize-img" ${imgLoadAttr} onerror="this.style.display='none'"></div>
                     <div class="card_content">
                         <div class="r-label"><span class="r-label-dot"></span> ${isTwitch ? 'TWITCH РОЗЫГРЫШ' : 'РОЗЫГРЫШ'}</div>
                         <h3 class="r-title">${escapeHtml(fullPrizeName)}</h3>
