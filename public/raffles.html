@@ -1076,6 +1076,59 @@
         @keyframes payPop {
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* --- СТИЛИ ДЛЯ ОФЕРТЫ (ПЕРЕНЕСЕНЫ ИЗ CHECKPOINT) --- */
+        .modal-terms-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.08));
+            border-radius: 12px;
+            padding: 10px 12px;
+            max-height: 110px;
+            overflow-y: auto;
+            text-align: left;
+            margin-bottom: 12px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .modal-terms-box p {
+            font-size: 10px !important;
+            line-height: 1.4 !important;
+            color: #b3b3b3 !important;
+            margin: 0 0 8px 0 !important;
+        }
+        .modal-terms-box p:last-child { margin-bottom: 0 !important; }
+        .modal-terms-box::-webkit-scrollbar { width: 4px; }
+        .modal-terms-box::-webkit-scrollbar-track { background: transparent; }
+        .modal-terms-box::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.2); border-radius: 4px; }
+
+        .checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            text-align: left;
+            padding: 4px 6px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin-top: 2px;
+            accent-color: var(--primary-purple, #7c3aed); /* Фиолетовый акцент для Raffles */
+            transform: scale(1.1);
+            flex-shrink: 0;
+        }
+        .checkbox-label span {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.3;
+            font-weight: 600;
+        }
+        
+        .disabled-terms {
+            opacity: 0.35 !important;
+            filter: grayscale(80%) !important;
+            box-shadow: none !important;
+            pointer-events: none !important;
+        }
     </style>
 </head>
 <body>
@@ -1218,6 +1271,31 @@
     <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
         <div class="modal-box" style="padding: 12px 8px; overflow: hidden; position: relative; min-height: 400px; display: flex; flex-direction: column; justify-content: center;">
             
+            <!-- ЭТАП -1: Оферта (Показывается только если не принята) -->
+            <div id="prem-step-agreement" class="step-container step-hidden" style="text-align: left;">
+                <p style="text-align: center; color: var(--primary-purple-light); font-weight: 700; margin: 0 0 10px 0;">Подтверждение участия</p>
+                
+                <div class="modal-terms-box" style="max-height: 220px;">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--primary-purple-light); text-transform: uppercase;">ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</h4>
+                    </div>
+                    <p><strong>Регистрация (авторизация) в Веб-приложении означает ваше согласие с условиями Соглашения (акцепт оферты), а также подтверждение достижения 18-летнего возраста.</strong></p>
+                    <p>Плательщик НПД ШКОЛИН В.А. (ИНН 600902063478), далее «Исполнитель», и «Пользователь» заключили Соглашение о следующем:</p>
+                    <p><strong>1. Термины:</strong><br>«Розыгрыши» (Raffles) — автоматизированное случайное распределение цифровых наград среди выполнивших условия. Не является лотереей или азартной игрой.<br>«Авто-участие» — возмездная услуга (100 руб/30 дней), дающая авто-регистрацию в розыгрышах и 4 «проходки» без условий.</p>
+                    <p><strong>2. Оплата и возвраты:</strong> Оплата производится в безналичном порядке (Robokassa) или цифровыми ценностями (SkinsBack/Трейд). Возврат средств за активированное Авто-участие не производится, так как цифровая услуга считается оказанной в момент активации.</p>
+                    <p><strong>3. Ответственность:</strong> Запрещается использование уязвимостей, ботов и мультиаккаунтов для получения выгоды. Нарушение влечет бан и аннулирование наград.</p>
+                </div>
+
+                <label class="checkbox-label" style="margin-bottom: 5px;">
+                    <input type="checkbox" id="raffles-terms-checkbox" onchange="window.toggleRafflesAgreementNext(this.checked)">
+                    <span>Я принимаю условия <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.Telegram.WebApp.openLink(window.location.origin + '/agreement.html');" style="color: var(--primary-purple-light); text-decoration: none; border-bottom: 1px dashed var(--primary-purple-light);">соглашения</a> и подтверждаю, что мне есть 18 лет.</span>
+                </label>
+
+                <button id="raffles-next-stage-btn" class="m-btn m-btn-primary disabled-terms" style="margin-top: 15px;" disabled onclick="acceptRafflesTermsAndContinue()">
+                    Продолжить <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i>
+                </button>
+            </div>
+
             <!-- ЭТАП 0: Главный экран (презентация) -->
             <div id="prem-step-0" class="step-container step-active">
                 <div class="modal-icon-badge">
@@ -1580,7 +1658,94 @@
         });
 
         function closeConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
-        function openPremiumModal() { document.getElementById('premium-modal').style.display = 'flex'; }
+        
+        // --- ЛОГИКА ОФЕРТЫ ДЛЯ RAFFLES ---
+        window.toggleRafflesAgreementNext = function(isAgreed) {
+            const nextBtn = document.getElementById('raffles-next-stage-btn');
+            if (!nextBtn) return;
+            if (isAgreed) {
+                nextBtn.classList.remove('disabled-terms');
+                nextBtn.removeAttribute('disabled');
+            } else {
+                nextBtn.classList.add('disabled-terms');
+                nextBtn.setAttribute('disabled', 'true');
+            }
+        };
+
+        window.acceptRafflesTermsAndContinue = async function() {
+            const btn = document.getElementById('raffles-next-stage-btn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const res = await fetch('/api/v1/user/accept_oferta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                
+                if (res.ok) {
+                    // Сохраняем в кэш
+                    let bestUser = null;
+                    const rawBoot = localStorage.getItem('cache_bootstrap');
+                    if (rawBoot) {
+                        const parsedBoot = JSON.parse(rawBoot);
+                        if (parsedBoot && parsedBoot.user) {
+                            parsedBoot.user.has_accepted_oferta = true;
+                            bestUser = parsedBoot.user;
+                            localStorage.setItem('cache_bootstrap', JSON.stringify(parsedBoot));
+                        }
+                    }
+
+                    // Переключаем на этап презентации
+                    document.getElementById('prem-step-agreement').classList.replace('step-active', 'step-hidden');
+                    setTimeout(() => {
+                        document.getElementById('prem-step-0').classList.replace('step-hidden', 'step-active');
+                    }, 150);
+
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showModal('error', 'Ошибка', 'Не удалось сохранить согласие. Попробуйте еще раз.');
+                }
+            } catch (e) {
+                tg.HapticFeedback.notificationOccurred('error');
+                showModal('error', 'Ошибка сети', 'Проверьте интернет-соединение.');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.style.pointerEvents = 'auto';
+            }
+        };
+
+        function openPremiumModal() { 
+            // Получаем пользователя из кэша
+            let isAccepted = false;
+            const rawBoot = localStorage.getItem('cache_bootstrap');
+            if (rawBoot) {
+                const parsedBoot = JSON.parse(rawBoot);
+                if (parsedBoot && parsedBoot.user) {
+                    isAccepted = parsedBoot.user.has_accepted_oferta === true || parsedBoot.user.has_accepted_oferta === 'true' || parsedBoot.user.has_accepted_oferta === 1;
+                }
+            }
+
+            // Сбрасываем все этапы
+            ['prem-step-agreement', 'prem-step-0', 'prem-step-1', 'prem-step-2'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.replace('step-active', 'step-hidden');
+            });
+
+            // Определяем, с какого этапа начать
+            if (isAccepted) {
+                document.getElementById('prem-step-0').classList.replace('step-hidden', 'step-active');
+            } else {
+                const chk = document.getElementById('raffles-terms-checkbox');
+                if (chk) chk.checked = false;
+                window.toggleRafflesAgreementNext(false);
+                document.getElementById('prem-step-agreement').classList.replace('step-hidden', 'step-active');
+            }
+
+            document.getElementById('premium-modal').style.display = 'flex'; 
+        }
 
         function updatePremiumBannerUI(uData) {
             userFreePasses = Math.max(0, parseInt(uData.free_raffle_passes ?? 0, 10) || 0);
@@ -1944,9 +2109,11 @@
         function closePremiumModal() { 
             document.getElementById('premium-modal').style.display = 'none'; 
             setTimeout(() => {
-                ['prem-step-1', 'prem-step-2'].forEach(id => {
-                    document.getElementById(id).classList.replace('step-active', 'step-hidden');
+                ['prem-step-agreement', 'prem-step-0', 'prem-step-1', 'prem-step-2'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.classList.replace('step-active', 'step-hidden');
                 });
+                // По умолчанию готовим презентацию, при открытии openPremiumModal() решит, что показать
                 document.getElementById('prem-step-0').classList.replace('step-hidden', 'step-active');
             }, 300);
         }
