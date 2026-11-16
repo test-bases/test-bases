@@ -975,6 +975,83 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes shake { 0%, 100% {transform: translateX(0);} 20%, 60% {transform: translateX(-4px);} 40%, 80% {transform: translateX(4px);} }
         .fa-spin { animation: spin 1s linear infinite !important; }
+
+        /* === ПРЕМИАЛЬНЫЕ КАРТОЧКИ ОПЛАТЫ === */
+        .payment-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .pay-card {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(15px);
+            animation: payPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+        }
+        .pay-card:active { transform: scale(0.96) !important; }
+        
+        /* Стилизация конкретных методов */
+        .pay-card.robo { 
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(0, 0, 0, 0) 100%);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+        .pay-card.skins { 
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(0, 0, 0, 0) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .pay-card.trade { 
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(0, 0, 0, 0) 100%);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pay-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .pay-card.robo .pay-icon { background: rgba(139, 92, 246, 0.2); color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+        .pay-card.skins .pay-icon { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
+        .pay-card.trade .pay-icon { background: rgba(245, 158, 11, 0.2); color: var(--gold); box-shadow: 0 0 10px rgba(245,158,11,0.3); }
+
+        .pay-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .pay-title { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: -0.2px; }
+        .pay-desc { font-size: 9.5px; font-weight: 500; color: #a1a1aa; }
+        
+        .pay-value { font-size: 13.5px; font-weight: 800; margin-left: 10px; }
+        .pay-card.robo .pay-value { color: #c084fc; text-shadow: 0 0 8px rgba(192,132,252,0.4); }
+        .pay-card.skins .pay-value { color: #6ee7b7; text-shadow: 0 0 8px rgba(110,231,183,0.4); }
+        .pay-card.trade .pay-value { color: var(--gold); text-shadow: 0 0 8px rgba(251,191,36,0.4); }
+
+        /* Плавные переходы для этапов */
+        .step-container { transition: opacity 0.25s ease, transform 0.25s ease; }
+        .step-hidden { opacity: 0; transform: scale(0.95); pointer-events: none; position: absolute; visibility: hidden; }
+        .step-active { opacity: 1; transform: scale(1); pointer-events: auto; position: relative; visibility: visible; }
+
+        @keyframes payPop {
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -1113,63 +1190,78 @@
         </div>
     </div>
 
-   <!-- МОДАЛКА АВТО-УЧАСТИЯ С ВЫБОРОМ ОПЛАТЫ -->
+   <!-- МОДАЛКА АВТО-УЧАСТИЯ С ПРЕМИАЛЬНЫМ ВЫБОРОМ ОПЛАТЫ -->
     <div id="premium-modal" class="modal-overlay" onclick="if(event.target===this) closePremiumModal()">
-        <div class="modal-box">
+        <div class="modal-box" style="padding: 12px 8px; overflow: hidden; position: relative; min-height: 380px; display: flex; flex-direction: column; justify-content: center;">
+            
             <!-- ЭТАП 1: Выбор способа оплаты -->
-            <div id="prem-step-1">
+            <div id="prem-step-1" class="step-container step-active">
                 <div class="modal-icon-badge">
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="m-head">Максимум шансов на дроп</div>
                 <div class="prem-modal-subtitle">Привилегия активна 30 дней</div>
                 
-                <div class="prem-features-stack" id="prem-modal-desc" style="margin-bottom: 8px;">
+                <div class="prem-features-stack" id="prem-modal-desc" style="margin-bottom: 0;">
                     <div class="prem-feat-item">
-                        <div class="prem-feat-title"><span>Автоматический вход на месяц</span></div>
-                        <div class="prem-feat-sub">Гарантированное участие в каждой раздаче даже оффлайн</div>
-                    </div>
-                    <div class="prem-feat-item">
-                        <div class="prem-feat-title"><span>4 розыгрыша без условий</span></div>
-                        <div class="prem-feat-sub">Заходите в закрытые раздачи в один клик</div>
+                        <div class="prem-feat-sub" style="font-size: 10.5px; max-width: 280px; text-shadow: none;">Гарантированное участие в каждой раздаче даже оффлайн и 4 входа без условий</div>
                     </div>
                 </div>
 
-                <div class="prem-price-line">
-                    <span class="prem-price-val" style="font-size:14px;">100 ₽</span>
-                    <span class="prem-price-period">или скинами</span>
+                <!-- Красивые карточки-баннеры -->
+                <div class="payment-grid">
+                    <div class="pay-card robo" id="buy-prem-btn" style="animation-delay: 0.05s;" onclick="buyRafflesPremium()">
+                        <div class="pay-icon"><i class="fa-solid fa-credit-card"></i></div>
+                        <div class="pay-info">
+                            <span class="pay-title">Банковская карта</span>
+                            <span class="pay-desc">Мгновенное зачисление</span>
+                        </div>
+                        <div class="pay-value">100 ₽</div>
+                    </div>
+
+                    <div class="pay-card skins" id="buy-skinsback-btn" style="animation-delay: 0.15s;" onclick="buyRafflesPremiumSkinsback()">
+                        <div class="pay-icon"><i class="fa-solid fa-gun"></i></div>
+                        <div class="pay-info">
+                            <span class="pay-title">Оплата скинами</span>
+                            <span class="pay-desc">Через SkinsBack</span>
+                        </div>
+                        <div class="pay-value"><i class="fa-solid fa-chevron-right" style="font-size: 11px;"></i></div>
+                    </div>
+
+                    <div class="pay-card trade" style="animation-delay: 0.25s;" onclick="showTradeStep()">
+                        <div class="pay-icon"><i class="fa-solid fa-box-open"></i></div>
+                        <div class="pay-info">
+                            <span class="pay-title">Прямой трейд</span>
+                            <span class="pay-desc">Кейс «Грёзы и кошмары»</span>
+                        </div>
+                        <div class="pay-value">2 шт.</div>
+                    </div>
                 </div>
 
-                <button id="buy-prem-btn" class="m-btn m-btn-primary" onclick="buyRafflesPremium()">
-                    <i class="fa-solid fa-credit-card"></i> Банковской картой
-                </button>
-                <button id="buy-skinsback-btn" class="m-btn m-btn-skins" onclick="buyRafflesPremiumSkinsback()">
-                    <i class="fa-solid fa-gun"></i> Оплатить скинами
-                </button>
-                <button class="m-btn m-btn-trade" onclick="showTradeStep()">
-                    <i class="fa-solid fa-box-open"></i> Трейдом (2 кейса)
-                </button>
-                <button class="m-btn" style="margin-top: 4px;" onclick="closePremiumModal()">Отмена</button>
+                <button class="m-btn" style="margin-top: 14px; background: transparent; border: none; box-shadow: none; color: #a1a1aa;" onclick="closePremiumModal()">Отмена</button>
             </div>
 
-            <!-- ЭТАП 2: Оплата трейдом -->
-            <div id="prem-step-2" style="display: none;">
+            <!-- ЭТАП 2: Оплата трейдом (Анимированное появление) -->
+            <div id="prem-step-2" class="step-container step-hidden">
                 <div class="modal-icon-badge" style="color: var(--gold);">
                     <i class="fa-solid fa-box-open"></i>
                 </div>
                 <div class="m-head">Оплата кейсами</div>
                 <div class="prem-modal-subtitle" style="color: var(--gold);">Грёзы и кошмары (2 шт.)</div>
                 
-                <div class="m-desc" style="font-size: 11px; line-height: 1.5; margin-bottom: 16px;">
-                    Цена на кейсы нестабильна, поэтому стоимость в них немного выше.<br><br>
+                <div class="m-desc" style="font-size: 11px; line-height: 1.5; margin-bottom: 20px; text-shadow: none;">
+                    Цена на кейсы нестабильна, поэтому стоимость подписки в них немного выше.<br><br>
                     Выдача происходит <b>вручную</b>. Напиши модератору и отправь трейд-ссылку, чтобы активировать подписку!
                 </div>
 
-                <button class="m-btn m-btn-primary" onclick="openModeratorTradeDM()">
-                    <i class="fa-brands fa-telegram"></i> Написать в Telegram
+                <button class="m-btn m-btn-primary" style="background: linear-gradient(135deg, rgba(36, 161, 222, 0.85) 0%, rgba(2, 132, 199, 0.7) 100%); border-color: rgba(125, 211, 252, 0.5);" onclick="openModeratorTradeDM()">
+                    <i class="fa-brands fa-telegram"></i> Написать модератору
                 </button>
-                <button class="m-btn" onclick="backToStep1()">Назад к выбору</button>
+                <button class="m-btn" style="margin-top: 4px; background: transparent; border: none; box-shadow: none;" onclick="backToStep1()">
+                    <i class="fa-solid fa-arrow-left" style="margin-right: 4px;"></i> Назад к выбору
+                </button>
             </div>
+            
         </div>
     </div>
 
@@ -1441,7 +1533,6 @@
 
         function closeConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
         function openPremiumModal() { document.getElementById('premium-modal').style.display = 'flex'; }
-        function closePremiumModal() { document.getElementById('premium-modal').style.display = 'none'; }
 
         function updatePremiumBannerUI(uData) {
             userFreePasses = Math.max(0, parseInt(uData.free_raffle_passes ?? 0, 10) || 0);
@@ -1483,7 +1574,6 @@
                 `;
                 actionBtn.className = 'prem-btn active-badge';
                 actionBtn.innerHTML = `<i class="fa-solid fa-ticket" style="font-size:8.5px;"></i> ${userFreePasses} проп.`;
-                if (buyBtn) buyBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Продлить (+30 дней)';
             } else {
                 banner.classList.remove('active-sub');
                 descText.innerHTML = `
@@ -1494,8 +1584,8 @@
                     <div class="prem-sub-line">+ <b>4 входа</b> без условий на 30 дней</div>
                 `;
                 actionBtn.className = 'prem-btn';
-                actionBtn.innerHTML = `<i class="fa-solid fa-bolt" style="font-size:9px;"></i> Подключить`;
-                // Текст кнопок внутри модалки теперь статический в HTML
+                // УБРАНА ЦЕНА 100 РУБЛЕЙ
+                actionBtn.innerHTML = `<i class="fa-solid fa-bolt" style="color: var(--gold); margin-right: 2px;"></i> Подключить`;
             }
 
             document.querySelectorAll('.js-user-tickets-val').forEach(el => {
@@ -1687,7 +1777,7 @@
             return shouldForceFreshLoad;
         }
 
-        async function buyRafflesPremium() {
+       async function buyRafflesPremium() {
             const btn = document.getElementById('buy-prem-btn');
             const oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Переход к оплате...';
@@ -1714,8 +1804,12 @@
 
                     closePremiumModal();
 
-                    // Открываем оплату прямо внутри WebView без окна "Перейти по ссылке?" и без выброса в браузер
-                    window.location.href = ans.url;
+                    // Открываем оплату во внутреннем браузере Telegram поверх Mini App
+                    if (tg && tg.openLink) {
+                        tg.openLink(ans.url);
+                    } else {
+                        window.open(ans.url, '_blank');
+                    }
                 } else {
                     showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку'));
                     btn.innerHTML = oldText;
@@ -1730,72 +1824,77 @@
 
         async function buyRafflesPremiumSkinsback() {
             const btn = document.getElementById('buy-skinsback-btn');
-            const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Подготовка...';
-            btn.disabled = true;
-
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = `<div class="pay-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><div class="pay-info"><span class="pay-title">Загрузка...</span><span class="pay-desc">Получаем ссылку</span></div>`;
+            
             try {
                 const res = await fetch('/api/v1/payment/skinsback/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        initData: tg.initData,
-                        action_type: 'raffles_premium'
-                    }),
-                    cache: 'no-store',
-                    __bypassFastCache: true
+                    body: JSON.stringify({ initData: tg.initData, action_type: 'raffles_premium' })
                 });
                 const ans = await res.json();
                 
                 if (res.ok && ans.url) {
                     localStorage.setItem('pending_raffles_prem_payment', String(Date.now()));
-                    localStorage.setItem('prev_raffles_free_passes', String(userFreePasses));
-                    localStorage.setItem('prev_raffles_prem_until', String(userPremiumUntil || ''));
                     clearFastCaches();
                     closePremiumModal();
-                    window.location.href = ans.url;
+                    
+                    // Открываем оплату во внутреннем браузере Telegram поверх Mini App
+                    if (tg && tg.openLink) {
+                        tg.openLink(ans.url);
+                    } else {
+                        window.open(ans.url, '_blank');
+                    }
                 } else {
                     showModal('error', 'Ошибка Skinsback', stripEmojis(ans.detail || 'Не удалось получить ссылку оплаты'));
-                    btn.innerHTML = oldText;
-                    btn.disabled = false;
+                    closePremiumModal();
                 }
             } catch (e) {
                 showModal('error', 'Ошибка', 'Проверьте интернет-соединение');
-                btn.innerHTML = oldText;
-                btn.disabled = false;
+                closePremiumModal();
             }
         }
 
         function showTradeStep() {
-            document.getElementById('prem-step-1').style.display = 'none';
-            document.getElementById('prem-step-2').style.display = 'block';
+            const step1 = document.getElementById('prem-step-1');
+            const step2 = document.getElementById('prem-step-2');
+            step1.classList.remove('step-active');
+            step1.classList.add('step-hidden');
+            setTimeout(() => {
+                step2.classList.remove('step-hidden');
+                step2.classList.add('step-active');
+            }, 100);
         }
 
         function backToStep1() {
-            document.getElementById('prem-step-2').style.display = 'none';
-            document.getElementById('prem-step-1').style.display = 'block';
+            const step1 = document.getElementById('prem-step-1');
+            const step2 = document.getElementById('prem-step-2');
+            step2.classList.remove('step-active');
+            step2.classList.add('step-hidden');
+            setTimeout(() => {
+                step1.classList.remove('step-hidden');
+                step1.classList.add('step-active');
+            }, 100);
         }
 
         function openModeratorTradeDM() {
             const message = "Привет! Готов обменять 2 кейса грёзы и кошмары на премиум доступ в розыгрышах, жду твою трейд ссылку.";
             const tgLink = `https://t.me/hatelove_twitch?text=${encodeURIComponent(message)}`;
-            
-            if (tg && tg.openTelegramLink) {
-                tg.openTelegramLink(tgLink);
-            } else if (tg && tg.openLink) {
-                tg.openLink(tgLink);
-            } else {
-                window.open(tgLink, '_blank');
-            }
+            if (tg && tg.openTelegramLink) tg.openTelegramLink(tgLink);
+            else if (tg && tg.openLink) tg.openLink(tgLink);
+            else window.open(tgLink, '_blank');
         }
 
-        // Обновляем функцию закрытия модалки, чтобы она сбрасывала состояние этапов
         function closePremiumModal() { 
             document.getElementById('premium-modal').style.display = 'none'; 
+            // Возвращаем на первый экран при закрытии, чтобы при следующем открытии был выбор
             setTimeout(() => {
-                document.getElementById('prem-step-1').style.display = 'block';
-                document.getElementById('prem-step-2').style.display = 'none';
-            }, 250); // Ждем завершения анимации скрытия
+                document.getElementById('prem-step-2').classList.remove('step-active');
+                document.getElementById('prem-step-2').classList.add('step-hidden');
+                document.getElementById('prem-step-1').classList.remove('step-hidden');
+                document.getElementById('prem-step-1').classList.add('step-active');
+            }, 300);
         }
 
         function switchTab(tabName) {
