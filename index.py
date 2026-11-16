@@ -19911,6 +19911,194 @@ async def simulate_transaction(
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # РОБОКАССА  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # РОБО - КАССА  # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+SKINSBACK_CLIENT_ID = os.getenv("SKINSBACK_CLIENT_ID", "d6864fe5-b1d1-45ea-aaa6-c51c671a0867")
+SKINSBACK_SECRET = os.getenv("SKINSBACK_SECRET", "")
+
+# Память для защиты от дублей вебхуков SkinsBack
+PROCESSED_SKINSBACK_INVOICES = set()
+
+def build_skinsback_signature(params: dict, client_secret: str) -> str:
+    """
+    Генерация подписи HMAC-SHA1 строго по документации SkinsBack.
+    """
+    sorted_params = dict(sorted(params.items()))
+    params_string = ""
+    for k, v in sorted_params.items():
+        if k == "sign":
+            continue
+        if isinstance(v, (list, dict)):
+            continue
+        params_string += f"{k}:{v};"
+    
+    hashed = hmac.new(
+        client_secret.encode("utf-8"),
+        params_string.encode("utf-8"),
+        hashlib.sha1
+    )
+    return hashed.hexdigest()
+
+
+@app.post("/api/v1/payment/skinsback/create")
+async def create_skinsback_link(
+    req: PaymentCreateRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    """Создание депозита через SkinsBack API V1"""
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Не авторизован")
+
+    tg_id = str(user_info["id"])
+    exp_amount = float(req.exp_amount) if req.exp_amount else 0.0
+    
+    # ВАЖНО: Зашиваем tg_id, тип покупки и опыт в order_id
+    # Формат: tgid-action-exp_amount-timestamp (например: 477521935-exp-10.0-1710000000)
+    inv_id = f"{tg_id}-{req.action_type}-{exp_amount}-{int(time.time())}"
+
+    params = {
+        "method": "create",
+        "order_id": inv_id,
+        "shopid": SKINSBACK_CLIENT_ID,
+        "success_url": "https://hatelavka.online/api/v1/payment/success",
+        "fail_url": "https://hatelavka.online/api/v1/payment/fail"
+    }
+
+    if req.action_type == "raffles_premium":
+        params["min_amount"] = "100.00"
+        params["max_amount"] = "150.00"
+        params["currency"] = "RUB"
+    elif req.action_type == "premium":
+        params["min_amount"] = "199.00"
+        params["max_amount"] = "250.00"
+        params["currency"] = "RUB"
+    elif req.action_type == "exp":
+        if not req.price or req.price <= 0:
+            raise HTTPException(status_code=400, detail="Неверная цена")
+        params["min_amount"] = f"{float(req.price):.2f}"
+        params["max_amount"] = f"{float(req.price) + 50:.2f}"
+        params["currency"] = "RUB"
+
+    params["sign"] = build_skinsback_signature(params, SKINSBACK_SECRET)
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CLIENT-ID": SKINSBACK_CLIENT_ID,
+        "X-CLIENT-SECRET": SKINSBACK_SECRET,
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "https://skinsback.com/api.php",
+                data=params,
+                headers=headers,
+                timeout=10.0
+            )
+            data = response.json()
+        except Exception as e:
+            logging.error(f"[SKINSBACK] Ошибка запроса к API: {e}")
+            raise HTTPException(status_code=500, detail="Ошибка связи с платежным шлюзом скинов")
+
+    if data.get("status") != "success":
+        logging.error(f"[SKINSBACK] Ошибка создания платежа: {data}")
+        raise HTTPException(status_code=400, detail=data.get("message", "Не удалось создать платеж скинами"))
+    
+    return {
+        "status": "success",
+        "url": data.get("url"),
+        "transaction_id": data.get("transaction_id"),
+        "inv_id": inv_id
+    }
+
+
+@app.api_route("/api/v1/payment/skinsback/callback", methods=["GET", "POST"])
+async def skinsback_callback(
+    request: Request, supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    """Вебхук от SkinsBack при успешном депозите"""
+    if request.method == "POST":
+        form_data = await request.form()
+        params = dict(form_data)
+    else:
+        params = dict(request.query_params)
+
+    # Проверка подписи двумя способами (по докам)
+    incoming_sign = params.get("sign", "")
+    calculated_sign = build_skinsback_signature(params, SKINSBACK_SECRET)
+
+    if calculated_sign != incoming_sign:
+        # Резервная проверка через заголовок X-SIGN: md5(clientId + clientSecret)
+        x_sign = request.headers.get("X-SIGN", "")
+        fallback_check = hashlib.md5((SKINSBACK_CLIENT_ID + SKINSBACK_SECRET).encode()).hexdigest()
+        if x_sign != fallback_check:
+            logging.error(f"[SKINSBACK WEBHOOK] Неверная подпись! Пришла: {incoming_sign}")
+            return PlainTextResponse(content="bad sign", status_code=400)
+
+    status = params.get("status")
+    order_id = str(params.get("order_id", ""))
+    transaction_id = str(params.get("transaction_id", ""))
+
+    # Нам интересны только успешные статусы или удержание
+    if status not in ["success", "in_hold", "hold_approved"]:
+        return PlainTextResponse(content="OK", status_code=200)
+
+    if transaction_id in PROCESSED_SKINSBACK_INVOICES or order_id in PROCESSED_SKINSBACK_INVOICES:
+        return PlainTextResponse(content="OK", status_code=200)
+
+    try:
+        # Расшифровываем order_id (формат: tgid-action-exp_amount-timestamp)
+        parts = order_id.split("-")
+        if len(parts) >= 3:
+            tgid = parts[0]
+            action = parts[1]
+            try:
+                exp_value = float(parts[2])
+            except ValueError:
+                exp_value = 0.0
+        elif len(parts) == 2:
+            tgid = parts[0]
+            action = parts[1]
+            exp_value = 0.0
+        else:
+            logging.error(f"[SKINSBACK WEBHOOK] Неверный формат order_id: {order_id}")
+            return PlainTextResponse(content="OK", status_code=200)
+
+        # Выдаем товар в зависимости от action
+        if action == "raffles_premium":
+            res = await grant_raffles_premium_direct(supabase, str(tgid), is_fallback=False)
+            if res.get("status") == "success":
+                PROCESSED_SKINSBACK_INVOICES.add(transaction_id)
+                PROCESSED_SKINSBACK_INVOICES.add(order_id)
+                logging.info(f"[SKINSBACK] Успешно выдана подписка для {tgid}")
+        else:
+            # Для premium / exp батлпасса передаем p_value
+            rpc_resp = await supabase.post(
+                "/rpc/handle_robokassa_fulfillment",
+                json={
+                    "p_telegram_id": str(tgid),
+                    "p_action": str(action),
+                    "p_value": exp_value,
+                },
+            )
+            if rpc_resp.is_success:
+                PROCESSED_SKINSBACK_INVOICES.add(transaction_id)
+                PROCESSED_SKINSBACK_INVOICES.add(order_id)
+                logging.info(f"[SKINSBACK] Успешно выдан товар {action} (опыт: {exp_value}) для {tgid}")
+
+    except Exception as e:
+        logging.error(f"[SKINSBACK WEBHOOK] Ошибка обработки выдачи: {e}", exc_info=True)
+
+    return PlainTextResponse(content="OK", status_code=200)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # SKINSBACK  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # БАТТЛ-ПАСС  # # # # # # # # # # # # # # # # # # # # # # # # # # # #
