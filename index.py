@@ -29308,6 +29308,20 @@ async def create_raffle(
         print(f"❌ JSON Parse Error: {e} | Body: {res.text}")
         raise HTTPException(status_code=500, detail="Не удалось получить ID созданного розыгрыша")
 
+    # ========================================================
+    # ⚡ АВТО-ВХОД ПОДПИСЧИКОВ В ПЕРВУЮ ЖЕ СЕКУНДУ СОЗДАНИЯ
+    # ========================================================
+    initial_count = 0
+    if status == "active":
+        try:
+            auto_res = await trigger_raffles_auto_join(supabase)
+            for item in (auto_res.get("updated_raffles") or []):
+                if int(item.get("raffle_id", 0)) == int(new_id):
+                    initial_count = int(item.get("new_count") or 0)
+                    print(f"⚡ Авто-участие: в розыгрыш #{new_id} на старте добавлено {initial_count} подписчиков!")
+        except Exception as e_auto:
+            print(f"⚠️ Ошибка стартового авто-входа для #{new_id}: {e_auto}")
+
     # Переменные для QStash
     qstash_token = os.getenv("QSTASH_TOKEN")
     app_url = os.getenv("WEB_APP_URL") or os.getenv("APP_URL")
@@ -29367,7 +29381,7 @@ async def create_raffle(
                 if name_tag:
                     txt += f"└ Никнейм содержит: «{name_tag}» 🏷\n"
                 if min_msgs > 0:
-                    txt += f"└ Активность на стриме ({min_msgs} сообщ. {period_str})\n"
+                    txt += f'└ Активность на <a href="https://www.twitch.tv/hatelove_ttv">стриме</a> ({min_msgs} сообщ. {period_str})\n'
 
                 if req.end_time:
                     try:
@@ -29378,13 +29392,20 @@ async def create_raffle(
                 txt += "\n👇 <b>Жми кнопку, чтобы поучаствовать!</b>"
 
                 url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{new_id}"
-                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Участвовать 🎲 (0)", url=url_btn)]])
+                base_app_url = (app_url or "").rstrip("/")
+                twitch_btn_url = f"{base_app_url}/api/v1/twitch/redirect?raffle_id={new_id}" if base_app_url else "https://www.twitch.tv/hatelove_ttv"
+                buttons = [[InlineKeyboardButton(text=f"Участвовать 🎲 ({initial_count})", url=url_btn)]]
+                if min_msgs > 0:
+                    buttons.append([InlineKeyboardButton(text="ПЕРЕЙТИ НА ТВИЧ", url=twitch_btn_url, style="primary")])
+                kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
                 prize_img = s.get('prize_image') or s.get('card_image')
                 sent_msg = None 
                 
                 if prize_img:
-                    sent_msg = await bot.send_photo(chat_id=channel_id, photo=prize_img, caption=txt, reply_markup=kb, parse_mode="HTML")
+                    banner_bytes = await build_raffle_banner(prize_img, prize_name=prize_name)
+                    photo_to_send = BufferedInputFile(banner_bytes, filename="raffle_banner.jpg") if banner_bytes else prize_img
+                    sent_msg = await bot.send_photo(chat_id=channel_id, photo=photo_to_send, caption=txt, reply_markup=kb, parse_mode="HTML")
                 else:
                     sent_msg = await bot.send_message(chat_id=channel_id, text=txt, reply_markup=kb, parse_mode="HTML")
                 
@@ -29399,7 +29420,7 @@ async def create_raffle(
                 try:
                     print(f"🚀 Запускаю мгновенную рассылку в боте через Bot-T для розыгрыша ID {new_id}...")
                     TEMPLATE_MESSAGE_ID = 7529886
-                    clean_btn_name = "Участвовать (0)"
+                    clean_btn_name = f"Участвовать ({initial_count})"
                     auth = get_bott_auth_payload()
                     bott_headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -29460,6 +29481,28 @@ async def create_raffle(
                                     print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
                             except Exception as e_btn:
                                 print(f"⚠️ Bot-T ошибка запроса кнопки: {e_btn}")
+
+                            # Если есть условие сообщений на Твиче — добавляем вторую кнопку перехода на канал
+                            if min_msgs > 0:
+                                try:
+                                    twitch_btn_payload = {
+                                        **auth,
+                                        "menu_id": int(menu_id) if menu_id else int(message_id),
+                                        "type": 0,
+                                        "text": "ПЕРЕЙТИ НА ТВИЧ",
+                                        "action": "https://www.twitch.tv/hatelove_ttv",
+                                        "link": "https://www.twitch.tv/hatelove_ttv",
+                                        "name": "ПЕРЕЙТИ НА ТВИЧ",
+                                        "url": "https://www.twitch.tv/hatelove_ttv"
+                                    }
+                                    t_btn_resp = await bott_client.post(
+                                        "/v1/bot/keyboard/inline-new/add-button-with-line",
+                                        json=twitch_btn_payload
+                                    )
+                                    if t_btn_resp.status_code == 200 and t_btn_resp.json().get("result"):
+                                        print(f"🔘 Bot-T Button OK: кнопка 'ПЕРЕЙТИ НА ТВИЧ' привязана к меню #{menu_id}!")
+                                except Exception as e_tbtn:
+                                    print(f"⚠️ Bot-T ошибка запроса кнопки Твича: {e_tbtn}")
 
                             # 5. Запускаем рассылку на всех пользователей бота
                             start_resp = await bott_client.post(
@@ -29639,6 +29682,20 @@ async def publish_raffle_webhook(
         raffle = data[0]
         s = raffle.get('settings', {})
         print(f"⏱ [{time.time() - start_time:.2f}s] Розыгрыш активирован и данные получены")
+
+        # ========================================================
+        # ⚡ АВТО-ВХОД ПОДПИСЧИКОВ В МОМЕНТ АКТИВАЦИИ ОТЛОЖЕННОГО ПОСТА
+        # ========================================================
+        initial_count = int(raffle.get('participants_count') or 0)
+        try:
+            auto_res = await trigger_raffles_auto_join(supabase)
+            for item in (auto_res.get("updated_raffles") or []):
+                if int(item.get("raffle_id", 0)) == int(req.raffle_id):
+                    initial_count = int(item.get("new_count") or initial_count)
+                    raffle['participants_count'] = initial_count
+                    print(f"⚡ Авто-участие (отложенный старт): в розыгрыш #{req.raffle_id} добавлено {initial_count} подписчиков!")
+        except Exception as e_auto:
+            print(f"⚠️ Ошибка стартового авто-входа для отложенного #{req.raffle_id}: {e_auto}")
         
         if s.get('is_silent'):
             print(f"🤫 Розыгрыш {req.raffle_id} опубликован без поста (silent mode)")
@@ -29706,7 +29763,7 @@ async def publish_raffle_webhook(
             
         # 🔥 ТЕПЕРЬ ТЕКСТ ПОДСТАВЛЯЕТСЯ ПРАВИЛЬНО
         if min_msgs > 0:
-            txt += f"└ Активность на стриме ({min_msgs} сообщ. {period_str})\n"
+            txt += f'└ Активность на <a href="https://www.twitch.tv/hatelove_ttv">стриме</a> ({min_msgs} сообщ. {period_str})\n'
 
         if raffle.get('end_time'):
             try:
@@ -29717,7 +29774,12 @@ async def publish_raffle_webhook(
         txt += "\n👇 <b>Жми кнопку, чтобы поучаствовать!</b>"
 
         url_btn = f"https://t.me/HATElavka_bot/raffles?startapp=raffle_{req.raffle_id}"
-        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Участвовать 🎲 (0)", url=url_btn)]])
+        base_app_url = (os.getenv("WEB_APP_URL") or os.getenv("APP_URL") or "").rstrip("/")
+        twitch_btn_url = f"{base_app_url}/api/v1/twitch/redirect?raffle_id={req.raffle_id}" if base_app_url else "https://www.twitch.tv/hatelove_ttv"
+        buttons = [[InlineKeyboardButton(text=f"Участвовать 🎲 ({initial_count})", url=url_btn)]]
+        if min_msgs > 0:
+            buttons.append([InlineKeyboardButton(text="ПЕРЕЙТИ НА ТВИЧ", url=twitch_btn_url, style="primary")])
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         post_img = s.get('prize_image') or s.get('card_image')
         
@@ -29726,7 +29788,9 @@ async def publish_raffle_webhook(
         if channel_id:
             print(f"⏱ [{time.time() - start_time:.2f}s] Начинаю отправку в Telegram...")
             if post_img:
-                sent_msg = await bot.send_photo(chat_id=channel_id, photo=post_img, caption=txt, reply_markup=kb, parse_mode="HTML")
+                banner_bytes = await build_raffle_banner(post_img, prize_name=prize_name)
+                photo_to_send = BufferedInputFile(banner_bytes, filename="raffle_banner.jpg") if banner_bytes else post_img
+                sent_msg = await bot.send_photo(chat_id=channel_id, photo=photo_to_send, caption=txt, reply_markup=kb, parse_mode="HTML")
             else:
                 sent_msg = await bot.send_message(chat_id=channel_id, text=txt, reply_markup=kb, parse_mode="HTML")
             
@@ -29807,6 +29871,28 @@ async def publish_raffle_webhook(
                             print(f"⚠️ Bot-T Button Warning: {btn_resp.text[:200]}")
                     except Exception as e_btn:
                         print(f"⚠️ Bot-T ошибка запроса кнопки: {e_btn}")
+
+                    # Если есть условие сообщений на Твиче — добавляем вторую кнопку перехода на канал
+                    if min_msgs > 0:
+                        try:
+                            twitch_btn_payload = {
+                                **auth,
+                                "menu_id": int(menu_id) if menu_id else int(message_id),
+                                "type": 0,
+                                "text": "ПЕРЕЙТИ НА ТВИЧ",
+                                "action": "https://www.twitch.tv/hatelove_ttv",
+                                "link": "https://www.twitch.tv/hatelove_ttv",
+                                "name": "ПЕРЕЙТИ НА ТВИЧ",
+                                "url": "https://www.twitch.tv/hatelove_ttv"
+                            }
+                            t_btn_resp = await bott_client.post(
+                                "/v1/bot/keyboard/inline-new/add-button-with-line",
+                                json=twitch_btn_payload
+                            )
+                            if t_btn_resp.status_code == 200 and t_btn_resp.json().get("result"):
+                                print(f"🔘 Bot-T Button OK: кнопка 'ПЕРЕЙТИ НА ТВИЧ' привязана к меню #{menu_id}!")
+                        except Exception as e_tbtn:
+                            print(f"⚠️ Bot-T ошибка запроса кнопки Твича: {e_tbtn}")
 
                     # 5. Запускаем рассылку на всех пользователей бота
                     start_resp = await bott_client.post(
@@ -30332,6 +30418,15 @@ async def finalize_raffle_webhook(
     # === НАЧИНАЕМ ОТСЧЕТ ВРЕМЕНИ ===
     start_time = time.time()
     print(f"⏱ [0.00s] Начало обработки розыгрыша {raffle_id}")
+
+    # ==========================================
+    # ⚡ ФИНАЛЬНЫЙ ПРОГОН АВТО-ВХОДА ПЕРЕД БЛОКИРОВКОЙ
+    # (Закидывает тех, кто добил сообщения на последней минуте, пока статус еще active)
+    # ==========================================
+    try:
+        await trigger_raffles_auto_join(supabase)
+    except Exception as e_auto:
+        print(f"⚠️ Ошибка финального авто-входа перед итогами {raffle_id}: {e_auto}")
     
     # ==========================================
     # 2. АТОМАРНАЯ БЛОКИРОВКА (Optimistic Locking)
@@ -30345,7 +30440,7 @@ async def finalize_raffle_webhook(
         params={
             "id": f"eq.{raffle_id}", 
             "status": "eq.active"  # <- КРИТИЧЕСКИ ВАЖНОЕ УСЛОВИЕ
-        },
+        }, 
         json={"status": "processing"},
         headers={"Prefer": "return=representation"} # Просим БД вернуть обновленную строку
     )
@@ -30359,10 +30454,10 @@ async def finalize_raffle_webhook(
     raffle_data = lock_resp.json()
     raffle = raffle_data[0]
 
-    # 3. ПОЛУЧАЕМ УЧАСТНИКОВ И ИХ ИМЕНА ИЗ ТАБЛИЦЫ USERS (ДЛЯ ПРОВЕРКИ ТЕГОВ)
+    # 3. ПОЛУЧАЕМ УЧАСТНИКОВ И ИХ ДАННЫЕ ИЗ USERS (ДЛЯ ПРОВЕРКИ ТЕГОВ, ЛУТА И БИЛЕТОВ)
     parts_resp = await supabase.get("/raffle_participants", params={
         "raffle_id": f"eq.{raffle_id}",
-        "select": "*, user:users(full_name, username)"
+        "select": "*, user:users(full_name, username, total_extracted, tickets)"
     })
     participants = parts_resp.json() or []
     count = len(participants)
@@ -30442,43 +30537,149 @@ async def finalize_raffle_webhook(
     
     try:
         if raffle['type'] == 'inline_random':
-            # --- ЛОГИКА СКРЫТОГО ПРОПУСКА (Как было) ---
-            prev_winner_id = None
-            prev_raffle_resp = await supabase.get("/raffles", params={
-                "status": "eq.completed",
-                "id": f"lt.{raffle_id}", 
-                "order": "id.desc",
-                "limit": 1
-            })
-            if prev_raffle_resp.json():
-                prev_winner_id = prev_raffle_resp.json()[0].get('winner_id')
+            import random
+            from collections import Counter
 
-            if participants: 
-                # Фильтруем (убираем прошлого победителя, чтобы дать шанс другим)
-                pool = [p for p in participants if p['user_id'] != prev_winner_id]
-                
-                # Если остался только он или никого, берем всех
-                if not pool:
-                    pool = participants
+            if participants:
+                # 1. Забираем последние 15 РЕАЛЬНО состоявшихся розыгрышей (игнорируем отмененные с winner_id = null)
+                recent_raffles_resp = await supabase.get("/raffles", params={
+                    "status": "eq.completed",
+                    "winner_id": "not.is.null",
+                    "order": "end_time.desc,id.desc",
+                    "select": "id,winner_id",
+                    "limit": 15
+                })
+                recent_raffles = recent_raffles_resp.json() if recent_raffles_resp.status_code == 200 else []
+                recent_winners = [r.get('winner_id') for r in recent_raffles if r.get('winner_id')]
 
-                import random # Убедимся, что random доступен
+                last_1_winner = recent_winners[0] if len(recent_winners) >= 1 else None
+                last_2_winner = recent_winners[1] if len(recent_winners) >= 2 else None
+
+                # 2. Считаем победы за ВСЁ время по каждому участнику
+                all_wins_resp = await supabase.get("/raffles", params={
+                    "status": "eq.completed",
+                    "winner_id": "not.is.null",
+                    "order": "id.desc",
+                    "select": "winner_id",
+                    "limit": 5000
+                })
+                all_wins_rows = all_wins_resp.json() if all_wins_resp.status_code == 200 else []
+                all_time_wins = Counter(r.get('winner_id') for r in all_wins_rows if r.get('winner_id'))
+
+                # 3. ЖЕЛЕЗНЫЙ АНТИ-ПОВТОР:
+                # Победитель прошлого розыгрыша НИКОГДА не выиграет 2 раза подряд (если участников > 1)
+                pool = list(participants)
+                if len(pool) > 1 and last_1_winner is not None:
+                    filtered_1 = [p for p in pool if p['user_id'] != last_1_winner]
+                    if filtered_1:
+                        pool = filtered_1
+
+                # Если в пуле 3+ человек — вырезаем и позапрошлого победителя (защита от побед "через раз")
+                if len(pool) >= 3 and last_2_winner is not None:
+                    filtered_2 = [p for p in pool if p['user_id'] != last_2_winner]
+                    if filtered_2:
+                        pool = filtered_2
+
+                # 4. Считаем серию поражений подряд (Pity Timer) по последним 12 розыгрышам
+                dry_streaks = {p['user_id']: 0 for p in pool}
+                check_raffle_ids = [r['id'] for r in recent_raffles[:12]]
+                pool_user_ids = [p['user_id'] for p in pool]
+
+                if check_raffle_ids and pool_user_ids:
+                    try:
+                        hist_parts_resp = await supabase.get("/raffle_participants", params={
+                            "raffle_id": f"in.({','.join(map(str, check_raffle_ids))})",
+                            "user_id": f"in.({','.join(map(str, pool_user_ids))})",
+                            "select": "raffle_id,user_id"
+                        })
+                        if hist_parts_resp.status_code == 200:
+                            raffle_to_users = {}
+                            for row in (hist_parts_resp.json() or []):
+                                raffle_to_users.setdefault(row['raffle_id'], set()).add(row['user_id'])
+
+                            for uid in pool_user_ids:
+                                streak = 0
+                                for r_obj in recent_raffles[:12]:
+                                    r_id = r_obj['id']
+                                    if uid in raffle_to_users.get(r_id, set()):
+                                        if r_obj.get('winner_id') == uid:
+                                            break
+                                        streak += 1
+                                dry_streaks[uid] = streak
+                    except Exception as streak_err:
+                        print(f"⚠️ Ошибка подсчета лузстрика: {streak_err}")
+
+                # 5. Проверка на равенство участников в лобби (если у всех +/- одинаково — деления нет)
+                pool_ext = [float((p.get('user') or {}).get('total_extracted') or 0.0) for p in pool]
+                pool_wins = [all_time_wins.get(p['user_id'], 0) for p in pool]
+                is_equal_lobby = (
+                    (max(pool_ext) - min(pool_ext) < 150.0) and
+                    (max(pool_wins) - min(pool_wins) <= 1)
+                )
+
                 crypto_gen = random.SystemRandom()
-                
-                # --- 🔥 ВЕСОВОЙ РАНДОМ (ШТРАФ 20%) ---
                 weights = []
+
                 for p in pool:
+                    uid = p['user_id']
                     u_data = p.get('user') or {}
                     f_name = u_data.get('full_name', '')
                     u_name = u_data.get('username', '')
-                    
-                    if check_bot_penalty(f_name, u_name):
-                        weights.append(0.8) # Режем вероятность на 20%
+
+                    ext_val = float(u_data.get('total_extracted') or 0.0)
+                    tickets_val = float(u_data.get('tickets') or 0.0)
+                    total_w = all_time_wins.get(uid, 0)
+
+                    if is_equal_lobby:
+                        weight = 1.0
                     else:
-                        weights.append(1.0) # Стандартный шанс
-                
-                # Выбираем с учетом весов
+                        # Приземленные пороги по луту и победам за всё время (без перекачки новичков):
+                        if total_w == 0 and ext_val < 200.0:
+                            weight = 1.15     # Легкий +15% плюс тем, кто еще ни разу не побеждал
+                        elif total_w <= 1 and ext_val < 450.0:
+                            weight = 1.0      # Стандартный базовый вес
+                        elif total_w <= 2 and ext_val < 900.0:
+                            weight = 0.75     # Уже нормально налутал -> плавное снижение на 25%
+                        elif total_w <= 4 and ext_val < 2000.0:
+                            weight = 0.45     # Жирный лутер (900+ ₽) -> шанс ниже примерно в 2 раза
+                        else:
+                            weight = 0.25     # Топ-лутер (2000+ ₽ / 5+ побед) -> мягкий пол
+
+                        # Если на руках скопилось 1000+ билетов -> режем вес еще на 20%
+                        if tickets_val >= 1000.0:
+                            weight *= 0.80
+
+                    # Мягкий выход из черной полосы: после 3 проигрышей подряд +0.10 за каждый (макс +0.40)
+                    losses_in_a_row = dry_streaks.get(uid, 0)
+                    if losses_in_a_row >= 4:
+                        weight += min(0.40, (losses_in_a_row - 3) * 0.10)
+
+                    # Штраф 20% за рекламу/ботов в нике
+                    if check_bot_penalty(f_name, u_name):
+                        weight *= 0.8
+
+                    weights.append(max(0.20, weight))
+
                 winner_entry = crypto_gen.choices(pool, weights=weights, k=1)[0]
                 winner_id = winner_entry['user_id']
+
+                # Финальная страховка: если участников > 1, победитель 100% не совпадет с прошлым
+                if len(participants) > 1 and winner_id == last_1_winner:
+                    fallback_pool = [p for p in participants if p['user_id'] != last_1_winner]
+                    if fallback_pool:
+                        winner_entry = crypto_gen.choice(fallback_pool)
+                        winner_id = winner_entry['user_id']
+
+                win_idx = pool.index(winner_entry) if winner_entry in pool else 0
+                w_user = winner_entry.get('user') or {}
+                w_ext = float(w_user.get('total_extracted') or 0.0)
+                w_tickets = float(w_user.get('tickets') or 0.0)
+                print(
+                    f"⚖️ [SMART RAFFLE #{raffle_id}] Победитель: {winner_id} | "
+                    f"Вес: {weights[win_idx]:.2f} | Побед всего: {all_time_wins.get(winner_id, 0)} | "
+                    f"Вывел: {w_ext:.0f}₽ | Билетов: {w_tickets:.0f} | "
+                    f"Лузстрик: {dry_streaks.get(winner_id, 0)} | Равное лобби: {is_equal_lobby}"
+                )
                 
         elif raffle['type'] == 'most_active':
             # Логика самого активного
@@ -30566,9 +30767,9 @@ async def finalize_raffle_webhook(
                         "rarity": rarity_val,
                         "condition": quality if quality else None,
                         "image_url": final_image_url,
-                        "is_active": False,        # Прячем из рулеток
-                        "chance_weight": "0",      # Дефолт для отсутствующих в кейсах
-                        "quantity": 0,             # Бесконечный/не учитывается для прямых выдач
+                        "is_active": False,       # Прячем из рулеток
+                        "chance_weight": "0",     # Дефолт для отсутствующих в кейсах
+                        "quantity": 0,            # Бесконечный/не учитывается для прямых выдач
                         "boost_percent": 0,
                         "case_tag": None
                     }
@@ -30590,7 +30791,8 @@ async def finalize_raffle_webhook(
                         "details": f"Выигрыш: {prize_full}",
                         "source": "raffle"
                     })
-                    delivery_status_text = "\n\n🎒 <i>Приз уже лежит в твоем инвентаре бота! Заходи в профиль и нажимай «Забрать».</i>"
+                    # 🔥 ИСПРАВЛЕНИЕ: Добавлен открывающий тег <i>
+                    delivery_status_text = "\n\n<i>Напоминаем: скин ты можешь забрать сразу же, без условий! Он находится в инвентаре.</i>"
                 else:
                     # Резервный фоллбек, если БД совсем упала
                     await supabase.post("/cs_history", json={
@@ -30628,10 +30830,14 @@ async def finalize_raffle_webhook(
                 # ФОРМИРУЕМ И ОТПРАВЛЯЕМ ПОСТ О ПОБЕДЕ (Только если не тихий режим)
                 # ==========================================
                 if channel_id and not is_silent:
+                    import html # 🔥 ИСПРАВЛЕНИЕ: Импортируем html для экранирования опасных символов
+                    safe_winner_name = html.escape(winner_name)
+                    safe_winner_username = html.escape(winner_username)
+                    
                     text = (
                         f"🛑 <b>РОЗЫГРЫШ ЗАВЕРШЕН!</b>\n\n"
                         f"🎁 Приз: <b>{prize_full}</b>\n"
-                        f"🏆 Победитель: <b>{winner_name}</b> {winner_username}\n\n"
+                        f"🏆 Победитель: <b>{safe_winner_name}</b> {safe_winner_username}\n\n"
                         f"Поздравляем! 🍀"
                     )
                     text += delivery_status_text
@@ -30640,15 +30846,17 @@ async def finalize_raffle_webhook(
                     prize_img = s.get('prize_image') or s.get('card_image') or final_image_url
 
                     kb = InlineKeyboardMarkup(inline_keyboard=[[
-                        InlineKeyboardButton(text="🎒 Открыть инвентарь", url="https://t.me/HATElavka_bot/profile")
+                        InlineKeyboardButton(text="Открыть инвентарь", url="https://t.me/HATElavka_bot/profile")
                     ]])
                     
                     # Отправляем результат (Реплай на пост розыгрыша, если есть ID)
                     if prize_img:
+                        banner_bytes = await build_raffle_banner(prize_img, prize_name=prize_name, bg_name="raffle_win_bg.png")
+                        photo_to_send = BufferedInputFile(banner_bytes, filename="raffle_winner.jpg") if banner_bytes else prize_img
                         if reply_to_id:
-                            await bot.send_photo(chat_id=channel_id, photo=prize_img, caption=text, reply_to_message_id=reply_to_id, parse_mode="HTML", reply_markup=kb)
+                            await bot.send_photo(chat_id=channel_id, photo=photo_to_send, caption=text, reply_to_message_id=reply_to_id, parse_mode="HTML", reply_markup=kb)
                         else:
-                            await bot.send_photo(chat_id=channel_id, photo=prize_img, caption=text, parse_mode="HTML", reply_markup=kb)
+                            await bot.send_photo(chat_id=channel_id, photo=photo_to_send, caption=text, parse_mode="HTML", reply_markup=kb)
                     else:
                         if reply_to_id:
                             await bot.send_message(chat_id=channel_id, text=text, reply_to_message_id=reply_to_id, parse_mode="HTML", reply_markup=kb)
