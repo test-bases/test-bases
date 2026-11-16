@@ -1010,9 +1010,10 @@
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(0, 0, 0, 0) 100%);
             border-color: rgba(16, 185, 129, 0.3);
         }
+        /* Стиль Steam для Трейда */
         .pay-card.trade { 
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(0, 0, 0, 0) 100%);
-            border-color: rgba(245, 158, 11, 0.3);
+            background: linear-gradient(135deg, rgba(42, 71, 94, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-color: rgba(102, 192, 244, 0.35);
         }
 
         .pay-icon {
@@ -1031,9 +1032,25 @@
             height: 24px;
             object-fit: contain;
         }
-        .pay-card.robo .pay-icon { background: #ffffff; color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
-        .pay-card.skins .pay-icon { background: #ffffff; color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
-        .pay-card.trade .pay-icon { background: rgba(245, 158, 11, 0.2); color: var(--gold); box-shadow: 0 0 10px rgba(245,158,11,0.3); }
+        
+        /* Оригинальные фоны не трогаем, меняем цвет только у Трейда */
+        .pay-card.robo .pay-icon { background: rgba(139, 92, 246, 0.2); color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+        .pay-card.skins .pay-icon { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
+        .pay-card.trade .pay-icon { background: rgba(42, 71, 94, 0.4); color: #66c0f4; box-shadow: 0 0 10px rgba(102,192,244,0.3); }
+
+        .pay-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .pay-title { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: -0.2px; }
+        .pay-desc { font-size: 9.5px; font-weight: 500; color: #a1a1aa; }
+        
+        .pay-value { font-size: 13.5px; font-weight: 800; margin-left: 10px; }
+        .pay-card.robo .pay-value { color: #c084fc; text-shadow: 0 0 8px rgba(192,132,252,0.4); }
+        .pay-card.skins .pay-value { color: #6ee7b7; text-shadow: 0 0 8px rgba(110,231,183,0.4); }
+        .pay-card.trade .pay-value { color: #66c0f4; text-shadow: 0 0 8px rgba(102,192,244,0.4); }
 
         .pay-info {
             display: flex;
@@ -1247,7 +1264,8 @@
                     </div>
 
                     <div class="pay-card skins" id="buy-skinsback-btn" style="animation-delay: 0.1s;" onclick="buyRafflesPremiumSkinsback()">
-                        <div class="pay-icon"><img src="/static/skinsback_logo.svg" alt="SkinsBack" class="pay-svg-logo"></div>
+                        <!-- Увеличен логотип Skinsback до 32px -->
+                        <div class="pay-icon"><img src="/static/skinsback_logo.svg" alt="SkinsBack" class="pay-svg-logo" style="width: 32px; height: 32px;"></div>
                         <div class="pay-info">
                             <span class="pay-title">Оплата скинами</span>
                             <span class="pay-desc">Через SkinsBack</span>
@@ -1256,14 +1274,14 @@
                     </div>
 
                     <div class="pay-card trade" style="animation-delay: 0.15s;" onclick="showTradeStep()">
-                        <div class="pay-icon"><i class="fa-solid fa-box-open"></i></div>
+                        <!-- Добавлена картинка кейса вместо иконки -->
+                        <div class="pay-icon"><img src="/static/case_raffles.webp" alt="Case" class="pay-svg-logo" style="width: 28px; height: 28px; object-fit: contain;"></div>
                         <div class="pay-info">
                             <span class="pay-title">Прямой трейд</span>
                             <span class="pay-desc">Кейс «Грёзы и кошмары»</span>
                         </div>
                         <div class="pay-value">2 шт.</div>
                     </div>
-                </div>
 
                 <button class="m-btn" style="margin-top: 14px; background: transparent; border: none; box-shadow: none; color: #a1a1aa;" onclick="backToStep0()">
                     <i class="fa-solid fa-arrow-left" style="margin-right: 4px;"></i> Назад
@@ -1280,7 +1298,7 @@
                 
                 <div class="m-desc" style="font-size: 11px; line-height: 1.5; margin-bottom: 20px; text-shadow: none;">
                     Цена на кейсы нестабильна, поэтому стоимость подписки в них немного выше.<br><br>
-                    Выдача происходит <b>вручную</b>. Напиши модератору и отправь трейд-ссылку, чтобы активировать подписку!
+                    Выдача происходит <b>вручную</b>. Напиши модератору и отправь по трейд ссылки 2 кейса, чтобы активировать подписку!
                 </div>
 
                 <button class="m-btn m-btn-primary" style="background: linear-gradient(135deg, rgba(36, 161, 222, 0.85) 0%, rgba(2, 132, 199, 0.7) 100%); border-color: rgba(125, 211, 252, 0.5);" onclick="openModeratorTradeDM()">
