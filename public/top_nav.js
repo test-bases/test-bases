@@ -1,5 +1,22 @@
 (function() {
     // ==========================================
+    // 🔥 МГНОВЕННЫЙ РАЗВОРОТ ОКНА (ДО ЗАГРУЗКИ HTML) 🔥
+    // ==========================================
+    if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();   // Сообщаем ТГ, что приложение стартовало
+        tg.expand();  // Мгновенно растягиваем на 100%
+        
+        try {
+            if (tg.requestFullscreen) {
+                tg.requestFullscreen(); // Убиваем верхнюю системную рамку
+            }
+            if (tg.setHeaderColor) {
+                tg.setHeaderColor('#121212'); // Красим козырек в цвет фона
+            }
+        } catch(e) {}
+    }
+    // ==========================================
     // 0. ВСТРОЕННЫЙ ЩИТ АВТОРИЗАЦИИ И API (ЧТОБЫ НИКОГДА НЕ ПАДАЛ)
     // ==========================================
     function getSafeAuthPayload() {
@@ -1748,17 +1765,31 @@
     // 5. ИНИЦИАЛИЗАЦИЯ И ЗАЩИТА DOM
     // ==========================================
     function bootstrap() {
+        // 1. 🔥 КОМАНДЫ ДЛЯ ТЕЛЕГРАМА (Им HTML не нужен, выполняем МГНОВЕННО)
+        if (window.Telegram && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+            try {
+                if (tg.requestFullscreen) tg.requestFullscreen();
+                if (tg.setHeaderColor) tg.setHeaderColor('#121212');
+            } catch(e) {}
+        }
+
+        // 2. Если HTML-тело еще не загрузилось — тормозим (ТГ мы уже развернули, а кнопки отрисуем позже)
+        if (!document.body) return;
+
+        // 3. Защита от двойного построения интерфейса
         if (isInitialized) {
             injectDOM();
             return;
         }
-        if (!document.body) return;
         isInitialized = true;
 
         detectPlatforms();
         injectDOM();
 
-        // Сразу запускаем фоновую синхронизацию баланса и админ-прав без ожидания 5 секунд
+        // Сразу запускаем фоновую синхронизацию баланса и админ-прав
         setTimeout(() => {
             window.checkBalance(true, false);
             checkAdminAccess();
@@ -1790,13 +1821,20 @@
         observer.observe(document.body, { childList: true });
     }
 
-    // Если document.body уже создан — монтируем шапку СИНХРОННО в тот же кадр (0 мс) без ожидания DOMContentLoaded!
-    if (document.body) {
-        bootstrap();
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => injectDOM(), { once: true });
-        }
-    } else {
-        document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
+    // ==========================================
+    // 🚀 СТАРТ СКРИПТА
+    // ==========================================
+    
+    // Вызываем bootstrap СРАЗУ ЖЕ, чтобы Телеграм мгновенно развернулся на весь экран
+    bootstrap();
+
+    // А для отрисовки нашего HTML ждем полной готовности страницы
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            bootstrap(); // Второй вызов, теперь уже для отрисовки интерфейса
+            injectDOM(); // Подстраховка для инжекта
+        }, { once: true });
+    } else if (document.body) {
+        injectDOM();
     }
 })();
