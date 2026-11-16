@@ -1031,8 +1031,8 @@
             height: 24px;
             object-fit: contain;
         }
-        .pay-card.robo .pay-icon { background: rgba(139, 92, 246, 0.2); color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
-        .pay-card.skins .pay-icon { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
+        .pay-card.robo .pay-icon { background: #ffffff; color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+        .pay-card.skins .pay-icon { background: #ffffff; color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
         .pay-card.trade .pay-icon { background: rgba(245, 158, 11, 0.2); color: var(--gold); box-shadow: 0 0 10px rgba(245,158,11,0.3); }
 
         .pay-info {
@@ -1806,7 +1806,7 @@
             return shouldForceFreshLoad;
         }
 
-       async function buyRafflesPremium() {
+      async function buyRafflesPremium() {
             const btn = document.getElementById('buy-prem-btn');
             const oldHtml = btn.innerHTML;
             btn.style.pointerEvents = 'none';
@@ -1836,11 +1836,8 @@
                     btn.style.pointerEvents = 'auto';
                     closePremiumModal();
 
-                    if (tg && tg.openLink) {
-                        tg.openLink(ans.url);
-                    } else {
-                        window.location.href = ans.url;
-                    }
+                    // Строго открываем внутри WebView для корректного редиректа обратно
+                    window.location.href = ans.url;
                 } else {
                     showModal('error', 'Ошибка оплаты', stripEmojis(ans.detail || 'Не удалось получить ссылку'));
                     btn.innerHTML = oldHtml;
@@ -1853,7 +1850,7 @@
             }
         }
 
-        async function buyRafflesPremiumSkinsback() {
+       async function buyRafflesPremiumSkinsback() {
             const btn = document.getElementById('buy-skinsback-btn');
             const oldHtml = btn.innerHTML;
             btn.style.pointerEvents = 'none';
@@ -1875,11 +1872,8 @@
                     btn.style.pointerEvents = 'auto';
                     closePremiumModal();
                     
-                    if (tg && tg.openLink) {
-                        tg.openLink(ans.url);
-                    } else {
-                        window.location.href = ans.url;
-                    }
+                    // Строго открываем внутри WebView для корректного редиректа обратно
+                    window.location.href = ans.url;
                 } else {
                     showModal('error', 'Ошибка Skinsback', stripEmojis(ans.detail || 'Не удалось получить ссылку оплаты'));
                     btn.innerHTML = oldHtml;
