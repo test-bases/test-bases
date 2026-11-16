@@ -1026,6 +1026,11 @@
             margin-right: 12px;
             flex-shrink: 0;
         }
+        .pay-svg-logo {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
         .pay-card.robo .pay-icon { background: rgba(139, 92, 246, 0.2); color: #c084fc; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
         .pay-card.skins .pay-icon { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
         .pay-card.trade .pay-icon { background: rgba(245, 158, 11, 0.2); color: var(--gold); box-shadow: 0 0 10px rgba(245,158,11,0.3); }
@@ -1233,7 +1238,7 @@
                 
                 <div class="payment-grid">
                     <div class="pay-card robo" id="buy-prem-btn" style="animation-delay: 0.05s;" onclick="buyRafflesPremium()">
-                        <div class="pay-icon"><i class="fa-solid fa-credit-card"></i></div>
+                        <div class="pay-icon"><img src="/static/robokassa_logo.svg" alt="Robokassa" class="pay-svg-logo"></div>
                         <div class="pay-info">
                             <span class="pay-title">Банковская карта</span>
                             <span class="pay-desc">Мгновенное зачисление</span>
@@ -1242,7 +1247,7 @@
                     </div>
 
                     <div class="pay-card skins" id="buy-skinsback-btn" style="animation-delay: 0.1s;" onclick="buyRafflesPremiumSkinsback()">
-                        <div class="pay-icon"><i class="fa-solid fa-gun"></i></div>
+                        <div class="pay-icon"><img src="/static/skinsback_logo.svg" alt="SkinsBack" class="pay-svg-logo"></div>
                         <div class="pay-info">
                             <span class="pay-title">Оплата скинами</span>
                             <span class="pay-desc">Через SkinsBack</span>
