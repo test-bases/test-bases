@@ -5095,6 +5095,48 @@ async def check_welcome_tg(
     return {"in_channel": in_channel, "in_chat": in_chat}
 
 
+class WelcomeAdminSaveRequest(BaseModel):
+    initData: str = ""
+    platform: str = "tg"
+    config: dict
+
+
+@app.post("/api/v1/admin/welcome/get")
+async def admin_get_welcome_config(
+    user_info: dict = Depends(multi_acc_protection),
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    telegram_id = int(user_info.get("id"))
+    if telegram_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    cfg = await get_welcome_config(supabase)
+    return {"success": True, "config": cfg}
+
+
+@app.post("/api/v1/admin/welcome/save")
+async def admin_save_welcome_config(
+    req: WelcomeAdminSaveRequest,
+    user_info: dict = Depends(multi_acc_protection),
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    telegram_id = int(user_info.get("id"))
+    if telegram_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    # Сохраняем напрямую в jsonb (upsert по ключу welcome_quest_config)
+    res = await supabase.post(
+        "/settings",
+        json={"key": "welcome_quest_config", "value": req.config},
+        headers={"Prefer": "resolution=merge-duplicates"},
+    )
+    if res.status_code not in [200, 201, 204]:
+        logging.error(f"[ADMIN WELCOME] Save error: {res.text}")
+        raise HTTPException(status_code=500, detail="Ошибка сохранения в Supabase")
+
+    return {"success": True}
+
+
 @app.post("/api/v1/welcome/claim")
 async def claim_welcome_case(
     req: WelcomeClaimRequest,
