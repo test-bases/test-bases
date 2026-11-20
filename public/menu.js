@@ -1,29 +1,4 @@
 // ================================================================
-// 0. ЭКСТРЕННАЯ БЛОКИРОВКА (ТЕХРАБОТЫ ДО ЗАГРУЗКИ СТРАНИЦЫ)
-// ================================================================
-(function emergencyMaintenanceCheck() {
-    try {
-        const cached = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
-        if (cached && cached.maintenance) {
-            // Внедряем стили, которые жестко прячут всё остальное
-            const style = document.createElement('style');
-            style.innerHTML = 'body > *:not(#emergency-maintenance-screen) { display: none !important; } body { background: #141414 !important; overflow: hidden !important; }';
-            document.documentElement.appendChild(style);
-
-            // Создаем экран техработ поверх всего мира
-            const screen = document.createElement('div');
-            screen.id = 'emergency-maintenance-screen';
-            screen.style.cssText = 'position:fixed; top:0; left:0; display:flex; height:100vh; width:100vw; background:#141414; align-items:center; justify-content:center; flex-direction:column; color:#FFD700; font-family:-apple-system, system-ui, sans-serif; z-index:2147483647;';
-            screen.innerHTML = `
-                <i class="fa-solid fa-gear fa-spin" style="font-size:55px; margin-bottom:20px; filter: drop-shadow(0 0 15px rgba(255,215,0,0.4));"></i>
-                <span style="font-weight:900; font-size:24px; text-transform:uppercase; letter-spacing:1px;">Технические работы</span>
-                <span style="color:#888; font-size:13px; margin-top:10px;">Проверка серверов...</span>
-            `;
-            document.documentElement.appendChild(screen);
-        }
-    } catch(e) {}
-})();
-// ================================================================
 // 1. ИНИЦИАЛИЗАЦИЯ (Флаги уже установлены в HTML) 
 // ================================================================
 console.log("📡 [DETECTOR] Текущий режим:", window.isVk ? "ВКонтакте" : "Telegram/Web");
@@ -45,31 +20,164 @@ console.log("📡 [DETECTOR] Текущий режим:", window.isVk ? "ВКо�
     }
 })();
 
-// 🔥 УМНЫЙ ПЭЙЛОАД С ПОДДЕРЖКОЙ WEB-АВТОРИЗАЦИИ 🔥
-function getAuthPayload() {
-    let pType = 'pc';
-    if (window.Telegram?.WebApp?.platform) {
-        const tgPlat = window.Telegram.WebApp.platform;
-        pType = (tgPlat === 'android' || tgPlat === 'ios') ? 'mobile' : 'pc';
+// 🔥 ПЕРЕХВАТ ТОКЕНА ПОСЛЕ ВХОДА ЧЕРЕЗ TWITCH В БРАУЗЕРЕ 🔥
+(function catchWebTwitchToken() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const webToken = urlParams.get('web_token');
+        if (webToken) {
+            localStorage.setItem('tg_web_auth_token', webToken);
+            localStorage.removeItem('cache_bootstrap'); // Сбрасываем гостевой кэш
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    } catch (e) {
+        console.error("Ошибка перехвата токена:", e);
+    }
+})();
+
+// 🔥 ПРОФЕССИОНАЛЬНЫЙ 5-УРОВНЕВЫЙ ДЕТЕКТОР СРЕДЫ (TG / VK / WEB) 🔥
+window.AppEnv = {
+    isTelegramApp: false,
+    isVkApp: false,
+    isWebBrowser: false,
+    deviceType: 'pc', // 'mobile' | 'pc'
+    osPlatform: 'unknown', // 'ios' | 'android' | 'tdesktop' | 'macos' | 'web'
+    savedInitData: ''
+};
+
+function detectEnvironmentSync() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+
+    // 1. Проверка ВКонтакте
+    if (window.isVk || search.includes('vk_app_id=') || search.includes('vk_user_id=')) {
+        window.isVk = true;
+        window.AppEnv.isVkApp = true;
+        window.AppEnv.deviceType = (/android|ipad|iphone|ipod/i.test(ua)) ? 'mobile' : 'pc';
+        return window.AppEnv;
+    }
+
+    // 2. Собираем ВСЕ возможные доказательства того, что мы внутри клиента Telegram
+    const tg = window.Telegram?.WebApp;
+    const tgPlatform = tg?.platform || 'unknown';
+
+    // А) Проверяем нативные мосты Telegram для ВСЕХ ОС (Android, iOS webkit, Desktop)
+    const hasNativeTgBridge = Boolean(
+        typeof window.TelegramWebviewProxy !== 'undefined' ||
+        typeof window.TelegramWebview !== 'undefined' ||
+        typeof window.TelegramWebviewProxyProto !== 'undefined' ||
+        (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.performAction) ||
+        (window.external && typeof window.external.notify === 'function') ||
+        hash.includes('tgWebAppData=') ||
+        hash.includes('tgWebAppVersion=') ||
+        search.includes('tgWebAppStartParam=') ||
+        sessionStorage.getItem('__telegram__initParams') !== null ||
+        sessionStorage.getItem('hatelavka_is_tg_session') === 'true' ||
+        (localStorage.getItem('hatelavka_ever_had_tg') === 'true' && /; wv\)/i.test(ua))
+    );
+
+    // Б) Проверяем URL-хэш и внутреннее хранилище Telegram SDK
+    let tgSessionInitData = '';
+    let tgSessionPlatform = '';
+    try {
+        const rawInitParams = sessionStorage.getItem('__telegram__initParams');
+        if (rawInitParams) {
+            const parsed = JSON.parse(rawInitParams);
+            if (parsed.tgWebAppData) tgSessionInitData = parsed.tgWebAppData;
+            if (parsed.tgWebAppPlatform) tgSessionPlatform = parsed.tgWebAppPlatform;
+        }
+    } catch (e) {}
+
+    // Если в хэше есть tgWebAppData — вытаскиваем его напрямую на случай задержки SDK
+    if (!tgSessionInitData && hash.includes('tgWebAppData=')) {
+        try {
+            const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+            tgSessionInitData = hashParams.get('tgWebAppData') || '';
+            if (!tgSessionPlatform) tgSessionPlatform = hashParams.get('tgWebAppPlatform') || '';
+        } catch (e) {}
+    }
+
+    // В) Проверяем наш собственный страховочный кэш (спасает при переходах между страницами и сбоях сети внутри ТГ)
+    const cachedTgInitData = sessionStorage.getItem('hatelavka_tg_init_data') || localStorage.getItem('hatelavka_tg_init_data_backup') || '';
+
+    // Г) Итоговый initData из всех источников
+    const finalInitData = tg?.initData || tgSessionInitData || cachedTgInitData || '';
+    if (finalInitData) {
+        try { 
+            sessionStorage.setItem('hatelavka_tg_init_data', finalInitData); 
+            localStorage.setItem('hatelavka_tg_init_data_backup', finalInitData);
+        } catch (e) {}
+        window.AppEnv.savedInitData = finalInitData;
+    }
+
+    // Д) Определяем реальную платформу Telegram
+    const effectiveTgPlatform = (tgPlatform !== 'unknown' ? tgPlatform : tgSessionPlatform) || 'unknown';
+    const validTgPlatforms = ['ios', 'android', 'android_x', 'tdesktop', 'macos', 'unigram', 'weba', 'webk', 'web'];
+    const hasValidTgPlatform = validTgPlatforms.includes(effectiveTgPlatform) && Boolean(finalInitData || hasNativeTgBridge);
+
+    // Е) Проверка User-Agent (официальный и кастомные клиенты TG + встроенный Android WebView "; wv)")
+    const isAndroidWebView = /Android.*(;\s*wv\)|Version\/\d+\.\d+\s+Chrome\/)/i.test(ua) && !window.isVk;
+    const hasTgUserAgent = /Telegram/i.test(ua) || isAndroidWebView;
+
+    // 🔥 ЖЕЛЕЗОБЕТОННЫЙ ВЕРДИКТ: ЭТО TELEGRAM MINI APP ИЛИ ОБЫЧНЫЙ БРАУЗЕР? 🔥
+    if (finalInitData.length > 0 || hasNativeTgBridge || hasValidTgPlatform || hasTgUserAgent) {
+        try {
+            sessionStorage.setItem('hatelavka_is_tg_session', 'true');
+            if (finalInitData.length > 0 || hasNativeTgBridge) {
+                localStorage.setItem('hatelavka_ever_had_tg', 'true');
+            }
+        } catch (e) {}
+        window.AppEnv.isTelegramApp = true;
+        window.AppEnv.isWebBrowser = false;
+        window.AppEnv.osPlatform = effectiveTgPlatform !== 'unknown' ? effectiveTgPlatform : (/iphone|ipad|ipod/i.test(ua) ? 'ios' : (/android/i.test(ua) ? 'android' : 'tdesktop'));
+        window.AppEnv.deviceType = (['ios', 'android', 'android_x'].includes(window.AppEnv.osPlatform) || /android|ipad|iphone|ipod/i.test(ua)) ? 'mobile' : 'pc';
+        
+        // Принудительно сносим browser-mode и закрываем веб-модалку, если она вдруг вылезла
+        if (document.body) {
+            document.body.classList.remove('browser-mode');
+            document.body.classList.add('tg-mode');
+        }
+        const strayModal = document.getElementById('web-auth-modal');
+        if (strayModal) strayModal.remove();
     } else {
-        pType = typeof getPlatformType === 'function' ? getPlatformType() : 'pc';
+        window.AppEnv.isTelegramApp = false;
+        window.AppEnv.isWebBrowser = true;
+        window.AppEnv.osPlatform = 'web';
+        window.AppEnv.deviceType = (/android|ipad|iphone|ipod/i.test(ua)) ? 'mobile' : 'pc';
     }
 
-    if (window.isVk) {
-        return { initData: window.vkParams || '', platform: 'vk', platform_type: pType };
+    return window.AppEnv;
+}
+
+// Запускаем первичное определение мгновенно
+detectEnvironmentSync();
+
+// 🔥 УМНЫЙ ПЭЙЛОАД С ПОДДЕРЖКОЙ TG, VK И WEB-АВТОРИЗАЦИИ 🔥
+function getAuthPayload() {
+    const env = detectEnvironmentSync();
+
+    if (env.isVkApp) {
+        return { initData: window.vkParams || '', platform: 'vk', platform_type: env.deviceType };
     }
 
-    // Если мы в браузере — ищем токен от Web-авторизации
-    if (document.body.classList.contains('browser-mode')) {
-        const webToken = localStorage.getItem('tg_web_auth_token') || '';
-        return { 
-            initData: webToken, 
-            platform: 'web', 
-            platform_type: 'pc' 
+    // Если мы 100% внутри Telegram — ВСЕГДА отдаем TG initData (даже из резервного кэша сессии или памяти)
+    if (env.isTelegramApp) {
+        const tgData = window.Telegram?.WebApp?.initData || env.savedInitData || sessionStorage.getItem('hatelavka_tg_init_data') || localStorage.getItem('hatelavka_tg_init_data_backup') || '';
+        return {
+            initData: tgData,
+            platform: 'tg',
+            platform_type: env.deviceType
         };
     }
 
-    return { initData: window.Telegram?.WebApp?.initData || '', platform: 'tg', platform_type: pType };
+    // Если мы в обычном браузере — берем токен от Web-авторизации
+    const webToken = localStorage.getItem('tg_web_auth_token') || '';
+    return { 
+        initData: webToken, 
+        platform: 'web', 
+        platform_type: env.deviceType 
+    };
 }
 
 async function fetchVkParamsFromBridge() {
@@ -598,7 +706,9 @@ function preloadImages(urls) {
 // HEARTBEAT (ФОНОВОЕ ОБНОВЛЕНИЕ)
 // ================================================================
 async function refreshDataSilently() {
-    if (!window.Telegram?.WebApp?.initData && !isVk) return;
+    const env = detectEnvironmentSync();
+    const hasWebToken = !!localStorage.getItem('tg_web_auth_token');
+    if (!env.isTelegramApp && !env.isVkApp && !hasWebToken) return;
     try {
         const hbData = await makeApiRequest("/api/v1/user/heartbeat", {}, 'POST', true);
         if (hbData) {
@@ -629,7 +739,6 @@ async function refreshDataSilently() {
                 userData.challenge.target_value = hbData.challenge_target;
             }
             updateShortcutStatuses(userData, allQuests);
-            updateGrindBannerBadge();
             if (hbData.active_trade_status !== undefined) updateShopTile(hbData.active_trade_status);
             
             const giftContainer = document.getElementById('gift-container');
@@ -644,7 +753,7 @@ async function refreshDataSilently() {
                  }
             }
             
-            // 👇 1. ИНТЕГРАЦИЯ СТАТУСА ИГРЫ 👇
+           // 👇 1. ИНТЕГРАЦИЯ СТАТУСА ИГРЫ 👇
             const gamesBtn = document.getElementById('nav-games-btn');
             if (gamesBtn && hbData.game_status && hbData.game_status.length > 0) {
                 if (hbData.game_status[0].is_active && typeof userData !== 'undefined' && userData.is_stream_online) {
@@ -657,21 +766,32 @@ async function refreshDataSilently() {
             if (hbData.unread_notifications !== undefined) {
                 updateNotificationsBadge(hbData.unread_notifications);
             }
+            
+            // 🔥 ДОБАВЛЕНО: Синхронизация розыгрышей в фоне 🔥
+            makeApiRequest('/api/v1/raffles/active', {}, 'POST', true)
+                .then(freshRaffles => {
+                    if (freshRaffles) initDynamicRaffleSlider(freshRaffles);
+                }).catch(() => {});
+                
+            // 🔥 МАГИЯ: Стягиваем купоны. Вдруг админ выдал нам кейс или прилетел Twitch Drop! 🔥
+            makeApiRequest('/api/cs/my_active_promos', {}, 'GET', true).then(res => {
+                if (res && res.active_cases) {
+                    const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
+                    const newFreeCases = JSON.stringify(res.active_cases);
+                    if (oldFreeCases !== newFreeCases) {
+                        window.activeFreeCases = res.active_cases;
+                        if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+                            renderItems(itemsCache[window.currentCategoryId]);
+                        }
+                    }
+                }
+            }).catch(()=>{});
+            
         }
     } catch (e) {
         console.error("Ошибка обновления данных в фоне:", e);
     }
 }
-
-// ================================================================
-// ПЕРЕХОД В ИГРЫ С ТАКТИЛЬНЫМ ОТКЛИКОМ
-// ================================================================
-window.openGameRoute = function(url) {
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-    }
-    window.location.href = url;
-};
 // ================================================================
 // НОВЫЙ ИНТЕРФЕЙС (ПЕРЕКЛЮЧАТЕЛИ И МЕНЮ)
 // ================================================================
@@ -693,40 +813,28 @@ function setupNewUI() {
     const viewSections = document.querySelectorAll('.view-section');
 
     toggleOptions.forEach((option, index) => {
-        option.addEventListener('click', () => {
-            toggleSlider.style.transform = `translateX(${index * 100}%)`;
-            toggleOptions.forEach(opt => opt.classList.remove('active'));
-            option.classList.add('active');
+                option.addEventListener('click', () => {
+                    toggleSlider.style.transform = `translateX(${index * 100}%)`;
+                    toggleOptions.forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
 
-            const targetId = option.getAttribute('data-target');
-            viewSections.forEach(section => {
-                if (section.id === targetId) section.classList.add('active');
-                else section.classList.remove('active');
+                    const targetId = option.getAttribute('data-target');
+                    viewSections.forEach(section => {
+                        if (section.id === targetId) section.classList.add('active');
+                        else section.classList.remove('active');
+                    });
+                    
+                    // Безопасный вызов вибрации, который не крашит выполнение скрипта
+                    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+
+                    // Динамическая подгрузка кейсов при первом клике
+                    if (targetId === 'view-shop' && !isShopLoaded) {
+                        loadCategory(2716312);
+                        isShopLoaded = true;
+                    }
+                });
             });
-
-            // Подсвечиваем нижний бар: если открыты Игры — светится кнопка "Игры", иначе "Главная"
-            const bGames = document.getElementById('nav-games-btn');
-            const bHome = document.querySelector('.nav-item[data-path="/"]');
-            if (bGames && bHome) {
-                if (targetId === 'view-games') {
-                    bGames.classList.add('active');
-                    bHome.classList.remove('active');
-                } else {
-                    bGames.classList.remove('active');
-                    bHome.classList.add('active');
-                }
-            }
-            
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-
-            // Динамическая подгрузка кейсов при первом клике
-            if (targetId === 'view-shop' && !isShopLoaded) {
-                loadCategory(2716312);
-                isShopLoaded = true;
-            }
-        });
-    });
-} // <--- ВОТ ЭТА СКОБКА БЫЛА ПОТЕРЯНА!
+}
 
 // ================================================================
 // СЛАЙДЕР (FADE-АНИМАЦИЯ КАК В РОЗЫГРЫШАХ)
@@ -734,6 +842,10 @@ function setupNewUI() {
 function setupSlider() {
     const container = document.getElementById('main-slider-container');
     if (!container) return;
+
+    // 🔥 ФИКС ПРЫЖКА МЕНЮ: Резервируем место под баннер до загрузки картинок
+    container.style.minHeight = '130px'; 
+    container.style.position = 'relative';
 
     // --- УМНАЯ ЗАГЛУШКА ---
     const realSlides = container.querySelectorAll('.slide:not(#default-banner-slide)');
@@ -761,7 +873,6 @@ function setupSlider() {
     const wrapper = container.querySelector('.slider-wrapper');
     const dotsContainer = container.querySelector('.slider-dots');
     
-    // Прячем старые стрелки — они тут больше не нужны
     let prevBtnOld = document.getElementById('slide-prev-btn');
     let nextBtnOld = document.getElementById('slide-next-btn');
     if (prevBtnOld) prevBtnOld.style.display = 'none';
@@ -774,16 +885,15 @@ function setupSlider() {
         container.style.display = ''; 
     }
 
-    // 🔥 ПЕРЕВОДИМ КОНТЕЙНЕР В АБСОЛЮТНЫЙ РЕЖИМ (ФИКС СДВИГА МЕНЮ) 🔥
     if (wrapper) {
-        wrapper.style.display = 'block'; // Убиваем flex
+        wrapper.style.display = 'block'; 
         wrapper.style.position = 'relative';
         wrapper.style.transform = 'none';
         wrapper.style.width = '100%';
         wrapper.style.height = '100%';
+        wrapper.style.minHeight = '130px'; // Дублируем страховку для wrapper
     }
 
-    // Настраиваем каждый слайд
     visibleSlides.forEach((slide, index) => {
         slide.style.position = 'absolute';
         slide.style.top = '0';
@@ -792,11 +902,10 @@ function setupSlider() {
         slide.style.height = '100%';
         slide.style.opacity = '0';
         slide.style.transition = 'opacity 0.6s ease';
-        slide.style.pointerEvents = 'none'; // Чтобы невидимые слайды не перехватывали клик
+        slide.style.pointerEvents = 'none'; 
         slide.style.zIndex = '1';
     });
 
-    // Настраиваем точки в правый верхний угол
     if (dotsContainer) {
         dotsContainer.style.display = visibleSlides.length > 1 ? 'flex' : 'none';
         dotsContainer.style.position = 'absolute';
@@ -812,7 +921,7 @@ function setupSlider() {
         dotsContainer.innerHTML = '';
         visibleSlides.forEach((_, i) => {
             const dot = document.createElement('div');
-            dot.className = 'mr-dot'; // Используем стили из розыгрышей
+            dot.className = 'mr-dot'; 
             dot.style.width = '6px';
             dot.style.height = '6px';
             dot.style.borderRadius = '50%';
@@ -861,11 +970,10 @@ function setupSlider() {
     function resetSlideInterval() { 
         clearInterval(slideInterval); 
         if (visibleSlides.length > 1) {
-            slideInterval = setInterval(nextSlide, 5000); // Автопереключение каждые 5 сек
+            slideInterval = setInterval(nextSlide, 5000); 
         }
     }
 
-    // Свайпы (теперь они логически переключают opacity, а не двигают контейнер)
     let touchStartX = 0, touchStartY = 0, touchEndX = 0, isSwiping = false;
     container.addEventListener('touchstart', (e) => {
         touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchEndX = touchStartX; isSwiping = false;
@@ -928,94 +1036,6 @@ function updateShortcutStatuses(userData, allQuests) {
                 else { questStatus.textContent = `${prog} / ${target}`; questStatus.classList.remove('metro-status-done'); questStatus.style.color=''; questFill.style.width = `${(prog/target)*100}%`; }
             } else { questStatus.textContent = "..."; }
         }
-    }
-}
-
-// 🏷️ Проверка доступности: Гринд, Билет или TG-задания
-async function updateGrindBannerBadge() {
-    const slot = document.getElementById('grind-reward-badge-slot');
-    if (!slot) return;
-
-    let lastGrind = null;
-    let lastTicket = null;
-
-    // 1. Проверяем кэш стейта юзера из events.html
-    try {
-        const uState = JSON.parse(localStorage.getItem('cache_user_state') || 'null');
-        if (uState) {
-            lastGrind = uState.lastGrindTime || uState.last_grind_at;
-            lastTicket = uState.lastFreeTicket || uState.last_free_ticket_claimed_at;
-        }
-    } catch (e) {}
-
-    // 2. Если пусто — берем из бутстрапа или глобального userData
-    if (!lastGrind) {
-        try {
-            const b = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
-            if (b && b.user) {
-                lastGrind = b.user.last_grind_at;
-                lastTicket = b.user.last_free_ticket_claimed_at;
-            }
-        } catch (e) {}
-    }
-    if (!lastGrind && typeof userData !== 'undefined') {
-        lastGrind = userData.last_grind_at;
-        lastTicket = userData.last_free_ticket_claimed_at;
-    }
-
-    const now = Date.now();
-    const COOLDOWN_24H = 24 * 60 * 60 * 1000;
-
-    // А) Гринд доступен
-    const isGrindAvailable = !lastGrind || (now - new Date(lastGrind).getTime() >= COOLDOWN_24H);
-
-    // Б) Бесплатный билет доступен
-    const isTicketAvailable = !lastTicket || (now - new Date(lastTicket).getTime() >= COOLDOWN_24H);
-
-    // В) Задания с ручной проверкой (теги био/фамилии, бусты) исключаем, 
-    // чтобы плашка не горела вечно у тех, кто не ставил теги в профиль.
-
-    // В) Умная проверка заданий: напоминаем ТОЛЬКО тем, кто УЖЕ в серии
-    // и у кого откатился кулдаун (20 часов для био/ника или 31 день для буста)
-    let isTaskReady = false;
-    let cachedTasks = null;
-    try {
-        cachedTasks = JSON.parse(localStorage.getItem('cache_tg_tasks') || 'null');
-    } catch (e) {}
-
-    if (Array.isArray(cachedTasks) && cachedTasks.length > 0) {
-        isTaskReady = cachedTasks.some(task => {
-            // Проверяем только если юзер уже хотя бы раз забирал это задание
-            if (!task.last_claimed_at) return false;
-
-            const timePassed = now - new Date(task.last_claimed_at).getTime();
-
-            // Буст канала: прошло 31 день
-            if (task.task_key === 'tg_vote') {
-                const cooldown31d = 31 * 24 * 60 * 60 * 1000;
-                return timePassed >= cooldown31d;
-            }
-
-            // Ежедневный стрик био/фамилии: серия не завершена и прошло 20 часов
-            if (!task.is_completed && (task.is_daily || task.task_key === 'tg_surname' || task.task_key === 'tg_bio')) {
-                const cooldown20h = 20 * 60 * 60 * 1000;
-                return timePassed >= cooldown20h;
-            }
-
-            return false;
-        });
-    }
-
-    // Зажигаем плашку, если доступен Гринд, Билет ИЛИ очередной шаг начатого задания
-    if (isGrindAvailable || isTicketAvailable || isTaskReady) {
-        slot.innerHTML = `
-            <div style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 59, 48, 0.18)); border: 1px solid rgba(255, 215, 0, 0.45); padding: 3px 8px; border-radius: 6px; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);">
-                <i class="fa-solid fa-gift fa-shake" style="color: #ffd700; font-size: 10px;"></i>
-                <span style="font-size: 9px; font-weight: 900; color: #ffd700; text-transform: uppercase; letter-spacing: 0.5px;">Доступна награда</span>
-            </div>
-        `;
-    } else {
-        slot.innerHTML = '';
     }
 }
 
@@ -1601,7 +1621,8 @@ function initDynamicAuction(preloadedData = null) {
     const container = document.getElementById('auction-card-container');
     if (!container) return;
 
-    // --- ВНУТРЕННЯЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ ---
+    container.style.minHeight = '120px';
+
     const renderAuction = (data) => {
         let arr = [];
         if (Array.isArray(data)) arr = data;
@@ -1610,6 +1631,11 @@ function initDynamicAuction(preloadedData = null) {
         else if (data && Array.isArray(data.data)) arr = data.data;
 
         const activeAuction = arr.find(a => !a.ended_at);
+
+        // 🔥 УМНЫЙ КЭШ (АНТИ-МОРГАНИЕ): Проверяем, изменилась ли ставка или сам лот
+        const signature = activeAuction ? `${activeAuction.id}_${activeAuction.current_highest_bid}` : 'empty';
+        if (container.dataset.signature === signature) return; // Если всё так же - не перерисовываем!
+        container.dataset.signature = signature;
 
         if (activeAuction) {
             const img = activeAuction.image_url || '';
@@ -1633,7 +1659,8 @@ function initDynamicAuction(preloadedData = null) {
                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(${rgbColor}, 0.15); filter: blur(20px); border-radius: 50%; z-index: 0; pointer-events: none;"></div>
 
                     <div style="z-index: 3; text-align: center; width: 100%;">
-                        <div style="font-size: 8px; font-weight: 800; color: #fff; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <!-- 🔥 ДОБАВЛЕН line-height: 1.4 для межстрочного интервала 🔥 -->
+                        <div style="font-size: 8px; font-weight: 800; color: #fff; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             ${escapeHTML(name)}
                         </div>
                     </div>
@@ -1661,9 +1688,9 @@ function initDynamicAuction(preloadedData = null) {
             `;
         } else {
             container.innerHTML = `
-                <div class="auction-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-gavel" style="font-size: 24px; color: #ff9500; opacity: 0.6; margin-bottom: 4px;"></i>
-                    <span style="font-size: 11px; font-weight: 800; text-transform: uppercase;">Аукционы</span>
+                <div class="auction-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.4;">
+                    <i class="fa-solid fa-gavel" style="font-size: 24px; color: #ff9500; margin-bottom: 4px;"></i>
+                    <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1.4;">Нет лотов</span>
                 </div>
             `;
         }
@@ -1676,7 +1703,7 @@ function initDynamicAuction(preloadedData = null) {
     try {
         const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
         renderAuction(cachedBootstrap.auctions || cachedBootstrap.active_auctions || []);
-    } catch(e) { console.warn("Ошибка кэша"); }
+    } catch(e) {}
 }
 
 // ================================================================
@@ -1689,18 +1716,35 @@ async function initDynamicRaffleSlider(preloadedData = null) {
     const container = document.getElementById('mini-raffle-slider');
     if (!container) return;
 
-    // --- ВНУТРЕННЯЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ ---
-    const renderRaffles = (data) => {
-        // БЕЗОПАСНО ИЩЕМ МАССИВ
+    container.style.minHeight = '84px'; 
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.justifyContent = 'center';
+
+    // Показываем спиннер ТОЛЬКО если это самая первая загрузка
+    if (!container.dataset.signature && (!container.innerHTML.trim() || container.innerHTML.includes('РОЗЫГРЫШИ'))) {
+        container.innerHTML = '<div style="width:100%; text-align:center; opacity:0.5;"><i class="fa-solid fa-spinner fa-spin" style="color:#ffd700; font-size:16px;"></i></div>';
+    }
+
+    const renderRaffles = async (data) => {
         let arr = [];
         if (Array.isArray(data)) arr = data;
         else if (data && Array.isArray(data.raffles)) arr = data.raffles;
         else if (data && Array.isArray(data.data)) arr = data.data;
 
-        // Берем до 5 активных розыгрышей
         const activeRaffles = arr.filter(r => r.status === 'active').slice(0, 5);
 
+        // 🔥 УМНЫЙ КЭШ (АНТИ-МОРГАНИЕ): Сравниваем ID и количество участников
+        const signature = JSON.stringify(activeRaffles.map(r => ({ id: r.id, p: r.participants_count })));
+        if (container.dataset.signature === signature) return; // Если данные 1в1 - ничего не делаем!
+        container.dataset.signature = signature;
+
         if (activeRaffles.length > 0) {
+            const imagesToLoad = activeRaffles.map(r => r.settings?.card_image || r.settings?.prize_image).filter(Boolean);
+            if (imagesToLoad.length > 0) {
+                await preloadImages(imagesToLoad);
+            }
+
             let slidesHTML = '';
             
             const hexToRgb = (hex) => {
@@ -1715,12 +1759,10 @@ async function initDynamicRaffleSlider(preloadedData = null) {
                 const quality = s.skin_quality || 'FT';
                 const pCount = raffle.participants_count || 0;
 
-                // ДОБАВЛЕНО: Сокращаем StatTrak
                 const prizeName = (s.prize_name || 'Секретный приз')
                     .replace(/StatTrak™/g, 'ST.')
                     .replace(/StatTrak/g, 'ST.');
 
-                // Создаем точки
                 let dotsHTML = '<div class="mr-dots-container">';
                 activeRaffles.forEach((_, dotIndex) => {
                     dotsHTML += `<div class="mr-dot ${dotIndex === index ? 'active' : ''}" style="width:6px; height:6px; border-radius:50%; background: ${dotIndex === index ? rarityColor : 'rgba(255,255,255,0.2)'}; transition: background 0.3s;"></div>`;
@@ -1729,7 +1771,8 @@ async function initDynamicRaffleSlider(preloadedData = null) {
 
                 slidesHTML += `
                     <div class="mini-raffle-slide ${index === 0 ? 'active' : ''}" style="--rarity-rgb: ${hexToRgb(rarityColor)};">
-                        <div class="mini-raffle-info" style="display: flex; flex-direction: column; justify-content: center;">
+                        <!-- 🔥 ДОБАВЛЕН line-height: 1.4 для межстрочного интервала 🔥 -->
+                        <div class="mini-raffle-info" style="display: flex; flex-direction: column; justify-content: center; line-height: 1.4;">
                             <div class="mini-raffle-name">${escapeHTML(prizeName)}</div>
                             <div class="mini-raffle-stats" style="font-size: 10px; margin-bottom: 4px;">
                                 <span style="color: ${rarityColor};">${escapeHTML(quality)}</span> • 
@@ -1742,17 +1785,18 @@ async function initDynamicRaffleSlider(preloadedData = null) {
                             </div>
                             <div class="mini-raffle-cta" style="margin-top: 6px; font-weight: bold; font-size: 11px;">Участвовать <i class="fa-solid fa-arrow-right"></i></div>
                         </div> <img src="${img}" class="mini-raffle-img">
-                        ${dotsHTML} </div>
+                        ${dotsHTML} 
+                    </div>
                 `;
             });
             
+            // 🔥 УБРАНА АНИМАЦИЯ ЗАТУХАНИЯ (opacity: 0) — ТЕПЕРЬ ОНО ПРОСТО МЕНЯЕТСЯ МГНОВЕННО 🔥
             container.innerHTML = slidesHTML;
+            container.style.opacity = '1';
 
-            // Очищаем старые интервалы (защита при обновлении кэша)
             if (raffleTimersInterval) clearInterval(raffleTimersInterval);
             if (raffleSlideInterval) clearInterval(raffleSlideInterval);
 
-            // Запуск таймеров
             const updateTimers = () => {
                 container.querySelectorAll('.raffle-mini-timer-dyn').forEach(el => {
                     const diff = new Date(el.dataset.endtime) - new Date();
@@ -1777,39 +1821,38 @@ async function initDynamicRaffleSlider(preloadedData = null) {
             updateTimers();
             raffleTimersInterval = setInterval(updateTimers, 1000);
 
-            // Перелистывание слайдов
             const slides = container.querySelectorAll('.mini-raffle-slide');
             if (slides.length > 1) {
                 let cur = 0;
                 raffleSlideInterval = setInterval(() => {
-                    slides[cur].classList.remove('active');
-                    cur = (cur + 1) % slides.length;
-                    slides[cur].classList.add('active');
+                    // Используем try/catch на случай, если слайды успели смениться
+                    try {
+                        slides[cur].classList.remove('active');
+                        cur = (cur + 1) % slides.length;
+                        slides[cur].classList.add('active');
+                    } catch (e) {}
                 }, 4000); 
             }
+            
         } else {
-            container.innerHTML = '<span style="font-size:14px; font-weight:800; color:#fff; text-transform:uppercase;">РОЗЫГРЫШИ</span>';
+            container.innerHTML = '<div style="width:100%; text-align:center; opacity:0.3;"><span style="font-size:11px; font-weight:800; color:#fff; text-transform:uppercase; line-height: 1.4;">Нет активных</span></div>';
         }
     };
-    // --- КОНЕЦ ВНУТРЕННЕЙ ФУНКЦИИ ---
 
-    // Если данные переданы напрямую из нового bootstrap, рисуем сразу
     if (preloadedData) {
         renderRaffles(preloadedData);
         return;
     }
 
-    // Иначе пытаемся моментально отрендерить из общего кэша бутстрапа
     try {
         const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
         if (cachedBootstrap && cachedBootstrap.raffles) {
             renderRaffles(cachedBootstrap.raffles);
         } else {
-            // Если и кэша нет (юзер зашел впервые), просто показываем красивую заглушку
-            container.innerHTML = '<span style="font-size:14px; font-weight:800; color:#fff; text-transform:uppercase;">РОЗЫГРЫШИ</span>';
+            container.innerHTML = '<div style="width:100%; text-align:center; opacity:0.3;"><span style="font-size:11px; font-weight:800; color:#fff; text-transform:uppercase; line-height: 1.4;">Нет активных</span></div>';
         }
     } catch(e) {
-        container.innerHTML = '<span style="font-size:12px; font-weight:800; color:#ff3b30;">ОШИБКА</span>';
+        container.innerHTML = '<div style="width:100%; text-align:center; opacity:0.5;"><span style="font-size:10px; font-weight:800; color:#ff3b30; line-height: 1.4;">ОШИБКА</span></div>';
     }
 }
 
@@ -1959,7 +2002,6 @@ async function renderFullInterface(data) {
     }
 
     updateShortcutStatuses(userData, allQuests);
-    updateGrindBannerBadge();
     updateShopTile(userData.active_trade_status || 'none');
     // 🔥 МАГИЯ МАТРИЦЫ
     if (data.matrix_quest !== undefined) {
@@ -2028,54 +2070,126 @@ async function renderFullInterface(data) {
     }
 } // <--- ЗДЕСЬ ДОЛЖНА БЫТЬ РОВНО ОДНА СКОБКА (Закрывает renderFullInterface)
 
+window.loginWithTwitchWeb = async function(btnEl) {
+    const origHtml = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Переход на Twitch...';
+    }
+    try {
+        const currentPath = window.location.pathname === '/' ? '/menu' : window.location.pathname;
+        const res = await fetch(`/api/v1/auth/twitch_web/login?redirect=${encodeURIComponent(currentPath)}`);
+        const data = await res.json();
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            throw new Error(data.detail || "Не удалось получить ссылку авторизации");
+        }
+    } catch (e) {
+        customAlert("Ошибка входа через Twitch: " + e.message);
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = origHtml;
+        }
+    }
+};
+
+window.logoutWebUser = function() {
+    localStorage.removeItem('tg_web_auth_token');
+    localStorage.removeItem('cache_bootstrap');
+    window.location.reload();
+};
+
 window.showWebAuthModal = function() {
-    // Если окно уже есть — не дублируем
+    // 🛡️ АБСОЛЮТНЫЙ БЛОК ДЛЯ TELEGRAM НА ANDROID / IOS / DESKTOP
+    const env = typeof detectEnvironmentSync === 'function' ? detectEnvironmentSync() : window.AppEnv;
+    const ua = navigator.userAgent || '';
+    const isInsideAndroidWebView = /Android.*(;\s*wv\)|Version\/\d+\.\d+)/i.test(ua);
+
+    if (
+        env?.isTelegramApp ||
+        env?.isVkApp ||
+        isInsideAndroidWebView ||
+        Boolean(window.Telegram?.WebApp?.initData) ||
+        Boolean(window.webkit?.messageHandlers?.performAction) ||
+        typeof window.TelegramWebviewProxy !== 'undefined' ||
+        typeof window.TelegramWebview !== 'undefined' ||
+        sessionStorage.getItem('hatelavka_is_tg_session') === 'true'
+    ) {
+        console.log("🛡️ [AUTH GUARD] Блокировка открытия WebAuthModal внутри приложения Telegram!");
+        document.body.classList.remove('browser-mode');
+        document.body.classList.add('tg-mode');
+        return;
+    }
+
     if (document.getElementById('web-auth-modal')) return;
 
     const overlay = document.createElement('div');
     overlay.id = 'web-auth-modal';
-    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s;";
-
-    // ВАЖНО: Замени 'YOUR_BOT_USERNAME' на реальный юзернейм твоего бота (например, HATElavka_bot)
-    const botUsername = 'HATElavka_bot';
+    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 2147483647; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); opacity: 0; transition: opacity 0.35s ease;";
 
     overlay.innerHTML = `
-        <div class="custom-confirm-box" style="padding: 24px 20px; width: 90%; max-width: 350px; background: #1c1c1e; border-radius: 16px; border: 1px solid rgba(42, 171, 238, 0.3); text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+        <div class="custom-confirm-box" style="padding: 28px 22px; width: 92%; max-width: 370px; background: linear-gradient(180deg, #242428 0%, #18181a 100%); border-radius: 22px; border: 1px solid rgba(255, 215, 0, 0.25); text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(145, 70, 255, 0.15); position: relative;">
             
-            <i class="fa-brands fa-telegram" style="font-size:44px; color:#2AABEE; margin-bottom:15px; display:block; filter: drop-shadow(0 0 10px rgba(42, 171, 238, 0.4));"></i>
-            <h3 style="color: #fff; font-size: 18px; margin-bottom: 10px; font-weight: 900; text-transform: uppercase;">Требуется авторизация</h3>
-            
-            <div style="font-size: 13px; color: #bbb; line-height: 1.5; text-align: left; margin-bottom: 20px;">
-                Вы находитесь в веб-версии. Чтобы открывать кейсы, делать апгрейды и управлять инвентарем, войдите через свой Telegram-аккаунт.
+            <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 18px;">
+                <div style="width: 54px; height: 54px; border-radius: 16px; background: rgba(145, 70, 255, 0.15); border: 1px solid rgba(145, 70, 255, 0.4); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(145, 70, 255, 0.3);">
+                    <i class="fa-brands fa-twitch" style="font-size: 26px; color: #9146ff;"></i>
+                </div>
+                <div style="color: #666; font-size: 14px; font-weight: 900;">ИЛИ</div>
+                <div style="width: 54px; height: 54px; border-radius: 16px; background: rgba(42, 171, 238, 0.15); border: 1px solid rgba(42, 171, 238, 0.4); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(42, 171, 238, 0.25);">
+                    <i class="fa-brands fa-telegram" style="font-size: 26px; color: #2AABEE;"></i>
+                </div>
             </div>
 
-            <!-- Контейнер для виджета Telegram -->
-            <div id="tg-widget-container" style="display: flex; justify-content: center; margin-bottom: 20px; min-height: 40px;"></div>
+            <h3 style="color: #fff; font-size: 20px; margin: 0 0 8px 0; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">Добро пожаловать в <span style="color: #FFD700;">HATElavka</span></h3>
+            
+            <div style="font-size: 12px; color: #aaa; line-height: 1.45; margin-bottom: 22px;">
+                Выберите удобный способ входа. При входе через <b style="color: #b983ff;">Twitch</b> телеграмовский бот не требуется — ваш баланс, билеты и скины синхронизируются автоматически!
+            </div>
 
-            <button id="close-web-auth-btn" style="width: 100%; padding: 14px; background: rgba(255,255,255,0.1); color: #fff; border: none; border-radius: 12px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background 0.2s;">Закрыть</button>
+            <!-- 1. КНОПКА ВХОДА ЧЕРЕЗ TWITCH (БЕЗ ТГ) -->
+            <button onclick="loginWithTwitchWeb(this)" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #9146ff 0%, #6441a5 100%); color: #fff; border: none; border-radius: 14px; font-weight: 900; font-size: 14px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 20px rgba(145, 70, 255, 0.45); margin-bottom: 12px; transition: transform 0.15s;">
+                <i class="fa-brands fa-twitch" style="font-size: 18px;"></i> Войти через Twitch
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+                <span style="font-size: 10px; color: #666; font-weight: 800; text-transform: uppercase;">или через Telegram</span>
+                <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+            </div>
+
+            <!-- 2. ПРЯМАЯ КНОПКА ОТКРЫТИЯ В TELEGRAM (БЕЗ ОШИБКИ BOT DOMAIN INVALID) -->
+            <a href="https://t.me/HATElavka_bot" target="_blank" style="box-sizing: border-box; text-decoration: none; width: 100%; padding: 14px; background: rgba(42, 171, 238, 0.15); color: #2AABEE; border: 1px solid rgba(42, 171, 238, 0.35); border-radius: 14px; font-weight: 800; font-size: 13px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; transition: background 0.2s;">
+                <i class="fa-brands fa-telegram" style="font-size: 17px;"></i> Открыть в Telegram
+            </a>
+
+            <!-- 3. ПРОДОЛЖИТЬ КАК ГОСТЬ -->
+            <button id="close-web-auth-btn" style="width: 100%; padding: 12px; background: transparent; color: #777; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; font-weight: 700; font-size: 11px; text-transform: uppercase; cursor: pointer; transition: all 0.2s;">
+                Посмотреть сайт как гость
+            </button>
         </div>
     `;
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.style.opacity = '1');
 
-    // Динамически создаем скрипт виджета, чтобы он отрендерился внутри модалки
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute('data-telegram-login', botUsername);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramWebAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    
-    document.getElementById('tg-widget-container').appendChild(script);
-
-    // Закрытие окна
     overlay.querySelector('#close-web-auth-btn').onclick = function() {
+        sessionStorage.setItem('web_guest_dismissed', 'true');
         overlay.style.opacity = '0';
         setTimeout(() => overlay.remove(), 300);
     };
 };
+
+// Если юзер в браузере Гость — при клике на профиль или кнопку открываем окно входа
+document.addEventListener('click', (e) => {
+    if (document.body.classList.contains('browser-mode') && !localStorage.getItem('tg_web_auth_token')) {
+        if (e.target.closest('#user-avatar') || e.target.closest('#fullName') || e.target.closest('a[href="/profile"]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.showWebAuthModal();
+        }
+    }
+}, true);
 
 // Глобальная функция, которую вызывает виджет Telegram при успешном логине
 window.onTelegramWebAuth = function(user) {
@@ -2169,6 +2283,7 @@ function formatItemName(name) {
 
 async function loadCategory(catId, preloadedData = null) {
     window.currentCategoryId = catId; // 🔥 ЗАПОМИНАЕМ, что сейчас открыто
+    if (catId === 2716312) isShopLoaded = true; // Фиксируем, что витрина уже загружена
     const container = document.getElementById('shop-grid');
     if (!container) return;
 
@@ -2176,9 +2291,13 @@ async function loadCategory(catId, preloadedData = null) {
 
     // 1. МОМЕНТАЛЬНЫЙ РЕНДЕР: Ищем данные в оперативной памяти или localStorage
     if (preloadedData) {
+        const prevJson = JSON.stringify(itemsCache[catId] || null);
         itemsCache[catId] = preloadedData;
-        renderItems(preloadedData);
-        hasCachedData = true;
+        // Перерисовываем DOM только если товары реально изменились или сетка пустая
+        if (prevJson !== JSON.stringify(preloadedData) || !container.children.length) {
+            renderItems(preloadedData);
+        }
+        return; // Данные уже переданы — не дергаем сервер повторно
     } else if (itemsCache[catId]) {
         renderItems(itemsCache[catId]);
         hasCachedData = true;
@@ -2199,20 +2318,28 @@ async function loadCategory(catId, preloadedData = null) {
 
     // 3. ФОНОВОЕ ОБНОВЛЕНИЕ: Тихо идем на сервер за свежими ценами и наличием
     try {
-        // isSilent = true, чтобы экран не перекрывался серым лоадером
         const items = await makeApiRequest(`/api/v1/shop/goods?category_id=${catId}`, {}, 'GET', true);
         
-        // Если юзер еще не переключил вкладку, пока шел запрос
         if (window.currentCategoryId === catId) {
-            itemsCache[catId] = items;
-            
-            // Записываем свежие данные в localStorage для следующего раза
-            const newShopCache = JSON.parse(localStorage.getItem('shop_items_cache') || '{}');
-            newShopCache[catId] = items;
-            localStorage.setItem('shop_items_cache', JSON.stringify(newShopCache));
+            // 🔥 SHADOW PRELOAD: Качаем новые картинки в память 🔥
+            const imagesToLoad = items.map(i => i.replaced_image_url || i.image_url).filter(Boolean);
+            if (imagesToLoad.length > 0) {
+                await preloadImages(imagesToLoad);
+            }
 
-            // Перерисовываем актуальные данные (юзер этого почти не заметит, разве что изменится цена)
-            renderItems(items); 
+            // Проверяем, изменились ли данные, чтобы не перерисовывать зря
+            const oldDataStr = JSON.stringify(itemsCache[catId] || []);
+            const newDataStr = JSON.stringify(items);
+
+            if (oldDataStr !== newDataStr) {
+                itemsCache[catId] = items;
+                const newShopCache = JSON.parse(localStorage.getItem('shop_items_cache') || '{}');
+                newShopCache[catId] = items;
+                localStorage.setItem('shop_items_cache', JSON.stringify(newShopCache));
+
+                // 🔥 Бесшовная перерисовка (лесенки не будет, картинки уже в RAM)
+                renderItems(items); 
+            }
         }
     } catch (e) {
         console.warn("Фоновое обновление кейсов не удалось:", e);
@@ -2568,11 +2695,17 @@ items.forEach(item => {
 }
 
 async function validateUserTradeLink() {
+    // Если валидная ссылка уже есть в памяти — пропускаем за 0 мс без моргания лоадера
+    if (userData?.trade_link && userData.trade_link.includes("partner=") && userData.trade_link.includes("token=")) {
+        return true;
+    }
+
     const loader = document.getElementById('purchase-loader');
     if (loader) { loader.querySelector('.loader-text').innerText = "Проверка профиля..."; loader.classList.add('active'); }
     try {
         const res = await makeApiRequest('/api/v1/user/me', {}, 'POST', true);
         const tLink = (res && res.trade_link) ? res.trade_link : "";
+        if (tLink && userData) userData.trade_link = tLink;
         if (!tLink.includes("partner=") || !tLink.includes("token=")) {
             if (window.Telegram?.WebApp?.showPopup) {
                 window.Telegram.WebApp.showPopup({ title: '❌ Нет трейд-ссылки', message: 'Зайдите в Профиль и привяжите Trade-ссылку Steam!', buttons: [{ id: 'ok', type: 'default', text: 'Понятно' }] });
@@ -2860,16 +2993,26 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
             }
 
             const contentsPromise = makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(name)}`, {}, 'GET', true);
-            const buyPromise = makeApiRequest('/api/v1/shop/buy', buyPayload, 'POST');
+            // Передаем 4-м аргументом true (isSilent), чтобы на фоне не дергался главный #loader-overlay!
+            const buyPromise = makeApiRequest('/api/v1/shop/buy', buyPayload, 'POST', true);
             
             const [contentsResp, resData] = await Promise.all([contentsPromise, buyPromise]);
 
-            // 🔥 МАГИЯ: ОБНОВЛЯЕМ СЧЕТЧИК В ПАМЯТИ БРАУЗЕРА БЕЗ ПЕРЕЗАГРУЗКИ 🔥
+            // 🔥 МАГИЯ: ОБНОВЛЯЕМ СЧЕТЧИК В ПАМЯТИ И СРАЗУ СИНХРОНИЗИРУЕМ С КЭШЕМ 🔥
             let oldLacky = 0;
             if (resData && resData.lacky !== undefined) {
                 if (!userData.case_counters) userData.case_counters = {};
                 oldLacky = userData.case_counters[name] || 0;
                 userData.case_counters[name] = parseInt(resData.lacky);
+
+                try {
+                    const cb = JSON.parse(localStorage.getItem('cache_bootstrap') || '{}');
+                    if (cb.user) {
+                        cb.user.case_counters = userData.case_counters;
+                        localStorage.setItem('cache_bootstrap', JSON.stringify(cb));
+                        sessionStorage.setItem('session_bootstrap', JSON.stringify(cb));
+                    }
+                } catch (e) {}
             }
 
             const possibleItems = (contentsResp && contentsResp.length > 0) ? contentsResp : [{ name: "Mystery Item", image_url: imageUrl, rarity: "common" }];
@@ -2905,18 +3048,12 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
                         window.activeFreeCases.splice(indexToUpdate, 1);
                     }
                 }
-                
-                if (typeof itemsCache !== 'undefined' && typeof window.currentCategoryId !== 'undefined') {
-                    if (typeof renderItems === 'function') renderItems(itemsCache[window.currentCategoryId] || []); 
-                }
+                // Откладываем перерисовку сетки до закрытия рулетки, чтобы фон не дергался во время прокрутки
+                window._needsShopRerenderAfterRoulette = true;
             }
 
-            setTimeout(() => {
-                if (typeof checkBalance === 'function') checkBalance(true);
-            }, 1500);
-
        } catch (err) { 
-            if (typeof checkBalance === 'function') checkBalance(true); 
+            if (typeof checkBalance === 'function') checkBalance(true, true);
             
             const systemLocks = ['Activity Lock', 'Trust Lock', 'Global Lock', 'Security Block', 'USER_BANNED', 'Bot Auth Required'];
 
@@ -3114,7 +3251,17 @@ window.closeRoulette = function() {
     rModal.style.display = 'none';
     document.getElementById('r-top-header').style.display = 'none';
     document.getElementById('r-bottom-progress').style.display = 'none';
-    if (typeof checkBalance === 'function') checkBalance(true);
+
+    // Если открывали бесплатный кейс — обновляем витрину сейчас, когда рулетка закрыта
+    if (window._needsShopRerenderAfterRoulette) {
+        window._needsShopRerenderAfterRoulette = false;
+        if (typeof itemsCache !== 'undefined' && typeof window.currentCategoryId !== 'undefined') {
+            if (typeof renderItems === 'function') renderItems(itemsCache[window.currentCategoryId] || []);
+        }
+    }
+
+    // Второй аргумент true (forceSync) не дает старому кэшу баланса мигнуть перед запросом
+    if (typeof checkBalance === 'function') checkBalance(true, true);
 }
 // ================================================================
 // ВЫВОД, ПРОДАЖА И ЗАМЕНА
@@ -4243,8 +4390,14 @@ window.activateCouponSubmit = async () => {
             const shopTab = document.querySelector('.toggle-option[data-target="view-shop"]');
             if (shopTab) shopTab.click();
             
-            // Перерисовываем ту категорию, которая сейчас открыта
-            loadCategory(window.currentCategoryId); 
+            // 🔥 ЖЕЛЕЗОБЕТОННЫЙ ФИКС: Принудительно рендерим витрину из кэша памяти прямо сейчас, 
+            // потому что массив activeFreeCases пополнился, а цены сервера могли не поменяться!
+            if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+                renderItems(itemsCache[window.currentCategoryId]);
+            }
+            
+            // А потом уже тихо обновляем с сервера для галочки
+            if(typeof window.loadCategory === 'function') window.loadCategory(window.currentCategoryId || 2716312);
 
         } else {
             customAlert("❌ " + res.message);
@@ -4338,52 +4491,55 @@ async function main() {
         await fetchVkParamsFromBridge();
     }
 
-    let isBrowserMode = false;
+// 1. Первичная проверка среды
+    let env = detectEnvironmentSync();
 
-    // 🛡️ ИСПРАВЛЕНИЕ 1: Ждем загрузки самого объекта Telegram (если инет моргнул)
-    if (!window.isVk && typeof window.Telegram === 'undefined') {
-        let sdkAttempts = 0;
-        while (typeof window.Telegram === 'undefined' && sdkAttempts < 10) {
-            await new Promise(r => setTimeout(r, 100)); // Ждем до 1 секунды
-            sdkAttempts++;
-        }
+    // 2. Если скрипт Telegram SDK не загрузился (например, сбой сети), но есть признаки Telegram — экстренно догружаем SDK
+    if (!env.isVkApp && typeof window.Telegram === 'undefined' && env.isTelegramApp) {
+        console.warn("⚠️ Обнаружен клиент Telegram, но SDK не загружен. Запускаем резервную подгрузку...");
+        await new Promise((resolve) => {
+            const backupScript = document.createElement('script');
+            backupScript.src = "https://telegram.org/js/telegram-web-app.js";
+            backupScript.onload = resolve;
+            backupScript.onerror = resolve;
+            document.head.appendChild(backupScript);
+            setTimeout(resolve, 2500);
+        });
     }
 
-    // 🛡️ ИСПРАВЛЕНИЕ 2: Убираем мгновенное убийство по tgPlatform === 'web'
-    if (!window.isVk && typeof window.Telegram === 'undefined') {
-        console.log("🌐 Скрипт ТГ не загрузился! Включаем WEB-режим.");
-        isBrowserMode = true;
-    } else if (!window.isVk && window.Telegram?.WebApp) {
-        // Ждем initData для ЛЮБЫХ платформ (ТГ Веб и Десктоп часто тупят при загрузке)
-        console.log("🤖 Режим Телеграм: ожидание initData...");
+    // 3. Если есть объект Telegram.WebApp, но initData еще пустой — ждем инициализацию моста
+    if (!env.isVkApp && window.Telegram?.WebApp && !window.Telegram.WebApp.initData && !env.savedInitData) {
+        try { window.Telegram.WebApp.ready(); } catch (e) {}
+        // Если платформа не 'unknown' (значит мы 100% в клиенте ТГ), ждем до 2.5 секунд, а в обычном браузере — всего 0.4 сек
+        const maxAttempts = (window.Telegram.WebApp.platform && window.Telegram.WebApp.platform !== 'unknown') ? 25 : 4;
         let attempts = 0;
-        while (!window.Telegram.WebApp.initData && attempts < 15) {
+        while (!window.Telegram.WebApp.initData && attempts < maxAttempts) {
             await new Promise(r => setTimeout(r, 100));
             attempts++;
         }
-        
-        // Если после 1.5 секунд ожидания initData так и не появился — вот теперь это 100% браузер
-        if (!window.Telegram.WebApp.initData) {
-            console.log("🌐 initData пустой после ожидания! Включаем WEB-режим.");
-            isBrowserMode = true;
-        }
     }
 
-    // Если это НЕ ВК, НЕ браузер и ТГ не дал данные — рубим
-    if (!window.isVk && !isBrowserMode && window.Telegram && !Telegram.WebApp.initData) { 
-        console.error("💀 Telegram не отдал initData, прерываем запуск.");
-        if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden'); 
-        return; 
+    // 4. Финальный пересчет среды после ожидания SDK
+    env = detectEnvironmentSync();
+    let isBrowserMode = env.isWebBrowser;
+
+    // 5. Чистим конфликтующие классы и выставляем точные классы среды на body
+    if (isBrowserMode) {
+        document.body.classList.remove('ios-mode', 'android-mode', 'desktop-mode', 'tg-mode');
+        document.body.classList.add('browser-mode');
+    } else if (env.isTelegramApp) {
+        document.body.classList.remove('browser-mode');
+        document.body.classList.add('tg-mode');
     }
 
     // Если это ВК и нет параметров — рубим
-    if (window.isVk && !window.vkParams) {
+    if (env.isVkApp && !window.vkParams) {
         console.error("💀 ВК не отдал параметры, прерываем запуск.");
         if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden'); 
         return;
     }
 
-    console.log("✅ Среда определена. Платформа:", window.isVk ? 'VK' : (isBrowserMode ? 'Browser' : 'TG'));
+    console.log(`✅ [ENV DETECTOR] Среда: ${env.isVkApp ? 'VK' : (isBrowserMode ? 'WEB BROWSER' : 'TELEGRAM APP')} | ОС: ${env.osPlatform} | Устройство: ${env.deviceType}`);
 
 // 👇 БРОНЕБОЙНЫЙ ОБХОД ДЛЯ ОБЫЧНОГО БРАУЗЕРА 👇
 if (isBrowserMode) {
@@ -4476,8 +4632,16 @@ if (isBrowserMode) {
         }
     } // <-- Конец блока if (isPC)
 
-    // 🔥 ИСПРАВЛЕНИЕ: Убрали return; чтобы код пошел дальше загружать кейсы из кэша/API
-    console.log("🛑 API запросы для браузера активны (если нет initData, ожидается ошибка авторизации или загрузка из кэша).");
+    // 🔥 АВТОМАТИЧЕСКОЕ ОКНО ВХОДА ПРИ ЗАХОДЕ НА САЙТ С БРАУЗЕРА 🔥
+    if (!localStorage.getItem('tg_web_auth_token') && !sessionStorage.getItem('web_guest_dismissed')) {
+        setTimeout(() => {
+            if (typeof window.showWebAuthModal === 'function') {
+                window.showWebAuthModal();
+            }
+        }, 400);
+    }
+
+    console.log("🛑 API запросы для браузера активны.");
 }
     
     // 3. ТЕПЕРЬ БЕЗОПАСНО ЗАПУСКАЕМ ЗАПРОСЫ
@@ -4485,46 +4649,106 @@ if (isBrowserMode) {
     // УБРАНО: checkBalance(true); — теперь баланс приходит в bootstrap
 
     try {
-    // Добавили !isBrowserMode
-    if (!isVk && !isBrowserMode && window.Telegram && !Telegram.WebApp.initData) { 
-        if (dom.loaderOverlay) dom.loaderOverlay.classList.add('hidden'); 
-        return; 
-    }
+        const activeTgInitData = window.Telegram?.WebApp?.initData || env.savedInitData || sessionStorage.getItem('hatelavka_tg_init_data') || localStorage.getItem('hatelavka_tg_init_data_backup') || '';
+        // Никогда не включаем browser-mode, если env.isTelegramApp === true!
+        if (!env.isVkApp && !env.isTelegramApp && !isBrowserMode && !activeTgInitData) { 
+            console.warn("⚠️ Нет данных авторизации Telegram и нет мостов ТГ, включаем гостевой Web-режим.");
+            isBrowserMode = true;
+            document.body.classList.remove('tg-mode');
+            document.body.classList.add('browser-mode');
+        }
         
         let isCached = false;
         
-        // 1. Читаем ВЕСЬ кэш
-        const cachedBootstrap = JSON.parse(localStorage.getItem('cache_bootstrap') || 'null');
-        const cachedShopRaw = JSON.parse(localStorage.getItem('shop_items_cache') || '{}');
+        // 1. Читаем кэш (sessionStorage для текущей сессии + localStorage)
+        const cachedBootstrap = JSON.parse(sessionStorage.getItem('session_bootstrap') || localStorage.getItem('cache_bootstrap') || 'null');
+        const cachedShopRaw = JSON.parse(sessionStorage.getItem('session_shop_items') || localStorage.getItem('shop_items_cache') || '{}');
         const cachedShop = cachedShopRaw[2716312];
+        const isSessionWarm = sessionStorage.getItem('hl_menu_session_loaded') === 'true';
 
-        console.log(`🚀 [MAIN] Проверка кэша. Бутстрап: ${!!cachedBootstrap}, Магазин: ${!!cachedShop}`);
+        console.log(`🚀 [MAIN] Проверка кэша. Бутстрап: ${!!cachedBootstrap}, Магазин: ${!!cachedShop}, Сессия: ${isSessionWarm}`);
 
-        // Если ВСЁ есть в кэше — рисуем мгновенно (Stale-While-Revalidate)
+        // Если данные есть в кэше — рисуем и открываем экран МГНОВЕННО (0 мс)
         if (cachedBootstrap && !cachedBootstrap.maintenance && cachedShop) {
-            console.log("🚀 [MAIN] Рисуем интерфейс из кэша...");
-            await renderFullInterface(cachedBootstrap);
-            initDynamicRaffleSlider(cachedBootstrap.raffles || []); // 🔥 Берем из бутстрапа
-            loadCategory(2716312, cachedShop);
+            console.log("🚀 [MAIN] Мгновенная отрисовка из кэша...");
+            
+            // СРАЗУ снимаем блокирующий стиль и прячем лоадер, не дожидаясь сети!
+            const antiFlashNow = document.getElementById('anti-flash-style');
+            if (antiFlashNow) antiFlashNow.remove();
+            const maintScreenNow = document.getElementById('maintenance-screen-hardcore');
+            if (maintScreenNow) maintScreenNow.style.display = 'none';
+            document.body.style.overflow = '';
+            if (dom.loaderOverlay) {
+                dom.loaderOverlay.style.opacity = '0';
+                dom.loaderOverlay.classList.add('hidden');
+            }
 
+            await renderFullInterface(cachedBootstrap);
+            if (cachedBootstrap.user) {
+                if (typeof window.renderBalanceUI === 'function') {
+                    window.renderBalanceUI(cachedBootstrap.user.balance, cachedBootstrap.user.tickets);
+                } else {
+                    const balEl = document.getElementById('user-balance');
+                    if (balEl && cachedBootstrap.user.balance !== undefined) {
+                        balEl.textContent = Number(cachedBootstrap.user.balance).toLocaleString('ru-RU');
+                    }
+                    const tEl = document.getElementById('ticketStats');
+                    if (tEl && cachedBootstrap.user.tickets !== undefined) {
+                        tEl.textContent = Number(cachedBootstrap.user.tickets).toLocaleString('ru-RU');
+                    }
+                }
+                const refreshIcon = document.getElementById('refresh-icon');
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+            }
+            if (cachedBootstrap.unread_notifications !== undefined) {
+                updateNotificationBadgeUI(cachedBootstrap.unread_notifications);
+            }
+            initDynamicRaffleSlider(cachedBootstrap.raffles || []);
+            loadCategory(2716312, cachedShop);
             initDynamicAuction(cachedBootstrap.auctions || cachedBootstrap.active_auctions || []);
-            
-            // Берем P2P из кэшированного бутстрапа, если есть
             if (cachedBootstrap.p2p_trades) checkActiveTradesBackground(cachedBootstrap.p2p_trades);
-            
             setupSlider();
             
             isCached = true;
-            
-            // 🔥 ФИКС МЕЛЬКАНИЯ: Даем 150мс на то, чтобы браузер успел применить CSS десктопа 🔥
-            setTimeout(() => {
-                if (dom.loaderOverlay) {
-                    dom.loaderOverlay.style.opacity = '0';
-                    setTimeout(() => dom.loaderOverlay.classList.add('hidden'), 400);
-                }
-            }, 150);
+
+            // 🔥 Смотрим на метку _ts
+            const cacheAge = Date.now() - (cachedBootstrap._ts || 0);
+            if (cachedBootstrap._ts > 0 && cacheAge < 120000) {
+                console.log("⚡ [MAIN] Кэш свежий. Фоново обновляем только динамику (Розыгрыши и Кейсы)...");
+                loadGlobalStats();
+                
+                // 🔥 Теневое обновление без лоадеров 🔥
+                setTimeout(async () => {
+                    try {
+                        const [freshRaffles, freshShop, freshBoot] = await Promise.all([
+                            makeApiRequest('/api/v1/raffles/active', {}, 'POST', true).catch(() => null),
+                            makeApiRequest('/api/v1/shop/goods?category_id=2716312', {}, 'GET', true).catch(() => null),
+                            makeApiRequest('/api/v1/bootstrap', {}, 'POST', true).catch(() => null) // <--- Добавили бутстрап
+                        ]);
+                        
+                        if (freshRaffles) initDynamicRaffleSlider(freshRaffles);
+                        
+                        // 🔥 Проверяем, не прилетел ли нам бесплатный кейс пока нас не было
+                        if (freshBoot && freshBoot.my_active_cases) {
+                            const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
+                            const newFreeCases = JSON.stringify(freshBoot.my_active_cases);
+                            if (oldFreeCases !== newFreeCases) {
+                                window.activeFreeCases = freshBoot.my_active_cases;
+                                // Если витрина открыта — перерисовываем, чтобы кейс стал бесплатным
+                                if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+                                    renderItems(itemsCache[window.currentCategoryId]);
+                                }
+                            }
+                        }
+
+                        if (freshShop) loadCategory(2716312, freshShop);
+                    } catch(e) {}
+                }, 500);
+
+                return;
+            }
         } else {
-            // Иначе показываем лоадер
+            // Показываем лоадер ТОЛЬКО если кэша нет вообще (первый вход)
             if (dom.loaderOverlay) {
                 dom.loaderOverlay.classList.remove('hidden');
                 dom.loaderOverlay.style.opacity = '1';
@@ -4532,7 +4756,7 @@ if (isBrowserMode) {
             updateLoading(10); 
         }      
         
-        // 2. ЗАПРАШИВАЕМ ТОЛЬКО 2 ВЕЩИ ПАРАЛЛЕЛЬНО (Бутстрап и Магазин)
+        // 2. ЗАПРАШИВАЕМ ДАННЫЕ В ФОНЕ
         let bootstrapData, shopData;
         
         console.log("🚀 [MAIN] Отправляем фоновые запросы Promise.all...");
@@ -4541,6 +4765,19 @@ if (isBrowserMode) {
             makeApiRequest('/api/v1/shop/goods?category_id=2716312', {}, 'GET', true).catch(e => { console.warn('Shop error', e); return null; })
         ]);
         console.log("🚀 [MAIN] Ответы Promise.all получены!");
+
+        // Запоминаем успешную загрузку в текущей сессии ВМЕСТЕ с меткой _ts
+        if (bootstrapData && !bootstrapData.maintenance) {
+            bootstrapData._ts = Date.now();
+            sessionStorage.setItem('hl_menu_session_loaded', 'true');
+            sessionStorage.setItem('hl_menu_sync_ts', String(bootstrapData._ts));
+            sessionStorage.setItem('session_bootstrap', JSON.stringify(bootstrapData));
+        }
+        if (shopData) {
+            const sessionShop = JSON.parse(sessionStorage.getItem('session_shop_items') || '{}');
+            sessionShop[2716312] = shopData;
+            sessionStorage.setItem('session_shop_items', JSON.stringify(sessionShop));
+        }
 
         if (!isCached) updateLoading(60);
 
@@ -4584,8 +4821,11 @@ if (isBrowserMode) {
             updateLoading(90);
         }
 
-        // Сохраняем свежий кэш
-        if (bootstrapData) localStorage.setItem('cache_bootstrap', JSON.stringify(bootstrapData));
+        // Сохраняем свежий кэш ВМЕСТЕ с меткой времени _ts (для синхронизации с bottom-nav.js)
+        if (bootstrapData) {
+            bootstrapData._ts = Date.now();
+            localStorage.setItem('cache_bootstrap', JSON.stringify(bootstrapData));
+        }
         if (shopData) {
             const newShopCache = JSON.parse(localStorage.getItem('shop_items_cache') || '{}');
             newShopCache[2716312] = shopData;
@@ -4867,42 +5107,45 @@ if (isBrowserMode) {
 
         if (!isCached) updateLoading(100);
 
-       /// =========================================================================
-// 👇 АВТО-ОТКРЫТИЕ МАГАЗИНА И ИГР 👇
+       // =========================================================================
+// 👇 ЖЕЛЕЗОБЕТОННОЕ АВТО-ОТКРЫТИЕ МАГАЗИНА 👇
 // =========================================================================
 const tgParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
 const urlParam = new URLSearchParams(window.location.search).get('startapp'); 
-const queryTab = new URLSearchParams(window.location.search).get('tab');
 
-const needsShop = localStorage.getItem('force_open_shop') === 'true' || tgParam === 'cases' || urlParam === 'cases' || queryTab === 'shop';
-const needsGames = localStorage.getItem('force_open_games') === 'true' || tgParam === 'games' || urlParam === 'games' || queryTab === 'games';
+const needsShop = localStorage.getItem('force_open_shop') === 'true' || tgParam === 'cases' || urlParam === 'cases';
 
 if (needsShop) {
     localStorage.removeItem('force_open_shop');
+    
     let attempts = 0;
     const shopInterval = setInterval(() => {
         const shopTab = document.querySelector('.toggle-option[data-target="view-shop"]');
         if (shopTab) {
             clearInterval(shopInterval);
-            shopTab.click();
+            
+            // 1. Принудительно меняем активные вкладки
+            document.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+            shopTab.classList.add('active');
+            
+            // 2. Скрываем главное меню, показываем магазин
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            const targetView = document.getElementById('view-shop');
+            if (targetView) targetView.classList.add('active');
+            
+            // 3. Сдвигаем ползунок на вторую вкладку
+            const slider = document.querySelector('.toggle-slider');
+            if (slider) slider.style.transform = 'translateX(100%)';
+            
+            // 4. Загружаем сами кейсы
+            if (typeof loadCategory === 'function') loadCategory(2716312);
         }
         attempts++;
         if (attempts > 50) clearInterval(shopInterval);
     }, 100);
-} else if (needsGames) {
-    localStorage.removeItem('force_open_games');
-    let attempts = 0;
-    const gamesInterval = setInterval(() => {
-        const gamesTab = document.querySelector('.toggle-option[data-target="view-games"]');
-        if (gamesTab) {
-            clearInterval(gamesInterval);
-            gamesTab.click();
-        }
-        attempts++;
-        if (attempts > 50) clearInterval(gamesInterval);
-    }, 100);
 }
 // =========================================================================
+
         if (!isCached && dom.loaderOverlay) {
             setTimeout(() => { 
                 dom.loaderOverlay.style.opacity = '0';
@@ -6453,35 +6696,45 @@ function initSwipeHint() {
 // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ (УНИВЕРСАЛЬНАЯ БРОНЯ)
 // ================================================================
 try {
-    // 1. ИНИЦИАЛИЗАЦИЯ TELEGRAM (только если это НЕ ВК)
-    if (!window.isVk && window.Telegram?.WebApp) {
-        console.log("🤖 Инициализация Telegram SDK...");
+    const bootEnv = detectEnvironmentSync();
+
+    // 1. ИНИЦИАЛИЗАЦИЯ TELEGRAM (ТОЛЬКО если это реально приложение Telegram!)
+    if (bootEnv.isTelegramApp && window.Telegram?.WebApp) {
+        console.log("🤖 Инициализация Telegram SDK (Нативный режим)...");
         const tg = Telegram.WebApp;
-        tg.ready();
-        tg.expand(); 
+        try { tg.ready(); } catch(e) {}
+        try { tg.expand(); } catch(e) {}
         
         if (typeof tg.disableVerticalSwipes === 'function') {
             try { tg.disableVerticalSwipes(); } catch(e) {}
         }
         
-        const platform = tg.platform || 'unknown';
+        document.body.classList.remove('browser-mode');
+        document.body.classList.add('tg-mode');
+
+        const platform = bootEnv.osPlatform;
         if (platform === 'ios') document.body.classList.add('ios-mode');
-        else if (platform === 'android') document.body.classList.add('android-mode');
+        else if (platform === 'android' || platform === 'android_x') document.body.classList.add('android-mode');
         else document.body.classList.add('desktop-mode');
 
-        if (!document.body.classList.contains('desktop-mode') && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) {
+        if (bootEnv.deviceType === 'mobile' && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) {
             if (typeof tg.requestFullscreen === 'function') {
                 try { tg.requestFullscreen(); } catch (e) {}
             }
         }
     } 
     // 2. ИНИЦИАЛИЗАЦИЯ VK (только если флаг ВК активен)
-    else if (window.isVk) {
+    else if (bootEnv.isVkApp) {
         console.log("🚀 Инициализация VK SDK...");
         document.body.classList.add('vk-mode'); 
         if (typeof vkBridge !== 'undefined') {
             try { vkBridge.send('VKWebAppInit'); } catch(e) {}
         }
+    }
+    // 3. ИНИЦИАЛИЗАЦИЯ WEB-БРАУЗЕРА
+    else {
+        console.log("🌐 Инициализация Web-режима (Браузер)...");
+        document.body.classList.add('browser-mode');
     }
     
     // 3. ОБЩИЙ ЗАПУСК ИНТЕРФЕЙСА (Работает везде)
@@ -6497,15 +6750,7 @@ try {
     // 4. ФОНОВЫЕ ПРОЦЕССЫ
     clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => { if (!document.hidden) refreshDataSilently(); }, 60000);
-    document.addEventListener("visibilitychange", () => { 
-        if (!document.hidden) {
-            refreshDataSilently();
-            updateGrindBannerBadge();
-        }
-    });
-    window.addEventListener("pageshow", () => {
-        updateGrindBannerBadge();
-    });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshDataSilently(); });
 
 } catch (e) { 
     console.error("Global init error", e); 
