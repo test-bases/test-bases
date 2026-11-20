@@ -5277,14 +5277,11 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     const isAdmin = Boolean(userData?.is_admin);
     const existingModal = document.getElementById('matrix-event-modal');
 
-    // Если конфиг не пришёл или выключен — для обычных юзеров не показываем (админ видит всегда, пока есть конфиг)
     if (!welcomeConfig || (!welcomeConfig.enabled && !isAdmin)) {
         if (existingModal) existingModal.remove();
         return;
     }
 
-    // Для обычных юзеров: скрываем, если уже получили кейс или закрыли в этой сессии
-    // Для админа: всегда открываем при каждом входе/перезагрузке (закрытие крестиком действует только до следующего F5)
     if (isAdmin) {
         if (window._welcomeClosedThisLoad) return;
     } else {
@@ -5298,12 +5295,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     const tasks = welcomeConfig.tasks || [];
     const tiers = [...(welcomeConfig.tiers || [])].sort((a, b) => a.min_extra - b.min_extra);
-    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда:';
-    const btnCheckText = welcomeConfig.btn_check_text || 'Проверить канал и чат';
+    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда';
     const btnClaimPrefix = welcomeConfig.btn_claim_prefix || 'Забрать';
 
     let inChannel = false;
     let inChat = false;
+    let isChecking = false;
+    let isFirstRender = true;
     const completedExtra = new Set();
 
     const getCurrentTier = () => {
@@ -5316,102 +5314,315 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     const overlay = document.createElement('div');
     overlay.id = 'matrix-event-modal';
-    overlay.style.cssText = "position: fixed; inset: 0; background: rgba(10,10,12,0.92); z-index: 2147483646; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); opacity: 0; transition: opacity 0.3s; padding: 16px; box-sizing: border-box;";
+    overlay.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
     const adminBadgeHtml = isAdmin
-        ? `<div style="position: absolute; top: 14px; left: 16px; font-size: 9px; font-weight: 900; color: #ff9500; background: rgba(255,149,0,0.12); border: 1px solid rgba(255,149,0,0.35); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.5px;">ADMIN TEST</div>`
+        ? `<div style="display: inline-block; margin-bottom: 8px; font-size: 8.5px; font-weight: 800; color: #fbbf24; background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.35); padding: 2.5px 8px; border-radius: 6px; letter-spacing: 0.6px; text-transform: uppercase;">ADMIN TEST</div>`
         : '';
 
     overlay.innerHTML = `
-        <div style="width: 100%; max-width: 360px; background: #18181b; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 26px 18px 20px; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.75); max-height: 90vh; display: flex; flex-direction: column;">
-            
-            ${adminBadgeHtml}
+        <style>
+            @keyframes wlOverlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+            @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
+            @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
 
-            <button id="wl-close-btn" style="position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(255,255,255,0.06); color: #8e8e93; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            .wl-modal-box {
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                width: 92%;
+                max-width: 315px;
+                padding: 8px 4px;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                max-height: 90vh;
+                animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            }
+            .wl-icon-badge {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 6px;
+                font-size: 24px;
+                color: #d8b4fe;
+                filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
+            }
+            .wl-head {
+                font-size: 15px;
+                font-weight: 800;
+                letter-spacing: -0.25px;
+                margin-bottom: 4px;
+                color: #ffffff;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+            }
+            .wl-subtitle {
+                font-size: 9.5px;
+                font-weight: 700;
+                color: #d8b4fe;
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+                margin-bottom: 14px;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+            }
+            #wl-tasks-list {
+                display: flex;
+                flex-direction: column;
+                gap: 7px;
+                overflow-y: auto;
+                max-height: 44vh;
+                margin-bottom: 12px;
+                padding-right: 2px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .wl-task-card {
+                display: flex;
+                align-items: center;
+                gap: 11px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 12px;
+                padding: 9px 11px;
+                text-align: left;
+                cursor: pointer;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+                transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+            }
+            .wl-task-card:active { transform: scale3d(0.96, 0.96, 1); }
+            .wl-task-card.is-done {
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%);
+                border-color: rgba(74, 222, 128, 0.38);
+            }
+            .wl-task-icon {
+                width: 34px;
+                height: 34px;
+                border-radius: 9px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 15px;
+                flex-shrink: 0;
+            }
+            .wl-task-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                flex: 1;
+                min-width: 0;
+            }
+            .wl-task-title {
+                font-size: 11.5px;
+                font-weight: 800;
+                color: #ffffff;
+                letter-spacing: -0.15px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .wl-task-sub {
+                font-size: 9px;
+                font-weight: 600;
+                letter-spacing: -0.1px;
+                line-height: 1.2;
+            }
+            .wl-task-right {
+                font-size: 12px;
+                flex-shrink: 0;
+                margin-left: 4px;
+            }
+            .wl-reward-line {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding-top: 10px;
+                margin: 0 auto 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+                width: 88%;
+            }
+            .wl-reward-lbl {
+                font-size: 10px;
+                font-weight: 600;
+                color: #a1a1aa;
+            }
+            .wl-reward-val {
+                font-size: 12px;
+                font-weight: 800;
+                color: #fbbf24;
+                letter-spacing: -0.2px;
+                text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+            }
+            .wl-btns-row {
+                display: flex;
+                gap: 8px;
+                width: 100%;
+                margin-bottom: 6px;
+            }
+            .wl-btn-check {
+                background: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+                flex: 0.9;
+                padding: 10px 10px;
+                border-radius: 10px;
+                font-weight: 700;
+                font-size: 10.5px;
+                letter-spacing: -0.1px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                transition: transform 0.12s ease, opacity 0.2s ease;
+            }
+            .wl-btn-check:active { transform: scale3d(0.96, 0.96, 1); }
+            .wl-btn-claim {
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.62) 0%, rgba(109, 40, 217, 0.45) 100%);
+                border: 1px solid rgba(216, 180, 254, 0.58);
+                box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
+                color: #ffffff;
+                flex: 1.3;
+                padding: 10px 12px;
+                border-radius: 10px;
+                font-weight: 800;
+                font-size: 10.5px;
+                letter-spacing: -0.1px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                transition: transform 0.12s ease, opacity 0.2s ease;
+            }
+            .wl-btn-claim:active { transform: scale3d(0.96, 0.96, 1); }
+            .wl-btn-claim.is-locked {
+                opacity: 0.38;
+                filter: grayscale(65%);
+                box-shadow: none;
+            }
+            .wl-btn-close {
+                background: transparent;
+                border: none;
+                color: #a1a1aa;
+                font-size: 10.5px;
+                font-weight: 600;
+                padding: 7px 14px;
+                cursor: pointer;
+                width: 100%;
+                transition: color 0.15s ease;
+            }
+            .wl-btn-close:active { color: #ffffff; }
+        </style>
 
-            <div style="text-align: center; margin-bottom: 16px; margin-top: ${isAdmin ? '12px' : '0'};">
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25); color: #FFD700; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 10px;">
-                    <i class="fa-solid fa-gift"></i> <span id="wl-tier-badge">${escapeHTML(tiers[0]?.label || 'Бесплатный кейс')}</span>
-                </div>
-                <h2 style="margin: 0 0 6px; font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 0.3px;">${escapeHTML(welcomeConfig.title || '')}</h2>
-                <p style="margin: 0; font-size: 12px; color: #8e8e93; line-height: 1.4;">${escapeHTML(welcomeConfig.subtitle || '')}</p>
+        <div class="wl-modal-box">
+            <div>${adminBadgeHtml}</div>
+            <div class="wl-icon-badge">
+                <i class="fa-solid fa-gift"></i>
+            </div>
+            <div class="wl-head">${escapeHTML(welcomeConfig.title || 'Получи бесплатный кейс')}</div>
+            <div class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия')}</div>
+
+            <div id="wl-tasks-list"></div>
+
+            <div class="wl-reward-line">
+                <span class="wl-reward-lbl">${escapeHTML(rewardLabel)}</span>
+                <span class="wl-reward-val" id="wl-current-case">${escapeHTML(tiers[0]?.case_name || '')}</span>
             </div>
 
-            <div id="wl-tasks-list" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; margin-bottom: 16px; padding-right: 2px;"></div>
-
-            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; color: #8e8e93; font-weight: 600;">${escapeHTML(rewardLabel)}</span>
-                <span id="wl-current-case" style="font-size: 12px; color: #FFD700; font-weight: 800;">${escapeHTML(tiers[0]?.case_name || '')}</span>
+            <div class="wl-btns-row">
+                <button id="wl-check-btn" class="wl-btn-check">
+                    <i class="fa-solid fa-rotate"></i> Проверить
+                </button>
+                <button id="wl-claim-btn" class="wl-btn-claim is-locked">
+                    <i class="fa-solid fa-lock"></i> ${escapeHTML(btnClaimPrefix)}
+                </button>
             </div>
 
-            <button id="wl-claim-btn" style="width: 100%; padding: 15px; border: none; border-radius: 14px; font-weight: 900; font-size: 13px; text-transform: uppercase; background: rgba(42,171,238,0.18); color: #2AABEE; cursor: pointer; transition: all 0.25s;">
-                <i class="fa-solid fa-rotate" style="margin-right: 6px;"></i> ${escapeHTML(btnCheckText)}
-            </button>
+            <button id="wl-close-btn" class="wl-btn-close">Закрыть</button>
         </div>
     `;
 
     document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.style.opacity = '1');
 
     const listEl = overlay.querySelector('#wl-tasks-list');
+    const checkBtn = overlay.querySelector('#wl-check-btn');
     const claimBtn = overlay.querySelector('#wl-claim-btn');
-    const tierBadge = overlay.querySelector('#wl-tier-badge');
     const currentCaseEl = overlay.querySelector('#wl-current-case');
+    const subtitleEl = overlay.querySelector('#wl-tier-subtitle');
 
     const updateRewardUI = () => {
         const tier = getCurrentTier();
-        tierBadge.textContent = tier.label;
         currentCaseEl.textContent = tier.case_name;
 
-        if (inChannel && inChat) {
-            claimBtn.disabled = false;
-            claimBtn.style.background = 'linear-gradient(135deg, #FFD700 0%, #ffaa00 100%)';
-            claimBtn.style.color = '#000';
-            claimBtn.style.boxShadow = '0 6px 20px rgba(255,215,0,0.35)';
-            claimBtn.innerHTML = `<i class="fa-solid fa-box-open" style="margin-right: 6px;"></i> ${escapeHTML(btnClaimPrefix)} ${escapeHTML(tier.label)}`;
+        if (completedExtra.size > 0) {
+            subtitleEl.textContent = `${tier.label} • Улучшено`;
+            subtitleEl.style.color = '#fbbf24';
         } else {
-            claimBtn.disabled = false;
-            claimBtn.style.background = 'rgba(42,171,238,0.18)';
-            claimBtn.style.color = '#2AABEE';
-            claimBtn.style.boxShadow = 'none';
-            claimBtn.innerHTML = `<i class="fa-solid fa-rotate" style="margin-right: 6px;"></i> ${escapeHTML(btnCheckText)}`;
+            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия';
+            subtitleEl.style.color = '#d8b4fe';
+        }
+
+        if (inChannel && inChat) {
+            claimBtn.classList.remove('is-locked');
+            claimBtn.innerHTML = `<i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> ${escapeHTML(btnClaimPrefix)}`;
+        } else {
+            claimBtn.classList.add('is-locked');
+            claimBtn.innerHTML = `<i class="fa-solid fa-lock"></i> ${escapeHTML(btnClaimPrefix)}`;
         }
     };
 
     const renderTasks = () => {
-        listEl.innerHTML = tasks.map(t => {
+        listEl.innerHTML = tasks.map((t, idx) => {
             let isDone = false;
             if (t.type === 'tg_channel') isDone = inChannel;
             else if (t.type === 'tg_chat') isDone = inChat;
             else isDone = completedExtra.has(t.id);
 
-            const border = isDone ? 'rgba(52,199,89,0.4)' : 'rgba(255,255,255,0.06)';
-            const bg = isDone ? 'rgba(52,199,89,0.08)' : 'rgba(255,255,255,0.03)';
-            const badgeText = isDone ? (t.required ? 'Выполнено' : 'Выполнено • Кейс улучшен') : t.badge;
-            const badgeColor = isDone ? '#34c759' : (t.required ? '#2AABEE' : '#FFD700');
+            const subText = isDone
+                ? (t.required ? 'Выполнено' : 'Выполнено • Кейс улучшен')
+                : (t.required ? 'Обязательное условие' : `* ${t.badge || 'Улучшить кейс'}`);
+            const subColor = isDone ? '#4ade80' : (t.required ? '#d8b4fe' : '#fbbf24');
+
+            const iconBg = isDone
+                ? 'rgba(52, 199, 89, 0.16)'
+                : `${t.color}22`;
+            const iconBorder = isDone
+                ? 'rgba(74, 222, 128, 0.4)'
+                : `${t.color}4d`;
+            const iconColor = isDone ? '#4ade80' : t.color;
+
+            const animStyle = isFirstRender
+                ? `opacity: 0; animation: wlCardPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 45}ms forwards;`
+                : '';
 
             return `
-                <div class="wl-task-item" data-id="${t.id}" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 14px; background: ${bg}; border: 1px solid ${border}; cursor: pointer; transition: 0.2s;">
-                    <div style="width: 34px; height: 34px; border-radius: 10px; background: ${t.color}20; color: ${t.color}; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;">
+                <div class="wl-task-card ${isDone ? 'is-done' : ''}" data-id="${t.id}" style="${animStyle}">
+                    <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
                         <i class="${t.icon}"></i>
                     </div>
-                    <div style="flex: 1; min-width: 0; text-align: left;">
-                        <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(t.title)}</div>
-                        <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: ${badgeColor}; margin-top: 2px;">*${escapeHTML(badgeText)}</div>
+                    <div class="wl-task-info">
+                        <div class="wl-task-title">${escapeHTML(t.title)}</div>
+                        <div class="wl-task-sub" style="color: ${subColor};">${escapeHTML(subText)}</div>
                     </div>
-                    <div class="wl-task-status" style="font-size: 15px; color: ${isDone ? '#34c759' : '#555'}; flex-shrink: 0;">
+                    <div class="wl-task-right" style="color: ${isDone ? '#4ade80' : '#a1a1aa'};">
                         <i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-chevron-right'}"></i>
                     </div>
                 </div>
             `;
         }).join('');
 
-        listEl.querySelectorAll('.wl-task-item').forEach(el => {
+        isFirstRender = false;
+
+        listEl.querySelectorAll('.wl-task-card').forEach(el => {
             el.onclick = () => {
                 const task = tasks.find(x => x.id === el.dataset.id);
                 if (!task) return;
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {}
+                }
 
                 if (task.url.includes('t.me/') && window.Telegram?.WebApp?.openTelegramLink) {
                     window.Telegram.WebApp.openTelegramLink(task.url);
@@ -5422,11 +5633,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 }
 
                 if (task.type === 'link' && !completedExtra.has(task.id)) {
-                    const statusIcon = el.querySelector('.wl-task-status');
-                    if (statusIcon) statusIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#FFD700;"></i>';
+                    const rightIcon = el.querySelector('.wl-task-right');
+                    if (rightIcon) rightIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#fbbf24;"></i>';
                     setTimeout(() => {
                         completedExtra.add(task.id);
-                        if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+                        }
                         renderTasks();
                         updateRewardUI();
                     }, 4000);
@@ -5435,7 +5648,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         });
     };
 
-    const checkTgSubs = async () => {
+    const checkTgSubs = async (showSpinner = false) => {
+        if (isChecking) return;
+        isChecking = true;
+        if (showSpinner) {
+            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверка...';
+            checkBtn.style.opacity = '0.7';
+        }
         try {
             const res = await makeApiRequest('/api/v1/welcome/check_tg', {}, 'POST', true);
             inChannel = Boolean(res && res.in_channel);
@@ -5443,52 +5662,91 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         } catch (e) {
             inChannel = false;
             inChat = false;
+        } finally {
+            isChecking = false;
+            checkBtn.style.opacity = '1';
+            checkBtn.innerHTML = (inChannel && inChat)
+                ? '<i class="fa-solid fa-check" style="color:#4ade80;"></i> Готово'
+                : '<i class="fa-solid fa-rotate"></i> Проверить';
+            renderTasks();
+            updateRewardUI();
         }
-        renderTasks();
-        updateRewardUI();
     };
 
-    overlay.querySelector('#wl-close-btn').onclick = () => {
+    // Автопроверка при возврате пользователя из Telegram-канала или чата
+    const handleAutoReturnCheck = () => {
+        if (!document.hidden && document.getElementById('matrix-event-modal') && (!inChannel || !inChat)) {
+            checkTgSubs(true);
+        }
+    };
+    document.addEventListener('visibilitychange', handleAutoReturnCheck);
+    window.addEventListener('focus', handleAutoReturnCheck);
+
+    const closeModal = () => {
+        document.removeEventListener('visibilitychange', handleAutoReturnCheck);
+        window.removeEventListener('focus', handleAutoReturnCheck);
         if (isAdmin) {
             window._welcomeClosedThisLoad = true;
         } else {
             sessionStorage.setItem('matrix_dismissed', 'true');
         }
         overlay.style.opacity = '0';
-        setTimeout(() => overlay.remove(), 300);
+        overlay.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => overlay.remove(), 200);
+    };
+
+    overlay.querySelector('#wl-close-btn').onclick = closeModal;
+    overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+
+    checkBtn.onclick = async () => {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {}
+        }
+        await checkTgSubs(true);
+        if (inChannel && inChat && window.Telegram?.WebApp?.HapticFeedback) {
+            try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+        }
     };
 
     claimBtn.onclick = async () => {
         if (!inChannel || !inChat) {
-            claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверяем...';
-            await checkTgSubs();
+            await checkTgSubs(true);
             if (!inChannel || !inChat) {
-                customAlert("Чтобы забрать кейс, нужно подписаться на канал и вступить в чат!");
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {}
+                }
+                customAlert("Подпишись на Telegram-канал и вступи в чат, чтобы забрать кейс!");
             }
             return;
         }
 
         claimBtn.disabled = true;
-        claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Выдаем кейс...';
+        claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Выдаём...';
 
         try {
             const res = await makeApiRequest('/api/v1/welcome/claim', {
                 completed_extra_ids: Array.from(completedExtra)
             }, 'POST');
 
+            document.removeEventListener('visibilitychange', handleAutoReturnCheck);
+            window.removeEventListener('focus', handleAutoReturnCheck);
+
             if (isAdmin) {
                 window._welcomeClosedThisLoad = true;
             } else {
                 sessionStorage.setItem('matrix_dismissed', 'true');
             }
+
             localStorage.setItem('force_open_shop', 'true');
             localStorage.removeItem('cache_bootstrap');
             localStorage.removeItem('shop_items_cache');
             sessionStorage.removeItem('session_bootstrap');
             sessionStorage.removeItem('session_shop_items');
 
-            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            customAlert(`🎁 Готово! Тебе выдан «${res.case_name}». Открывай его в магазине!`);
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+            }
+            customAlert(`Готово! Тебе выдан «${res.case_name}». Открывай его в магазине!`);
 
             setTimeout(() => window.location.reload(), 1200);
         } catch (e) {
@@ -5498,7 +5756,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     };
 
     renderTasks();
-    checkTgSubs();
+    checkTgSubs(true);
 }
 
 async function submitMatrixChoice(pill) {
