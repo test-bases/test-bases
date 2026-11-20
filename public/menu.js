@@ -5312,7 +5312,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     let inChat = false;
     let isChecking = false;
     let isFirstRender = true;
-    let isExtraOpen = false; // Спойлер доп. заданий по умолчанию свернут
+    let isExtraOpen = false; // false = открыты основные (без вида спойлера), true = основные свёрнуты, открыты доп.
     let lastRenderedCaseName = '';
     const visitedTasks = new Set();
     const completedExtra = new Set();
@@ -5454,7 +5454,6 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 max-height: 116px;
                 max-width: 190px;
                 object-fit: contain;
-                filter: drop-shadow(0 10px 22px rgba(192, 132, 252, 0.36));
             }
             .wl-case-img.pop { animation: wlCaseUpgrade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
             .wl-case-name-pill {
@@ -5505,10 +5504,38 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 padding: 1.5px 6px; border-radius: 5px;
             }
+            /* СВЕРНУТАЯ ПЛАШКА ОБЯЗАТЕЛЬНЫХ (ПОЯВЛЯЕТСЯ ТОЛЬКО КОГДА ОТКРЫТ СПОЙЛЕР УЛУЧШЕНИЙ) */
+            .wl-req-collapsed-bar {
+                width: 100%;
+                padding: 8px 10px;
+                border-radius: 11px;
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                cursor: pointer;
+                box-sizing: border-box;
+                transition: background 0.15s ease;
+            }
+            .wl-req-collapsed-bar:active { transform: scale3d(0.98, 0.98, 1); }
+            .wl-req-collapsed-bar.all-done {
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.12) 0%, rgba(18, 18, 24, 0.7) 100%);
+                border-color: rgba(74, 222, 128, 0.35);
+            }
+            .wl-req-collapsed-left {
+                display: flex; align-items: center; gap: 6px;
+                font-size: 9.5px; font-weight: 800; color: #e4e4e7;
+                text-transform: uppercase; letter-spacing: 0.4px;
+            }
+            .wl-req-collapsed-right {
+                display: flex; align-items: center; gap: 6px;
+                font-size: 9px; font-weight: 700; color: #a1a1aa;
+            }
             /* СПОЙЛЕР ДЛЯ ДОП. ЗАДАНИЙ */
             .wl-spoiler-toggle {
                 width: 100%;
-                margin-top: 6px;
+                margin-top: 4px;
                 padding: 8px 10px;
                 border-radius: 11px;
                 background: linear-gradient(135deg, rgba(251, 191, 36, 0.09) 0%, rgba(18, 18, 24, 0.7) 100%);
@@ -5676,7 +5703,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (imgUrl) {
             caseImgWrap.innerHTML = `<img src="${escapeHTML(imgUrl)}" class="wl-case-img ${caseChanged ? 'pop' : ''}" alt="">`;
         } else {
-            caseImgWrap.innerHTML = `<i class="fa-solid fa-gift ${caseChanged ? 'pop' : ''}" style="font-size: 46px; color: #d8b4fe; filter: drop-shadow(0 0 14px rgba(192,132,252,0.6));"></i>`;
+            caseImgWrap.innerHTML = `<i class="fa-solid fa-gift ${caseChanged ? 'pop' : ''}" style="font-size: 46px; color: #d8b4fe;"></i>`;
         }
 
         const upgradeIcon = completedExtra.size > 0 ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-box-open"></i>';
@@ -5746,16 +5773,34 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     const renderTasks = () => {
         const reqDoneCount = (inChannel ? 1 : 0) + (inChat ? 1 : 0);
+        const allReqDone = requiredTasks.length > 0 && reqDoneCount >= requiredTasks.length;
         let html = '';
 
         if (requiredTasks.length > 0) {
-            html += `
-                <div class="wl-section-head">
-                    <span class="wl-section-title"><i class="fa-solid fa-shield-halved" style="color:#d8b4fe;"></i> Обязательно для кейса</span>
-                    <span class="wl-section-tag">${reqDoneCount}/${requiredTasks.length}</span>
-                </div>
-            `;
-            html += requiredTasks.map((t, i) => renderTaskCardHtml(t, i, false)).join('');
+            if (isExtraOpen) {
+                // Когда открыты доп. задания — основные аккуратно свернуты в компактную плашку
+                html += `
+                    <div class="wl-req-collapsed-bar ${allReqDone ? 'all-done' : ''}" id="wl-req-spoiler-btn">
+                        <span class="wl-req-collapsed-left">
+                            <i class="fa-solid ${allReqDone ? 'fa-circle-check' : 'fa-shield-halved'}" style="color: ${allReqDone ? '#4ade80' : '#d8b4fe'};"></i>
+                            <span>Обязательно для кейса</span>
+                        </span>
+                        <span class="wl-req-collapsed-right" style="color: ${allReqDone ? '#4ade80' : '#a1a1aa'};">
+                            <span>${reqDoneCount}/${requiredTasks.length}</span>
+                            <i class="fa-solid fa-chevron-down" style="font-size: 9px;"></i>
+                        </span>
+                    </div>
+                `;
+            } else {
+                // Когда основные открыты — они выглядят как обычный блок (не спойлер)
+                html += `
+                    <div class="wl-section-head">
+                        <span class="wl-section-title"><i class="fa-solid fa-shield-halved" style="color:#d8b4fe;"></i> Обязательно для кейса</span>
+                        <span class="wl-section-tag">${reqDoneCount}/${requiredTasks.length}</span>
+                    </div>
+                `;
+                html += requiredTasks.map((t, i) => renderTaskCardHtml(t, i, false)).join('');
+            }
         }
 
         if (extraTasks.length > 0) {
@@ -5779,6 +5824,18 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         listEl.innerHTML = html;
         isFirstRender = false;
 
+        const reqSpoilerBtn = listEl.querySelector('#wl-req-spoiler-btn');
+        if (reqSpoilerBtn) {
+            reqSpoilerBtn.onclick = () => {
+                isExtraOpen = false;
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {}
+                }
+                renderTasks();
+                listEl.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+        }
+
         const spoilerBtn = listEl.querySelector('#wl-extra-spoiler-btn');
         if (spoilerBtn) {
             spoilerBtn.onclick = () => {
@@ -5786,12 +5843,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 if (window.Telegram?.WebApp?.HapticFeedback) {
                     try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {}
                 }
-                spoilerBtn.classList.toggle('open', isExtraOpen);
-                const body = listEl.querySelector('#wl-extra-spoiler-body');
-                if (body) body.classList.toggle('collapsed', !isExtraOpen);
-                if (isExtraOpen) {
-                    setTimeout(() => listEl.scrollTo({ top: listEl.scrollHeight, behavior: 'smooth' }), 60);
-                }
+                renderTasks();
+                listEl.scrollTo({ top: 0, behavior: 'smooth' });
             };
         }
 
