@@ -672,7 +672,7 @@
         }
 
         function esc(str) {
-            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&','<':'<','>':'>','"':'"',"'":'''})[m]);
+            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
         }
 
         function switchTab(name, btn) {
