@@ -4983,7 +4983,8 @@ WELCOME_TG_CHAT = os.getenv("ALLOWED_CHAT_ID", "@hatelovettv")
 DEFAULT_WELCOME_QUEST_CONFIG = {
     "enabled": True,
     "admin_test_mode": True,
-    "title": "ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС",
+    "for_all": False,
+    "title": "ПОЛУЧИ КЕЙС БЕСПЛАТНО!",
     "subtitle": "Выполни простые действия и забери скин прямо сейчас",
     "reward_label": "Твоя награда:",
     "btn_check_text": "Проверить канал и чат",
@@ -5148,11 +5149,33 @@ async def claim_welcome_case(
     is_admin = telegram_id in ADMIN_IDS
     welcome_cfg = await get_welcome_config(supabase)
 
-    # 1. Защита от повторного получения (для админа разрешаем повторный тест)
-    check_res = await supabase.get("/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"})
-    already_exists = check_res.status_code == 200 and len(check_res.json()) > 0
-    if already_exists and not is_admin:
-        raise HTTPException(status_code=400, detail="Стартовый кейс уже получен")
+    # 4. Закрываем окно для юзера (обновляем старую запись Матрицы или создаём новую)
+    if existing_row and not already_claimed_welcome:
+        patch_res = await supabase.patch(
+            "/event_matrix_quest",
+            params={"user_id": f"eq.{telegram_id}"},
+            json={
+                "selected_pill": f"welcome_extra_{done_extra_count}",
+                "is_completed": True,
+            },
+        )
+        if patch_res.status_code not in [200, 204]:
+            logging.error(f"[WELCOME] Patch matrix error: {patch_res.text}")
+            raise HTTPException(status_code=500, detail="Ошибка сохранения прогресса")
+    elif not existing_row:
+        insert_res = await supabase.post(
+            "/event_matrix_quest",
+            json={
+                "user_id": telegram_id,
+                "selected_pill": f"welcome_extra_{done_extra_count}",
+                "tg_msg_current": 0,
+                "twitch_msg_current": 0,
+                "is_completed": True,
+            },
+        )
+        if insert_res.status_code not in [200, 201, 204]:
+            logging.error(f"[WELCOME] Insert matrix error: {insert_res.text}")
+            raise HTTPException(status_code=500, detail="Ошибка сохранения прогресса")
 
     # 2. Финальная проверка канала и чата на сервере
     in_channel, in_chat = await asyncio.gather(
