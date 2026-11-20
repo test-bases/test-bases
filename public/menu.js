@@ -5295,14 +5295,15 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     const tasks = welcomeConfig.tasks || [];
     const tiers = [...(welcomeConfig.tiers || [])].sort((a, b) => a.min_extra - b.min_extra);
-    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда';
+    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда:';
     const btnClaimPrefix = welcomeConfig.btn_claim_prefix || 'Забрать';
 
     let inChannel = false;
     let inChat = false;
     let isChecking = false;
     let isFirstRender = true;
-    const completedExtra = new Set();
+    const visitedTasks = new Set();   // Задачи, на которых нажали «Перейти»
+    const completedExtra = new Set(); // Проверенные доп. задачи
 
     const getCurrentTier = () => {
         let current = tiers[0] || { case_name: 'Стартовый кейс', label: 'Базовый кейс' };
@@ -5312,217 +5313,268 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         return current;
     };
 
+    const openTaskUrl = (url) => {
+        if (!url) return;
+        if (url.includes('t.me/') && window.Telegram?.WebApp?.openTelegramLink) {
+            window.Telegram.WebApp.openTelegramLink(url);
+        } else if (window.Telegram?.WebApp?.openLink) {
+            window.Telegram.WebApp.openLink(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    };
+
     const overlay = document.createElement('div');
     overlay.id = 'matrix-event-modal';
-    overlay.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
+    overlay.style.cssText = "position: fixed; inset: 0; background: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.22) 0%, rgba(7, 7, 10, 0.94) 55%, rgba(4, 4, 7, 0.97) 100%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
     const adminBadgeHtml = isAdmin
-        ? `<div style="display: inline-block; margin-bottom: 8px; font-size: 8.5px; font-weight: 800; color: #fbbf24; background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.35); padding: 2.5px 8px; border-radius: 6px; letter-spacing: 0.6px; text-transform: uppercase;">ADMIN TEST</div>`
+        ? `<div class="wl-admin-pill">ADMIN TEST</div>`
         : '';
 
     overlay.innerHTML = `
         <style>
             @keyframes wlOverlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
-            @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
-            @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+            @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.94, 0.94, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
+            @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
             .wl-modal-box {
-                background: transparent;
-                border: none;
-                box-shadow: none;
-                width: 92%;
-                max-width: 315px;
-                padding: 8px 4px;
+                width: 100%;
+                max-width: 370px;
                 text-align: center;
                 display: flex;
                 flex-direction: column;
-                max-height: 90vh;
+                align-items: center;
+                max-height: 92vh;
                 animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             }
-            .wl-icon-badge {
-                display: flex;
+            .wl-admin-pill {
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                margin: 0 auto 6px;
-                font-size: 24px;
-                color: #d8b4fe;
-                filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
+                padding: 4px 12px;
+                border-radius: 999px;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.7px;
+                color: #fbbf24;
+                background: rgba(251, 191, 36, 0.1);
+                border: 1px solid rgba(251, 191, 36, 0.45);
+                margin-bottom: 10px;
+                text-transform: uppercase;
+            }
+            .wl-gift-icon {
+                font-size: 32px;
+                color: #c084fc;
+                filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.65));
+                margin-bottom: 10px;
+                line-height: 1;
             }
             .wl-head {
-                font-size: 15px;
-                font-weight: 800;
-                letter-spacing: -0.25px;
-                margin-bottom: 4px;
+                font-size: 19px;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.2px;
                 color: #ffffff;
-                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+                margin: 0 0 6px 0;
+                line-height: 1.15;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
             }
             .wl-subtitle {
-                font-size: 9.5px;
+                font-size: 10.5px;
                 font-weight: 700;
-                color: #d8b4fe;
                 text-transform: uppercase;
-                letter-spacing: 0.6px;
-                margin-bottom: 14px;
-                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+                letter-spacing: 0.4px;
+                color: #c4b5fd;
+                margin: 0 0 18px 0;
+                line-height: 1.35;
+                max-width: 92%;
             }
             #wl-tasks-list {
+                width: 100%;
                 display: flex;
                 flex-direction: column;
-                gap: 7px;
+                gap: 9px;
                 overflow-y: auto;
-                max-height: 44vh;
-                margin-bottom: 12px;
-                padding-right: 2px;
+                max-height: 48vh;
+                margin-bottom: 16px;
+                padding: 1px;
                 -webkit-overflow-scrolling: touch;
             }
             .wl-task-card {
                 display: flex;
                 align-items: center;
                 gap: 11px;
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 12px;
-                padding: 9px 11px;
+                background: rgba(20, 20, 26, 0.72);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                padding: 10px 11px;
                 text-align: left;
-                cursor: pointer;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-                transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                transition: border-color 0.2s ease, background 0.2s ease;
+                box-sizing: border-box;
             }
-            .wl-task-card:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-task-card.is-done {
-                background: linear-gradient(135deg, rgba(52, 199, 89, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%);
-                border-color: rgba(74, 222, 128, 0.38);
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
+                border-color: rgba(74, 222, 128, 0.42);
+            }
+            .wl-task-left {
+                display: flex;
+                align-items: center;
+                gap: 11px;
+                flex: 1;
+                min-width: 0;
+                cursor: pointer;
             }
             .wl-task-icon {
-                width: 34px;
-                height: 34px;
-                border-radius: 9px;
+                width: 40px;
+                height: 40px;
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 15px;
+                font-size: 17px;
                 flex-shrink: 0;
             }
             .wl-task-info {
                 display: flex;
                 flex-direction: column;
-                gap: 2px;
+                gap: 3px;
                 flex: 1;
                 min-width: 0;
             }
             .wl-task-title {
-                font-size: 11.5px;
-                font-weight: 800;
+                font-size: 12.5px;
+                font-weight: 700;
                 color: #ffffff;
-                letter-spacing: -0.15px;
+                line-height: 1.2;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             .wl-task-sub {
-                font-size: 9px;
+                font-size: 10px;
                 font-weight: 600;
-                letter-spacing: -0.1px;
                 line-height: 1.2;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
-            .wl-task-right {
-                font-size: 12px;
+            .wl-pill-btn {
                 flex-shrink: 0;
-                margin-left: 4px;
+                padding: 7px 12px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 700;
+                color: #ffffff;
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.34) 0%, rgba(88, 28, 135, 0.55) 100%);
+                border: 1px solid rgba(192, 132, 252, 0.48);
+                box-shadow: 0 2px 10px rgba(124, 58, 237, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                white-space: nowrap;
+                transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+            }
+            .wl-pill-btn:active { transform: scale3d(0.94, 0.94, 1); }
+            .wl-pill-btn.step-verify {
+                background: linear-gradient(135deg, rgba(168, 85, 247, 0.55) 0%, rgba(109, 40, 217, 0.65) 100%);
+                border-color: rgba(216, 180, 254, 0.72);
+                box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+            }
+            .wl-pill-btn.step-done {
+                background: rgba(52, 199, 89, 0.16);
+                border-color: rgba(74, 222, 128, 0.48);
+                color: #4ade80;
+                box-shadow: none;
+                cursor: default;
             }
             .wl-reward-line {
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 6px;
-                padding-top: 10px;
-                margin: 0 auto 12px;
-                border-top: 1px solid rgba(255, 255, 255, 0.12);
-                width: 88%;
+                margin-bottom: 14px;
+                font-size: 13px;
             }
             .wl-reward-lbl {
-                font-size: 10px;
-                font-weight: 600;
                 color: #a1a1aa;
+                font-weight: 500;
             }
             .wl-reward-val {
-                font-size: 12px;
-                font-weight: 800;
                 color: #fbbf24;
-                letter-spacing: -0.2px;
-                text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+                font-weight: 800;
+                text-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
             }
             .wl-btns-row {
                 display: flex;
-                gap: 8px;
+                gap: 10px;
                 width: 100%;
-                margin-bottom: 6px;
+                margin-bottom: 10px;
             }
             .wl-btn-check {
-                background: rgba(255, 255, 255, 0.1);
+                flex: 1;
+                height: 44px;
+                border-radius: 14px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.22);
                 color: #ffffff;
-                border: 1px solid rgba(255, 255, 255, 0.18);
-                box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
-                flex: 0.9;
-                padding: 10px 10px;
-                border-radius: 10px;
+                font-size: 13px;
                 font-weight: 700;
-                font-size: 10.5px;
-                letter-spacing: -0.1px;
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 5px;
+                gap: 7px;
                 transition: transform 0.12s ease, opacity 0.2s ease;
             }
             .wl-btn-check:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim {
-                background: linear-gradient(135deg, rgba(139, 92, 246, 0.62) 0%, rgba(109, 40, 217, 0.45) 100%);
-                border: 1px solid rgba(216, 180, 254, 0.58);
-                box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
+                flex: 1.25;
+                height: 44px;
+                border-radius: 14px;
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.72) 0%, rgba(109, 40, 217, 0.58) 100%);
+                border: 1px solid rgba(216, 180, 254, 0.6);
+                box-shadow: 0 4px 18px rgba(124, 58, 237, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
                 color: #ffffff;
-                flex: 1.3;
-                padding: 10px 12px;
-                border-radius: 10px;
+                font-size: 13px;
                 font-weight: 800;
-                font-size: 10.5px;
-                letter-spacing: -0.1px;
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 5px;
+                gap: 7px;
                 transition: transform 0.12s ease, opacity 0.2s ease;
             }
             .wl-btn-claim:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim.is-locked {
-                opacity: 0.38;
-                filter: grayscale(65%);
+                background: rgba(124, 58, 237, 0.16);
+                border-color: rgba(192, 132, 252, 0.22);
+                color: rgba(255, 255, 255, 0.45);
                 box-shadow: none;
             }
             .wl-btn-close {
                 background: transparent;
                 border: none;
                 color: #a1a1aa;
-                font-size: 10.5px;
+                font-size: 13px;
                 font-weight: 600;
-                padding: 7px 14px;
+                padding: 6px 20px;
                 cursor: pointer;
-                width: 100%;
-                transition: color 0.15s ease;
             }
             .wl-btn-close:active { color: #ffffff; }
         </style>
 
         <div class="wl-modal-box">
-            <div>${adminBadgeHtml}</div>
-            <div class="wl-icon-badge">
+            ${adminBadgeHtml}
+            <div class="wl-gift-icon">
                 <i class="fa-solid fa-gift"></i>
             </div>
-            <div class="wl-head">${escapeHTML(welcomeConfig.title || 'Получи бесплатный кейс')}</div>
-            <div class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия')}</div>
+            <h2 class="wl-head">${escapeHTML(welcomeConfig.title || 'ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС')}</h2>
+            <p class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия и забери скин прямо сейчас')}</p>
 
             <div id="wl-tasks-list"></div>
 
@@ -5557,11 +5609,11 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         currentCaseEl.textContent = tier.case_name;
 
         if (completedExtra.size > 0) {
-            subtitleEl.textContent = `${tier.label} • Улучшено`;
+            subtitleEl.textContent = `${tier.label} • Кейс улучшен`;
             subtitleEl.style.color = '#fbbf24';
         } else {
-            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия';
-            subtitleEl.style.color = '#d8b4fe';
+            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия и забери скин прямо сейчас';
+            subtitleEl.style.color = '#c4b5fd';
         }
 
         if (inChannel && inChat) {
@@ -5580,69 +5632,113 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             else if (t.type === 'tg_chat') isDone = inChat;
             else isDone = completedExtra.has(t.id);
 
+            const isVisited = visitedTasks.has(t.id);
+
             const subText = isDone
                 ? (t.required ? 'Выполнено' : 'Выполнено • Кейс улучшен')
-                : (t.required ? 'Обязательное условие' : `* ${t.badge || 'Улучшить кейс'}`);
-            const subColor = isDone ? '#4ade80' : (t.required ? '#d8b4fe' : '#fbbf24');
+                : (t.required ? '* Обязательное условие' : `* ${t.badge || 'Улучшить кейс'}`);
+            const subColor = isDone ? '#4ade80' : (t.required ? '#c4b5fd' : '#fbbf24');
 
-            const iconBg = isDone
-                ? 'rgba(52, 199, 89, 0.16)'
-                : `${t.color}22`;
-            const iconBorder = isDone
-                ? 'rgba(74, 222, 128, 0.4)'
-                : `${t.color}4d`;
+            const iconBg = isDone ? 'rgba(52, 199, 89, 0.16)' : `${t.color}22`;
+            const iconBorder = isDone ? 'rgba(74, 222, 128, 0.45)' : `${t.color}55`;
             const iconColor = isDone ? '#4ade80' : t.color;
 
+            let pillClass = '';
+            let pillHtml = `Перейти <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>`;
+            if (isDone) {
+                pillClass = 'step-done';
+                pillHtml = `<i class="fa-solid fa-check"></i> Готово`;
+            } else if (isVisited) {
+                pillClass = 'step-verify';
+                pillHtml = `Проверить <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>`;
+            }
+
             const animStyle = isFirstRender
-                ? `opacity: 0; animation: wlCardPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 45}ms forwards;`
+                ? `opacity: 0; animation: wlCardPop 0.32s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 40}ms forwards;`
                 : '';
 
             return `
                 <div class="wl-task-card ${isDone ? 'is-done' : ''}" data-id="${t.id}" style="${animStyle}">
-                    <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
-                        <i class="${t.icon}"></i>
+                    <div class="wl-task-left">
+                        <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
+                            <i class="${t.icon}"></i>
+                        </div>
+                        <div class="wl-task-info">
+                            <div class="wl-task-title">${escapeHTML(t.title)}</div>
+                            <div class="wl-task-sub" style="color: ${subColor};">${escapeHTML(subText)}</div>
+                        </div>
                     </div>
-                    <div class="wl-task-info">
-                        <div class="wl-task-title">${escapeHTML(t.title)}</div>
-                        <div class="wl-task-sub" style="color: ${subColor};">${escapeHTML(subText)}</div>
-                    </div>
-                    <div class="wl-task-right" style="color: ${isDone ? '#4ade80' : '#a1a1aa'};">
-                        <i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-chevron-right'}"></i>
-                    </div>
+                    <button class="wl-pill-btn ${pillClass}" data-id="${t.id}">
+                        ${pillHtml}
+                    </button>
                 </div>
             `;
         }).join('');
 
         isFirstRender = false;
 
-        listEl.querySelectorAll('.wl-task-card').forEach(el => {
-            el.onclick = () => {
-                const task = tasks.find(x => x.id === el.dataset.id);
+        // Клик по левой части карточки всегда открывает ссылку (удобно, если нужно зайти повторно)
+        listEl.querySelectorAll('.wl-task-left').forEach(leftEl => {
+            leftEl.onclick = () => {
+                const card = leftEl.closest('.wl-task-card');
+                const task = tasks.find(x => x.id === card?.dataset.id);
+                if (!task) return;
+                openTaskUrl(task.url);
+                if (!visitedTasks.has(task.id)) {
+                    visitedTasks.add(task.id);
+                    renderTasks();
+                }
+            };
+        });
+
+        // Клик по пилюле: 1-й шаг «Перейти >», 2-й шаг «Проверить >»
+        listEl.querySelectorAll('.wl-pill-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const task = tasks.find(x => x.id === btn.dataset.id);
                 if (!task) return;
 
+                const isDone = (task.type === 'tg_channel' && inChannel) ||
+                               (task.type === 'tg_chat' && inChat) ||
+                               completedExtra.has(task.id);
+                if (isDone) return;
+
                 if (window.Telegram?.WebApp?.HapticFeedback) {
-                    try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {}
+                    try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (err) {}
                 }
 
-                if (task.url.includes('t.me/') && window.Telegram?.WebApp?.openTelegramLink) {
-                    window.Telegram.WebApp.openTelegramLink(task.url);
-                } else if (window.Telegram?.WebApp?.openLink) {
-                    window.Telegram.WebApp.openLink(task.url);
+                // ЭТАП 1: Перейти
+                if (!visitedTasks.has(task.id)) {
+                    visitedTasks.add(task.id);
+                    openTaskUrl(task.url);
+                    renderTasks();
+                    return;
+                }
+
+                // ЭТАП 2: Проверить
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+
+                if (task.type === 'tg_channel' || task.type === 'tg_chat') {
+                    await checkTgSubs(true);
+                    const nowDone = task.type === 'tg_channel' ? inChannel : inChat;
+                    if (!nowDone) {
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (err) {}
+                        }
+                        customAlert(task.type === 'tg_channel'
+                            ? "Подписка на канал ещё не найдена. Подпишись и нажми «Проверить»!"
+                            : "Ты ещё не вступил в чат. Вступи и нажми «Проверить»!");
+                    }
                 } else {
-                    window.open(task.url, '_blank');
-                }
-
-                if (task.type === 'link' && !completedExtra.has(task.id)) {
-                    const rightIcon = el.querySelector('.wl-task-right');
-                    if (rightIcon) rightIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#fbbf24;"></i>';
                     setTimeout(() => {
                         completedExtra.add(task.id);
                         if (window.Telegram?.WebApp?.HapticFeedback) {
-                            try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+                            try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (err) {}
                         }
                         renderTasks();
                         updateRewardUI();
-                    }, 4000);
+                    }, 1200);
                 }
             };
         });
@@ -5666,14 +5762,14 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             isChecking = false;
             checkBtn.style.opacity = '1';
             checkBtn.innerHTML = (inChannel && inChat)
-                ? '<i class="fa-solid fa-check" style="color:#4ade80;"></i> Готово'
+                ? '<i class="fa-solid fa-check" style="color:#4ade80;"></i> Проверено'
                 : '<i class="fa-solid fa-rotate"></i> Проверить';
             renderTasks();
             updateRewardUI();
         }
     };
 
-    // Автопроверка при возврате пользователя из Telegram-канала или чата
+    // Автопроверка TG при возврате в приложение
     const handleAutoReturnCheck = () => {
         if (!document.hidden && document.getElementById('matrix-event-modal') && (!inChannel || !inChat)) {
             checkTgSubs(true);
@@ -5702,6 +5798,12 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (window.Telegram?.WebApp?.HapticFeedback) {
             try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {}
         }
+        // Засчитываем также все доп. задания, по которым юзер уже переходил
+        tasks.forEach(t => {
+            if (t.type === 'link' && visitedTasks.has(t.id)) {
+                completedExtra.add(t.id);
+            }
+        });
         await checkTgSubs(true);
         if (inChannel && inChat && window.Telegram?.WebApp?.HapticFeedback) {
             try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
@@ -5758,7 +5860,6 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     renderTasks();
     checkTgSubs(true);
 }
-
 async function submitMatrixChoice(pill) {
     try {
         await makeApiRequest('/api/v1/matrix/choose', { choice: pill }, 'POST');
