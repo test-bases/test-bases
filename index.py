@@ -4982,6 +4982,7 @@ WELCOME_TG_CHAT = os.getenv("ALLOWED_CHAT_ID", "@hatelovettv")
 
 DEFAULT_WELCOME_QUEST_CONFIG = {
     "enabled": True,
+    "admin_test_mode": True,
     "title": "ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС",
     "subtitle": "Выполни простые действия и забери скин прямо сейчас",
     "reward_label": "Твоя награда:",
