@@ -5324,6 +5324,45 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         }
     };
 
+    const showWelcomeNotice = (type, title, message, btnText = 'Понятно', onClose = null) => {
+        const oldNotice = document.getElementById('wl-notice-overlay');
+        if (oldNotice) oldNotice.remove();
+
+        const isSuccess = type === 'success';
+        const iconHtml = isSuccess
+            ? '<i class="fa-solid fa-circle-check" style="color: #4ade80; filter: drop-shadow(0 0 14px rgba(74, 222, 128, 0.55));"></i>'
+            : '<i class="fa-solid fa-circle-exclamation" style="color: #ff453a; filter: drop-shadow(0 0 14px rgba(255, 69, 58, 0.55));"></i>';
+
+        const notice = document.createElement('div');
+        notice.id = 'wl-notice-overlay';
+        notice.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
+
+        notice.innerHTML = `
+            <div style="width: 90%; max-width: 295px; text-align: center; animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;">
+                <div style="font-size: 36px; margin-bottom: 10px; line-height: 1;">${iconHtml}</div>
+                <div style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.2px; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">${escapeHTML(title)}</div>
+                <div style="font-size: 12px; color: #e4e4e7; line-height: 1.45; margin-bottom: 18px; text-shadow: 0 1px 4px rgba(0,0,0,0.9);">${message}</div>
+                <button id="wl-notice-ok" style="width: 100%; height: 42px; border-radius: 12px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.65) 0%, rgba(109, 40, 217, 0.5) 100%); border: 1px solid rgba(216, 180, 254, 0.58); box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.3); color: #ffffff; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: transform 0.12s ease;">
+                    ${escapeHTML(btnText)}
+                </button>
+            </div>
+        `;
+
+        const closeNotice = () => {
+            notice.style.opacity = '0';
+            notice.style.transition = 'opacity 0.16s ease';
+            setTimeout(() => {
+                notice.remove();
+                if (typeof onClose === 'function') onClose();
+            }, 160);
+        };
+
+        notice.querySelector('#wl-notice-ok').onclick = closeNotice;
+        notice.onclick = (e) => { if (e.target === notice) closeNotice(); };
+
+        document.body.appendChild(notice);
+    };
+
     const overlay = document.createElement('div');
     overlay.id = 'matrix-event-modal';
     overlay.style.cssText = "position: fixed; inset: 0; background: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.22) 0%, rgba(7, 7, 10, 0.94) 55%, rgba(4, 4, 7, 0.97) 100%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
@@ -5726,9 +5765,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                         if (window.Telegram?.WebApp?.HapticFeedback) {
                             try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (err) {}
                         }
-                        customAlert(task.type === 'tg_channel'
-                            ? "Подписка на канал ещё не найдена. Подпишись и нажми «Проверить»!"
-                            : "Ты ещё не вступил в чат. Вступи и нажми «Проверить»!");
+                        showWelcomeNotice(
+                            'error',
+                            task.type === 'tg_channel' ? 'Нет подписки' : 'Ты ещё не в чате',
+                            task.type === 'tg_channel'
+                                ? 'Подписка на канал ещё не найдена.<br>Подпишись и нажми <b>«Проверить»</b>.'
+                                : 'Вступи в наш Telegram-чат и нажми <b>«Проверить»</b>.'
+                        );
                     }
                 } else {
                     setTimeout(() => {
@@ -5817,7 +5860,11 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 if (window.Telegram?.WebApp?.HapticFeedback) {
                     try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {}
                 }
-                customAlert("Подпишись на Telegram-канал и вступи в чат, чтобы забрать кейс!");
+                showWelcomeNotice(
+                    'error',
+                    'Условия не выполнены',
+                    'Подпишись на <b>Telegram-канал</b> и вступи в <b>чат</b>, чтобы забрать кейс.'
+                );
             }
             return;
         }
@@ -5828,7 +5875,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         try {
             const res = await makeApiRequest('/api/v1/welcome/claim', {
                 completed_extra_ids: Array.from(completedExtra)
-            }, 'POST');
+            }, 'POST', true);
 
             document.removeEventListener('visibilitychange', handleAutoReturnCheck);
             window.removeEventListener('focus', handleAutoReturnCheck);
@@ -5848,12 +5895,20 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
             }
-            customAlert(`Готово! Тебе выдан «${res.case_name}». Открывай его в магазине!`);
-
-            setTimeout(() => window.location.reload(), 1200);
+            showWelcomeNotice(
+                'success',
+                'Кейс выдан',
+                `Тебе начислен <b style="color:#fbbf24;">${escapeHTML(res.case_name)}</b>.<br>Открывай его прямо сейчас в магазине!`,
+                'Перейти к кейсам',
+                () => window.location.reload()
+            );
         } catch (e) {
             claimBtn.disabled = false;
             updateRewardUI();
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (err) {}
+            }
+            showWelcomeNotice('error', 'Ошибка', escapeHTML(e.message || 'Не удалось выдать кейс. Попробуй позже.'));
         }
     };
 
