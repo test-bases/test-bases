@@ -5283,11 +5283,18 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     }
 
     const isAdminTest = isAdmin && welcomeConfig.admin_test_mode !== false;
+    const isForAll = Boolean(welcomeConfig.for_all);
+    const pillStr = String(matrixData?.selected_pill || '');
+    const alreadyClaimedNew = pillStr.startsWith('welcome_');
 
     if (isAdminTest) {
         if (window._welcomeClosedThisLoad) return;
     } else {
-        if (!welcomeConfig.enabled || matrixData?.selected_pill || sessionStorage.getItem('matrix_dismissed')) {
+        const shouldHide = !welcomeConfig.enabled
+            || sessionStorage.getItem('matrix_dismissed')
+            || alreadyClaimedNew
+            || (!isForAll && Boolean(pillStr));
+        if (shouldHide) {
             if (existingModal) existingModal.remove();
             return;
         }
@@ -5299,13 +5306,14 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     const requiredTasks = tasks.filter(t => t.required);
     const extraTasks = tasks.filter(t => !t.required);
     const tiers = [...(welcomeConfig.tiers || [])].sort((a, b) => a.min_extra - b.min_extra);
-    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда:';
     const btnClaimPrefix = welcomeConfig.btn_claim_prefix || 'Забрать';
 
     let inChannel = false;
     let inChat = false;
     let isChecking = false;
     let isFirstRender = true;
+    let isExtraOpen = false; // Спойлер доп. заданий по умолчанию свернут
+    let lastRenderedCaseName = '';
     const visitedTasks = new Set();
     const completedExtra = new Set();
 
@@ -5315,6 +5323,25 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             if (completedExtra.size >= t.min_extra) current = t;
         }
         return current;
+    };
+
+    // Автоматический поиск картинки кейса: сначала из конфига, затем из кэша магазина
+    const getCaseImageUrl = (tier) => {
+        if (tier?.image_url) return tier.image_url;
+        const target = String(tier?.case_name || '').trim().toLowerCase();
+        if (!target) return '';
+
+        const sources = [];
+        if (typeof itemsCache !== 'undefined' && Array.isArray(itemsCache[2716312])) {
+            sources.push(...itemsCache[2716312]);
+        }
+        try {
+            const rawShop = JSON.parse(sessionStorage.getItem('session_shop_items') || localStorage.getItem('shop_items_cache') || '{}');
+            Object.values(rawShop).forEach(arr => { if (Array.isArray(arr)) sources.push(...arr); });
+        } catch (e) {}
+
+        const found = sources.find(it => String(it?.name || '').trim().toLowerCase() === target);
+        return found ? (found.replaced_image_url || found.image_url || '') : '';
     };
 
     const openTaskUrl = (url) => {
@@ -5370,15 +5397,14 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     overlay.id = 'matrix-event-modal';
     overlay.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
-    const adminBadgeHtml = isAdminTest
-        ? `<div class="wl-admin-pill">ADMIN TEST</div>`
-        : '';
+    const adminBadgeHtml = isAdminTest ? `<div class="wl-admin-pill">ADMIN TEST</div>` : '';
 
     overlay.innerHTML = `
         <style>
             @keyframes wlOverlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
             @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
             @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+            @keyframes wlCaseUpgrade { 0% { transform: scale(0.8); opacity: 0.3; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
             .wl-modal-box {
                 width: 92%;
@@ -5387,48 +5413,62 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                max-height: 90vh;
+                max-height: 92vh;
                 animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             }
             .wl-admin-pill {
-                display: inline-flex;
-                align-items: center;
-                padding: 2.5px 9px;
-                border-radius: 999px;
-                font-size: 8.5px;
-                font-weight: 800;
-                letter-spacing: 0.6px;
-                color: #fbbf24;
-                background: rgba(251, 191, 36, 0.1);
+                display: inline-flex; align-items: center;
+                padding: 2.5px 9px; border-radius: 999px;
+                font-size: 8.5px; font-weight: 800; letter-spacing: 0.6px;
+                color: #fbbf24; background: rgba(251, 191, 36, 0.1);
                 border: 1px solid rgba(251, 191, 36, 0.38);
-                margin-bottom: 7px;
-                text-transform: uppercase;
-            }
-            .wl-gift-icon {
-                font-size: 22px;
-                color: #d8b4fe;
-                filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
-                margin-bottom: 6px;
-                line-height: 1;
+                margin-bottom: 6px; text-transform: uppercase;
             }
             .wl-head {
-                font-size: 14.5px;
-                font-weight: 800;
-                letter-spacing: -0.25px;
-                color: #ffffff;
-                margin: 0 0 4px 0;
-                line-height: 1.2;
+                font-size: 15px; font-weight: 900; letter-spacing: -0.2px;
+                color: #ffffff; margin: 0 0 8px 0; line-height: 1.15;
+                text-transform: uppercase;
                 text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             }
+            .wl-case-showcase {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 8px;
+                position: relative;
+            }
+            .wl-case-img-wrap {
+                height: 78px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 4px;
+            }
+            .wl-case-img {
+                max-height: 76px;
+                max-width: 130px;
+                object-fit: contain;
+                filter: drop-shadow(0 8px 16px rgba(192, 132, 252, 0.32));
+            }
+            .wl-case-img.pop { animation: wlCaseUpgrade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+            .wl-case-name-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 3px 10px;
+                border-radius: 999px;
+                background: rgba(251, 191, 36, 0.1);
+                border: 1px solid rgba(251, 191, 36, 0.32);
+                font-size: 10.5px;
+                font-weight: 800;
+                color: #fbbf24;
+                text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+            }
             .wl-subtitle {
-                font-size: 9.5px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.6px;
-                color: #d8b4fe;
-                margin: 0 0 12px 0;
-                line-height: 1.3;
+                font-size: 10px; font-weight: 600;
+                color: #d4d4d8; margin: 0 0 12px 0; line-height: 1.35;
                 text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
             }
             #wl-tasks-list {
@@ -5437,7 +5477,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 flex-direction: column;
                 gap: 6px;
                 overflow-y: auto;
-                max-height: 52vh;
+                max-height: 44vh;
                 margin-bottom: 12px;
                 padding-right: 1px;
                 -webkit-overflow-scrolling: touch;
@@ -5446,56 +5486,67 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 4px 2px 1px;
-                margin-top: 2px;
-            }
-            .wl-section-head.is-extra {
-                margin-top: 7px;
-                padding-top: 8px;
-                border-top: 1px dashed rgba(255, 255, 255, 0.1);
+                padding: 3px 2px 1px;
             }
             .wl-section-title {
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-                font-size: 8.5px;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: 0.55px;
-                color: #a1a1aa;
-            }
-            .wl-section-head.is-extra .wl-section-title {
-                color: #fbbf24;
+                display: inline-flex; align-items: center; gap: 5px;
+                font-size: 8.5px; font-weight: 800; text-transform: uppercase;
+                letter-spacing: 0.55px; color: #a1a1aa;
             }
             .wl-section-tag {
-                font-size: 8px;
-                font-weight: 700;
-                color: #a1a1aa;
+                font-size: 8px; font-weight: 700; color: #a1a1aa;
                 background: rgba(255, 255, 255, 0.06);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                padding: 1.5px 6px;
-                border-radius: 5px;
+                padding: 1.5px 6px; border-radius: 5px;
             }
-            .wl-section-head.is-extra .wl-section-tag {
-                color: #fbbf24;
-                background: rgba(251, 191, 36, 0.1);
-                border-color: rgba(251, 191, 36, 0.25);
-            }
-            .wl-task-card {
+            /* СПОЙЛЕР ДЛЯ ДОП. ЗАДАНИЙ */
+            .wl-spoiler-toggle {
+                width: 100%;
+                margin-top: 6px;
+                padding: 8px 10px;
+                border-radius: 11px;
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.09) 0%, rgba(18, 18, 24, 0.7) 100%);
+                border: 1px solid rgba(251, 191, 36, 0.25);
                 display: flex;
                 align-items: center;
-                gap: 9px;
+                justify-content: space-between;
+                cursor: pointer;
+                box-sizing: border-box;
+                transition: background 0.15s ease;
+            }
+            .wl-spoiler-toggle:active { transform: scale3d(0.98, 0.98, 1); }
+            .wl-spoiler-left {
+                display: flex; align-items: center; gap: 6px;
+                font-size: 9.5px; font-weight: 800; color: #fbbf24;
+                text-transform: uppercase; letter-spacing: 0.4px;
+            }
+            .wl-spoiler-right {
+                display: flex; align-items: center; gap: 6px;
+                font-size: 9px; font-weight: 700; color: #fde68a;
+            }
+            .wl-spoiler-chevron {
+                transition: transform 0.2s ease;
+                font-size: 9px;
+            }
+            .wl-spoiler-toggle.open .wl-spoiler-chevron { transform: rotate(180deg); }
+            .wl-spoiler-body {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin-top: 2px;
+            }
+            .wl-spoiler-body.collapsed { display: none; }
+
+            .wl-task-card {
+                display: flex; align-items: center; gap: 9px;
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 11px;
-                padding: 7.5px 9px;
-                text-align: left;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+                border-radius: 11px; padding: 7.5px 9px;
+                text-align: left; box-sizing: border-box;
                 transition: border-color 0.2s ease, background 0.2s ease;
-                box-sizing: border-box;
             }
             .wl-task-card.is-extra-card {
-                background: rgba(251, 191, 36, 0.02);
+                background: rgba(251, 191, 36, 0.025);
                 border-color: rgba(251, 191, 36, 0.14);
             }
             .wl-task-card.is-done {
@@ -5503,72 +5554,44 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 border-color: rgba(74, 222, 128, 0.4);
             }
             .wl-task-left {
-                display: flex;
-                align-items: center;
-                gap: 9px;
-                flex: 1;
-                min-width: 0;
-                cursor: pointer;
+                display: flex; align-items: center; gap: 9px;
+                flex: 1; min-width: 0; cursor: pointer;
             }
             .wl-task-icon {
-                width: 30px;
-                height: 30px;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 13px;
-                flex-shrink: 0;
+                width: 30px; height: 30px; border-radius: 8px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 13px; flex-shrink: 0; overflow: hidden;
+            }
+            .wl-task-icon img {
+                width: 20px; height: 20px; object-fit: contain; border-radius: 4px;
             }
             .wl-task-info {
-                display: flex;
-                flex-direction: column;
-                gap: 1.5px;
-                flex: 1;
-                min-width: 0;
+                display: flex; flex-direction: column; gap: 1.5px;
+                flex: 1; min-width: 0;
             }
             .wl-task-title {
-                font-size: 11px;
-                font-weight: 700;
-                color: #ffffff;
-                letter-spacing: -0.1px;
-                line-height: 1.2;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                font-size: 11px; font-weight: 700; color: #ffffff;
+                letter-spacing: -0.1px; line-height: 1.2;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             }
             .wl-task-sub {
-                font-size: 9px;
-                font-weight: 500;
-                line-height: 1.2;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                font-size: 9px; font-weight: 500; line-height: 1.2;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             }
             .wl-pill-btn {
-                flex-shrink: 0;
-                padding: 5px 9px;
-                border-radius: 8px;
-                font-size: 9.5px;
-                font-weight: 700;
-                letter-spacing: -0.1px;
+                flex-shrink: 0; padding: 5px 9px; border-radius: 8px;
+                font-size: 9.5px; font-weight: 700; letter-spacing: -0.1px;
                 color: #ffffff;
                 background: linear-gradient(135deg, rgba(139, 92, 246, 0.52) 0%, rgba(109, 40, 217, 0.36) 100%);
                 border: 1px solid rgba(196, 181, 253, 0.48);
                 box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 4px;
-                white-space: nowrap;
-                transition: transform 0.12s ease;
+                cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+                gap: 4px; white-space: nowrap; transition: transform 0.12s ease;
             }
             .wl-pill-btn:active { transform: scale3d(0.94, 0.94, 1); }
             .wl-pill-btn.is-extra-btn {
                 background: linear-gradient(135deg, rgba(251, 191, 36, 0.28) 0%, rgba(217, 119, 6, 0.18) 100%);
                 border-color: rgba(251, 191, 36, 0.45);
-                box-shadow: 0 2px 8px rgba(251, 191, 36, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.2);
                 color: #fde68a;
             }
             .wl-pill-btn.step-verify {
@@ -5579,107 +5602,48 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             .wl-pill-btn.step-done {
                 background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%);
                 border-color: rgba(74, 222, 128, 0.48);
-                color: #4ade80;
-                box-shadow: none;
-                cursor: default;
-            }
-            .wl-reward-line {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
-                padding-top: 8px;
-                margin-bottom: 10px;
-                border-top: 1px solid rgba(255, 255, 255, 0.12);
-                width: 82%;
-            }
-            .wl-reward-lbl {
-                font-size: 10px;
-                font-weight: 600;
-                color: #a1a1aa;
-            }
-            .wl-reward-val {
-                font-size: 11.5px;
-                font-weight: 800;
-                color: #fbbf24;
-                letter-spacing: -0.2px;
-                text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+                color: #4ade80; box-shadow: none; cursor: default;
             }
             .wl-btns-row {
-                display: flex;
-                gap: 8px;
-                width: 100%;
-                margin-bottom: 4px;
+                display: flex; gap: 8px; width: 100%; margin-bottom: 4px;
             }
             .wl-btn-check {
-                flex: 1;
-                padding: 9px 10px;
-                border-radius: 10px;
+                flex: 1; padding: 9px 10px; border-radius: 10px;
                 background: rgba(255, 255, 255, 0.1);
                 border: 1px solid rgba(255, 255, 255, 0.18);
                 box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
-                color: #ffffff;
-                font-size: 10.5px;
-                font-weight: 600;
-                letter-spacing: -0.1px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
-                transition: transform 0.12s ease, opacity 0.2s ease;
+                color: #ffffff; font-size: 10.5px; font-weight: 600;
+                cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
             }
             .wl-btn-check:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim {
-                flex: 1.15;
-                padding: 9px 12px;
-                border-radius: 10px;
+                flex: 1.15; padding: 9px 12px; border-radius: 10px;
                 background: linear-gradient(135deg, rgba(139, 92, 246, 0.58) 0%, rgba(109, 40, 217, 0.42) 100%);
                 border: 1px solid rgba(216, 180, 254, 0.58);
                 box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
-                color: #ffffff;
-                font-size: 10.5px;
-                font-weight: 700;
-                letter-spacing: -0.1px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
-                transition: transform 0.12s ease, opacity 0.2s ease;
+                color: #ffffff; font-size: 10.5px; font-weight: 700;
+                cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
             }
             .wl-btn-claim:active { transform: scale3d(0.96, 0.96, 1); }
-            .wl-btn-claim.is-locked {
-                opacity: 0.38;
-                filter: grayscale(70%);
-                box-shadow: none;
-            }
+            .wl-btn-claim.is-locked { opacity: 0.38; filter: grayscale(70%); box-shadow: none; }
             .wl-btn-close {
-                background: transparent;
-                border: none;
-                color: #a1a1aa;
-                font-size: 10.5px;
-                font-weight: 600;
-                padding: 6px 14px;
-                cursor: pointer;
+                background: transparent; border: none; color: #a1a1aa;
+                font-size: 10.5px; font-weight: 600; padding: 6px 14px; cursor: pointer;
             }
-            .wl-btn-close:active { color: #ffffff; }
         </style>
 
         <div class="wl-modal-box">
             ${adminBadgeHtml}
-            <div class="wl-gift-icon">
-                <i class="fa-solid fa-gift"></i>
+            <div class="wl-head">${escapeHTML(welcomeConfig.title || 'ПОЛУЧИ КЕЙС БЕСПЛАТНО!')}</div>
+
+            <div class="wl-case-showcase">
+                <div class="wl-case-img-wrap" id="wl-case-img-wrap"></div>
+                <div class="wl-case-name-pill" id="wl-current-case"></div>
             </div>
-            <div class="wl-head">${escapeHTML(welcomeConfig.title || 'ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС')}</div>
-            <div class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия и забери скин')}</div>
+
+            <div class="wl-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия и забери скин прямо сейчас')}</div>
 
             <div id="wl-tasks-list"></div>
-
-            <div class="wl-reward-line">
-                <span class="wl-reward-lbl">${escapeHTML(rewardLabel)}</span>
-                <span class="wl-reward-val" id="wl-current-case">${escapeHTML(tiers[0]?.case_name || '')}</span>
-            </div>
 
             <div class="wl-btns-row">
                 <button id="wl-check-btn" class="wl-btn-check">
@@ -5699,20 +5663,23 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     const listEl = overlay.querySelector('#wl-tasks-list');
     const checkBtn = overlay.querySelector('#wl-check-btn');
     const claimBtn = overlay.querySelector('#wl-claim-btn');
+    const caseImgWrap = overlay.querySelector('#wl-case-img-wrap');
     const currentCaseEl = overlay.querySelector('#wl-current-case');
-    const subtitleEl = overlay.querySelector('#wl-tier-subtitle');
 
     const updateRewardUI = () => {
         const tier = getCurrentTier();
-        currentCaseEl.textContent = tier.case_name;
+        const imgUrl = getCaseImageUrl(tier);
+        const caseChanged = lastRenderedCaseName && lastRenderedCaseName !== tier.case_name;
+        lastRenderedCaseName = tier.case_name;
 
-        if (completedExtra.size > 0) {
-            subtitleEl.textContent = `${tier.label} • Кейс улучшен`;
-            subtitleEl.style.color = '#fbbf24';
+        if (imgUrl) {
+            caseImgWrap.innerHTML = `<img src="${escapeHTML(imgUrl)}" class="wl-case-img ${caseChanged ? 'pop' : ''}" alt="">`;
         } else {
-            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия и забери скин';
-            subtitleEl.style.color = '#d8b4fe';
+            caseImgWrap.innerHTML = `<i class="fa-solid fa-gift ${caseChanged ? 'pop' : ''}" style="font-size: 38px; color: #d8b4fe; filter: drop-shadow(0 0 14px rgba(192,132,252,0.6));"></i>`;
         }
+
+        const upgradeIcon = completedExtra.size > 0 ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-box-open"></i>';
+        currentCaseEl.innerHTML = `${upgradeIcon} <span>${escapeHTML(tier.case_name)}</span>`;
 
         if (inChannel && inChat) {
             claimBtn.classList.remove('is-locked');
@@ -5736,9 +5703,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             : (isExtra ? (t.badge || 'Улучшает награду') : 'Нужно для получения кейса');
         const subColor = isDone ? '#4ade80' : (isExtra ? '#fbbf24' : '#a1a1aa');
 
-        const iconBg = isDone ? 'rgba(52, 199, 89, 0.16)' : `${t.color}20`;
-        const iconBorder = isDone ? 'rgba(74, 222, 128, 0.4)' : `${t.color}45`;
-        const iconColor = isDone ? '#4ade80' : t.color;
+        const iconBg = isDone ? 'rgba(52, 199, 89, 0.16)' : `${t.color || '#9146FF'}20`;
+        const iconBorder = isDone ? 'rgba(74, 222, 128, 0.4)' : `${t.color || '#9146FF'}45`;
+        const iconColor = isDone ? '#4ade80' : (t.color || '#9146FF');
+
+        const iconInner = t.icon_url
+            ? `<img src="${escapeHTML(t.icon_url)}" alt="">`
+            : `<i class="${escapeHTML(t.icon || 'fa-solid fa-link')}"></i>`;
 
         let pillClass = isExtra ? 'is-extra-btn' : '';
         let pillHtml = `Перейти <i class="fa-solid fa-chevron-right" style="font-size: 7.5px;"></i>`;
@@ -5758,7 +5729,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             <div class="wl-task-card ${isExtra ? 'is-extra-card' : ''} ${isDone ? 'is-done' : ''}" data-id="${t.id}" style="${animStyle}">
                 <div class="wl-task-left">
                     <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
-                        <i class="${t.icon}"></i>
+                        ${iconInner}
                     </div>
                     <div class="wl-task-info">
                         <div class="wl-task-title">${escapeHTML(t.title)}</div>
@@ -5779,7 +5750,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (requiredTasks.length > 0) {
             html += `
                 <div class="wl-section-head">
-                    <span class="wl-section-title"><i class="fa-solid fa-shield-check" style="color:#d8b4fe;"></i> Обязательно для кейса</span>
+                    <span class="wl-section-title"><i class="fa-solid fa-shield-halved" style="color:#d8b4fe;"></i> Обязательно для кейса</span>
                     <span class="wl-section-tag">${reqDoneCount}/${requiredTasks.length}</span>
                 </div>
             `;
@@ -5788,16 +5759,37 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
         if (extraTasks.length > 0) {
             html += `
-                <div class="wl-section-head is-extra">
-                    <span class="wl-section-title"><i class="fa-solid fa-arrow-trend-up"></i> Улучшить кейс • По желанию</span>
-                    <span class="wl-section-tag">+${completedExtra.size}/${extraTasks.length}</span>
+                <div class="wl-spoiler-toggle ${isExtraOpen ? 'open' : ''}" id="wl-extra-spoiler-btn">
+                    <span class="wl-spoiler-left">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        <span>Улучшить кейс • По желанию</span>
+                    </span>
+                    <span class="wl-spoiler-right">
+                        <span>+${completedExtra.size}/${extraTasks.length}</span>
+                        <i class="fa-solid fa-chevron-down wl-spoiler-chevron"></i>
+                    </span>
+                </div>
+                <div class="wl-spoiler-body ${isExtraOpen ? '' : 'collapsed'}" id="wl-extra-spoiler-body">
+                    ${extraTasks.map((t, i) => renderTaskCardHtml(t, requiredTasks.length + i, true)).join('')}
                 </div>
             `;
-            html += extraTasks.map((t, i) => renderTaskCardHtml(t, requiredTasks.length + i, true)).join('');
         }
 
         listEl.innerHTML = html;
         isFirstRender = false;
+
+        const spoilerBtn = listEl.querySelector('#wl-extra-spoiler-btn');
+        if (spoilerBtn) {
+            spoilerBtn.onclick = () => {
+                isExtraOpen = !isExtraOpen;
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {}
+                }
+                spoilerBtn.classList.toggle('open', isExtraOpen);
+                const body = listEl.querySelector('#wl-extra-spoiler-body');
+                if (body) body.classList.toggle('collapsed', !isExtraOpen);
+            };
+        }
 
         listEl.querySelectorAll('.wl-task-left').forEach(leftEl => {
             leftEl.onclick = () => {
@@ -5862,7 +5854,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                         }
                         renderTasks();
                         updateRewardUI();
-                    }, 1000);
+                    }, 900);
                 }
             };
         });
@@ -5959,7 +5951,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             document.removeEventListener('visibilitychange', handleAutoReturnCheck);
             window.removeEventListener('focus', handleAutoReturnCheck);
 
-            if (isAdmin) {
+            if (isAdminTest) {
                 window._welcomeClosedThisLoad = true;
             } else {
                 sessionStorage.setItem('matrix_dismissed', 'true');
@@ -5992,6 +5984,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     };
 
     renderTasks();
+    updateRewardUI();
     checkTgSubs(true);
 }
 
