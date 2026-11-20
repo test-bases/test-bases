@@ -5277,15 +5277,17 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     const isAdmin = Boolean(userData?.is_admin);
     const existingModal = document.getElementById('matrix-event-modal');
 
-    if (!welcomeConfig || (!welcomeConfig.enabled && !isAdmin)) {
+    if (!welcomeConfig) {
         if (existingModal) existingModal.remove();
         return;
     }
 
-    if (isAdmin) {
+    const isAdminTest = isAdmin && welcomeConfig.admin_test_mode !== false;
+
+    if (isAdminTest) {
         if (window._welcomeClosedThisLoad) return;
     } else {
-        if (matrixData?.selected_pill || sessionStorage.getItem('matrix_dismissed')) {
+        if (!welcomeConfig.enabled || matrixData?.selected_pill || sessionStorage.getItem('matrix_dismissed')) {
             if (existingModal) existingModal.remove();
             return;
         }
@@ -5368,7 +5370,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     overlay.id = 'matrix-event-modal';
     overlay.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
-    const adminBadgeHtml = isAdmin
+    const adminBadgeHtml = isAdminTest
         ? `<div class="wl-admin-pill">ADMIN TEST</div>`
         : '';
 
@@ -5902,7 +5904,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     const closeModal = () => {
         document.removeEventListener('visibilitychange', handleAutoReturnCheck);
         window.removeEventListener('focus', handleAutoReturnCheck);
-        if (isAdmin) {
+        if (isAdminTest) {
             window._welcomeClosedThisLoad = true;
         } else {
             sessionStorage.setItem('matrix_dismissed', 'true');
