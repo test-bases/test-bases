@@ -5294,6 +5294,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     if (existingModal) return;
 
     const tasks = welcomeConfig.tasks || [];
+    const requiredTasks = tasks.filter(t => t.required);
+    const extraTasks = tasks.filter(t => !t.required);
     const tiers = [...(welcomeConfig.tiers || [])].sort((a, b) => a.min_extra - b.min_extra);
     const rewardLabel = welcomeConfig.reward_label || 'Твоя награда:';
     const btnClaimPrefix = welcomeConfig.btn_claim_prefix || 'Забрать';
@@ -5302,8 +5304,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     let inChat = false;
     let isChecking = false;
     let isFirstRender = true;
-    const visitedTasks = new Set();   // Задачи, на которых нажали «Перейти»
-    const completedExtra = new Set(); // Проверенные доп. задачи
+    const visitedTasks = new Set();
+    const completedExtra = new Set();
 
     const getCurrentTier = () => {
         let current = tiers[0] || { case_name: 'Стартовый кейс', label: 'Базовый кейс' };
@@ -5330,19 +5332,19 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
         const isSuccess = type === 'success';
         const iconHtml = isSuccess
-            ? '<i class="fa-solid fa-circle-check" style="color: #4ade80; filter: drop-shadow(0 0 14px rgba(74, 222, 128, 0.55));"></i>'
-            : '<i class="fa-solid fa-circle-exclamation" style="color: #ff453a; filter: drop-shadow(0 0 14px rgba(255, 69, 58, 0.55));"></i>';
+            ? '<i class="fa-solid fa-circle-check" style="color: #34c759; filter: drop-shadow(0 0 10px rgba(52, 199, 89, 0.5));"></i>'
+            : '<i class="fa-solid fa-circle-exclamation" style="color: #ff453a; filter: drop-shadow(0 0 10px rgba(255, 69, 58, 0.5));"></i>';
 
         const notice = document.createElement('div');
         notice.id = 'wl-notice-overlay';
-        notice.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
+        notice.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
         notice.innerHTML = `
-            <div style="width: 90%; max-width: 295px; text-align: center; animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;">
-                <div style="font-size: 36px; margin-bottom: 10px; line-height: 1;">${iconHtml}</div>
-                <div style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.2px; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">${escapeHTML(title)}</div>
-                <div style="font-size: 12px; color: #e4e4e7; line-height: 1.45; margin-bottom: 18px; text-shadow: 0 1px 4px rgba(0,0,0,0.9);">${message}</div>
-                <button id="wl-notice-ok" style="width: 100%; height: 42px; border-radius: 12px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.65) 0%, rgba(109, 40, 217, 0.5) 100%); border: 1px solid rgba(216, 180, 254, 0.58); box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.3); color: #ffffff; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: transform 0.12s ease;">
+            <div style="width: 88%; max-width: 285px; text-align: center; animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;">
+                <div style="font-size: 28px; margin-bottom: 8px; line-height: 1;">${iconHtml}</div>
+                <div style="font-size: 14.5px; font-weight: 800; color: #ffffff; letter-spacing: -0.25px; margin-bottom: 5px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">${escapeHTML(title)}</div>
+                <div style="font-size: 11px; color: #f4f4f5; line-height: 1.45; letter-spacing: -0.1px; margin-bottom: 14px; text-shadow: 0 1px 4px rgba(0,0,0,0.9);">${message}</div>
+                <button id="wl-notice-ok" style="width: 100%; padding: 9.5px 14px; border-radius: 10px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.58) 0%, rgba(109, 40, 217, 0.42) 100%); border: 1px solid rgba(216, 180, 254, 0.58); box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34); color: #ffffff; font-size: 10.5px; font-weight: 700; letter-spacing: -0.1px; cursor: pointer;">
                     ${escapeHTML(btnText)}
                 </button>
             </div>
@@ -5350,22 +5352,21 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
         const closeNotice = () => {
             notice.style.opacity = '0';
-            notice.style.transition = 'opacity 0.16s ease';
+            notice.style.transition = 'opacity 0.15s ease';
             setTimeout(() => {
                 notice.remove();
                 if (typeof onClose === 'function') onClose();
-            }, 160);
+            }, 150);
         };
 
         notice.querySelector('#wl-notice-ok').onclick = closeNotice;
         notice.onclick = (e) => { if (e.target === notice) closeNotice(); };
-
         document.body.appendChild(notice);
     };
 
     const overlay = document.createElement('div');
     overlay.id = 'matrix-event-modal';
-    overlay.style.cssText = "position: fixed; inset: 0; background: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.22) 0%, rgba(7, 7, 10, 0.94) 55%, rgba(4, 4, 7, 0.97) 100%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
+    overlay.style.cssText = "position: fixed; inset: 0; background: rgba(4, 4, 7, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; animation: wlOverlayFade 0.16s ease-out forwards;";
 
     const adminBadgeHtml = isAdmin
         ? `<div class="wl-admin-pill">ADMIN TEST</div>`
@@ -5374,127 +5375,169 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     overlay.innerHTML = `
         <style>
             @keyframes wlOverlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
-            @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.94, 0.94, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
-            @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+            @keyframes wlModalPop { 0% { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); } 100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); } }
+            @keyframes wlCardPop { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
 
             .wl-modal-box {
-                width: 100%;
-                max-width: 370px;
+                width: 92%;
+                max-width: 320px;
                 text-align: center;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                max-height: 92vh;
+                max-height: 90vh;
                 animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             }
             .wl-admin-pill {
                 display: inline-flex;
                 align-items: center;
-                justify-content: center;
-                padding: 4px 12px;
+                padding: 2.5px 9px;
                 border-radius: 999px;
-                font-size: 10px;
+                font-size: 8.5px;
                 font-weight: 800;
-                letter-spacing: 0.7px;
+                letter-spacing: 0.6px;
                 color: #fbbf24;
                 background: rgba(251, 191, 36, 0.1);
-                border: 1px solid rgba(251, 191, 36, 0.45);
-                margin-bottom: 10px;
+                border: 1px solid rgba(251, 191, 36, 0.38);
+                margin-bottom: 7px;
                 text-transform: uppercase;
             }
             .wl-gift-icon {
-                font-size: 32px;
-                color: #c084fc;
-                filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.65));
-                margin-bottom: 10px;
+                font-size: 22px;
+                color: #d8b4fe;
+                filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
+                margin-bottom: 6px;
                 line-height: 1;
             }
             .wl-head {
-                font-size: 19px;
-                font-weight: 900;
-                text-transform: uppercase;
-                letter-spacing: 0.2px;
+                font-size: 14.5px;
+                font-weight: 800;
+                letter-spacing: -0.25px;
                 color: #ffffff;
-                margin: 0 0 6px 0;
-                line-height: 1.15;
-                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+                margin: 0 0 4px 0;
+                line-height: 1.2;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             }
             .wl-subtitle {
-                font-size: 10.5px;
+                font-size: 9.5px;
                 font-weight: 700;
                 text-transform: uppercase;
-                letter-spacing: 0.4px;
-                color: #c4b5fd;
-                margin: 0 0 18px 0;
-                line-height: 1.35;
-                max-width: 92%;
+                letter-spacing: 0.6px;
+                color: #d8b4fe;
+                margin: 0 0 12px 0;
+                line-height: 1.3;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
             }
             #wl-tasks-list {
                 width: 100%;
                 display: flex;
                 flex-direction: column;
-                gap: 9px;
+                gap: 6px;
                 overflow-y: auto;
-                max-height: 48vh;
-                margin-bottom: 16px;
-                padding: 1px;
+                max-height: 52vh;
+                margin-bottom: 12px;
+                padding-right: 1px;
                 -webkit-overflow-scrolling: touch;
+            }
+            .wl-section-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 4px 2px 1px;
+                margin-top: 2px;
+            }
+            .wl-section-head.is-extra {
+                margin-top: 7px;
+                padding-top: 8px;
+                border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            }
+            .wl-section-title {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 8.5px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.55px;
+                color: #a1a1aa;
+            }
+            .wl-section-head.is-extra .wl-section-title {
+                color: #fbbf24;
+            }
+            .wl-section-tag {
+                font-size: 8px;
+                font-weight: 700;
+                color: #a1a1aa;
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 1.5px 6px;
+                border-radius: 5px;
+            }
+            .wl-section-head.is-extra .wl-section-tag {
+                color: #fbbf24;
+                background: rgba(251, 191, 36, 0.1);
+                border-color: rgba(251, 191, 36, 0.25);
             }
             .wl-task-card {
                 display: flex;
                 align-items: center;
-                gap: 11px;
-                background: rgba(20, 20, 26, 0.72);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: 16px;
-                padding: 10px 11px;
+                gap: 9px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 11px;
+                padding: 7.5px 9px;
                 text-align: left;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
                 transition: border-color 0.2s ease, background 0.2s ease;
                 box-sizing: border-box;
             }
+            .wl-task-card.is-extra-card {
+                background: rgba(251, 191, 36, 0.02);
+                border-color: rgba(251, 191, 36, 0.14);
+            }
             .wl-task-card.is-done {
-                background: linear-gradient(135deg, rgba(52, 199, 89, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
-                border-color: rgba(74, 222, 128, 0.42);
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%);
+                border-color: rgba(74, 222, 128, 0.4);
             }
             .wl-task-left {
                 display: flex;
                 align-items: center;
-                gap: 11px;
+                gap: 9px;
                 flex: 1;
                 min-width: 0;
                 cursor: pointer;
             }
             .wl-task-icon {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
+                width: 30px;
+                height: 30px;
+                border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 17px;
+                font-size: 13px;
                 flex-shrink: 0;
             }
             .wl-task-info {
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
+                gap: 1.5px;
                 flex: 1;
                 min-width: 0;
             }
             .wl-task-title {
-                font-size: 12.5px;
+                font-size: 11px;
                 font-weight: 700;
                 color: #ffffff;
+                letter-spacing: -0.1px;
                 line-height: 1.2;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             .wl-task-sub {
-                font-size: 10px;
-                font-weight: 600;
+                font-size: 9px;
+                font-weight: 500;
                 line-height: 1.2;
                 white-space: nowrap;
                 overflow: hidden;
@@ -5502,106 +5545,120 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             }
             .wl-pill-btn {
                 flex-shrink: 0;
-                padding: 7px 12px;
-                border-radius: 999px;
-                font-size: 11px;
+                padding: 5px 9px;
+                border-radius: 8px;
+                font-size: 9.5px;
                 font-weight: 700;
+                letter-spacing: -0.1px;
                 color: #ffffff;
-                background: linear-gradient(135deg, rgba(139, 92, 246, 0.34) 0%, rgba(88, 28, 135, 0.55) 100%);
-                border: 1px solid rgba(192, 132, 252, 0.48);
-                box-shadow: 0 2px 10px rgba(124, 58, 237, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.52) 0%, rgba(109, 40, 217, 0.36) 100%);
+                border: 1px solid rgba(196, 181, 253, 0.48);
+                box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 5px;
+                gap: 4px;
                 white-space: nowrap;
-                transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+                transition: transform 0.12s ease;
             }
             .wl-pill-btn:active { transform: scale3d(0.94, 0.94, 1); }
+            .wl-pill-btn.is-extra-btn {
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.28) 0%, rgba(217, 119, 6, 0.18) 100%);
+                border-color: rgba(251, 191, 36, 0.45);
+                box-shadow: 0 2px 8px rgba(251, 191, 36, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+                color: #fde68a;
+            }
             .wl-pill-btn.step-verify {
-                background: linear-gradient(135deg, rgba(168, 85, 247, 0.55) 0%, rgba(109, 40, 217, 0.65) 100%);
-                border-color: rgba(216, 180, 254, 0.72);
-                box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.72) 0%, rgba(109, 40, 217, 0.55) 100%);
+                border-color: rgba(216, 180, 254, 0.68);
+                color: #ffffff;
             }
             .wl-pill-btn.step-done {
-                background: rgba(52, 199, 89, 0.16);
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%);
                 border-color: rgba(74, 222, 128, 0.48);
                 color: #4ade80;
                 box-shadow: none;
                 cursor: default;
             }
             .wl-reward-line {
-                display: flex;
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 6px;
-                margin-bottom: 14px;
-                font-size: 13px;
+                gap: 5px;
+                padding-top: 8px;
+                margin-bottom: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+                width: 82%;
             }
             .wl-reward-lbl {
+                font-size: 10px;
+                font-weight: 600;
                 color: #a1a1aa;
-                font-weight: 500;
             }
             .wl-reward-val {
-                color: #fbbf24;
+                font-size: 11.5px;
                 font-weight: 800;
-                text-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+                color: #fbbf24;
+                letter-spacing: -0.2px;
+                text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
             }
             .wl-btns-row {
                 display: flex;
-                gap: 10px;
+                gap: 8px;
                 width: 100%;
-                margin-bottom: 10px;
+                margin-bottom: 4px;
             }
             .wl-btn-check {
                 flex: 1;
-                height: 44px;
-                border-radius: 14px;
-                background: rgba(255, 255, 255, 0.08);
-                border: 1px solid rgba(255, 255, 255, 0.22);
+                padding: 9px 10px;
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
                 color: #ffffff;
-                font-size: 13px;
-                font-weight: 700;
+                font-size: 10.5px;
+                font-weight: 600;
+                letter-spacing: -0.1px;
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 7px;
+                gap: 5px;
                 transition: transform 0.12s ease, opacity 0.2s ease;
             }
             .wl-btn-check:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim {
-                flex: 1.25;
-                height: 44px;
-                border-radius: 14px;
-                background: linear-gradient(135deg, rgba(139, 92, 246, 0.72) 0%, rgba(109, 40, 217, 0.58) 100%);
-                border: 1px solid rgba(216, 180, 254, 0.6);
-                box-shadow: 0 4px 18px rgba(124, 58, 237, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+                flex: 1.15;
+                padding: 9px 12px;
+                border-radius: 10px;
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.58) 0%, rgba(109, 40, 217, 0.42) 100%);
+                border: 1px solid rgba(216, 180, 254, 0.58);
+                box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
                 color: #ffffff;
-                font-size: 13px;
-                font-weight: 800;
+                font-size: 10.5px;
+                font-weight: 700;
+                letter-spacing: -0.1px;
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 7px;
+                gap: 5px;
                 transition: transform 0.12s ease, opacity 0.2s ease;
             }
             .wl-btn-claim:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim.is-locked {
-                background: rgba(124, 58, 237, 0.16);
-                border-color: rgba(192, 132, 252, 0.22);
-                color: rgba(255, 255, 255, 0.45);
+                opacity: 0.38;
+                filter: grayscale(70%);
                 box-shadow: none;
             }
             .wl-btn-close {
                 background: transparent;
                 border: none;
                 color: #a1a1aa;
-                font-size: 13px;
+                font-size: 10.5px;
                 font-weight: 600;
-                padding: 6px 20px;
+                padding: 6px 14px;
                 cursor: pointer;
             }
             .wl-btn-close:active { color: #ffffff; }
@@ -5612,8 +5669,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             <div class="wl-gift-icon">
                 <i class="fa-solid fa-gift"></i>
             </div>
-            <h2 class="wl-head">${escapeHTML(welcomeConfig.title || 'ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС')}</h2>
-            <p class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия и забери скин прямо сейчас')}</p>
+            <div class="wl-head">${escapeHTML(welcomeConfig.title || 'ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС')}</div>
+            <div class="wl-subtitle" id="wl-tier-subtitle">${escapeHTML(welcomeConfig.subtitle || 'Выполни простые действия и забери скин')}</div>
 
             <div id="wl-tasks-list"></div>
 
@@ -5624,10 +5681,10 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
             <div class="wl-btns-row">
                 <button id="wl-check-btn" class="wl-btn-check">
-                    <i class="fa-solid fa-rotate"></i> Проверить
+                    <i class="fa-solid fa-rotate" style="font-size: 9.5px;"></i> Проверить
                 </button>
                 <button id="wl-claim-btn" class="wl-btn-claim is-locked">
-                    <i class="fa-solid fa-lock"></i> ${escapeHTML(btnClaimPrefix)}
+                    <i class="fa-solid fa-lock" style="font-size: 9.5px;"></i> ${escapeHTML(btnClaimPrefix)}
                 </button>
             </div>
 
@@ -5651,72 +5708,95 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             subtitleEl.textContent = `${tier.label} • Кейс улучшен`;
             subtitleEl.style.color = '#fbbf24';
         } else {
-            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия и забери скин прямо сейчас';
-            subtitleEl.style.color = '#c4b5fd';
+            subtitleEl.textContent = welcomeConfig.subtitle || 'Выполни простые действия и забери скин';
+            subtitleEl.style.color = '#d8b4fe';
         }
 
         if (inChannel && inChat) {
             claimBtn.classList.remove('is-locked');
-            claimBtn.innerHTML = `<i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> ${escapeHTML(btnClaimPrefix)}`;
+            claimBtn.innerHTML = `<i class="fa-solid fa-bolt" style="color:#fbbf24; font-size: 9.5px;"></i> ${escapeHTML(btnClaimPrefix)}`;
         } else {
             claimBtn.classList.add('is-locked');
-            claimBtn.innerHTML = `<i class="fa-solid fa-lock"></i> ${escapeHTML(btnClaimPrefix)}`;
+            claimBtn.innerHTML = `<i class="fa-solid fa-lock" style="font-size: 9.5px;"></i> ${escapeHTML(btnClaimPrefix)}`;
         }
     };
 
-    const renderTasks = () => {
-        listEl.innerHTML = tasks.map((t, idx) => {
-            let isDone = false;
-            if (t.type === 'tg_channel') isDone = inChannel;
-            else if (t.type === 'tg_chat') isDone = inChat;
-            else isDone = completedExtra.has(t.id);
+    const renderTaskCardHtml = (t, idx, isExtra) => {
+        let isDone = false;
+        if (t.type === 'tg_channel') isDone = inChannel;
+        else if (t.type === 'tg_chat') isDone = inChat;
+        else isDone = completedExtra.has(t.id);
 
-            const isVisited = visitedTasks.has(t.id);
+        const isVisited = visitedTasks.has(t.id);
 
-            const subText = isDone
-                ? (t.required ? 'Выполнено' : 'Выполнено • Кейс улучшен')
-                : (t.required ? '* Обязательное условие' : `* ${t.badge || 'Улучшить кейс'}`);
-            const subColor = isDone ? '#4ade80' : (t.required ? '#c4b5fd' : '#fbbf24');
+        const subText = isDone
+            ? (isExtra ? 'Выполнено • Кейс улучшен' : 'Подписка подтверждена')
+            : (isExtra ? (t.badge || 'Улучшает награду') : 'Нужно для получения кейса');
+        const subColor = isDone ? '#4ade80' : (isExtra ? '#fbbf24' : '#a1a1aa');
 
-            const iconBg = isDone ? 'rgba(52, 199, 89, 0.16)' : `${t.color}22`;
-            const iconBorder = isDone ? 'rgba(74, 222, 128, 0.45)' : `${t.color}55`;
-            const iconColor = isDone ? '#4ade80' : t.color;
+        const iconBg = isDone ? 'rgba(52, 199, 89, 0.16)' : `${t.color}20`;
+        const iconBorder = isDone ? 'rgba(74, 222, 128, 0.4)' : `${t.color}45`;
+        const iconColor = isDone ? '#4ade80' : t.color;
 
-            let pillClass = '';
-            let pillHtml = `Перейти <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>`;
-            if (isDone) {
-                pillClass = 'step-done';
-                pillHtml = `<i class="fa-solid fa-check"></i> Готово`;
-            } else if (isVisited) {
-                pillClass = 'step-verify';
-                pillHtml = `Проверить <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>`;
-            }
+        let pillClass = isExtra ? 'is-extra-btn' : '';
+        let pillHtml = `Перейти <i class="fa-solid fa-chevron-right" style="font-size: 7.5px;"></i>`;
+        if (isDone) {
+            pillClass = 'step-done';
+            pillHtml = `<i class="fa-solid fa-check" style="font-size: 8.5px;"></i> Готово`;
+        } else if (isVisited) {
+            pillClass = 'step-verify';
+            pillHtml = `Проверить <i class="fa-solid fa-chevron-right" style="font-size: 7.5px;"></i>`;
+        }
 
-            const animStyle = isFirstRender
-                ? `opacity: 0; animation: wlCardPop 0.32s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 40}ms forwards;`
-                : '';
+        const animStyle = isFirstRender
+            ? `opacity: 0; animation: wlCardPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 35}ms forwards;`
+            : '';
 
-            return `
-                <div class="wl-task-card ${isDone ? 'is-done' : ''}" data-id="${t.id}" style="${animStyle}">
-                    <div class="wl-task-left">
-                        <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
-                            <i class="${t.icon}"></i>
-                        </div>
-                        <div class="wl-task-info">
-                            <div class="wl-task-title">${escapeHTML(t.title)}</div>
-                            <div class="wl-task-sub" style="color: ${subColor};">${escapeHTML(subText)}</div>
-                        </div>
+        return `
+            <div class="wl-task-card ${isExtra ? 'is-extra-card' : ''} ${isDone ? 'is-done' : ''}" data-id="${t.id}" style="${animStyle}">
+                <div class="wl-task-left">
+                    <div class="wl-task-icon" style="background: ${iconBg}; border: 1px solid ${iconBorder}; color: ${iconColor};">
+                        <i class="${t.icon}"></i>
                     </div>
-                    <button class="wl-pill-btn ${pillClass}" data-id="${t.id}">
-                        ${pillHtml}
-                    </button>
+                    <div class="wl-task-info">
+                        <div class="wl-task-title">${escapeHTML(t.title)}</div>
+                        <div class="wl-task-sub" style="color: ${subColor};">${escapeHTML(subText)}</div>
+                    </div>
+                </div>
+                <button class="wl-pill-btn ${pillClass}" data-id="${t.id}">
+                    ${pillHtml}
+                </button>
+            </div>
+        `;
+    };
+
+    const renderTasks = () => {
+        const reqDoneCount = (inChannel ? 1 : 0) + (inChat ? 1 : 0);
+        let html = '';
+
+        if (requiredTasks.length > 0) {
+            html += `
+                <div class="wl-section-head">
+                    <span class="wl-section-title"><i class="fa-solid fa-shield-check" style="color:#d8b4fe;"></i> Обязательно для кейса</span>
+                    <span class="wl-section-tag">${reqDoneCount}/${requiredTasks.length}</span>
                 </div>
             `;
-        }).join('');
+            html += requiredTasks.map((t, i) => renderTaskCardHtml(t, i, false)).join('');
+        }
 
+        if (extraTasks.length > 0) {
+            html += `
+                <div class="wl-section-head is-extra">
+                    <span class="wl-section-title"><i class="fa-solid fa-arrow-trend-up"></i> Улучшить кейс • По желанию</span>
+                    <span class="wl-section-tag">+${completedExtra.size}/${extraTasks.length}</span>
+                </div>
+            `;
+            html += extraTasks.map((t, i) => renderTaskCardHtml(t, requiredTasks.length + i, true)).join('');
+        }
+
+        listEl.innerHTML = html;
         isFirstRender = false;
 
-        // Клик по левой части карточки всегда открывает ссылку (удобно, если нужно зайти повторно)
         listEl.querySelectorAll('.wl-task-left').forEach(leftEl => {
             leftEl.onclick = () => {
                 const card = leftEl.closest('.wl-task-card');
@@ -5730,7 +5810,6 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             };
         });
 
-        // Клик по пилюле: 1-й шаг «Перейти >», 2-й шаг «Проверить >»
         listEl.querySelectorAll('.wl-pill-btn').forEach(btn => {
             btn.onclick = async (e) => {
                 e.stopPropagation();
@@ -5756,7 +5835,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
                 // ЭТАП 2: Проверить
                 btn.disabled = true;
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="font-size: 9px;"></i>`;
 
                 if (task.type === 'tg_channel' || task.type === 'tg_chat') {
                     await checkTgSubs(true);
@@ -5781,7 +5860,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                         }
                         renderTasks();
                         updateRewardUI();
-                    }, 1200);
+                    }, 1000);
                 }
             };
         });
@@ -5791,7 +5870,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (isChecking) return;
         isChecking = true;
         if (showSpinner) {
-            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверка...';
+            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 9.5px;"></i> Проверка...';
             checkBtn.style.opacity = '0.7';
         }
         try {
@@ -5805,14 +5884,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             isChecking = false;
             checkBtn.style.opacity = '1';
             checkBtn.innerHTML = (inChannel && inChat)
-                ? '<i class="fa-solid fa-check" style="color:#4ade80;"></i> Проверено'
-                : '<i class="fa-solid fa-rotate"></i> Проверить';
+                ? '<i class="fa-solid fa-check" style="color:#4ade80; font-size: 9.5px;"></i> Проверено'
+                : '<i class="fa-solid fa-rotate" style="font-size: 9.5px;"></i> Проверить';
             renderTasks();
             updateRewardUI();
         }
     };
 
-    // Автопроверка TG при возврате в приложение
     const handleAutoReturnCheck = () => {
         if (!document.hidden && document.getElementById('matrix-event-modal') && (!inChannel || !inChat)) {
             checkTgSubs(true);
@@ -5830,8 +5908,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             sessionStorage.setItem('matrix_dismissed', 'true');
         }
         overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 0.2s ease';
-        setTimeout(() => overlay.remove(), 200);
+        overlay.style.transition = 'opacity 0.16s ease';
+        setTimeout(() => overlay.remove(), 160);
     };
 
     overlay.querySelector('#wl-close-btn').onclick = closeModal;
@@ -5841,7 +5919,6 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (window.Telegram?.WebApp?.HapticFeedback) {
             try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {}
         }
-        // Засчитываем также все доп. задания, по которым юзер уже переходил
         tasks.forEach(t => {
             if (t.type === 'link' && visitedTasks.has(t.id)) {
                 completedExtra.add(t.id);
@@ -5870,7 +5947,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         }
 
         claimBtn.disabled = true;
-        claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Выдаём...';
+        claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 9.5px;"></i> Выдаём...';
 
         try {
             const res = await makeApiRequest('/api/v1/welcome/claim', {
@@ -5915,6 +5992,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     renderTasks();
     checkTgSubs(true);
 }
+
 async function submitMatrixChoice(pill) {
     try {
         await makeApiRequest('/api/v1/matrix/choose', { choice: pill }, 'POST');
