@@ -154,7 +154,6 @@
             align-items: center;
             justify-content: space-between;
         }
-        .section-lbl.gold { color: var(--gold); }
 
         /* === ПЕРЕКЛЮЧАТЕЛИ === */
         .toggle-row {
@@ -303,6 +302,93 @@
             background: rgba(255, 69, 58, 0.1);
         }
 
+        /* === КНОПКА ВЫБОРА КЕЙСА === */
+        .case-picker-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.42);
+            border: 1px solid rgba(251, 191, 36, 0.28);
+            border-radius: 10px;
+            padding: 7px 10px;
+            cursor: pointer;
+            text-align: left;
+            color: #fff;
+            transition: transform 0.12s ease, border-color 0.15s ease;
+        }
+        .case-picker-btn:active { transform: scale(0.98); }
+        .case-picker-thumb {
+            width: 38px; height: 38px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .case-picker-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .case-picker-name {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .case-picker-hint {
+            font-size: 9px;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* === СЕТКА ВЫБОРА КЕЙСОВ В МОДАЛКЕ === */
+        .cases-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-height: 58vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 12px;
+            padding: 2px;
+        }
+        .case-opt-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 9px 7px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: transform 0.12s ease, border-color 0.15s ease;
+        }
+        .case-opt-card:active { transform: scale(0.95); }
+        .case-opt-card.selected {
+            background: rgba(251, 191, 36, 0.12);
+            border-color: rgba(251, 191, 36, 0.65);
+        }
+        .case-opt-card img {
+            width: 62px; height: 50px;
+            object-fit: contain;
+        }
+        .case-opt-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .case-opt-price {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
         /* === ПРЕСЕТЫ ЦВЕТОВ И ИКОНОК === */
         .presets-row {
             display: flex;
@@ -393,7 +479,7 @@
             padding: 16px;
         }
         .modal-box {
-            width: 88%; max-width: 285px;
+            width: 92%; max-width: 310px;
             text-align: center;
         }
         .m-icon { font-size: 30px; margin-bottom: 8px; }
@@ -405,6 +491,10 @@
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(109, 40, 217, 0.45) 100%);
             border: 1px solid rgba(216, 180, 254, 0.55);
             color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+        .m-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.18);
         }
     </style>
 </head>
@@ -470,30 +560,21 @@
                         <span class="slider"></span>
                     </label>
                 </div>
+            </div>
 
             <div class="glass-card">
                 <div class="section-lbl">Тексты и кнопки</div>
                 <div class="field">
                     <label class="field-lbl">Заголовок</label>
-                    <input class="inp" id="cfg-title" oninput="cfg.title = this.value" placeholder="ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС">
+                    <input class="inp" id="cfg-title" oninput="cfg.title = this.value" placeholder="ПОЛУЧИ КЕЙС БЕСПЛАТНО!">
                 </div>
                 <div class="field">
                     <label class="field-lbl">Подзаголовок</label>
                     <input class="inp" id="cfg-subtitle" oninput="cfg.subtitle = this.value" placeholder="Выполни простые действия...">
                 </div>
                 <div class="field">
-                    <label class="field-lbl">Подпись перед названием кейса</label>
-                    <input class="inp" id="cfg-reward-label" oninput="cfg.reward_label = this.value" placeholder="Твоя награда:">
-                </div>
-                <div class="grid-2">
-                    <div class="field">
-                        <label class="field-lbl">Кнопка проверки</label>
-                        <input class="inp" id="cfg-btn-check" oninput="cfg.btn_check_text = this.value" placeholder="Проверить">
-                    </div>
-                    <div class="field">
-                        <label class="field-lbl">Кнопка получения</label>
-                        <input class="inp" id="cfg-btn-claim" oninput="cfg.btn_claim_prefix = this.value" placeholder="Забрать">
-                    </div>
+                    <label class="field-lbl">Кнопка получения</label>
+                    <input class="inp" id="cfg-btn-claim" oninput="cfg.btn_claim_prefix = this.value" placeholder="Забрать">
                 </div>
             </div>
         </div>
@@ -510,8 +591,7 @@
         <div id="pane-tiers" class="tab-pane">
             <div class="glass-card" style="padding: 9px 11px; margin-bottom: 10px;">
                 <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
-                    Укажи точное название кейса из витрины (как в <b style="color:#fff;">cs_codes</b>).
-                    Чем больше доп. заданий выполнит юзер, тем выше тир он получит.
+                    Нажми на кейс, чтобы выбрать его из списка магазина. Картинка и точное название подтянутся автоматически.
                 </div>
             </div>
             <div id="tiers-container"></div>
@@ -527,12 +607,23 @@
         </button>
     </div>
 
+    <!-- МОДАЛКА УВЕДОМЛЕНИЙ -->
     <div id="modal" class="modal-overlay" onclick="if(event.target===this) closeModal()">
         <div class="modal-box">
             <div class="m-icon" id="m-icon"></div>
             <div class="m-head" id="m-head"></div>
             <div class="m-desc" id="m-desc"></div>
             <button class="m-btn" onclick="closeModal()">Понятно</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ВЫБОРА КЕЙСА ИЗ БД -->
+    <div id="case-picker-modal" class="modal-overlay" onclick="if(event.target===this) closeCasePicker()">
+        <div class="modal-box">
+            <div class="m-head" style="margin-bottom: 4px;">Выберите кейс</div>
+            <div class="m-desc" style="margin-bottom: 10px;">Загружено из витрины магазина</div>
+            <div id="cases-picker-grid" class="cases-picker-grid"></div>
+            <button class="m-btn secondary" onclick="closeCasePicker()">Отмена</button>
         </div>
     </div>
 
@@ -557,14 +648,16 @@
             'fa-solid fa-link'
         ];
 
+        let shopCases = [];
+        let activeTierIndexForPicker = null;
+
         let cfg = {
             enabled: true,
+            for_all: false,
             admin_test_mode: true,
             title: '',
             subtitle: '',
-            reward_label: '',
-            btn_check_text: '',
-            btn_claim_prefix: '',
+            btn_claim_prefix: 'Забрать',
             tasks: [],
             tiers: []
         };
@@ -579,7 +672,7 @@
         }
 
         function esc(str) {
-            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&','<':'<','>':'>','"':'"',"'":'''})[m]);
         }
 
         function switchTab(name, btn) {
@@ -614,14 +707,59 @@
             }
         }
 
+        function findCaseImg(caseName, fallbackUrl) {
+            if (fallbackUrl) return fallbackUrl;
+            const target = String(caseName || '').trim().toLowerCase();
+            const found = shopCases.find(c => String(c.name || '').trim().toLowerCase() === target);
+            return found ? (found.replaced_image_url || found.image_url || '') : '';
+        }
+
+        function openCasePicker(tierIdx) {
+            haptic('light');
+            activeTierIndexForPicker = tierIdx;
+            const currentName = String(cfg.tiers[tierIdx]?.case_name || '').trim().toLowerCase();
+            const grid = document.getElementById('cases-picker-grid');
+
+            if (!shopCases.length) {
+                grid.innerHTML = '<div style="grid-column:1/-1; padding:20px; font-size:11px; color:#a1a1aa;">Кейсы не загружены</div>';
+            } else {
+                grid.innerHTML = shopCases.map((c, idx) => {
+                    const isSel = String(c.name || '').trim().toLowerCase() === currentName;
+                    const priceText = Number(c.price) === 9999 ? 'Купонный' : `${c.price} монет`;
+                    return `
+                        <div class="case-opt-card ${isSel ? 'selected' : ''}" onclick="selectCaseForTier(${idx})">
+                            <img src="${esc(c.replaced_image_url || c.image_url || '')}" alt="">
+                            <div class="case-opt-name">${esc(c.name)}</div>
+                            <div class="case-opt-price">${priceText}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            document.getElementById('case-picker-modal').style.display = 'flex';
+        }
+
+        function selectCaseForTier(caseIdx) {
+            const picked = shopCases[caseIdx];
+            if (picked && activeTierIndexForPicker !== null && cfg.tiers[activeTierIndexForPicker]) {
+                cfg.tiers[activeTierIndexForPicker].case_name = picked.name;
+                cfg.tiers[activeTierIndexForPicker].image_url = picked.replaced_image_url || picked.image_url || '';
+                haptic('medium');
+                renderTiers();
+            }
+            closeCasePicker();
+        }
+
+        function closeCasePicker() {
+            document.getElementById('case-picker-modal').style.display = 'none';
+            activeTierIndexForPicker = null;
+        }
+
         function renderAll() {
             document.getElementById('cfg-enabled').checked = Boolean(cfg.enabled);
             document.getElementById('cfg-for-all').checked = Boolean(cfg.for_all);
             document.getElementById('cfg-admin-test').checked = cfg.admin_test_mode !== false;
             document.getElementById('cfg-title').value = cfg.title || '';
             document.getElementById('cfg-subtitle').value = cfg.subtitle || '';
-            document.getElementById('cfg-reward-label').value = cfg.reward_label || '';
-            document.getElementById('cfg-btn-check').value = cfg.btn_check_text || '';
             document.getElementById('cfg-btn-claim').value = cfg.btn_claim_prefix || '';
             updateStatusPill();
             renderTasks();
@@ -737,41 +875,56 @@
             document.getElementById('cnt-tiers').textContent = list.length;
             const box = document.getElementById('tiers-container');
 
-            box.innerHTML = list.map((tier, i) => `
-                <div class="item-card is-extra">
-                    <div class="item-head">
-                        <div class="item-head-left">
-                            <span class="item-badge gold">Тир #${i + 1}</span>
-                            <span style="font-size:10px; color:#a1a1aa;">от ${tier.min_extra} доп.</span>
+            box.innerHTML = list.map((tier, i) => {
+                const thumbUrl = findCaseImg(tier.case_name, tier.image_url);
+                return `
+                    <div class="item-card is-extra">
+                        <div class="item-head">
+                            <div class="item-head-left">
+                                <span class="item-badge gold">Тир #${i + 1}</span>
+                                <span style="font-size:10px; color:#a1a1aa;">от ${tier.min_extra} доп.</span>
+                            </div>
+                            <button class="icon-btn del" onclick="removeTier(${i})"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <button class="icon-btn del" onclick="removeTier(${i})"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                    <div class="field">
-                        <label class="field-lbl">Точное название кейса (как в БД)</label>
-                        <input class="inp" value="${esc(tier.case_name)}" oninput="cfg.tiers[${i}].case_name = this.value" placeholder="Кейс | Лентяй">
-                    </div>
-                    <div class="field">
-                        <label class="field-lbl">Картинка кейса (URL, пусто = авто из магазина)</label>
-                        <input class="inp" value="${esc(tier.image_url || '')}" oninput="cfg.tiers[${i}].image_url = this.value" placeholder="https://... (необязательно)">
-                    </div>
-                    <div class="grid-2">
-                        <div class="field" style="margin:0;">
-                            <label class="field-lbl">Мин. доп. заданий</label>
-                            <input class="inp" type="number" min="0" value="${tier.min_extra}" oninput="cfg.tiers[${i}].min_extra = parseInt(this.value || 0, 10)">
+                        <div class="field">
+                            <label class="field-lbl">Выбранный кейс</label>
+                            <button type="button" class="case-picker-btn" onclick="openCasePicker(${i})">
+                                ${thumbUrl
+                                    ? `<img src="${esc(thumbUrl)}" class="case-picker-thumb" alt="">`
+                                    : `<div class="case-picker-thumb" style="display:flex;align-items:center;justify-content:center;color:#fbbf24;"><i class="fa-solid fa-box-open"></i></div>`
+                                }
+                                <div class="case-picker-info">
+                                    <span class="case-picker-name">${esc(tier.case_name || 'Выбрать кейс...')}</span>
+                                    <span class="case-picker-hint">Нажми, чтобы сменить кейс</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right" style="color:#a1a1aa; font-size:11px;"></i>
+                            </button>
                         </div>
-                        <div class="field" style="margin:0;">
-                            <label class="field-lbl">Подпись уровня</label>
-                            <input class="inp" value="${esc(tier.label)}" oninput="cfg.tiers[${i}].label = this.value" placeholder="Базовый кейс">
+                        <div class="grid-2">
+                            <div class="field" style="margin:0;">
+                                <label class="field-lbl">Мин. доп. заданий</label>
+                                <input class="inp" type="number" min="0" value="${tier.min_extra}" oninput="cfg.tiers[${i}].min_extra = parseInt(this.value || 0, 10)">
+                            </div>
+                            <div class="field" style="margin:0;">
+                                <label class="field-lbl">Подпись уровня</label>
+                                <input class="inp" value="${esc(tier.label)}" oninput="cfg.tiers[${i}].label = this.value" placeholder="Базовый кейс">
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function addNewTier() {
             haptic('light');
             const lastMin = cfg.tiers.length ? (cfg.tiers[cfg.tiers.length - 1].min_extra + 1) : 0;
-            cfg.tiers.push({ min_extra: lastMin, case_name: 'Кейс | The Noot-Noot', label: 'Улучшенный кейс' });
+            const defaultCase = shopCases[0] || { name: 'Кейс | The Noot-Noot', image_url: '' };
+            cfg.tiers.push({
+                min_extra: lastMin,
+                case_name: defaultCase.name,
+                image_url: defaultCase.replaced_image_url || defaultCase.image_url || '',
+                label: 'Улучшенный кейс'
+            });
             renderTiers();
         }
 
@@ -785,15 +938,33 @@
             renderTiers();
         }
 
+        async function loadShopCases() {
+            try {
+                const initData = encodeURIComponent(tg?.initData || '');
+                const res = await fetch(`/api/v1/shop/goods?category_id=2716312&initData=${initData}&platform=tg`);
+                if (res.ok) {
+                    const items = await res.json();
+                    if (Array.isArray(items)) {
+                        shopCases = items.filter(it => it && !it.is_folder);
+                    }
+                }
+            } catch (e) {
+                console.warn('Не удалось загрузить кейсы:', e);
+            }
+        }
+
         async function loadConfig() {
             try {
-                const res = await fetch('/api/v1/admin/welcome/get', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg?.initData || '' })
-                });
-                if (!res.ok) throw new Error('Нет доступа или ошибка сервера');
-                const data = await res.json();
+                const [cfgRes] = await Promise.all([
+                    fetch('/api/v1/admin/welcome/get', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg?.initData || '' })
+                    }),
+                    loadShopCases()
+                ]);
+                if (!cfgRes.ok) throw new Error('Нет доступа или ошибка сервера');
+                const data = await cfgRes.json();
                 if (data.config) cfg = data.config;
                 renderAll();
             } catch (e) {
@@ -818,7 +989,6 @@
                 const ans = await res.json();
                 if (!res.ok) throw new Error(ans.detail || 'Ошибка сохранения');
 
-                // Сбрасываем свой локальный кэш, чтобы сразу увидеть изменения на главной
                 localStorage.removeItem('cache_bootstrap');
                 sessionStorage.removeItem('session_bootstrap');
 
