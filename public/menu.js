@@ -2003,9 +2003,9 @@ async function renderFullInterface(data) {
 
     updateShortcutStatuses(userData, allQuests);
     updateShopTile(userData.active_trade_status || 'none');
-    // 🔥 МАГИЯ МАТРИЦЫ
-    if (data.matrix_quest !== undefined) {
-        checkMatrixEvent(data.matrix_quest); // Оставляем только вызов самого окна
+    // 🎁 СТАРТОВОЕ ОКНО ДЛЯ НОВИЧКОВ (И ВСЕГДА ДЛЯ АДМИНА)
+    if (data.matrix_quest !== undefined || data.welcome_config) {
+        checkMatrixEvent(data.matrix_quest, data.welcome_config);
     }
 
     // 🔥 ОБНОВЛЕНИЕ МИНИ-БЛОКА ТРАСТА НА ГЛАВНОЙ 🔥
@@ -5264,202 +5264,234 @@ window.claimMatrixReward = async function() {
     }
 }
 
-function checkMatrixEvent(matrixData) {
-    // 👇 ДОБАВЛЕНО: Скрываем окно Матрицы, если это неавторизованный гость в браузере
+function checkMatrixEvent(matrixData, welcomeConfig) {
     if (document.body.classList.contains('browser-mode') && !localStorage.getItem('tg_web_auth_token')) {
-        return; 
-    }
-    // 👆 =========================================================================
-
-    const existingModal = document.getElementById('matrix-event-modal');
-
-    // Если у юзера уже есть выбор в БД (или он нажал крестик в этой сессии)
-    if (matrixData?.selected_pill || sessionStorage.getItem('matrix_dismissed')) {
-        // Если окно успело отрисоваться из старого кэша — жестко сносим его
-        if (existingModal) {
-            existingModal.remove();
-        }
         return;
     }
 
-    // Если окна еще нет и выбора нет — создаем (защита от двойного рендера)
+    const isAdmin = Boolean(userData?.is_admin);
+    const existingModal = document.getElementById('matrix-event-modal');
+
+    // Если конфиг не пришёл или выключен — для обычных юзеров не показываем (админ видит всегда, пока есть конфиг)
+    if (!welcomeConfig || (!welcomeConfig.enabled && !isAdmin)) {
+        if (existingModal) existingModal.remove();
+        return;
+    }
+
+    // Для обычных юзеров: скрываем, если уже получили кейс или закрыли в этой сессии
+    // Для админа: всегда открываем при каждом входе/перезагрузке (закрытие крестиком действует только до следующего F5)
+    if (isAdmin) {
+        if (window._welcomeClosedThisLoad) return;
+    } else {
+        if (matrixData?.selected_pill || sessionStorage.getItem('matrix_dismissed')) {
+            if (existingModal) existingModal.remove();
+            return;
+        }
+    }
+
     if (existingModal) return;
+
+    const tasks = welcomeConfig.tasks || [];
+    const tiers = [...(welcomeConfig.tiers || [])].sort((a, b) => a.min_extra - b.min_extra);
+    const rewardLabel = welcomeConfig.reward_label || 'Твоя награда:';
+    const btnCheckText = welcomeConfig.btn_check_text || 'Проверить канал и чат';
+    const btnClaimPrefix = welcomeConfig.btn_claim_prefix || 'Забрать';
+
+    let inChannel = false;
+    let inChat = false;
+    const completedExtra = new Set();
+
+    const getCurrentTier = () => {
+        let current = tiers[0] || { case_name: 'Стартовый кейс', label: 'Базовый кейс' };
+        for (const t of tiers) {
+            if (completedExtra.size >= t.min_extra) current = t;
+        }
+        return current;
+    };
 
     const overlay = document.createElement('div');
     overlay.id = 'matrix-event-modal';
-    
-    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 2147483646; display: flex; flex-direction: column; justify-content: space-between; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); opacity: 0; transition: opacity 0.4s; overflow: hidden;";
+    overlay.style.cssText = "position: fixed; inset: 0; background: rgba(10,10,12,0.92); z-index: 2147483646; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); opacity: 0; transition: opacity 0.3s; padding: 16px; box-sizing: border-box;";
+
+    const adminBadgeHtml = isAdmin
+        ? `<div style="position: absolute; top: 14px; left: 16px; font-size: 9px; font-weight: 900; color: #ff9500; background: rgba(255,149,0,0.12); border: 1px solid rgba(255,149,0,0.35); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.5px;">ADMIN TEST</div>`
+        : '';
 
     overlay.innerHTML = `
-        <style>
-            .custom-confirm-overlay { z-index: 2147483647 !important; }
+        <div style="width: 100%; max-width: 360px; background: #18181b; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 26px 18px 20px; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.75); max-height: 90vh; display: flex; flex-direction: column;">
             
-            .mx-title { color: #FFD700; font-size: 18px; margin: 0 0 12px 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3); }
-            .mx-p1 { font-size: 11px; color: #fff; line-height: 1.45; margin: 0 0 10px 0; opacity: 0.95; }
-            .mx-p-dim { font-size: 11px; color: #ccc; line-height: 1.45; margin: 0 0 10px 0; }
-            .mx-p2 { font-size: 11px; color: #fff; line-height: 1.45; margin: 0 0 15px 0; font-weight: 600; }
-            .mx-q { font-size: 14px; color: #FFD700; font-weight: 900; text-transform: uppercase; margin-bottom: -15px; position: relative; z-index: 5; }
-            
-            .mx-text-wrapper {
-                flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 25px; text-align: center; z-index: 5; pointer-events: none;
-                margin-top: calc(env(safe-area-inset-top, 20px) + 60px);
-            }
-            
-            /* КРЕСТИК НА МОБИЛКЕ */
-            #matrix-close-btn {
-                position: absolute; right: 15px; background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; z-index: 100; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
-                top: calc(env(safe-area-inset-top, 20px) + 50px);
-            }
+            ${adminBadgeHtml}
 
-            /* --- НАСТРОЙКИ ДЛЯ ПК ВЕРСИИ --- */
-            @media (min-width: 600px) { /* Снизили ширину с 768px до 600px для боковых панелей TG */
-                .mx-title { font-size: 16px !important; }
-                .mx-p1, .mx-p-dim, .mx-p2 { font-size: 10px !important; max-width: 450px; margin-left: auto; margin-right: auto; }
-                
-                /* ПРИПОДНИМАЕМ ТЕКСТ НА ПК */
-                .mx-text-wrapper { margin-top: -150px !important; } 
-                
-                /* ЖЕЛЕЗОБЕТОННО ПРИПОДНИМАЕМ КРЕСТИК НА ПК */
-                div#matrix-event-modal button#matrix-close-btn { 
-                    top: 10px !important; 
-                    right: 20px !important; 
-                    margin: 0 !important;
-                } 
-            }
+            <button id="wl-close-btn" style="position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(255,255,255,0.06); color: #8e8e93; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
 
-            @keyframes floatMatrix {
-                0% { transform: translateY(0px); }
-                50% { transform: translateY(-12px); }
-                100% { transform: translateY(0px); }
-            }
-
-            #morpheus-wrapper {
-                position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none;
-                animation: floatMatrix 6s ease-in-out infinite; 
-            }
-
-            #morpheus-img {
-                width: 100%; height: 85%; object-fit: contain; object-position: center bottom; 
-                transform: scale(1.05); will-change: transform; 
-            }
-
-            .mx-btn-container {
-                position: absolute; bottom: 160px; left: 0; width: 100%; display: flex; justify-content: center; gap: 15px; padding: 0 20px; box-sizing: border-box; z-index: 20;
-            }
-
-            .mx-btn {
-                flex: 1; max-width: 135px; padding: 12px 5px; border-radius: 16px; cursor: pointer; 
-                display: flex; flex-direction: column; align-items: center; gap: 4px; 
-                transition: transform 0.1s, background 0.2s; border: 0.5px solid;
-            }
-        </style>
-
-        <button id="matrix-close-btn">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-
-        <div class="mx-text-wrapper">
-            <h3 class="mx-title">Дружище, удели внимание!</h3>
-            <p class="mx-p1">То, что ты видишь — это старания одного человека, который делает всё для своей аудитории. Он ценит её и прислушивается.</p>
-            <p class="mx-p-dim">Я честно хочу вас радовать, мне это безумно нравится. Но бывает обидно, когда вложенную душу расценивают лишь как способ по-быстрому что-то «залутать». Если у тебя есть сомнения — уверяю, бот абсолютно безопасен, для вывода нужна только Trade-ссылка.</p>
-            <p class="mx-p2">Поэтому, мой друг, я даю тебе выбор здесь и сейчас.<br>Помоги улучшить проект, в котором ты важен, либо просто забери то, что тебе нужно.</p>
-            <div class="mx-q">Что выберешь?</div>
-        </div>
-
-        <div style="position: relative; width: 100%; height: 420px; flex-shrink: 0;">
-            <div id="morpheus-wrapper">
-                <img id="morpheus-img" src="https://i.ibb.co/Lzk8tsby/MATRIX.png">
+            <div style="text-align: center; margin-bottom: 16px; margin-top: ${isAdmin ? '12px' : '0'};">
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25); color: #FFD700; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 10px;">
+                    <i class="fa-solid fa-gift"></i> <span id="wl-tier-badge">${escapeHTML(tiers[0]?.label || 'Бесплатный кейс')}</span>
+                </div>
+                <h2 style="margin: 0 0 6px; font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 0.3px;">${escapeHTML(welcomeConfig.title || '')}</h2>
+                <p style="margin: 0; font-size: 12px; color: #8e8e93; line-height: 1.4;">${escapeHTML(welcomeConfig.subtitle || '')}</p>
             </div>
 
-            <div class="mx-btn-container">
-                <button id="btn-path-red" class="mx-btn" style="background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(100,0,0,0.8) 100%); border-color: rgba(255, 59, 48, 0.3); color: #fff;">
-                    <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Путь Ленивца</span>
-                    <span style="font-size: 9px; font-weight: 400; color: rgba(255,255,255,0.9); line-height: 1.1;">Быстрое получение скина<br>но будет понижен траст</span>
-                </button>
+            <div id="wl-tasks-list" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; margin-bottom: 16px; padding-right: 2px;"></div>
 
-                <button id="btn-path-blue" class="mx-btn" style="background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,70,180,0.8) 100%); border-color: rgba(0, 122, 255, 0.6); color: #fff; box-shadow: 0 8px 32px rgba(0, 122, 255, 0.2);">
-                    <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Путь Развития</span>
-                    <span style="font-size: 9px; font-weight: 400; color: rgba(255,255,255,0.9); line-height: 1.1;">Кейс NUT-NUT<br>+ 10 🎟️</span>
-                </button>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; color: #8e8e93; font-weight: 600;">${escapeHTML(rewardLabel)}</span>
+                <span id="wl-current-case" style="font-size: 12px; color: #FFD700; font-weight: 800;">${escapeHTML(tiers[0]?.case_name || '')}</span>
             </div>
+
+            <button id="wl-claim-btn" style="width: 100%; padding: 15px; border: none; border-radius: 14px; font-weight: 900; font-size: 13px; text-transform: uppercase; background: rgba(42,171,238,0.18); color: #2AABEE; cursor: pointer; transition: all 0.25s;">
+                <i class="fa-solid fa-rotate" style="margin-right: 6px;"></i> ${escapeHTML(btnCheckText)}
+            </button>
         </div>
     `;
-
-    // --- НАЧАЛО ВСТАВКИ: ПРОВЕРКА НА ПК И ПРИНУДИТЕЛЬНЫЙ СДВИГ ---
-    const tgPlatform = window.Telegram?.WebApp?.platform || '';
-    if (!['android', 'android_x', 'ios'].includes(tgPlatform)) {
-        // Если это не мобилка, жестко перебиваем стили
-        overlay.querySelector('#matrix-close-btn').style.setProperty('top', '10px', 'important');
-        overlay.querySelector('.mx-text-wrapper').style.setProperty('margin-top', '45px', 'important');
-    }
-    // --- КОНЕЦ ВСТАВКИ ---
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.style.opacity = '1');
 
-    overlay.querySelector('#matrix-close-btn').onclick = () => {
-        sessionStorage.setItem('matrix_dismissed', 'true');
+    const listEl = overlay.querySelector('#wl-tasks-list');
+    const claimBtn = overlay.querySelector('#wl-claim-btn');
+    const tierBadge = overlay.querySelector('#wl-tier-badge');
+    const currentCaseEl = overlay.querySelector('#wl-current-case');
+
+    const updateRewardUI = () => {
+        const tier = getCurrentTier();
+        tierBadge.textContent = tier.label;
+        currentCaseEl.textContent = tier.case_name;
+
+        if (inChannel && inChat) {
+            claimBtn.disabled = false;
+            claimBtn.style.background = 'linear-gradient(135deg, #FFD700 0%, #ffaa00 100%)';
+            claimBtn.style.color = '#000';
+            claimBtn.style.boxShadow = '0 6px 20px rgba(255,215,0,0.35)';
+            claimBtn.innerHTML = `<i class="fa-solid fa-box-open" style="margin-right: 6px;"></i> ${escapeHTML(btnClaimPrefix)} ${escapeHTML(tier.label)}`;
+        } else {
+            claimBtn.disabled = false;
+            claimBtn.style.background = 'rgba(42,171,238,0.18)';
+            claimBtn.style.color = '#2AABEE';
+            claimBtn.style.boxShadow = 'none';
+            claimBtn.innerHTML = `<i class="fa-solid fa-rotate" style="margin-right: 6px;"></i> ${escapeHTML(btnCheckText)}`;
+        }
+    };
+
+    const renderTasks = () => {
+        listEl.innerHTML = tasks.map(t => {
+            let isDone = false;
+            if (t.type === 'tg_channel') isDone = inChannel;
+            else if (t.type === 'tg_chat') isDone = inChat;
+            else isDone = completedExtra.has(t.id);
+
+            const border = isDone ? 'rgba(52,199,89,0.4)' : 'rgba(255,255,255,0.06)';
+            const bg = isDone ? 'rgba(52,199,89,0.08)' : 'rgba(255,255,255,0.03)';
+            const badgeText = isDone ? (t.required ? 'Выполнено' : 'Выполнено • Кейс улучшен') : t.badge;
+            const badgeColor = isDone ? '#34c759' : (t.required ? '#2AABEE' : '#FFD700');
+
+            return `
+                <div class="wl-task-item" data-id="${t.id}" style="display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 14px; background: ${bg}; border: 1px solid ${border}; cursor: pointer; transition: 0.2s;">
+                    <div style="width: 34px; height: 34px; border-radius: 10px; background: ${t.color}20; color: ${t.color}; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;">
+                        <i class="${t.icon}"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 0; text-align: left;">
+                        <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(t.title)}</div>
+                        <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: ${badgeColor}; margin-top: 2px;">*${escapeHTML(badgeText)}</div>
+                    </div>
+                    <div class="wl-task-status" style="font-size: 15px; color: ${isDone ? '#34c759' : '#555'}; flex-shrink: 0;">
+                        <i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-chevron-right'}"></i>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        listEl.querySelectorAll('.wl-task-item').forEach(el => {
+            el.onclick = () => {
+                const task = tasks.find(x => x.id === el.dataset.id);
+                if (!task) return;
+
+                if (task.url.includes('t.me/') && window.Telegram?.WebApp?.openTelegramLink) {
+                    window.Telegram.WebApp.openTelegramLink(task.url);
+                } else if (window.Telegram?.WebApp?.openLink) {
+                    window.Telegram.WebApp.openLink(task.url);
+                } else {
+                    window.open(task.url, '_blank');
+                }
+
+                if (task.type === 'link' && !completedExtra.has(task.id)) {
+                    const statusIcon = el.querySelector('.wl-task-status');
+                    if (statusIcon) statusIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#FFD700;"></i>';
+                    setTimeout(() => {
+                        completedExtra.add(task.id);
+                        if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                        renderTasks();
+                        updateRewardUI();
+                    }, 4000);
+                }
+            };
+        });
+    };
+
+    const checkTgSubs = async () => {
+        try {
+            const res = await makeApiRequest('/api/v1/welcome/check_tg', {}, 'POST', true);
+            inChannel = Boolean(res && res.in_channel);
+            inChat = Boolean(res && res.in_chat);
+        } catch (e) {
+            inChannel = false;
+            inChat = false;
+        }
+        renderTasks();
+        updateRewardUI();
+    };
+
+    overlay.querySelector('#wl-close-btn').onclick = () => {
+        if (isAdmin) {
+            window._welcomeClosedThisLoad = true;
+        } else {
+            sessionStorage.setItem('matrix_dismissed', 'true');
+        }
         overlay.style.opacity = '0';
-        setTimeout(() => overlay.remove(), 400);
+        setTimeout(() => overlay.remove(), 300);
     };
 
-    const img = overlay.querySelector('#morpheus-img');
-    let targetX = 0, targetY = 0, currentX = 0, currentY = 0, isAnimating = true;
-
-    function animateParallax() {
-        if (!document.getElementById('matrix-event-modal')) { isAnimating = false; return; }
-        currentX += (targetX - currentX) * 0.08;
-        currentY += (targetY - currentY) * 0.08;
-        img.style.transform = `scale(1.05) translate(${currentX}px, ${currentY}px)`;
-        if (isAnimating) requestAnimationFrame(animateParallax);
-    }
-    animateParallax();
-
-    overlay.addEventListener('mousemove', (e) => {
-        targetX = (e.clientX / window.innerWidth - 0.5) * 30;
-        targetY = (e.clientY / window.innerHeight - 0.5) * 30;
-    });
-
-    if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientation', (e) => {
-            if (e.gamma !== null && e.beta !== null) {
-                targetX = (Math.min(Math.max(e.gamma, -45), 45) / 45) * 30;
-                targetY = (Math.min(Math.max(e.beta - 45, -45), 45) / 45) * 30;
+    claimBtn.onclick = async () => {
+        if (!inChannel || !inChat) {
+            claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Проверяем...';
+            await checkTgSubs();
+            if (!inChannel || !inChat) {
+                customAlert("Чтобы забрать кейс, нужно подписаться на канал и вступить в чат!");
             }
-        });
-    }
+            return;
+        }
 
-    overlay.querySelector('#btn-path-red').onclick = function() {
-        if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        showShopModal({
-            title: '<span style="color: #ff3b30; font-weight: 900;">ПУТЬ ЛЕНИВЦА</span>',
-            subtitle: 'Выбрав этот путь, твой траст упадет, а цены в магазине вырастут в 3 раза.\n\nНо ты сразу получишь Кейс Лентяй.\n\nУверен в своем выборе?',
-            confirmText: 'ДА, Я УВЕРЕН',
-            confirmClass: 'btn-buy', 
-            showCancel: true,
-            onConfirm: () => {
-                const cm = document.querySelector('.custom-confirm-overlay');
-                if(cm) cm.remove();
-                setTimeout(() => { if (typeof submitMatrixChoice === 'function') submitMatrixChoice('red'); }, 100);
+        claimBtn.disabled = true;
+        claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Выдаем кейс...';
+
+        try {
+            const res = await makeApiRequest('/api/v1/welcome/claim', {
+                completed_extra_ids: Array.from(completedExtra)
+            }, 'POST');
+
+            if (isAdmin) {
+                window._welcomeClosedThisLoad = true;
+            } else {
+                sessionStorage.setItem('matrix_dismissed', 'true');
             }
-        });
+            localStorage.setItem('force_open_shop', 'true');
+            localStorage.removeItem('cache_bootstrap');
+            localStorage.removeItem('shop_items_cache');
+
+            if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            customAlert(`🎁 Готово! Тебе выдан «${res.case_name}». Открывай его в магазине!`);
+
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (e) {
+            claimBtn.disabled = false;
+            updateRewardUI();
+        }
     };
 
-    overlay.querySelector('#btn-path-blue').onclick = function() {
-        if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        showShopModal({
-            title: '<span style="color: #2AABEE; font-weight: 900;">ПУТЬ РАЗВИТИЯ</span>',
-            subtitle: 'Тебе предстоит доказать заинтересованность к проекту.\n\nНапиши 50 сообщений в TG и 200 на Twitch.\n\nНаграда: Кейс NUT-NUT + 10 🎟️.\n\nПринимаешь вызов?',
-            confirmText: 'ПРИНЯТЬ',
-            confirmClass: 'btn-buy',
-            showCancel: true,
-            onConfirm: () => {
-                const cm = document.querySelector('.custom-confirm-overlay');
-                if(cm) cm.remove();
-                setTimeout(() => { if (typeof submitMatrixChoice === 'function') submitMatrixChoice('blue'); }, 100);
-            }
-        });
-    };
+    renderTasks();
+    checkTgSubs();
 }
 
 async function submitMatrixChoice(pill) {
