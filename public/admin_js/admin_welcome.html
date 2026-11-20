@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактор стартового окна | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --bg: #09090b;
+            --card: rgba(18, 18, 24, 0.84);
+            --primary-purple: #7c3aed;
+            --primary-purple-light: #c084fc;
+            --text: #ffffff;
+            --text-secondary: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --accent-green: #34c759;
+            --danger: #ff453a;
+            --gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            position: fixed;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* === ШАПКА === */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: calc(env(safe-area-inset-top, 8px) + 8px) 12px 8px;
+            background: rgba(9, 9, 11, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            z-index: 20;
+            flex-shrink: 0;
+        }
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .back-btn {
+            width: 30px; height: 30px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .back-btn:active { transform: scale(0.92); }
+        .page-title {
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+        }
+        .page-sub {
+            font-size: 9px;
+            color: var(--primary-purple-light);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* === ОСНОВНОЙ КОНТЕЙНЕР === */
+        #main-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 12px 95px;
+        }
+
+        /* === GLASS-ТАБЫ (1в1 RAFFLES) === */
+        .tabs-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(18, 18, 24, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 11px;
+            padding: 3px;
+            margin-bottom: 10px;
+            gap: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 6.5px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.28) 100%);
+            border-color: rgba(196, 181, 253, 0.4);
+            box-shadow: 0 2px 10px rgba(124, 58, 237, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+        .tab-counter {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            font-size: 8.5px;
+            padding: 1px 5px;
+            border-radius: 5px;
+        }
+
+        .tab-pane { display: none; animation: fadeUp 0.2s ease both; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(6px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* === GLASS-КАРТОЧКИ === */
+        .glass-card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border-radius: 13px;
+            padding: 11px;
+            margin-bottom: 9px;
+        }
+        .section-lbl {
+            font-size: 8.5px;
+            font-weight: 800;
+            color: var(--primary-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .section-lbl.gold { color: var(--gold); }
+
+        /* === ПЕРЕКЛЮЧАТЕЛИ === */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .toggle-row:first-of-type { padding-top: 2px; }
+        .toggle-info { display: flex; flex-direction: column; gap: 2px; padding-right: 10px; }
+        .toggle-title { font-size: 11.5px; font-weight: 700; color: #fff; }
+        .toggle-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.25; }
+
+        .switch {
+            position: relative;
+            width: 38px; height: 22px;
+            flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .slider:before {
+            content: "";
+            position: absolute;
+            height: 16px; width: 16px;
+            left: 2px; bottom: 2px;
+            background: #a1a1aa;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        .switch input:checked + .slider {
+            background: rgba(52, 199, 89, 0.35);
+            border-color: rgba(74, 222, 128, 0.6);
+        }
+        .switch input:checked + .slider:before {
+            transform: translateX(16px);
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+        }
+
+        /* === ПОЛЯ ВВОДА === */
+        .field { margin-bottom: 8px; }
+        .field:last-child { margin-bottom: 0; }
+        .field-lbl {
+            display: block;
+            font-size: 9.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .inp, .sel {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.38);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 9px;
+            padding: 8px 10px;
+            color: #ffffff;
+            font-size: 11.5px;
+            font-weight: 600;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        .inp:focus, .sel:focus {
+            border-color: rgba(192, 132, 252, 0.55);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* === КАРТОЧКА ЗАДАНИЯ / ТИРА === */
+        .item-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .item-card.is-extra {
+            border-color: rgba(251, 191, 36, 0.22);
+        }
+        .item-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .item-head-left {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+        }
+        .mini-icon-box {
+            width: 26px; height: 26px;
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .item-badge {
+            font-size: 8.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 5px;
+            background: rgba(139, 92, 246, 0.2);
+            color: #d8b4fe;
+        }
+        .item-badge.gold {
+            background: rgba(251, 191, 36, 0.16);
+            color: var(--gold);
+        }
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .icon-btn {
+            width: 24px; height: 24px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #d4d4d8;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn.del {
+            color: var(--danger);
+            border-color: rgba(255, 69, 58, 0.28);
+            background: rgba(255, 69, 58, 0.1);
+        }
+
+        /* === ПРЕСЕТЫ ЦВЕТОВ И ИКОНОК === */
+        .presets-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        .color-dot {
+            width: 20px; height: 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-dot.active { border-color: #ffffff; transform: scale(1.1); }
+        .icon-chip {
+            width: 24px; height: 24px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .icon-chip.active {
+            border-color: var(--primary-purple-light);
+            background: rgba(139, 92, 246, 0.28);
+            color: #fff;
+        }
+
+        /* === КНОПКИ === */
+        .btn-add {
+            width: 100%;
+            padding: 9px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px dashed rgba(192, 132, 252, 0.45);
+            color: var(--primary-purple-light);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-add:active { transform: scale(0.97); }
+        .btn-add.gold {
+            border-color: rgba(251, 191, 36, 0.45);
+            color: var(--gold);
+        }
+
+        /* === НИЖНЯЯ ПАНЕЛЬ СОХРАНЕНИЯ === */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(9, 9, 11, 0.94);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 30;
+        }
+        .btn-save {
+            width: 100%;
+            padding: 11px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.72) 0%, rgba(109, 40, 217, 0.56) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.58);
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.32);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            transition: transform 0.12s ease;
+        }
+        .btn-save:active { transform: scale(0.97); }
+
+        /* === БЕЗРАМОЧНАЯ МОДАЛКА (1в1 RAFFLES) === */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(4, 4, 7, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-box {
+            width: 88%; max-width: 285px;
+            text-align: center;
+        }
+        .m-icon { font-size: 30px; margin-bottom: 8px; }
+        .m-head { font-size: 14.5px; font-weight: 800; color: #fff; margin-bottom: 5px; }
+        .m-desc { font-size: 11px; color: #f4f4f5; line-height: 1.45; margin-bottom: 14px; }
+        .m-btn {
+            width: 100%; padding: 9.5px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(109, 40, 217, 0.45) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.55);
+            color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="top-left">
+            <button class="back-btn" onclick="goBack()"><i class="fa-solid fa-chevron-left"></i></button>
+            <div>
+                <div class="page-title">Стартовое окно</div>
+                <div class="page-sub">Конструктор онбординга</div>
+            </div>
+        </div>
+        <div id="status-pill" style="font-size:9px; font-weight:800; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,0.06); color:#a1a1aa;">
+            Загрузка...
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="tabs-bar">
+            <button class="tab-btn active" onclick="switchTab('general', this)">
+                <i class="fa-solid fa-sliders"></i> Основные
+            </button>
+            <button class="tab-btn" onclick="switchTab('tasks', this)">
+                <i class="fa-solid fa-list-check"></i> Задания <span class="tab-counter" id="cnt-tasks">0</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tiers', this)">
+                <i class="fa-solid fa-box-open"></i> Кейсы <span class="tab-counter" id="cnt-tiers">0</span>
+            </button>
+        </div>
+
+        <!-- ВКЛАДКА 1: ОСНОВНЫЕ И ТЕКСТЫ -->
+        <div id="pane-general" class="tab-pane active">
+            <div class="glass-card">
+                <div class="section-lbl">Управление показом</div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Включить окно для новичков</span>
+                        <span class="toggle-desc">Показывается новым пользователям при входе</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfg-enabled" onchange="cfg.enabled = this.checked; updateStatusPill();">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Режим ADMIN TEST</span>
+                        <span class="toggle-desc">Всегда открывать окно у админов для проверки</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfg-admin-test" onchange="cfg.admin_test_mode = this.checked;">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="section-lbl">Тексты и кнопки</div>
+                <div class="field">
+                    <label class="field-lbl">Заголовок</label>
+                    <input class="inp" id="cfg-title" oninput="cfg.title = this.value" placeholder="ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС">
+                </div>
+                <div class="field">
+                    <label class="field-lbl">Подзаголовок</label>
+                    <input class="inp" id="cfg-subtitle" oninput="cfg.subtitle = this.value" placeholder="Выполни простые действия...">
+                </div>
+                <div class="field">
+                    <label class="field-lbl">Подпись перед названием кейса</label>
+                    <input class="inp" id="cfg-reward-label" oninput="cfg.reward_label = this.value" placeholder="Твоя награда:">
+                </div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label class="field-lbl">Кнопка проверки</label>
+                        <input class="inp" id="cfg-btn-check" oninput="cfg.btn_check_text = this.value" placeholder="Проверить">
+                    </div>
+                    <div class="field">
+                        <label class="field-lbl">Кнопка получения</label>
+                        <input class="inp" id="cfg-btn-claim" oninput="cfg.btn_claim_prefix = this.value" placeholder="Забрать">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 2: ЗАДАНИЯ И ПАРТНЁРКИ -->
+        <div id="pane-tasks" class="tab-pane">
+            <div id="tasks-container"></div>
+            <button class="btn-add" onclick="addNewTask()">
+                <i class="fa-solid fa-plus"></i> Добавить задание / партнёрку
+            </button>
+        </div>
+
+        <!-- ВКЛАДКА 3: ТИРЫ КЕЙСОВ -->
+        <div id="pane-tiers" class="tab-pane">
+            <div class="glass-card" style="padding: 9px 11px; margin-bottom: 10px;">
+                <div style="font-size: 10px; color: var(--text-muted); line-height: 1.4;">
+                    Укажи точное название кейса из витрины (как в <b style="color:#fff;">cs_codes</b>).
+                    Чем больше доп. заданий выполнит юзер, тем выше тир он получит.
+                </div>
+            </div>
+            <div id="tiers-container"></div>
+            <button class="btn-add gold" onclick="addNewTier()">
+                <i class="fa-solid fa-plus"></i> Добавить уровень кейса
+            </button>
+        </div>
+    </main>
+
+    <div class="bottom-bar">
+        <button class="btn-save" id="save-btn" onclick="saveConfig()">
+            <i class="fa-solid fa-floppy-disk"></i> Сохранить настройки
+        </button>
+    </div>
+
+    <div id="modal" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal-box">
+            <div class="m-icon" id="m-icon"></div>
+            <div class="m-head" id="m-head"></div>
+            <div class="m-desc" id="m-desc"></div>
+            <button class="m-btn" onclick="closeModal()">Понятно</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => goBack());
+        }
+
+        const COLOR_PRESETS = ['#2AABEE', '#34C759', '#9146FF', '#00C7BE', '#FF9500', '#FB7185', '#FBBF24'];
+        const ICON_PRESETS = [
+            'fa-brands fa-telegram',
+            'fa-solid fa-comments',
+            'fa-brands fa-twitch',
+            'fa-solid fa-shield-halved',
+            'fa-solid fa-gun',
+            'fa-solid fa-gift',
+            'fa-solid fa-bolt',
+            'fa-solid fa-link'
+        ];
+
+        let cfg = {
+            enabled: true,
+            admin_test_mode: true,
+            title: '',
+            subtitle: '',
+            reward_label: '',
+            btn_check_text: '',
+            btn_claim_prefix: '',
+            tasks: [],
+            tiers: []
+        };
+
+        function goBack() {
+            if (window.history.length > 1) window.history.back();
+            else window.location.href = '/';
+        }
+
+        function haptic(type = 'light') {
+            try { tg?.HapticFeedback?.impactOccurred(type); } catch (e) {}
+        }
+
+        function esc(str) {
+            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+        }
+
+        function switchTab(name, btn) {
+            haptic('light');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('pane-' + name).classList.add('active');
+        }
+
+        function showModal(type, title, desc) {
+            const isOk = type === 'success';
+            document.getElementById('m-icon').innerHTML = isOk
+                ? '<i class="fa-solid fa-circle-check" style="color:#34c759; filter:drop-shadow(0 0 10px rgba(52,199,89,0.5));"></i>'
+                : '<i class="fa-solid fa-circle-exclamation" style="color:#ff453a; filter:drop-shadow(0 0 10px rgba(255,69,58,0.5));"></i>';
+            document.getElementById('m-head').textContent = title;
+            document.getElementById('m-desc').innerHTML = desc;
+            document.getElementById('modal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function updateStatusPill() {
+            const pill = document.getElementById('status-pill');
+            if (cfg.enabled) {
+                pill.textContent = 'АКТИВНО';
+                pill.style.background = 'rgba(52, 199, 89, 0.16)';
+                pill.style.color = '#4ade80';
+            } else {
+                pill.textContent = 'ВЫКЛЮЧЕНО';
+                pill.style.background = 'rgba(255, 69, 58, 0.14)';
+                pill.style.color = '#ff453a';
+            }
+        }
+
+        function renderAll() {
+            document.getElementById('cfg-enabled').checked = Boolean(cfg.enabled);
+            document.getElementById('cfg-admin-test').checked = cfg.admin_test_mode !== false;
+            document.getElementById('cfg-title').value = cfg.title || '';
+            document.getElementById('cfg-subtitle').value = cfg.subtitle || '';
+            document.getElementById('cfg-reward-label').value = cfg.reward_label || '';
+            document.getElementById('cfg-btn-check').value = cfg.btn_check_text || '';
+            document.getElementById('cfg-btn-claim').value = cfg.btn_claim_prefix || '';
+            updateStatusPill();
+            renderTasks();
+            renderTiers();
+        }
+
+        function renderTasks() {
+            const list = cfg.tasks || [];
+            document.getElementById('cnt-tasks').textContent = list.length;
+            const box = document.getElementById('tasks-container');
+
+            box.innerHTML = list.map((t, i) => `
+                <div class="item-card ${t.required ? '' : 'is-extra'}">
+                    <div class="item-head">
+                        <div class="item-head-left">
+                            <div class="mini-icon-box" style="background:${esc(t.color || '#9146FF')}22; border:1px solid ${esc(t.color || '#9146FF')}55; color:${esc(t.color || '#9146FF')};">
+                                <i class="${esc(t.icon || 'fa-solid fa-link')}"></i>
+                            </div>
+                            <span class="item-badge ${t.required ? '' : 'gold'}">${t.required ? 'Обязательное' : 'Улучшение'}</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="icon-btn" onclick="moveTask(${i}, -1)" title="Вверх"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button class="icon-btn" onclick="moveTask(${i}, 1)" title="Вниз"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button class="icon-btn del" onclick="removeTask(${i})" title="Удалить"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-lbl">Название задания</label>
+                        <input class="inp" value="${esc(t.title)}" oninput="cfg.tasks[${i}].title = this.value">
+                    </div>
+
+                    <div class="field">
+                        <label class="field-lbl">Ссылка (URL)</label>
+                        <input class="inp" value="${esc(t.url)}" oninput="cfg.tasks[${i}].url = this.value" placeholder="https://...">
+                    </div>
+
+                    <div class="grid-2" style="margin-bottom: 8px;">
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Тип проверки</label>
+                            <select class="sel" onchange="changeTaskType(${i}, this.value)">
+                                <option value="link" ${t.type === 'link' ? 'selected' : ''}>Ссылка (рефералка)</option>
+                                <option value="tg_channel" ${t.type === 'tg_channel' ? 'selected' : ''}>TG Канал (бот)</option>
+                                <option value="tg_chat" ${t.type === 'tg_chat' ? 'selected' : ''}>TG Чат (бот)</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Подпись снизу</label>
+                            <input class="inp" value="${esc(t.badge || '')}" oninput="cfg.tasks[${i}].badge = this.value" placeholder="Улучшить кейс">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-lbl">Цвет и иконка</label>
+                        <div class="presets-row">
+                            ${COLOR_PRESETS.map(c => `<div class="color-dot ${t.color === c ? 'active' : ''}" style="background:${c};" onclick="cfg.tasks[${i}].color='${c}'; renderTasks();"></div>`).join('')}
+                        </div>
+                        <div class="presets-row" style="margin-top:6px;">
+                            ${ICON_PRESETS.map(ic => `<div class="icon-chip ${t.icon === ic ? 'active' : ''}" onclick="cfg.tasks[${i}].icon='${ic}'; renderTasks();"><i class="${ic}"></i></div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function changeTaskType(idx, val) {
+            cfg.tasks[idx].type = val;
+            cfg.tasks[idx].required = (val === 'tg_channel' || val === 'tg_chat');
+            if (!cfg.tasks[idx].required && cfg.tasks[idx].badge === 'Обязательно') {
+                cfg.tasks[idx].badge = 'Улучшить кейс';
+            }
+            renderTasks();
+        }
+
+        function addNewTask() {
+            haptic('light');
+            cfg.tasks.push({
+                id: 'partner_' + Date.now().toString(36),
+                title: 'Новое задание',
+                url: 'https://',
+                icon: 'fa-solid fa-bolt',
+                color: '#FF9500',
+                type: 'link',
+                required: false,
+                badge: 'Улучшить кейс'
+            });
+            renderTasks();
+        }
+
+        function removeTask(idx) {
+            haptic('medium');
+            cfg.tasks.splice(idx, 1);
+            renderTasks();
+        }
+
+        function moveTask(idx, dir) {
+            const next = idx + dir;
+            if (next < 0 || next >= cfg.tasks.length) return;
+            haptic('light');
+            const tmp = cfg.tasks[idx];
+            cfg.tasks[idx] = cfg.tasks[next];
+            cfg.tasks[next] = tmp;
+            renderTasks();
+        }
+
+        function renderTiers() {
+            const list = cfg.tiers || [];
+            document.getElementById('cnt-tiers').textContent = list.length;
+            const box = document.getElementById('tiers-container');
+
+            box.innerHTML = list.map((tier, i) => `
+                <div class="item-card is-extra">
+                    <div class="item-head">
+                        <div class="item-head-left">
+                            <span class="item-badge gold">Тир #${i + 1}</span>
+                            <span style="font-size:10px; color:#a1a1aa;">от ${tier.min_extra} доп.</span>
+                        </div>
+                        <button class="icon-btn del" onclick="removeTier(${i})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <div class="field">
+                        <label class="field-lbl">Точное название кейса (как в БД)</label>
+                        <input class="inp" value="${esc(tier.case_name)}" oninput="cfg.tiers[${i}].case_name = this.value" placeholder="Кейс | Лентяй">
+                    </div>
+                    <div class="grid-2">
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Мин. доп. заданий</label>
+                            <input class="inp" type="number" min="0" value="${tier.min_extra}" oninput="cfg.tiers[${i}].min_extra = parseInt(this.value || 0, 10)">
+                        </div>
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Подпись уровня</label>
+                            <input class="inp" value="${esc(tier.label)}" oninput="cfg.tiers[${i}].label = this.value" placeholder="Базовый кейс">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addNewTier() {
+            haptic('light');
+            const lastMin = cfg.tiers.length ? (cfg.tiers[cfg.tiers.length - 1].min_extra + 1) : 0;
+            cfg.tiers.push({ min_extra: lastMin, case_name: 'Кейс | The Noot-Noot', label: 'Улучшенный кейс' });
+            renderTiers();
+        }
+
+        function removeTier(idx) {
+            if (cfg.tiers.length <= 1) {
+                showModal('error', 'Нельзя удалить', 'Должен остаться хотя бы один базовый кейс.');
+                return;
+            }
+            haptic('medium');
+            cfg.tiers.splice(idx, 1);
+            renderTiers();
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/v1/admin/welcome/get', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg?.initData || '' })
+                });
+                if (!res.ok) throw new Error('Нет доступа или ошибка сервера');
+                const data = await res.json();
+                if (data.config) cfg = data.config;
+                renderAll();
+            } catch (e) {
+                showModal('error', 'Ошибка загрузки', esc(e.message));
+            }
+        }
+
+        async function saveConfig() {
+            const btn = document.getElementById('save-btn');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Сохраняем...';
+            haptic('medium');
+
+            try {
+                cfg.tiers.sort((a, b) => (a.min_extra || 0) - (b.min_extra || 0));
+                const res = await fetch('/api/v1/admin/welcome/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg?.initData || '', config: cfg })
+                });
+                const ans = await res.json();
+                if (!res.ok) throw new Error(ans.detail || 'Ошибка сохранения');
+
+                // Сбрасываем свой локальный кэш, чтобы сразу увидеть изменения на главной
+                localStorage.removeItem('cache_bootstrap');
+                sessionStorage.removeItem('session_bootstrap');
+
+                try { tg?.HapticFeedback?.notificationOccurred('success'); } catch (e) {}
+                showModal('success', 'Сохранено', 'Новые тексты, задания и кейсы сразу применились для всех пользователей.');
+            } catch (e) {
+                try { tg?.HapticFeedback?.notificationOccurred('error'); } catch (err) {}
+                showModal('error', 'Ошибка', esc(e.message));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }
+        }
+
+        loadConfig();
+    </script>
+</body>
+</html>
