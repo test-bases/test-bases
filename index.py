@@ -4973,6 +4973,216 @@ async def calculate_user_streak(telegram_id: int, supabase) -> dict:
         "current_week_str": current_week_str
     }
 
+# ================================================================
+# 🎁 КОНФИГ И РОУТЫ СТАРТОВОГО ОКНА (ПРАВИШЬ ТУТ ИЛИ ПОЗЖЕ В АДМИНКЕ)
+# ================================================================
+WELCOME_BOT_TOKEN = os.getenv("BOT_TOKEN")
+WELCOME_TG_CHANNEL = os.getenv("TG_QUEST_CHANNEL_ID", "@hatelove_ttv")
+WELCOME_TG_CHAT = os.getenv("ALLOWED_CHAT_ID", "@hatelovettv")
+
+DEFAULT_WELCOME_QUEST_CONFIG = {
+    "enabled": True,
+    "title": "ПОЛУЧИ БЕСПЛАТНЫЙ КЕЙС",
+    "subtitle": "Выполни простые действия и забери скин прямо сейчас",
+    "reward_label": "Твоя награда:",
+    "btn_check_text": "Проверить канал и чат",
+    "btn_claim_prefix": "Забрать",
+    # Тиры кейсов по количеству выполненных ДОП. заданий
+    "tiers": [
+        {"min_extra": 0, "case_name": "Кейс | Лентяй", "label": "Базовый кейс"},
+        {"min_extra": 1, "case_name": "Кейс | The Noot-Noot", "label": "Улучшенный кейс"},
+        {"min_extra": 3, "case_name": "Кейс | The Noot-Noot", "label": "Макс. кейс"},
+    ],
+    "tasks": [
+        {
+            "id": "tg_channel",
+            "title": "Подпишись на Telegram-канал",
+            "url": "https://t.me/hatelove_ttv",
+            "icon": "fa-brands fa-telegram",
+            "color": "#2AABEE",
+            "type": "tg_channel",
+            "required": True,
+            "badge": "Обязательно",
+        },
+        {
+            "id": "tg_chat",
+            "title": "Вступи в наш Telegram-чат",
+            "url": "https://t.me/hatelovettv",
+            "icon": "fa-solid fa-comments",
+            "color": "#34C759",
+            "type": "tg_chat",
+            "required": True,
+            "badge": "Обязательно",
+        },
+        {
+            "id": "twitch_sub",
+            "title": "Подпишись на Twitch",
+            "url": "https://twitch.tv/hatelove_ttv",
+            "icon": "fa-brands fa-twitch",
+            "color": "#9146FF",
+            "type": "link",
+            "required": False,
+            "badge": "Улучшить кейс",
+        },
+        {
+            "id": "partner_vpn",
+            "title": "Быстрый VPN для игр",
+            "url": "https://твоя-ссылка-vpn",
+            "icon": "fa-solid fa-shield-halved",
+            "color": "#00C7BE",
+            "type": "link",
+            "required": False,
+            "badge": "Улучшить кейс",
+        },
+        {
+            "id": "partner_lisskins",
+            "title": "LIS-SKINS — выгодный трейд",
+            "url": "https://твоя-ссылка-lisskins",
+            "icon": "fa-solid fa-gun",
+            "color": "#FF9500",
+            "type": "link",
+            "required": False,
+            "badge": "Улучшить кейс",
+        },
+    ],
+}
+
+
+async def get_welcome_config(supabase: httpx.AsyncClient) -> dict:
+    """Берёт конфиг из таблицы settings (для будущей админки), иначе дефолт."""
+    try:
+        res = await supabase.get("/settings", params={"key": "eq.welcome_quest_config"})
+        if res.status_code == 200 and len(res.json()) > 0:
+            val = res.json()[0].get("value")
+            if isinstance(val, dict):
+                return {**DEFAULT_WELCOME_QUEST_CONFIG, **val}
+    except Exception as e:
+        logging.warning(f"[WELCOME] Ошибка чтения settings: {e}")
+    return DEFAULT_WELCOME_QUEST_CONFIG
+
+
+async def check_tg_membership(user_id: int, chat_id: str) -> bool:
+    """Проверяет подписку на канал или участие в чате через Telegram Bot API."""
+    if not WELCOME_BOT_TOKEN or not chat_id:
+        return False
+    url = f"https://api.telegram.org/bot{WELCOME_BOT_TOKEN}/getChatMember"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url, params={"chat_id": chat_id, "user_id": user_id})
+            if resp.status_code == 200:
+                status = resp.json().get("result", {}).get("status", "")
+                return status in ("member", "administrator", "creator")
+    except Exception as e:
+        logging.warning(f"[WELCOME] Ошибка проверки {chat_id} для {user_id}: {e}")
+    return False
+
+
+class WelcomeClaimRequest(BaseModel):
+    initData: str = ""
+    platform: str = "tg"
+    completed_extra_ids: list[str] = []
+
+
+@app.post("/api/v1/welcome/check_tg")
+async def check_welcome_tg(
+    user_info: dict = Depends(multi_acc_protection),
+):
+    telegram_id = int(user_info.get("id"))
+    in_channel, in_chat = await asyncio.gather(
+        check_tg_membership(telegram_id, WELCOME_TG_CHANNEL),
+        check_tg_membership(telegram_id, WELCOME_TG_CHAT),
+    )
+    return {"in_channel": in_channel, "in_chat": in_chat}
+
+
+@app.post("/api/v1/welcome/claim")
+async def claim_welcome_case(
+    req: WelcomeClaimRequest,
+    user_info: dict = Depends(multi_acc_protection),
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    telegram_id = int(user_info.get("id"))
+    is_admin = telegram_id in ADMIN_IDS
+    welcome_cfg = await get_welcome_config(supabase)
+
+    # 1. Защита от повторного получения (для админа разрешаем повторный тест)
+    check_res = await supabase.get("/event_matrix_quest", params={"user_id": f"eq.{telegram_id}"})
+    already_exists = check_res.status_code == 200 and len(check_res.json()) > 0
+    if already_exists and not is_admin:
+        raise HTTPException(status_code=400, detail="Стартовый кейс уже получен")
+
+    # 2. Финальная проверка канала и чата на сервере
+    in_channel, in_chat = await asyncio.gather(
+        check_tg_membership(telegram_id, WELCOME_TG_CHANNEL),
+        check_tg_membership(telegram_id, WELCOME_TG_CHAT),
+    )
+    if not in_channel or not in_chat:
+        raise HTTPException(status_code=400, detail="Подпишись на канал и вступи в чат!")
+
+    # 3. Определяем тир кейса по числу выполненных доп. заданий
+    valid_extra_ids = {t["id"] for t in welcome_cfg["tasks"] if not t.get("required")}
+    done_extra_count = len(set(req.completed_extra_ids) & valid_extra_ids)
+
+    tiers_sorted = sorted(welcome_cfg["tiers"], key=lambda x: x["min_extra"])
+    selected_tier = tiers_sorted[0]
+    for tier in tiers_sorted:
+        if done_extra_count >= tier["min_extra"]:
+            selected_tier = tier
+
+    target_case = selected_tier["case_name"]
+
+    # 4. Закрываем окно для юзера в event_matrix_quest (если записи ещё нет)
+    if not already_exists:
+        insert_res = await supabase.post(
+            "/event_matrix_quest",
+            json={
+                "user_id": telegram_id,
+                "selected_pill": f"welcome_extra_{done_extra_count}",
+                "tg_msg_current": 0,
+                "twitch_msg_current": 0,
+                "is_completed": True,
+            },
+        )
+        if insert_res.status_code not in [200, 201, 204]:
+            logging.error(f"[WELCOME] Insert matrix error: {insert_res.text}")
+            raise HTTPException(status_code=500, detail="Ошибка сохранения прогресса")
+
+    # 5. Выдаем купон в cs_codes (с bypass_lock = True и bigint ID)
+    unique_code = f"WL-{telegram_id}-{uuid.uuid4().hex[:4].upper()}"
+    coupon_data = {
+        "code": unique_code,
+        "max_uses": 1,
+        "current_uses": 0,
+        "is_active": True,
+        "description": f"Стартовый кейс ({selected_tier['label']})",
+        "is_copied": False,
+        "assigned_to": telegram_id,
+        "assigned_at": datetime.now(timezone.utc).isoformat(),
+        "target_case_name": target_case,
+        "used_by_ids": [],
+        "activated_by_ids": [telegram_id],
+        "campaign_id": 999,
+        "bypass_lock": True,
+    }
+    coupon_res = await supabase.post("/cs_codes", json=coupon_data)
+    if coupon_res.status_code not in [200, 201]:
+        logging.error(f"[WELCOME] cs_codes insert error: {coupon_res.text}")
+
+    await log_user_event(
+        supabase=supabase,
+        user_id=telegram_id,
+        event_type="quest",
+        title="🎁 Стартовый кейс получен!",
+        description=f"Выдан «{target_case}» ({selected_tier['label']}).",
+        coins_reward=0,
+    )
+
+    return {
+        "success": True,
+        "case_name": target_case,
+        "tier_label": selected_tier["label"],
+    }
+
 # =================================================================
 # ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ С ПОДДЕРЖКОЙ ПОДПИСКИ РОЗЫГРЫШЕЙ)
 # =================================================================
@@ -5538,6 +5748,11 @@ async def get_bootstrap_data(
             "gift_available": gift_available,
             "p2p_trades": p2p_trades,
             "matrix_quest": matrix_state,
+            "welcome_config": (
+                {**DEFAULT_WELCOME_QUEST_CONFIG, **global_settings["welcome_quest_config"]}
+                if isinstance(global_settings.get("welcome_quest_config"), dict)
+                else DEFAULT_WELCOME_QUEST_CONFIG
+            ),
             "streak_config": streak_config,
             "user_streak": user_streak,
         }
