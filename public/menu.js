@@ -3770,8 +3770,8 @@ function initSwipeTabs() {
 
 // 1. Свайп-защита
 document.body.addEventListener('touchmove', (e) => {
-    // Добавили .custom-confirm-box в исключения, чтобы FAQ можно было скроллить!
-    const isScrollable = e.target.closest('.main-content-scrollable') || e.target.closest('.modal-content') || e.target.closest('.case-contents-grid') || e.target.closest('.custom-confirm-box');
+    // Добавили .custom-confirm-box и #wl-tasks-list в исключения!
+    const isScrollable = e.target.closest('.main-content-scrollable') || e.target.closest('.modal-content') || e.target.closest('.case-contents-grid') || e.target.closest('.custom-confirm-box') || e.target.closest('#wl-tasks-list');
     if (!isScrollable && e.cancelable) e.preventDefault();
 }, { passive: false });
 
@@ -4728,6 +4728,11 @@ if (isBrowserMode) {
                         
                         if (freshRaffles) initDynamicRaffleSlider(freshRaffles);
                         
+                        // 🎁 Подхватываем стартовое окно, если в старом кэше его ещё не было
+                        if (freshBoot && freshBoot.welcome_config) {
+                            checkMatrixEvent(freshBoot.matrix_quest, freshBoot.welcome_config);
+                        }
+
                         // 🔥 Проверяем, не прилетел ли нам бесплатный кейс пока нас не было
                         if (freshBoot && freshBoot.my_active_cases) {
                             const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
@@ -5479,6 +5484,8 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             localStorage.setItem('force_open_shop', 'true');
             localStorage.removeItem('cache_bootstrap');
             localStorage.removeItem('shop_items_cache');
+            sessionStorage.removeItem('session_bootstrap');
+            sessionStorage.removeItem('session_shop_items');
 
             if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             customAlert(`🎁 Готово! Тебе выдан «${res.case_name}». Открывай его в магазине!`);
