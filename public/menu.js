@@ -5413,11 +5413,13 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                max-height: 92vh;
+                max-height: 88vh;
+                overflow: hidden;
                 animation: wlModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             }
             .wl-admin-pill {
+                flex-shrink: 0;
                 display: inline-flex; align-items: center;
                 padding: 2.5px 9px; border-radius: 999px;
                 font-size: 8.5px; font-weight: 800; letter-spacing: 0.6px;
@@ -5426,12 +5428,14 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 margin-bottom: 6px; text-transform: uppercase;
             }
             .wl-head {
-                font-size: 15px; font-weight: 900; letter-spacing: -0.2px;
-                color: #ffffff; margin: 0 0 8px 0; line-height: 1.15;
+                flex-shrink: 0;
+                font-size: 14.5px; font-weight: 900; letter-spacing: -0.2px;
+                color: #ffffff; margin: 0 0 6px 0; line-height: 1.15;
                 text-transform: uppercase;
                 text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
             }
             .wl-case-showcase {
+                flex-shrink: 0;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -5440,46 +5444,48 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 position: relative;
             }
             .wl-case-img-wrap {
-                height: 78px;
+                height: 118px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-bottom: 4px;
+                margin-bottom: 2px;
             }
             .wl-case-img {
-                max-height: 76px;
-                max-width: 130px;
+                max-height: 116px;
+                max-width: 190px;
                 object-fit: contain;
-                filter: drop-shadow(0 8px 16px rgba(192, 132, 252, 0.32));
+                filter: drop-shadow(0 10px 22px rgba(192, 132, 252, 0.36));
             }
             .wl-case-img.pop { animation: wlCaseUpgrade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
             .wl-case-name-pill {
                 display: inline-flex;
                 align-items: center;
-                gap: 5px;
-                padding: 3px 10px;
+                gap: 4px;
+                padding: 2px 8px;
                 border-radius: 999px;
-                background: rgba(251, 191, 36, 0.1);
-                border: 1px solid rgba(251, 191, 36, 0.32);
-                font-size: 10.5px;
-                font-weight: 800;
+                background: rgba(251, 191, 36, 0.08);
+                border: 1px solid rgba(251, 191, 36, 0.28);
+                font-size: 8.5px;
+                font-weight: 700;
                 color: #fbbf24;
-                text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+                letter-spacing: 0.1px;
+                text-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
             }
             .wl-subtitle {
-                font-size: 10px; font-weight: 600;
-                color: #d4d4d8; margin: 0 0 12px 0; line-height: 1.35;
+                flex-shrink: 0;
+                font-size: 9.5px; font-weight: 600;
+                color: #a1a1aa; margin: 0 0 10px 0; line-height: 1.35;
                 text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
             }
             #wl-tasks-list {
+                flex: 1 1 auto;
+                min-height: 0;
                 width: 100%;
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
                 overflow-y: auto;
-                max-height: 44vh;
-                margin-bottom: 12px;
-                padding-right: 1px;
+                padding: 0 1px 6px;
                 -webkit-overflow-scrolling: touch;
             }
             .wl-section-head {
@@ -5604,25 +5610,25 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 border-color: rgba(74, 222, 128, 0.48);
                 color: #4ade80; box-shadow: none; cursor: default;
             }
-            .wl-btns-row {
-                display: flex; gap: 8px; width: 100%; margin-bottom: 4px;
+            .wl-footer-actions {
+                flex-shrink: 0;
+                width: 100%;
+                margin-top: 14px;
+                padding-top: 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
             }
-            .wl-btn-check {
-                flex: 1; padding: 9px 10px; border-radius: 10px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.18);
-                box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
-                color: #ffffff; font-size: 10.5px; font-weight: 600;
-                cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-            }
-            .wl-btn-check:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim {
-                flex: 1.15; padding: 9px 12px; border-radius: 10px;
+                width: 100%;
+                padding: 10.5px 14px; border-radius: 10px;
                 background: linear-gradient(135deg, rgba(139, 92, 246, 0.58) 0%, rgba(109, 40, 217, 0.42) 100%);
                 border: 1px solid rgba(216, 180, 254, 0.58);
                 box-shadow: 0 4px 16px rgba(124, 58, 237, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.34);
-                color: #ffffff; font-size: 10.5px; font-weight: 700;
-                cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+                color: #ffffff; font-size: 11px; font-weight: 700;
+                cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             }
             .wl-btn-claim:active { transform: scale3d(0.96, 0.96, 1); }
             .wl-btn-claim.is-locked { opacity: 0.38; filter: grayscale(70%); box-shadow: none; }
@@ -5645,23 +5651,18 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
             <div id="wl-tasks-list"></div>
 
-            <div class="wl-btns-row">
-                <button id="wl-check-btn" class="wl-btn-check">
-                    <i class="fa-solid fa-rotate" style="font-size: 9.5px;"></i> Проверить
-                </button>
+            <div class="wl-footer-actions">
                 <button id="wl-claim-btn" class="wl-btn-claim is-locked">
                     <i class="fa-solid fa-lock" style="font-size: 9.5px;"></i> ${escapeHTML(btnClaimPrefix)}
                 </button>
+                <button id="wl-close-btn" class="wl-btn-close">Закрыть</button>
             </div>
-
-            <button id="wl-close-btn" class="wl-btn-close">Закрыть</button>
         </div>
     `;
 
     document.body.appendChild(overlay);
 
     const listEl = overlay.querySelector('#wl-tasks-list');
-    const checkBtn = overlay.querySelector('#wl-check-btn');
     const claimBtn = overlay.querySelector('#wl-claim-btn');
     const caseImgWrap = overlay.querySelector('#wl-case-img-wrap');
     const currentCaseEl = overlay.querySelector('#wl-current-case');
@@ -5675,7 +5676,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         if (imgUrl) {
             caseImgWrap.innerHTML = `<img src="${escapeHTML(imgUrl)}" class="wl-case-img ${caseChanged ? 'pop' : ''}" alt="">`;
         } else {
-            caseImgWrap.innerHTML = `<i class="fa-solid fa-gift ${caseChanged ? 'pop' : ''}" style="font-size: 38px; color: #d8b4fe; filter: drop-shadow(0 0 14px rgba(192,132,252,0.6));"></i>`;
+            caseImgWrap.innerHTML = `<i class="fa-solid fa-gift ${caseChanged ? 'pop' : ''}" style="font-size: 46px; color: #d8b4fe; filter: drop-shadow(0 0 14px rgba(192,132,252,0.6));"></i>`;
         }
 
         const upgradeIcon = completedExtra.size > 0 ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-box-open"></i>';
@@ -5788,6 +5789,9 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 spoilerBtn.classList.toggle('open', isExtraOpen);
                 const body = listEl.querySelector('#wl-extra-spoiler-body');
                 if (body) body.classList.toggle('collapsed', !isExtraOpen);
+                if (isExtraOpen) {
+                    setTimeout(() => listEl.scrollTo({ top: listEl.scrollHeight, behavior: 'smooth' }), 60);
+                }
             };
         }
 
@@ -5832,7 +5836,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
                 btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="font-size: 9px;"></i>`;
 
                 if (task.type === 'tg_channel' || task.type === 'tg_chat') {
-                    await checkTgSubs(true);
+                    await checkTgSubs();
                     const nowDone = task.type === 'tg_channel' ? inChannel : inChat;
                     if (!nowDone) {
                         if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -5860,13 +5864,9 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
         });
     };
 
-    const checkTgSubs = async (showSpinner = false) => {
+    const checkTgSubs = async () => {
         if (isChecking) return;
         isChecking = true;
-        if (showSpinner) {
-            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 9.5px;"></i> Проверка...';
-            checkBtn.style.opacity = '0.7';
-        }
         try {
             const res = await makeApiRequest('/api/v1/welcome/check_tg', {}, 'POST', true);
             inChannel = Boolean(res && res.in_channel);
@@ -5876,10 +5876,6 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
             inChat = false;
         } finally {
             isChecking = false;
-            checkBtn.style.opacity = '1';
-            checkBtn.innerHTML = (inChannel && inChat)
-                ? '<i class="fa-solid fa-check" style="color:#4ade80; font-size: 9.5px;"></i> Проверено'
-                : '<i class="fa-solid fa-rotate" style="font-size: 9.5px;"></i> Проверить';
             renderTasks();
             updateRewardUI();
         }
@@ -5887,7 +5883,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     const handleAutoReturnCheck = () => {
         if (!document.hidden && document.getElementById('matrix-event-modal') && (!inChannel || !inChat)) {
-            checkTgSubs(true);
+            checkTgSubs();
         }
     };
     document.addEventListener('visibilitychange', handleAutoReturnCheck);
@@ -5909,24 +5905,9 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
     overlay.querySelector('#wl-close-btn').onclick = closeModal;
     overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
 
-    checkBtn.onclick = async () => {
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {}
-        }
-        tasks.forEach(t => {
-            if (t.type === 'link' && visitedTasks.has(t.id)) {
-                completedExtra.add(t.id);
-            }
-        });
-        await checkTgSubs(true);
-        if (inChannel && inChat && window.Telegram?.WebApp?.HapticFeedback) {
-            try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {}
-        }
-    };
-
     claimBtn.onclick = async () => {
         if (!inChannel || !inChat) {
-            await checkTgSubs(true);
+            await checkTgSubs();
             if (!inChannel || !inChat) {
                 if (window.Telegram?.WebApp?.HapticFeedback) {
                     try { Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {}
@@ -5985,7 +5966,7 @@ function checkMatrixEvent(matrixData, welcomeConfig) {
 
     renderTasks();
     updateRewardUI();
-    checkTgSubs(true);
+    checkTgSubs();
 }
 
 async function submitMatrixChoice(pill) {
