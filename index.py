@@ -25180,6 +25180,9 @@ RAM_SHOP_CACHE = {}
 RAM_CACHE_TTL = 600  # 10 минут
 
 
+CASES_CATEGORY_ID = 2716312
+
+
 async def sync_all_shop_categories(supabase_client=None):
     """Забирает весь активный магазин из Bot-T через /index (status=[1]), группирует по category_id и сохраняет в Supabase (shop_cache)"""
     if not BOTT_BOT_TOKEN and not BOTT_SECRET_KEY:
@@ -25236,7 +25239,7 @@ async def sync_all_shop_categories(supabase_client=None):
         raise RuntimeError("Bot-T вернул пустой список категорий/товаров")
 
     # ==========================================
-    # 2. СПАСАЕМ ФЛАГИ is_secret ИЗ СТАРОГО КЭША
+    # 2. ЧИТАЕМ СТАРЫЙ КЭШ, ЧТОБЫ СОХРАНИТЬ СТАТУСЫ is_secret
     # ==========================================
     client_sb = supabase_client
     close_sb = False
@@ -25248,23 +25251,20 @@ async def sync_all_shop_categories(supabase_client=None):
         close_sb = True
 
     try:
-        secret_ids = set()
-        secret_names = set()
-        try:
-            old_resp = await client_sb.get("/shop_cache", params={"select": "category_id,data"})
-            if old_resp.status_code == 200:
-                for row in old_resp.json():
-                    old_items = row.get("data", [])
-                    if isinstance(old_items, str):
-                        old_items = json.loads(old_items)
-                    for it in old_items:
-                        if isinstance(it, dict) and it.get("is_secret"):
-                            if it.get("id") is not None:
-                                secret_ids.add(int(it["id"]))
-                            if it.get("name"):
-                                secret_names.add(it["name"])
-        except Exception as e:
-            logging.error(f"[SHOP_SYNC] Не удалось прочитать старый кэш для is_secret: {e}")
+        # { item_id: bool(is_secret) } — точное состояние каждого уже известного товара
+        known_secret_map = {}
+
+        old_resp = await client_sb.get("/shop_cache", params={"select": "category_id,data"})
+        if old_resp.status_code != 200:
+            raise RuntimeError(f"Не удалось прочитать старый shop_cache ({old_resp.status_code}), отменяем перезапись")
+
+        for row in old_resp.json():
+            old_items = row.get("data", [])
+            if isinstance(old_items, str):
+                old_items = json.loads(old_items)
+            for it in old_items:
+                if isinstance(it, dict) and it.get("id") is not None:
+                    known_secret_map[int(it["id"])] = bool(it.get("is_secret", False))
 
         # ==========================================
         # 3. ПАРСИМ И ГРУППИРУЕМ ПО category_id
@@ -25276,7 +25276,8 @@ async def sync_all_shop_categories(supabase_client=None):
                 continue
 
             parent_id = int(item.get("category_id") or 0)
-            item_id = item.get("id")
+            raw_id = item.get("id")
+            item_id = int(raw_id) if raw_id is not None else None
             is_folder = (item.get("type") == 0)
 
             design = item.get("design") or {}
@@ -25296,7 +25297,14 @@ async def sync_all_shop_categories(supabase_client=None):
             raw_count = setting.get("count")
             count = int(raw_count) if raw_count is not None else None
 
-            is_secret = (item_id in secret_ids) or (name in secret_names)
+            # Если товар уже был в базе — оставляем его текущий флаг из админки.
+            # Если это новый кейс — скрываем по умолчанию, пока не откроешь в админке.
+            if item_id in known_secret_map:
+                is_secret = known_secret_map[item_id]
+            elif parent_id == CASES_CATEGORY_ID and not is_folder:
+                is_secret = True
+            else:
+                is_secret = False
 
             grouped.setdefault(parent_id, []).append({
                 "id": item_id,
