@@ -397,30 +397,22 @@
         let currentMarketBalance = 0;
 
         async function updateModalBalance() {
-    const balEl = document.getElementById('modal-balance-val');
-    balEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-    try {
-        const res = await fetch('/api/v1/admin/market/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData: tg.initData })
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.market_success) {
-                // 🔥 БЕРЕМ БАЛАНС ИЗ ПУЛА ИВЕНТОВ (или data.pools.total_real для общего) 🔥
-                currentMarketBalance = parseFloat(data.pools.events_pool); 
-                balEl.innerText = currentMarketBalance.toFixed(2) + ' ₽';
-            } else {
-                balEl.innerText = 'Ошибка API';
-            }
-        } else {
-            balEl.innerText = 'Сбой';
+            const balEl = document.getElementById('modal-balance-val');
+            balEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const res = await fetch('/api/v1/admin/market/status', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.market_success && data.pools && data.pools.cases_pool !== undefined) {
+                        currentMarketBalance = parseFloat(data.pools.cases_pool) || 0;
+                        balEl.innerText = currentMarketBalance.toFixed(2) + ' ₽';
+                    } else balEl.innerText = 'Ошибка';
+                } else balEl.innerText = 'Сбой';
+            } catch (e) { balEl.innerText = '---'; }
         }
-    } catch (e) {
-        balEl.innerText = '---';
-    }
-}
 
         function setMaxPriceToBalance() {
             if (currentMarketBalance > 0) {
