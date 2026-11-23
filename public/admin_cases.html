@@ -160,25 +160,36 @@
         .price-tix-val { font-size: 9px; font-weight: 700; color: #bbb; white-space: nowrap; }
 
         /* MODALS */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; backdrop-filter: blur(5px); }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000;
+            display: none; align-items: flex-end;
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        }
         .modal-active { display: flex; }
         .bottom-sheet { 
-            background: #1c1c1e; width: 100%; border-radius: 24px 24px 0 0; 
-            padding: 18px 16px calc(18px + var(--safe-bottom)); 
+            background: rgba(14, 14, 16, 0.55);
+            backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            border-top: 1px solid rgba(255,255,255,0.12);
+            width: 100%; border-radius: 22px 22px 0 0; 
+            padding: 16px 14px calc(16px + var(--safe-bottom)); 
             max-height: calc(92vh - var(--safe-top)); overflow-y: auto; 
-            display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); 
+            display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
         }
         
         /* ЦЕНТРОВАННОЕ МОДАЛЬНОЕ ОКНО */
         .center-modal { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; 
-            display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px);
-            padding: calc(16px + var(--safe-top)) 14px calc(16px + var(--safe-bottom));
+            position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 2000; 
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            padding: calc(14px + var(--safe-top)) 14px calc(14px + var(--safe-bottom));
         }
         .center-modal.active { display: flex; }
         .center-box { 
-            background: #1c1c1e; width: 100%; max-width: 400px; border-radius: 18px; padding: 18px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
+            background: rgba(14, 14, 16, 0.55);
+            backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            width: 100%; max-width: 390px; border-radius: 18px; padding: 15px; 
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.12); 
             display: flex; flex-direction: column; max-height: 100%; 
         }
 
@@ -253,18 +264,25 @@
         .prev-price { color: var(--primary); font-size: 14px; font-weight: 800; }
 
         /* BUTTONS */
-        .btn-action-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: nowrap; }
+        .btn-action-row { display: flex; gap: 7px; margin-top: 10px; flex-wrap: nowrap; }
         
         .admin-action-btn {
-            border: none; padding: 12px 5px; border-radius: 12px; font-weight: 800; font-size: 11px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0;
-            transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
+            border: none; padding: 9px 8px; border-radius: 10px; font-weight: 800; font-size: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; min-width: 0;
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 0.4px; text-align: center;
         }
-        .btn-save { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }
+        .btn-save { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; box-shadow: 0 3px 12px rgba(255, 215, 0, 0.22); }
         .btn-save:active { transform: scale(0.96); opacity: 0.9; }
         .btn-delete { background: rgba(255, 59, 48, 0.15); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3); }
-        .btn-reroll { background: rgba(255, 215, 0, 0.15); color: var(--primary); border: 1px solid rgba(255, 215, 0, 0.3); }
-        .icon-btn { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.1); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; position: relative; }
+        .btn-reroll { background: rgba(255, 215, 0, 0.14); color: var(--primary); border: 1px solid rgba(255, 215, 0, 0.3); }
+        .icon-btn { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; position: relative; font-size: 13px; }
+
+        .mobile-only-label { display: none; }
+        @media (max-width: 600px) {
+            .mobile-stack-row { flex-direction: column !important; }
+            .mobile-stack-row > .admin-action-btn { width: 100% !important; flex: none !important; }
+            .mobile-only-label { display: inline; }
+        }
 
         .filter-badge {
             position: absolute; top: -4px; right: -4px;
@@ -301,12 +319,16 @@
 
         /* SEARCH LIST */
         .search-item {
-            display: flex; align-items: center; gap: 10px; padding: 9px 10px;
-            background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 7px;
+            display: flex; align-items: center; gap: 9px; padding: 8px 9px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; margin-bottom: 6px;
         }
         .search-img { width: 42px; height: 32px; object-fit: contain; flex-shrink: 0; }
         .search-info { flex: 1; min-width: 0; }
-        .search-btn { background: var(--action); color: #fff; border: none; padding: 8px 11px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .search-title { font-weight: 700; font-size: 12px; color: #fff; line-height: 1.25; white-space: normal; word-break: break-word; }
+        .search-wear { font-size: 10px; color: var(--text-sec); margin-top: 2px; line-height: 1.25; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+        .rarity-pill { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 5px; background: rgba(255,255,255,0.06); }
+        .search-btn { background: var(--action); color: #fff; border: none; padding: 6px 9px; border-radius: 7px; font-size: 10px; font-weight: 800; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
 
         /* ТУМБЛЕРЫ */
         .toggle-switch { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
@@ -343,11 +365,11 @@
     </div>
 
     <div id="view-cases" class="view-section active">
-        <div style="margin-bottom: 12px; display: flex; gap: 8px;">
-            <button onclick="calibrateAllPrices()" class="admin-action-btn btn-reroll" style="flex: 1; padding: 11px 6px; border: 1px dashed var(--primary); background: rgba(255, 215, 0, 0.05);">
+        <div class="mobile-stack-row" style="margin-bottom: 12px; display: flex; gap: 8px;">
+            <button onclick="calibrateAllPrices()" class="admin-action-btn btn-reroll" style="flex: 1; padding: 10px 6px; border: 1px dashed var(--primary); background: rgba(255, 215, 0, 0.05);">
                 <i class="fa-solid fa-scale-balanced"></i> КАЛИБРОВКА (1/2)
             </button>
-            <button onclick="openGlobalReskinModal()" class="admin-action-btn" style="flex: 1; padding: 11px 6px; border: 1px dashed var(--r-pink); color: var(--r-pink); background: rgba(211, 44, 230, 0.05);">
+            <button onclick="openGlobalReskinModal()" class="admin-action-btn" style="flex: 1; padding: 10px 6px; border: 1px dashed var(--r-pink); color: var(--r-pink); background: rgba(211, 44, 230, 0.05);">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> АВТО-РЕСКИН
             </button>
         </div>
@@ -678,7 +700,7 @@
                 <button type="button" class="chip-btn" data-rar="gold" onclick="this.classList.toggle('active')">Gold</button>
             </div>
 
-            <div style="display:flex; gap:8px;">
+            <div class="mobile-stack-row" style="display:flex; gap:7px;">
                 <button type="button" onclick="resetLibFilters()" class="admin-action-btn btn-delete" style="flex:0.7;">СБРОС</button>
                 <button type="button" onclick="applyLibFilters()" class="admin-action-btn btn-save">ПРИМЕНИТЬ</button>
             </div>
@@ -767,9 +789,9 @@
                 <input type="hidden" name="case_tag">
 
                 <div class="btn-action-row" style="flex-wrap: wrap;">
-                    <div style="display: flex; gap: 8px; width: 100%;">
-                        <button type="button" id="btn-delete" class="admin-action-btn btn-delete" style="flex: 0 0 45px;" onclick="deleteItem()">
-                            <i class="fa-solid fa-trash"></i>
+                    <div class="mobile-stack-row" style="display: flex; gap: 7px; width: 100%;">
+                        <button type="button" id="btn-delete" class="admin-action-btn btn-delete" style="flex: 0 0 40px;" onclick="deleteItem()">
+                            <i class="fa-solid fa-trash"></i> <span class="mobile-only-label">УДАЛИТЬ</span>
                         </button>
                         <button type="button" id="btn-autopick" class="admin-action-btn" onclick="autoPickSkin()" style="background: rgba(211, 44, 230, 0.15); color: var(--r-pink); border: 1px dashed var(--r-pink);">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> АВТО-РЕСКИН
@@ -777,6 +799,7 @@
                         <button type="button" id="btn-reroll" class="admin-action-btn btn-reroll" onclick="rerollSingleItem()">
                             <i class="fa-solid fa-magnifying-glass"></i> СКЛАД
                         </button>
+                    </div>
                     </div>
                     <button type="submit" class="admin-action-btn btn-save" style="width: 100%;">
                         <i class="fa-solid fa-check"></i> СОХРАНИТЬ С НАСТРОЙКАМИ
@@ -814,6 +837,44 @@
 
         function normalizeCaseKey(rawName) {
             return cleanCaseTitle(rawName).toLowerCase();
+        }
+
+        function parseSkinNameAndWearRu(rawName, rarityKey = '') {
+            const wearPatterns = [
+                { re: /\s*\((?:factory[\s\-–—]+new|прямо\s+с\s+завода)\)/gi, ru: 'Прямо с завода' },
+                { re: /\s*\((?:minimal[\s\-–—]+wear|немного\s+поношенное)\)/gi, ru: 'Немного поношенное' },
+                { re: /\s*\((?:field[\s\-–—]+tested|после\s+полевых\s+испытаний)\)/gi, ru: 'После полевых испытаний' },
+                { re: /\s*\((?:well[\s\-–—]+worn|поношенное)\)/gi, ru: 'Поношенное' },
+                { re: /\s*\((?:battle[\s\-–—]+scarred|закал[её]нное\s+в\s+боях)\)/gi, ru: 'Закалённое в боях' }
+            ];
+            const rarityRuMap = {
+                'common':     { label: 'Ширпотреб',    color: '#b0c3d9' },
+                'consumer':   { label: 'Ширпотреб',    color: '#b0c3d9' },
+                'white':      { label: 'Ширпотреб',    color: '#b0c3d9' },
+                'industrial': { label: 'Промышленное', color: '#5e98d9' },
+                'milspec':    { label: 'Армейское',    color: '#4b69ff' },
+                'blue':       { label: 'Армейское',    color: '#4b69ff' },
+                'restricted': { label: 'Запрещённое',  color: '#8847ff' },
+                'purple':     { label: 'Запрещённое',  color: '#8847ff' },
+                'classified': { label: 'Засекреченное',color: '#d32ce6' },
+                'pink':       { label: 'Засекреченное',color: '#d32ce6' },
+                'covert':     { label: 'Тайное',       color: '#eb4b4b' },
+                'red':        { label: 'Тайное',       color: '#eb4b4b' },
+                'gold':       { label: 'Редкое ★',     color: '#ffd700' },
+                'knife':      { label: 'Редкое ★',     color: '#ffd700' },
+                'contraband': { label: 'Контрабанда',  color: '#ffd700' }
+            };
+
+            let cleanTitle = (rawName || '').trim();
+            let wearRu = '';
+            for (const wp of wearPatterns) {
+                if (wp.re.test(cleanTitle)) {
+                    wearRu = wp.ru;
+                    cleanTitle = cleanTitle.replace(wp.re, '').trim();
+                }
+            }
+            const rarityInfo = rarityRuMap[(rarityKey || '').toLowerCase()] || { label: 'Армейское', color: '#4b69ff' };
+            return { cleanTitle, wearRu, rarityInfo };
         }
 
         // 🧠 ПРЕДСКАЗАНИЕ ШАНСА НА ОСНОВЕ БАЗЫ КЕЙСОВ
@@ -1428,19 +1489,19 @@
 
                 items.forEach(item => {
                     const safeJson = encodeURIComponent(JSON.stringify(item).replace(/'/g, "&apos;"));
-                    const rarityColors = {
-                        'common': '#b0c3d9', 'industrial': '#5e98d9', 'blue': '#4b69ff', 
-                        'purple': '#8847ff', 'pink': '#d32ce6', 'red': '#eb4b4b', 'gold': '#ffd700'
-                    };
-                    const rColor = rarityColors[item.rarity?.toLowerCase()] || '#4b69ff';
                     const smartCh = predictSmartChance(item.price_rub);
+                    const { cleanTitle, wearRu, rarityInfo } = parseSkinNameAndWearRu(item.market_hash_name, item.rarity);
 
                     cont.innerHTML += `
-                    <div class="search-item" style="border-left: 3px solid ${rColor};">
+                    <div class="search-item" style="border-left: 3px solid ${rarityInfo.color};">
                         <img src="${item.image_url}" class="search-img" onerror="this.src='https://placehold.co/40'">
                         <div class="search-info">
-                            <div style="font-weight:700; font-size:12px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.market_hash_name}</div>
-                            <div style="font-size:11px; color:var(--primary); margin-top:2px;">
+                            <div class="search-title">${cleanTitle}</div>
+                            <div class="search-wear">
+                                ${wearRu ? `<span>${wearRu}</span>` : ''}
+                                <span class="rarity-pill" style="color:${rarityInfo.color};">${rarityInfo.label}</span>
+                            </div>
+                            <div style="font-size:11px; color:var(--primary); margin-top:3px;">
                                 💰 ${item.price_rub} ₽ <span style="color:#7ee787; font-size:10px; margin-left:6px;">✨ ~${smartCh}%</span>
                             </div>
                         </div>
