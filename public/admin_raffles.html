@@ -45,6 +45,16 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Блокировка прокрутки фона при открытых модалках */
+        body.modal-open {
+            overflow: hidden !important;
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100%;
+            touch-action: none;
+        }
+
         /* HEADER */
         .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .back-btn {
@@ -93,7 +103,6 @@
             font-size: 11px; color: var(--text-sec); margin: 10px 0 4px;
             display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .section-box .admin-form label:first-of-type,
         .section-box > label:first-of-type { margin-top: 2px; }
 
         .form-input, .form-select,
@@ -117,16 +126,28 @@
         .cond-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .cond-grid > div { min-width: 0; }
         .cond-grid label { margin-top: 4px !important; }
-        .twitch-cond-row { display: flex; gap: 6px; min-width: 0; }
-        .twitch-cond-row select { flex: 1; min-width: 0; padding: 10px 8px; }
-        .twitch-cond-row input { width: 64px; flex-shrink: 0; text-align: center; padding: 10px 6px; }
 
-        @media (max-width: 420px) {
-            .twitch-cond-cell { grid-column: 1 / -1; }
-            .twitch-cond-row input { width: 76px; }
+        /* Исправленный блок Twitch-сообщений (не выходит за границы) */
+        .twitch-cond-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            width: 100%;
+            min-width: 0;
+        }
+        .admin-form .twitch-cond-row select {
+            flex: 1 1 auto;
+            min-width: 0;
+            width: auto;
+        }
+        .admin-form .twitch-cond-row input[type="number"] {
+            flex: 0 0 84px;
+            width: 84px;
+            text-align: center;
+            padding: 10px 8px;
         }
 
-        /* TOGGLES (1в1 из Admin Cases) */
+        /* TOGGLES */
         .toggle-switch { position: relative; width: 42px; height: 22px; flex-shrink: 0; display: inline-block; margin: 0 !important; }
         .toggle-switch input { display: none; }
         .toggle-slider, .slider {
@@ -215,7 +236,7 @@
         .btn-schedule { background: rgba(100, 181, 239, 0.14); color: #64b5ef; border: 1px solid rgba(100, 181, 239, 0.28); }
         .btn-silent { background: rgba(255, 255, 255, 0.05); color: var(--text-sec); border: 1px solid var(--card-border); }
 
-        /* ADMIN ACTION BUTTONS (для фильтров и модалок) */
+        /* ADMIN ACTION BUTTONS */
         .admin-action-btn {
             border: none; padding: 10px 8px; border-radius: 10px; font-weight: 800; font-size: 10px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; min-width: 0;
@@ -276,11 +297,13 @@
         }
         .trade-copy:active { border-color: var(--primary); background: rgba(255, 215, 0, 0.08); }
 
-        /* MODALS (1в1 из Admin Cases) */
+        /* MODALS + ЗАЩИТА ОТ ПРОКРУТКИ ФОНА */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000;
             display: none; align-items: flex-end; justify-content: center;
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            overscroll-behavior: contain;
+            touch-action: none;
         }
         .modal-overlay.center {
             align-items: center;
@@ -295,9 +318,10 @@
             border-top: 1px solid rgba(255,255,255,0.12);
             width: 100%; border-radius: 22px 22px 0 0;
             padding: 16px 14px calc(16px + var(--safe-bottom));
-            max-height: calc(92vh - var(--safe-top)); overflow-y: auto;
+            max-height: calc(92vh - var(--safe-top)); overflow: hidden;
             display: flex; flex-direction: column; gap: 10px;
             box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
+            overscroll-behavior: contain;
         }
 
         .center-modal {
@@ -305,6 +329,8 @@
             display: none; align-items: center; justify-content: center;
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
             padding: calc(14px + var(--safe-top)) 14px calc(14px + var(--safe-bottom));
+            overscroll-behavior: contain;
+            touch-action: none;
         }
         .center-modal.active { display: flex; }
         .center-box, .alert-box {
@@ -313,8 +339,16 @@
             width: 100%; max-width: 390px; border-radius: 18px; padding: 15px;
             box-shadow: 0 12px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.12);
             display: flex; flex-direction: column; max-height: 100%;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
         }
         .alert-box { text-align: center; }
+
+        #lib-results, #parts-list, #history-skins-list {
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
 
         .alert-title { font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
         .alert-msg { font-size: 13px; color: #ddd; margin-bottom: 16px; line-height: 1.4; }
@@ -355,7 +389,7 @@
             display: flex; align-items: center; justify-content: center; padding: 0 4px;
         }
 
-        /* FAB (1в1 из Admin Cases) */
+        /* FAB */
         .fab-container {
             position: fixed;
             bottom: calc(20px + var(--safe-bottom));
@@ -378,21 +412,57 @@
         }
         .fab-menu-open .fab-option { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-        /* SEARCH LIST (1в1 из Admin Cases) */
+        /* SEARCH LIST + ПОДСВЕТКА УЖЕ РАЗЫГРАННЫХ */
         .search-item {
             display: flex; align-items: center; gap: 9px; padding: 8px 9px;
             background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
             border-radius: 10px; margin-bottom: 6px;
+        }
+        .search-item.used-once {
+            background: rgba(255, 170, 0, 0.11);
+            border-color: rgba(255, 170, 0, 0.32);
+        }
+        .search-item.used-many {
+            background: rgba(255, 77, 77, 0.13);
+            border-color: rgba(255, 77, 77, 0.38);
         }
         .search-img { width: 42px; height: 32px; object-fit: contain; flex-shrink: 0; }
         .search-info { flex: 1; min-width: 0; }
         .search-title { font-weight: 700; font-size: 12px; color: #fff; line-height: 1.25; white-space: normal; word-break: break-word; }
         .search-wear { font-size: 10px; color: var(--text-sec); margin-top: 2px; line-height: 1.25; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
         .rarity-pill { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 5px; background: rgba(255,255,255,0.06); }
+        .used-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px;
+            background: rgba(255, 170, 0, 0.2); color: #ffbe3b; border: 1px solid rgba(255, 170, 0, 0.35);
+            margin-top: 4px;
+        }
+        .used-pill.hot {
+            background: rgba(255, 77, 77, 0.22); color: #ff7b7b; border-color: rgba(255, 77, 77, 0.4);
+        }
         .search-btn {
             background: var(--action); color: #fff; border: none; padding: 6px 9px;
             border-radius: 7px; font-size: 10px; font-weight: 800; cursor: pointer;
             text-transform: uppercase; flex-shrink: 0;
+        }
+
+        /* ИСТОРИЯ ТОП СКИНОВ */
+        .history-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 9px; border-radius: 10px; margin-bottom: 6px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+        }
+        .history-rank {
+            width: 22px; text-align: center; font-size: 11px; font-weight: 800; color: var(--text-sec); flex-shrink: 0;
+        }
+        .history-rank.top { color: var(--primary); }
+        .history-count-badge {
+            font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 8px;
+            background: rgba(255, 170, 0, 0.18); color: #ffbe3b; border: 1px solid rgba(255, 170, 0, 0.35);
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .history-count-badge.hot {
+            background: rgba(255, 77, 77, 0.2); color: #ff7b7b; border-color: rgba(255, 77, 77, 0.4);
         }
 
         .hidden { display: none !important; }
@@ -458,17 +528,20 @@
                         <label>⭐️ Уровень БП</label>
                         <input type="number" name="min_bp_level" placeholder="0" oninput="updatePreview()">
                     </div>
-                    <div class="twitch-cond-cell">
-                        <label>💬 Twitch (Сообщ.)</label>
-                        <div class="twitch-cond-row">
-                            <select name="msg_period" onchange="autoSetEndTime(); updatePreview()">
-                                <option value="daily">За стрим</option>
-                                <option value="weekly">За неделю</option>
-                                <option value="monthly">За месяц</option>
-                            </select>
-                            <input type="number" name="min_msgs" placeholder="0" oninput="updatePreview()">
-                        </div>
+                    <div>
+                        <label>🏷 Тег в нике</label>
+                        <input type="text" name="name_tag" placeholder="HATE" oninput="updatePreview()">
                     </div>
+                </div>
+
+                <label style="margin-top:12px;">💬 Twitch (Сообщ.)</label>
+                <div class="twitch-cond-row">
+                    <select name="msg_period" onchange="autoSetEndTime(); updatePreview()">
+                        <option value="daily">За стрим</option>
+                        <option value="weekly">За неделю</option>
+                        <option value="monthly">За месяц</option>
+                    </select>
+                    <input type="number" name="min_msgs" placeholder="0" oninput="updatePreview()">
                 </div>
 
                 <div id="refund-section" class="refund-box">
@@ -486,9 +559,6 @@
                         <input type="range" name="refund_percent" min="0" max="100" value="100" oninput="document.getElementById('refund-val').innerText=this.value+'%'">
                     </div>
                 </div>
-
-                <label style="margin-top:12px;">🏷 Обязательный тег в нике</label>
-                <input type="text" name="name_tag" placeholder="Например: HATE" oninput="updatePreview()">
             </div>
 
             <div class="section-box">
@@ -599,7 +669,7 @@
         </div>
     </div>
 
-    <!-- 🔍 СКЛАД БОТОВ (1в1 из Admin Cases) -->
+    <!-- 🔍 СКЛАД БОТОВ -->
     <div id="modal-library" class="modal-overlay" onclick="if(event.target===this) closeModal('modal-library')">
         <div class="bottom-sheet" style="height: 88vh;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -608,9 +678,12 @@
             </div>
 
             <div class="admin-form">
-                <!-- Строка поиска + кнопка фильтров -->
+                <!-- Строка поиска + топ истории + кнопка фильтров -->
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" id="lib-search-inp" class="form-input" placeholder="Поиск скина (AK-47, AWP...)..." oninput="debounceSearch()">
+                    <button type="button" class="icon-btn" onclick="openSkinHistoryModal()" title="Частые призы" style="background:rgba(255,170,0,0.14); color:#ffbe3b; border:1px solid rgba(255,170,0,0.32);">
+                        <i class="fa-solid fa-trophy"></i>
+                    </button>
                     <button type="button" class="icon-btn" onclick="openLibFiltersModal()" style="background:rgba(255,215,0,0.14); color:var(--primary); border:1px solid rgba(255,215,0,0.3);">
                         <i class="fa-solid fa-sliders"></i>
                         <span id="lib-filter-badge" class="filter-badge">4</span>
@@ -650,7 +723,7 @@
         </div>
     </div>
 
-    <!-- ДИАЛОГОВОЕ ОКНО ФИЛЬТРОВ ПОВЕРХ СКЛАДА (1в1 из Admin Cases) -->
+    <!-- ДИАЛОГОВОЕ ОКНО ФИЛЬТРОВ ПОВЕРХ СКЛАДА -->
     <div id="modal-lib-filters" class="center-modal" onclick="if(event.target===this) closeLibFiltersModal()">
         <div class="center-box" style="overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
@@ -706,6 +779,20 @@
         </div>
     </div>
 
+    <!-- 🏆 ИСТОРИЯ ЧАСТЫХ ПРИЗОВ -->
+    <div id="modal-skin-history" class="center-modal" onclick="if(event.target===this) closeSkinHistoryModal()">
+        <div class="center-box" style="max-height: 78vh;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <h3 style="margin:0; color:var(--primary); font-size: 16px;"><i class="fa-solid fa-trophy"></i> Частые призы</h3>
+                <button onclick="closeSkinHistoryModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="font-size:11px; color:var(--text-sec); margin-bottom:10px;">
+                Скины, которые чаще всего участвовали в розыгрышах:
+            </div>
+            <div id="history-skins-list" style="overflow-y:auto; flex:1; padding-right:2px;"></div>
+        </div>
+    </div>
+
     <div id="modal-parts" class="modal-overlay" onclick="if(event.target===this) closeModal('modal-parts')">
         <div class="bottom-sheet" style="max-height: 82vh;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -736,8 +823,118 @@
         let hasMoreItems = true;
         let currentMarketBalance = 0;
 
+        /* --- БЛОКИРОВКА ПРОКРУТКИ ФОНА --- */
+        let lockedScrollY = 0;
+        function syncBodyScrollLock() {
+            const hasOpenModal = Boolean(document.querySelector('.modal-overlay.modal-active, .center-modal.active'));
+            if (hasOpenModal) {
+                if (!document.body.classList.contains('modal-open')) {
+                    lockedScrollY = window.scrollY || window.pageYOffset || 0;
+                    document.body.style.top = `-${lockedScrollY}px`;
+                    document.body.classList.add('modal-open');
+                }
+            } else {
+                if (document.body.classList.contains('modal-open')) {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.top = '';
+                    window.scrollTo(0, lockedScrollY);
+                }
+            }
+        }
+
+        /* --- ИСТОРИЯ РАЗЫГРАННЫХ СКИНОВ --- */
+        let raffleSkinStats = {};
+        let raffleStatsLoaded = false;
+
+        function normalizeSkinKey(rawName) {
+            return (rawName || '')
+                .replace(/\s*\((?:factory[\s\-–—]+new|minimal[\s\-–—]+wear|field[\s\-–—]+tested|well[\s\-–—]+worn|battle[\s\-–—]+scarred|прямо\s+с\s+завода|немного\s+поношенное|после\s+полевых\s+испытаний|поношенное|закал[её]нное\s+в\s+боях|fn|mw|ft|ww|bs)\)/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
+
+        function pluralizeTimes(n) {
+            const mod10 = n % 10;
+            const mod100 = n % 100;
+            if (mod10 === 1 && mod100 !== 11) return `${n} раз`;
+            if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} раза`;
+            return `${n} раз`;
+        }
+
+        function buildRaffleSkinStats(list) {
+            const stats = {};
+            (list || []).forEach(r => {
+                const s = r.settings || {};
+                const rawName = (s.prize_name || r.title || '').trim();
+                const key = normalizeSkinKey(rawName);
+                if (!key) return;
+                if (!stats[key]) {
+                    stats[key] = {
+                        name: parseSkinNameAndWearRu(rawName).cleanTitle || rawName,
+                        count: 0,
+                        image: s.card_image || s.prize_image || ''
+                    };
+                }
+                stats[key].count += 1;
+                if (!stats[key].image && (s.card_image || s.prize_image)) {
+                    stats[key].image = s.card_image || s.prize_image;
+                }
+            });
+            raffleSkinStats = stats;
+            raffleStatsLoaded = true;
+        }
+
+        async function ensureRaffleStatsLoaded() {
+            if (raffleStatsLoaded) return;
+            try {
+                const res = await fetch('/api/v1/admin/raffles/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const arr = data.raffles || data.data || data;
+                    if (Array.isArray(arr)) buildRaffleSkinStats(arr);
+                }
+            } catch (e) {
+                console.error("Stats load err:", e);
+            }
+        }
+
+        function openSkinHistoryModal() {
+            const cont = document.getElementById('history-skins-list');
+            const sorted = Object.values(raffleSkinStats).sort((a, b) => b.count - a.count);
+
+            if (!sorted.length) {
+                cont.innerHTML = '<div style="text-align:center; color:var(--text-sec); padding:24px 10px; font-size:12px;">История розыгрышей пока пуста</div>';
+            } else {
+                cont.innerHTML = sorted.slice(0, 25).map((item, idx) => `
+                    <div class="history-row">
+                        <div class="history-rank ${idx < 3 ? 'top' : ''}">#${idx + 1}</div>
+                        <img src="${item.image}" class="search-img" onerror="this.src='https://placehold.co/40'">
+                        <div class="search-info">
+                            <div class="search-title">${item.name}</div>
+                        </div>
+                        <span class="history-count-badge ${item.count >= 3 ? 'hot' : ''}">${pluralizeTimes(item.count)}</span>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('modal-skin-history').classList.add('active');
+            syncBodyScrollLock();
+        }
+
+        function closeSkinHistoryModal() {
+            document.getElementById('modal-skin-history').classList.remove('active');
+            syncBodyScrollLock();
+        }
+
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
+            if (document.getElementById('modal-skin-history').classList.contains('active')) {
+                closeSkinHistoryModal(); return;
+            }
             if (document.getElementById('modal-lib-filters').classList.contains('active')) {
                 closeLibFiltersModal(); return;
             }
@@ -776,7 +973,7 @@
             }
         }
 
-        /* --- 🔍 СКЛАД БОТОВ + ФИЛЬТРЫ (1в1 из Admin Cases) --- */
+        /* --- 🔍 СКЛАД БОТОВ + ФИЛЬТРЫ --- */
         function parseSkinNameAndWearRu(rawName, rarityKey = '') {
             const wearPatterns = [
                 { re: /\s*\((?:factory[\s\-–—]+new|прямо\s+с\s+завода)\)/gi, ru: 'Прямо с завода' },
@@ -850,8 +1047,14 @@
             badge.style.display = count > 0 ? 'flex' : 'none';
         }
 
-        function openLibFiltersModal() { document.getElementById('modal-lib-filters').classList.add('active'); }
-        function closeLibFiltersModal() { document.getElementById('modal-lib-filters').classList.remove('active'); }
+        function openLibFiltersModal() {
+            document.getElementById('modal-lib-filters').classList.add('active');
+            syncBodyScrollLock();
+        }
+        function closeLibFiltersModal() {
+            document.getElementById('modal-lib-filters').classList.remove('active');
+            syncBodyScrollLock();
+        }
 
         function applyLibFilters() {
             updateFilterBadge();
@@ -876,9 +1079,10 @@
             debounceSearch(true);
         }
 
-        function openLibrarySearch() {
+        async function openLibrarySearch() {
             toggleFab();
             document.getElementById('modal-library').classList.add('modal-active');
+            syncBodyScrollLock();
             document.getElementById('lib-search-inp').value = '';
             document.getElementById('lib-price-min').value = '0.01';
             document.getElementById('lib-price-max').value = '';
@@ -886,6 +1090,7 @@
             hasMoreItems = true;
             updateFilterBadge();
             updateModalBalance();
+            await ensureRaffleStatsLoaded();
             doSearch(true);
         }
 
@@ -980,8 +1185,15 @@
                     const safeJson = encodeURIComponent(JSON.stringify(item).replace(/'/g, "&apos;"));
                     const { cleanTitle, wearRu, rarityInfo } = parseSkinNameAndWearRu(item.market_hash_name, item.rarity);
 
+                    const usedStat = raffleSkinStats[normalizeSkinKey(cleanTitle)];
+                    const usedCount = usedStat ? usedStat.count : 0;
+                    const usedClass = usedCount >= 3 ? 'used-many' : (usedCount > 0 ? 'used-once' : '');
+                    const usedBadge = usedCount > 0
+                        ? `<div class="used-pill ${usedCount >= 3 ? 'hot' : ''}"><i class="fa-solid fa-clock-rotate-left"></i> Разыгрывался ${pluralizeTimes(usedCount)}</div>`
+                        : '';
+
                     cont.innerHTML += `
-                    <div class="search-item" style="border-left: 3px solid ${rarityInfo.color};">
+                    <div class="search-item ${usedClass}" style="border-left: 3px solid ${rarityInfo.color};">
                         <img src="${item.image_url}" class="search-img" onerror="this.src='https://placehold.co/40'">
                         <div class="search-info">
                             <div class="search-title">${cleanTitle}</div>
@@ -992,6 +1204,7 @@
                             <div style="font-size:11px; color:var(--primary); margin-top:3px;">
                                 💰 ${item.price_rub} ₽
                             </div>
+                            ${usedBadge}
                         </div>
                         <button class="search-btn" onclick="selectFromCache('${safeJson}')">ВЗЯТЬ</button>
                     </div>`;
@@ -1269,6 +1482,7 @@
                     btn.innerHTML = `<i class="fa-regular fa-clock"></i><span>В отложенные</span>`;
                     btn.style.background = ""; btn.style.color = "";
 
+                    raffleStatsLoaded = false;
                     updatePreview();
                     switchTab(payload.settings.start_time ? 'scheduled' : 'list');
                 } else {
@@ -1306,6 +1520,7 @@
                 if (!res.ok || !Array.isArray(rafflesArray)) {
                     throw new Error(data.detail || 'Сервер не отдал список данных');
                 }
+                buildRaffleSkinStats(rafflesArray);
                 renderList(rafflesArray);
             } catch(e) {
                 console.error("Критическая ошибка:", e);
@@ -1479,6 +1694,7 @@
 
         async function showParts(id) {
             document.getElementById('modal-parts').classList.add('modal-active');
+            syncBodyScrollLock();
             const l = document.getElementById('parts-list');
             const cnt = document.getElementById('parts-count');
             l.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
@@ -1572,7 +1788,10 @@
             showCustomAlert('Готово', 'Ссылка скопирована.');
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('modal-active');
+            syncBodyScrollLock();
+        }
 
         function showCustomAlert(title, msg) {
             const m = document.getElementById('modal-alert');
@@ -1581,8 +1800,9 @@
             const okBtn = document.getElementById('alert-ok');
             const cBtn = document.getElementById('alert-cancel');
             cBtn.classList.add('hidden');
-            okBtn.onclick = () => m.classList.remove('modal-active');
+            okBtn.onclick = () => { m.classList.remove('modal-active'); syncBodyScrollLock(); };
             m.classList.add('modal-active');
+            syncBodyScrollLock();
         }
 
         function showConfirm(title, msg, onYes) {
@@ -1592,9 +1812,10 @@
             const okBtn = document.getElementById('alert-ok');
             const cBtn = document.getElementById('alert-cancel');
             cBtn.classList.remove('hidden');
-            cBtn.onclick = () => m.classList.remove('modal-active');
-            okBtn.onclick = () => { onYes(); m.classList.remove('modal-active'); };
+            cBtn.onclick = () => { m.classList.remove('modal-active'); syncBodyScrollLock(); };
+            okBtn.onclick = () => { m.classList.remove('modal-active'); syncBodyScrollLock(); onYes(); };
             m.classList.add('modal-active');
+            syncBodyScrollLock();
         }
 
         function initDateProtection() {
@@ -1646,6 +1867,7 @@
         initDateProtection();
         updatePreview();
         switchTab('create');
+        ensureRaffleStatsLoaded();
     </script>
 </body>
 </html>
