@@ -25249,63 +25249,73 @@ async def fetch_and_cache_goods_background(category_id: int):
     headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
     
     items_list = []
+    fetch_success = False
+
+    logging.info(f"[BG_SHOP] Старт синхронизации category_id={category_id}")
 
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client: 
+        async with httpx.AsyncClient(timeout=15.0) as client:
             if category_id == 0:
                 # ==========================================
                 # 1. ГЛАВНАЯ СТРАНИЦА (КОРЕНЬ МАГАЗИНА)
                 # ==========================================
                 url = "https://api.bot-t.com/v1/shop/category/index"
-                payload = {"bot_id": int(BOTT_BOT_ID)}
+                payload = {"bot_id": int(BOTT_BOT_ID), "limit": 100, "offset": 0}
                 
                 resp = await client.post(url, params=params, json=payload, headers=headers)
+                logging.info(f"[BG_SHOP] /index status={resp.status_code}, body={resp.text[:300]}")
+                
                 if resp.status_code == 200:
-                    data = resp.json().get("data", [])
-                    # /index отдает массив категорий
-                    items_list.extend(data if isinstance(data, list) else [])
+                    body = resp.json()
+                    if body.get("result"):
+                        data = body.get("data", [])
+                        if isinstance(data, list):
+                            items_list.extend(data)
+                        fetch_success = True
+                    else:
+                        logging.error(f"[BG_SHOP] Bot-T /index вернул result=false: {body}")
             else:
                 # ==========================================
-                # 2. ВНУТРИ КАТЕГОРИИ (ПАПКИ + ТОВАРЫ)
+                # 2. ВНУТРИ КАТЕГОРИИ (ПОДПАПКИ + ТОВАРЫ ИЗ children)
                 # ==========================================
-                # 🔥 ИСПРАВЛЕНО: передаем category_id вместо id 🔥
+                url_view = "https://api.bot-t.com/v1/shop/category/view"
                 payload = {"bot_id": int(BOTT_BOT_ID), "category_id": int(category_id)}
                 
-                url_products = "https://api.bot-t.com/v1/shop/category/view-products"
-                url_view = "https://api.bot-t.com/v1/shop/category/view"
+                resp_view = await client.post(url_view, params=params, json=payload, headers=headers)
+                logging.info(f"[BG_SHOP] /view (cat={category_id}) status={resp_view.status_code}, body={resp_view.text[:300]}")
                 
-                # Запрашиваем товары и данные категории
-                resp_prod, resp_view = await asyncio.gather(
-                    client.post(url_products, params=params, json=payload, headers=headers),
-                    client.post(url_view, params=params, json=payload, headers=headers),
-                    return_exceptions=True
-                )
-                
-                # 1. Разбираем ТОВАРЫ
-                if isinstance(resp_prod, httpx.Response) and resp_prod.status_code == 200:
-                    prod_data = resp_prod.json().get("data", [])
-                    if isinstance(prod_data, list):
-                        items_list.extend(prod_data)
-                
-                # 2. Разбираем ПОДПАПКИ
-                if isinstance(resp_view, httpx.Response) and resp_view.status_code == 200:
-                    view_data = resp_view.json().get("data", {})
-                    if isinstance(view_data, dict):
-                        # Добавляем подкатегории
-                        sub_cats = view_data.get("children", []) or view_data.get("categories", [])
-                        items_list.extend(sub_cats)
+                if resp_view.status_code == 200:
+                    body = resp_view.json()
+                    if body.get("result"):
+                        view_data = body.get("data", {})
+                        if isinstance(view_data, dict):
+                            sub_cats = view_data.get("children") or []
+                            items_list.extend(sub_cats)
+                        fetch_success = True
+                    else:
+                        logging.error(f"[BG_SHOP] Bot-T /view (cat={category_id}) вернул result=false: {body}")
+
+        # Если Bot-T ответил ошибкой — НЕ перезаписываем рабочий кэш пустым списком
+        if not fetch_success:
+            logging.warning(f"[BG_SHOP] Пропуск сохранения в БД для cat={category_id}: ошибка ответа Bot-T")
+            return []
 
         # ==========================================
         # 🛡️ СПАСАЕМ ФЛАГИ СЕКРЕТНОСТИ ПЕРЕД ПЕРЕЗАПИСЬЮ
         # ==========================================
         secret_names = set()
+        sb_headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
         try:
-            async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}) as sb_client:
+            async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers=sb_headers) as sb_client:
                 old_cache = await sb_client.get("/shop_cache", params={"category_id": f"eq.{category_id}"})
                 if old_cache.status_code == 200 and old_cache.json():
                     old_items = old_cache.json()[0].get("data", [])
-                    # Собираем названия всех скрытых кейсов из старой БД
-                    secret_names = {i.get("name") for i in old_items if i.get("is_secret")}
+                    if isinstance(old_items, str):
+                        old_items = json.loads(old_items)
+                    secret_names = {i.get("name") for i in old_items if isinstance(i, dict) and i.get("is_secret")}
         except Exception as e:
             logging.error(f"[BG_SHOP] Не удалось прочитать старый кэш для спасения флагов: {e}")
 
@@ -25315,10 +25325,20 @@ async def fetch_and_cache_goods_background(category_id: int):
         mapped_items = []
         
         for item in items_list:
-            # Берем только Активные (1)
             item_status = item.get("status")
+            is_view = item.get("is_view")
+            is_hide = item.get("is_hide")
             
-            logging.info(f"[DEBUG] Item: {item.get('name')}, Status: {item_status}")
+            name = "Без названия"
+            if item.get("design") and item["design"].get("title"):
+                name = item["design"]["title"]
+            elif item.get("name"):
+                name = item["name"]
+
+            logging.info(
+                f"[BG_SHOP][DEBUG] cat={category_id} | id={item.get('id')} | name={name} | "
+                f"type={item.get('type')} | status={item_status} | is_view={is_view} | is_hide={is_hide}"
+            )
             
             if item_status not in [1, "1", 10, "10", "ACTIVE", None]:
                 continue
@@ -25336,16 +25356,10 @@ async def fetch_and_cache_goods_background(category_id: int):
                 amount = item["price"].get("amount", 0)
                 price = int(amount / 100) if amount else 0
                 
-            name = "Без названия"
-            if item.get("design") and item["design"].get("title"):
-                name = item["design"]["title"]
-            elif item.get("name"): # Фолбэк, если в view-products имя лежит прямо в корне
-                name = item.get("name")
-                
-            count = None 
+            count = None
             if item.get("setting"):
                 raw_count = item["setting"].get("count")
-                if raw_count is not None: 
+                if raw_count is not None:
                     count = int(raw_count)
 
             mapped_items.append({
@@ -25355,15 +25369,16 @@ async def fetch_and_cache_goods_background(category_id: int):
                 "image_url": image_url,
                 "is_folder": is_folder,
                 "count": count,
-                "is_secret": name in secret_names  # 🔥 ВОТ ОНО! Сохраняем скрытость, если кейс уже был скрыт
+                "is_secret": name in secret_names
             })
 
         # ==========================================
         # 💾 СОХРАНЯЕМ ГОТОВЫЙ СПИСОК В БД
         # ==========================================
-        async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}) as sb_client:
-            await sb_client.post(
+        async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers=sb_headers) as sb_client:
+            save_resp = await sb_client.post(
                 "/shop_cache",
+                params={"on_conflict": "category_id"},
                 json={
                     "category_id": category_id,
                     "data": mapped_items,
@@ -25371,9 +25386,25 @@ async def fetch_and_cache_goods_background(category_id: int):
                 },
                 headers={"Prefer": "resolution=merge-duplicates"}
             )
-            
+            if save_resp.status_code >= 400:
+                logging.error(
+                    f"[BG_SHOP] Ошибка записи в Supabase для cat={category_id} "
+                    f"({save_resp.status_code}): {save_resp.text}"
+                )
+            else:
+                logging.info(
+                    f"[BG_SHOP] Успешно сохранено в Supabase: cat={category_id}, "
+                    f"элементов={len(mapped_items)} (status={save_resp.status_code})"
+                )
+
+        # Сбрасываем RAM-кэш для этой категории, чтобы фронт сразу получил свежие данные
+        RAM_SHOP_CACHE.pop(category_id, None)
+
+        return mapped_items
+
     except Exception as e:
-        logging.error(f"[BG_SHOP] Ошибка обновления товаров: {e}")
+        logging.error(f"[BG_SHOP] Ошибка обновления товаров для cat={category_id}: {e}")
+        return []
 
 RAM_SHOP_CACHE = {}
 RAM_CACHE_TTL = 600  # 10 минут
