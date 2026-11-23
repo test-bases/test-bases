@@ -23,24 +23,35 @@
             --r-pink: #d32ce6;
             --r-red: #eb4b4b;
             --r-gold: #ffd700;
+
+            /* Safe Area (iOS / Android / Telegram Fullscreen) */
+            --safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+            --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
         }
+
+        * { box-sizing: border-box; }
 
         body {
             background-color: var(--bg); color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0; padding: 20px; padding-bottom: 100px;
+            margin: 0;
+            padding-top: calc(16px + var(--safe-top));
+            padding-bottom: calc(96px + var(--safe-bottom));
+            padding-left: calc(14px + env(safe-area-inset-left, 0px));
+            padding-right: calc(14px + env(safe-area-inset-right, 0px));
+            min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
         }
 
         /* HEADER */
-        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .back-btn { 
-            background: none; border: none; color: var(--text-sec); font-size: 16px; 
+            background: none; border: none; color: var(--text-sec); font-size: 15px; 
             cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 5px; 
-            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 6px 0;
         }
         .back-btn.visible { opacity: 1; pointer-events: auto; }
-        .page-title { font-size: 20px; font-weight: 800; margin: 0; color: var(--primary); text-transform: none; }
+        .page-title { font-size: 19px; font-weight: 800; margin: 0; color: var(--primary); text-transform: none; }
 
         /* VIEW CONTAINERS */
         .view-section { display: none; animation: fadeIn 0.2s ease; }
@@ -51,41 +62,63 @@
         .cases-grid { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
-            gap: 12px; 
-            padding-bottom: 100px; /* 🔥 ФИКС ПЕРЕКРЫТИЯ КНОПКОЙ */
+            gap: 10px; 
+            padding-bottom: 40px;
         }
         
         @media (max-width: 600px) {
-            .cases-grid { grid-template-columns: repeat(2, 1fr); }
+            .cases-grid { 
+                grid-template-columns: repeat(3, 1fr); 
+                gap: 8px;
+            }
         }
 
         .case-folder {
             background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: 16px; padding: 15px; cursor: pointer;
+            border-radius: 14px; padding: 10px 6px 8px; cursor: pointer;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            aspect-ratio: 1 / 1; transition: transform 0.1s, background 0.2s;
-            text-align: center;
+            aspect-ratio: 1 / 1.08; transition: transform 0.1s, background 0.2s;
+            text-align: center; position: relative; overflow: hidden;
         }
-        .case-folder:active { transform: scale(0.96); background: rgba(255,255,255,0.05); }
+        .case-folder:active { transform: scale(0.95); background: rgba(255,255,255,0.06); }
         
-        .folder-icon { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
-        .folder-name { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .folder-count { font-size: 10px; color: var(--text-sec); margin-top: 4px; }
+        .folder-img {
+            width: 56%; max-width: 60px; height: 48px;
+            object-fit: contain; margin-bottom: 6px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45));
+            pointer-events: none;
+        }
+        .folder-icon { font-size: 26px; color: var(--primary); margin-bottom: 6px; }
+        .folder-name { 
+            font-size: 11px; font-weight: 700; color: #fff; line-height: 1.2; 
+            overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            word-break: break-word; padding: 0 2px;
+        }
+        .folder-count { font-size: 9px; color: var(--text-sec); margin-top: 3px; }
+
+        .case-secret-btn {
+            position: absolute; top: 5px; right: 5px;
+            background: rgba(0,0,0,0.55); border: none;
+            font-size: 10px; cursor: pointer; z-index: 10;
+            width: 24px; height: 24px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; backdrop-filter: blur(4px);
+        }
 
         .case-folder.create-new { border: 1px dashed var(--text-sec); background: rgba(255,255,255,0.02); }
-        .case-folder.create-new .folder-icon { color: var(--text-sec); }
+        .case-folder.create-new .folder-icon { color: var(--text-sec); font-size: 24px; }
 
         /* --- ITEMS GRID (INSIDE CASE) --- */
         .items-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-            gap: 10px; 
-            padding-bottom: 100px; /* 🔥 ФИКС ПЕРЕКРЫТИЯ КНОПКОЙ */
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+            gap: 8px; 
+            padding-bottom: 40px;
         }
         
         .item-card {
             background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: 12px; padding: 10px; position: relative; overflow: hidden;
+            border-radius: 12px; padding: 8px; position: relative; overflow: hidden;
             cursor: pointer; transition: transform 0.1s; display: flex; flex-direction: column; justify-content: space-between;
         }
         .item-card:active { transform: scale(0.98); }
@@ -97,24 +130,59 @@
         .item-card[data-rarity="red"]::after { background: var(--r-red); }
         .item-card[data-rarity="gold"]::after { background: var(--r-gold); }
 
-        .card-img { width: 100%; height: 80px; object-fit: contain; margin-bottom: 8px; align-self: center; }
+        .card-img { width: 100%; height: 70px; object-fit: contain; margin-bottom: 6px; align-self: center; }
         .card-name { 
             font-size: 11px; font-weight: 700; text-align: center; 
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; 
             overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; line-height: 1.2; min-height: 26px;
         }
-        .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-sec); width: 100%; }
+        .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: var(--text-sec); width: 100%; gap: 4px; }
         .card-price { color: var(--primary); font-weight: 800; font-size: 11px; }
 
         /* MODALS */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; backdrop-filter: blur(5px); }
         .modal-active { display: flex; }
-        .bottom-sheet { background: #1c1c1e; width: 100%; border-radius: 24px 24px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .bottom-sheet { 
+            background: #1c1c1e; width: 100%; border-radius: 24px 24px 0 0; 
+            padding: 20px 16px calc(20px + var(--safe-bottom)); 
+            max-height: calc(92vh - var(--safe-top)); overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 15px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); 
+        }
         
         /* ЦЕНТРОВАННОЕ МОДАЛЬНОЕ ОКНО */
-        .center-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .center-modal { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; 
+            display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+            padding: calc(16px + var(--safe-top)) 14px calc(16px + var(--safe-bottom));
+        }
         .center-modal.active { display: flex; }
-        .center-box { background: #1c1c1e; width: 90%; max-width: 360px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; max-height: 90vh; }
+        .center-box { 
+            background: #1c1c1e; width: 100%; max-width: 380px; border-radius: 18px; padding: 18px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; flex-direction: column; max-height: 100%; 
+        }
+
+        /* СПИСОК НЕСОЗДАННЫХ КЕЙСОВ В МОДАЛКЕ */
+        .available-cases-list {
+            display: flex; flex-direction: column; gap: 8px;
+            max-height: 280px; overflow-y: auto; padding-right: 4px;
+            margin-bottom: 14px;
+        }
+        .available-case-row {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+            border-radius: 12px; padding: 8px 10px; cursor: pointer; transition: 0.15s;
+        }
+        .available-case-row:active { transform: scale(0.98); background: rgba(255, 215, 0, 0.1); border-color: var(--primary); }
+        .available-case-img { width: 42px; height: 42px; object-fit: contain; border-radius: 8px; flex-shrink: 0; }
+        .available-case-info { flex: 1; min-width: 0; text-align: left; }
+        .available-case-title { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .available-case-sub { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+        .available-case-pick {
+            background: rgba(255, 215, 0, 0.15); color: var(--primary);
+            border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px;
+            padding: 6px 10px; font-size: 11px; font-weight: 800; flex-shrink: 0;
+        }
 
         .form-label { font-size: 11px; color: var(--text-sec); margin-bottom: 4px; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         
@@ -144,12 +212,10 @@
         .prev-price { color: var(--primary); font-size: 14px; font-weight: 800; }
 
         /* BUTTONS */
-        .btn-action-row {
-            display: flex; gap: 8px; margin-top: 15px; flex-wrap: nowrap;
-        }
+        .btn-action-row { display: flex; gap: 8px; margin-top: 15px; flex-wrap: nowrap; }
         
         .admin-action-btn {
-            border: none; padding: 14px 5px; border-radius: 12px; font-weight: 800; font-size: 11px; cursor: pointer;
+            border: none; padding: 12px 5px; border-radius: 12px; font-weight: 800; font-size: 11px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0;
             transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
         }
@@ -175,19 +241,23 @@
         .btn-reroll:active { background: rgba(255, 215, 0, 0.25); }
 
         /* FAB */
-        .fab-container { position: fixed; bottom: 30px; right: 20px; z-index: 90; display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
+        .fab-container { 
+            position: fixed; 
+            bottom: calc(22px + var(--safe-bottom)); 
+            right: 16px; z-index: 90; display: none; flex-direction: column; gap: 10px; align-items: flex-end; 
+        }
         .fab-container.show { display: flex; } 
 
         .fab-main {
-            width: 60px; height: 60px; background: var(--primary); color: #000; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 26px;
+            width: 56px; height: 56px; background: var(--primary); color: #000; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
             box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4); cursor: pointer; transition: transform 0.2s;
         }
         .fab-main.rotate { transform: rotate(45deg); background: #fff; }
         
         .fab-option {
             background: #2c2c2e; border: 1px solid var(--card-border); color: #fff;
-            padding: 12px 20px; border-radius: 14px; font-size: 14px; font-weight: 600;
+            padding: 11px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
             display: flex; align-items: center; gap: 10px; cursor: pointer;
             transform: translateY(20px); opacity: 0; pointer-events: none; transition: 0.2s;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -221,7 +291,6 @@
 
         /* ЧЕКБОКСЫ ДЛЯ КЕЙСОВ */
         .reskin-case-cb { accent-color: var(--r-pink); width: 16px; height: 16px; cursor: pointer; }
-
     </style>
 </head>
 <body>
@@ -229,21 +298,20 @@
     <div class="page-header">
         <button id="nav-back-btn" class="back-btn" onclick="handleBack()"><i class="fa-solid fa-chevron-left"></i> Назад</button>
         <h1 class="page-title" id="page-title">Кейсы</h1>
-        <div style="width: 20px;"></div> 
+        <div style="width: 50px;"></div> 
     </div>
 
     <div id="view-cases" class="view-section active">
-        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-            <button onclick="calibrateAllPrices()" class="admin-action-btn btn-reroll" style="flex: 1; padding: 12px; border: 1px dashed var(--primary); background: rgba(255, 215, 0, 0.05);">
+        <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+            <button onclick="calibrateAllPrices()" class="admin-action-btn btn-reroll" style="flex: 1; padding: 11px 6px; border: 1px dashed var(--primary); background: rgba(255, 215, 0, 0.05);">
                 <i class="fa-solid fa-scale-balanced"></i> КАЛИБРОВКА (1/2)
             </button>
-            <button onclick="openGlobalReskinModal()" class="admin-action-btn" style="flex: 1; padding: 12px; border: 1px dashed var(--r-pink); color: var(--r-pink); background: rgba(211, 44, 230, 0.05);">
+            <button onclick="openGlobalReskinModal()" class="admin-action-btn" style="flex: 1; padding: 11px 6px; border: 1px dashed var(--r-pink); color: var(--r-pink); background: rgba(211, 44, 230, 0.05);">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> АВТО-РЕСКИН
             </button>
         </div>
         
-        <div id="cases-grid" class="cases-grid">
-            </div>
+        <div id="cases-grid" class="cases-grid"></div>
     </div>
 
     <div id="view-items" class="view-section">
@@ -270,7 +338,32 @@
         </div>
     </div>
 
-    <div id="modal-global-reskin" class="center-modal">
+    <!-- МОДАЛКА СОЗДАНИЯ КЕЙСА С ВЫБОРКОЙ ИЗ МАГАЗИНА -->
+    <div id="modal-create-case" class="center-modal" onclick="if(event.target===this) closeCreateCaseModal()">
+        <div class="center-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+                <h3 style="margin:0; color:var(--primary); font-size: 16px;"><i class="fa-solid fa-box-open"></i> Добавить кейс</h3>
+                <button onclick="closeCreateCaseModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="form-label" style="margin-bottom: 8px;">Доступные из магазина (ещё не настроены)</div>
+            <div id="available-cases-list" class="available-cases-list">
+                <div style="text-align:center; color:var(--text-sec); padding:16px; font-size:12px;">Загрузка...</div>
+            </div>
+
+            <div style="border-top: 1px solid var(--card-border); padding-top: 12px;">
+                <label class="form-label">Или ввести название вручную</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="manual-case-name" class="form-input" placeholder="Например: Зимний" onkeydown="if(event.key==='Enter'){ event.preventDefault(); createCaseManual(); }">
+                    <button type="button" onclick="createCaseManual()" class="admin-action-btn btn-save" style="flex: 0 0 auto; padding: 0 16px;">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-global-reskin" class="center-modal" onclick="if(event.target===this) closeGlobalReskinModal()">
         <div class="center-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h3 style="margin:0; color:var(--r-pink); font-size: 16px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Массовый Рескин</h3>
@@ -305,18 +398,17 @@
                 </div>
 
                 <div class="form-label" style="margin-top: 15px; text-align: center;">Применить к кейсам (пусто = ко всем)</div>
-                <div id="reskin-cases-list" style="background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-                    </div>
+                <div id="reskin-cases-list" style="background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
 
-            <button onclick="executeGlobalReskin()" class="admin-action-btn btn-save" style="margin-top: 5px; padding: 16px; width: 100%; background: linear-gradient(135deg, #d32ce6, #8847ff); box-shadow: 0 4px 15px rgba(211, 44, 230, 0.3); color: white; flex-shrink: 0;">
+            <button onclick="executeGlobalReskin()" class="admin-action-btn btn-save" style="margin-top: 5px; padding: 14px; width: 100%; background: linear-gradient(135deg, #d32ce6, #8847ff); box-shadow: 0 4px 15px rgba(211, 44, 230, 0.3); color: white; flex-shrink: 0;">
                 ЗАПУСТИТЬ ЗАМЕНУ
             </button>
         </div>
     </div>
 
-    <div id="modal-generator" class="center-modal">
-        <div class="center-box">
+    <div id="modal-generator" class="center-modal" onclick="if(event.target===this) closeGeneratorModal()">
+        <div class="center-box" style="overflow-y: auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h3 style="margin:0; color:var(--primary); font-size: 16px;"><i class="fa-solid fa-bolt"></i> Нейро-сборка</h3>
                 <button onclick="closeGeneratorModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
@@ -370,7 +462,7 @@
                 </div>
             </div>
 
-            <button onclick="executeAutoGenerate()" class="admin-action-btn btn-save" style="margin-top: 15px; padding: 16px;">СОБРАТЬ КЕЙС</button>
+            <button onclick="executeAutoGenerate()" class="admin-action-btn btn-save" style="margin-top: 12px; padding: 14px;">СОБРАТЬ КЕЙС</button>
         </div>
     </div>
 
@@ -381,7 +473,7 @@
                 <button onclick="closeModal('modal-library')" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div class="admin-form" style="margin-top: 15px;">
+            <div class="admin-form" style="margin-top: 10px;">
                 <input type="text" id="lib-search-inp" class="form-input" placeholder="Название (напр. AK-47)..." oninput="debounceSearch()">
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; margin-bottom: 8px; font-size: 12px;">
@@ -505,6 +597,7 @@
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.ready();
         tg.expand();
 
         let currentCase = null; 
@@ -514,6 +607,22 @@
         let hasMoreItems = true;
         let currentMarketBalance = 0;
         let preservedWeight = null; 
+
+        // Храним кейсы из shop_cache и уже созданные теги для картинок и модалки выбора
+        let shopCasesCache = [];
+        let existingCaseTags = new Set();
+
+        function cleanCaseTitle(rawName) {
+            let displayName = (rawName || '').trim();
+            while (/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i.test(displayName)) {
+                displayName = displayName.replace(/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i, '');
+            }
+            return displayName.trim();
+        }
+
+        function normalizeCaseKey(rawName) {
+            return cleanCaseTitle(rawName).toLowerCase();
+        }
 
         loadCases();
 
@@ -610,7 +719,6 @@
                 if (data.status === 'ok') {
                     const skin = data.skin;
                     
-                    // 1. Очищаем название и парсим износ
                     let cleanName = skin.market_hash_name;
                     let qualityCode = "FT"; 
                     const wearMap = {
@@ -630,15 +738,11 @@
                         }
                     }
                     
-                    // Заполняем поля названия и износа
                     form.name.value = cleanName;
                     form.market_hash_name.value = skin.market_hash_name;
                     form.condition.value = qualityCode;
-                    
-                    // 2. Обновляем картинку
                     form.image_url.value = skin.image_url;
                     
-                    // 3. Обновляем редкость
                     const rarityMap = {
                         'common': 'common', 'industrial': 'blue', 'milspec': 'blue', 'blue': 'blue',
                         'restricted': 'purple', 'purple': 'purple',
@@ -648,7 +752,6 @@
                     };
                     form.rarity.value = rarityMap[(skin.rarity || 'blue').toLowerCase()] || 'blue';
                     
-                    // 4. 🔥 Обновляем цену и пересчитываем билеты (1/2) 🔥
                     const newRubPrice = parseFloat(skin.price_rub) || 0;
                     form.price_rub.value = newRubPrice;
                     form.price.value = parseFloat((newRubPrice * 0.5).toFixed(2));
@@ -675,7 +778,7 @@
 
                 const btn = document.querySelector('button[onclick="calibrateAllPrices()"]');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> КАЛИБРОВКА БАЗЫ...';
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> КАЛИБРОВКА...';
                 btn.disabled = true;
 
                 try {
@@ -704,7 +807,6 @@
             });
         }
 
-        // СИНХРОНИЗАЦИЯ ПОЛЗУНКОВ В МОДАЛКЕ
         function syncInput(sliderId, inputId) { document.getElementById(inputId).value = document.getElementById(sliderId).value; }
         function syncSlider(inputId, sliderId) { document.getElementById(sliderId).value = document.getElementById(inputId).value; }
 
@@ -725,7 +827,7 @@
 
         async function loadCases() {
             const grid = document.getElementById('cases-grid');
-            grid.innerHTML = '<div style="text-align:center; color:#555; grid-column:1/-1;">Загрузка...</div>';
+            grid.innerHTML = '<div style="text-align:center; color:#555; grid-column:1/-1; padding: 20px;">Загрузка...</div>';
             document.getElementById('nav-back-btn').classList.add('visible'); 
 
             if (!currentCase) {
@@ -733,18 +835,40 @@
             }
 
             try {
-                const res = await fetch('/api/v1/admin/cases/list_tags', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({initData: tg.initData})
-                });
-                const data = await res.json();
-                
+                // Параллельно тянем созданные кейсы и витрину кейсов из shop_cache (для картинок и выборки)
+                const [tagsRes, shopRes] = await Promise.all([
+                    fetch('/api/v1/admin/cases/list_tags', {
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({initData: tg.initData})
+                    }),
+                    fetch('/api/v1/admin/cases/shop_cases', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({initData: tg.initData})
+                    }).catch(() => null)
+                ]);
+
+                const data = await tagsRes.json();
+                shopCasesCache = (shopRes && shopRes.ok) ? await shopRes.json() : [];
+
+                // Карта картинок по нормализованному названию кейса
+                const shopImageMap = {};
+                if (Array.isArray(shopCasesCache)) {
+                    shopCasesCache.forEach(sc => {
+                        if (sc && sc.name && sc.image_url) {
+                            shopImageMap[normalizeCaseKey(sc.name)] = sc.image_url;
+                        }
+                    });
+                }
+
+                existingCaseTags = new Set();
                 grid.innerHTML = '';
                 
+                // Карточка «Создать»
                 const addDiv = document.createElement('div');
                 addDiv.className = 'case-folder create-new';
-                addDiv.onclick = createNewCase;
+                addDiv.onclick = openCreateCaseModal;
                 addDiv.innerHTML = `
                     <div class="folder-icon"><i class="fa-solid fa-plus"></i></div>
                     <div class="folder-name">Создать</div>
@@ -756,10 +880,8 @@
 
                 data.forEach(t => {
                     if (!t.name) return;
-                    let displayName = t.name;
-                    while (/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i.test(displayName)) {
-                        displayName = displayName.replace(/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i, '');
-                    }
+                    const displayName = cleanCaseTitle(t.name);
+                    existingCaseTags.add(normalizeCaseKey(t.name));
                     
                     reskinList.innerHTML += `
                         <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #fff; cursor: pointer; padding: 4px 0;">
@@ -771,34 +893,109 @@
                     const isSecret = t.is_secret;
                     const eyeIcon = isSecret ? 'fa-eye-slash' : 'fa-eye';
                     const eyeColor = isSecret ? 'color: var(--danger);' : 'color: var(--text-sec);';
+                    const imgUrl = t.image_url || shopImageMap[normalizeCaseKey(t.name)] || '';
+
+                    const visualHtml = imgUrl
+                        ? `<img src="${imgUrl}" class="folder-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                           <div class="folder-icon" style="display:none;"><i class="fa-solid fa-briefcase"></i></div>`
+                        : `<div class="folder-icon"><i class="fa-solid fa-briefcase"></i></div>`;
                     
                     const div = document.createElement('div');
                     div.className = 'case-folder';
-                    div.style.position = 'relative'; 
                     div.onclick = () => openCaseView(t.name);
                     
                     div.innerHTML = `
-                        <button onclick="toggleCaseSecret(event, '${t.name.replace(/'/g, "\\'")}')" 
-                                style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.4); border: none; ${eyeColor} font-size: 12px; cursor: pointer; z-index: 10; padding: 6px; border-radius: 6px; transition: 0.2s;">
+                        <button class="case-secret-btn" onclick="toggleCaseSecret(event, '${t.name.replace(/'/g, "\\'")}')" style="${eyeColor}">
                             <i class="fa-solid ${eyeIcon}"></i>
                         </button>
-                        <div class="folder-icon"><i class="fa-solid fa-briefcase"></i></div>
+                        ${visualHtml}
                         <div class="folder-name">${displayName}</div>
                         <div class="folder-count">${t.count} скинов</div>
                     `;
                     grid.appendChild(div);
                 });
 
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error(e); 
+                grid.innerHTML = '<div style="text-align:center; color:var(--danger); grid-column:1/-1; padding: 20px;">Ошибка загрузки</div>';
+            }
+        }
+
+        // --- МОДАЛКА СОЗДАНИЯ НОВОГО КЕЙСА С ВЫБОРКОЙ ---
+        function openCreateCaseModal() {
+            const listEl = document.getElementById('available-cases-list');
+            const inputEl = document.getElementById('manual-case-name');
+            inputEl.value = '';
+            listEl.innerHTML = '';
+
+            // Фильтруем кейсы из магазина, которых ещё нет среди созданных
+            const uncreated = (shopCasesCache || []).filter(c => {
+                if (!c || !c.name || c.is_folder) return false;
+                return !existingCaseTags.has(normalizeCaseKey(c.name));
+            });
+
+            if (uncreated.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; color:var(--text-sec); padding:16px 8px; font-size:12px;">
+                        Все кейсы из магазина уже добавлены ✅
+                    </div>`;
+            } else {
+                uncreated.forEach(c => {
+                    const displayName = cleanCaseTitle(c.name);
+                    const row = document.createElement('div');
+                    row.className = 'available-case-row';
+                    row.onclick = () => selectShopCaseToCreate(c.name);
+
+                    const imgHtml = c.image_url
+                        ? `<img src="${c.image_url}" class="available-case-img" onerror="this.style.display='none'">`
+                        : `<div class="available-case-img" style="display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:20px;"><i class="fa-solid fa-briefcase"></i></div>`;
+
+                    const secretBadge = c.is_secret ? ' · 🔒 Скрыт' : '';
+                    const priceText = (c.price !== undefined && c.price !== null) ? `${c.price} ⭐️` : '';
+
+                    row.innerHTML = `
+                        ${imgHtml}
+                        <div class="available-case-info">
+                            <div class="available-case-title">${displayName}</div>
+                            <div class="available-case-sub">${priceText}${secretBadge}</div>
+                        </div>
+                        <div class="available-case-pick">ВЫБРАТЬ</div>
+                    `;
+                    listEl.appendChild(row);
+                });
+            }
+
+            document.getElementById('modal-create-case').classList.add('active');
+        }
+
+        function closeCreateCaseModal() {
+            document.getElementById('modal-create-case').classList.remove('active');
+        }
+
+        function selectShopCaseToCreate(rawName) {
+            const clean = cleanCaseTitle(rawName);
+            const fullTag = rawName.trim().startsWith('Кейс |') ? rawName.trim() : ('Кейс | ' + clean);
+            closeCreateCaseModal();
+            openCaseView(fullTag);
+            document.getElementById('itemsContainer').innerHTML = 
+                `<div style="text-align:center; padding:40px; color:var(--text-sec);">
+                    Кейс «${clean}» выбран.<br>Добавьте первый предмет через кнопку <b>+</b>.
+                </div>`;
+        }
+
+        function createCaseManual() {
+            const raw = document.getElementById('manual-case-name').value.trim();
+            if (!raw) {
+                tg.showAlert("Введите название кейса!");
+                return;
+            }
+            const clean = cleanCaseTitle(raw);
+            selectShopCaseToCreate('Кейс | ' + clean);
         }
 
         function openCaseView(tagName) {
             currentCase = tagName;
-            
-            let displayName = tagName;
-            while (/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i.test(displayName)) {
-                displayName = displayName.replace(/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i, '');
-            }
+            const displayName = cleanCaseTitle(tagName);
             
             document.getElementById('page-title').innerText = displayName;
             document.getElementById('view-cases').classList.remove('active');
@@ -813,20 +1010,6 @@
             document.querySelector('.fab-main').classList.remove('rotate');
 
             loadItems(tagName);
-        }
-
-        function createNewCase() {
-            let name = prompt("Название нового кейса (например: Зимний):");
-            if (!name) return;
-            
-            name = name.replace(/^(КЕЙС|CASE|Кейс|Case)\s*\|\s*/i, '').trim();
-            const fullTag = "Кейс | " + name; 
-            
-            openCaseView(fullTag);
-            document.getElementById('itemsContainer').innerHTML = 
-                `<div style="text-align:center; padding:40px; color:var(--text-sec);">
-                    Кейс "${name}" создан.<br>Добавьте первый предмет через плюс.
-                </div>`;
         }
 
         async function loadItems(tag) {
@@ -856,8 +1039,8 @@
                         <img src="${item.image_url}" class="card-img">
                         <div class="card-name">${item.name}</div>
                         <div class="card-meta">
-                            <span>шанс %: ${item.chance_weight}</span>
-                            <span class="card-price" style="font-size:12px;">${item.price_rub || 0} ₽ <span style="font-size:10px; color:#aaa; font-weight:normal;">(${item.price} 🎫)</span></span>
+                            <span>${item.chance_weight}%</span>
+                            <span class="card-price">${item.price_rub || 0}₽ <span style="font-size:9px; color:#aaa; font-weight:normal;">(${item.price}🎫)</span></span>
                         </div>
                     </div>`;
                 });
@@ -1009,13 +1192,12 @@
             }
         }
 
-        // --- АВТОЗАПОЛНЕНИЕ ФОРМЫ РЕДАКТОРА ---
         function selectFromCache(jsonStr) {
             const item = JSON.parse(decodeURIComponent(jsonStr).replace(/&apos;/g, "'"));
             closeModal('modal-library');
             
             let cleanName = item.market_hash_name;
-            let qualityCode = "FT"; // По дефолту
+            let qualityCode = "FT";
 
             const wearMap = {
                 'factory new': 'FN', 'прямо с завода': 'FN',
@@ -1049,13 +1231,13 @@
                 market_hash_name: item.market_hash_name,
                 name: cleanName,
                 image_url: item.image_url || '',
-                // 🔥 ИСПРАВЛЕНО: Теперь тут точный расчет с дробями
                 price: parseFloat(((item.price_rub || 0) * 0.5).toFixed(2)), 
                 price_rub: item.price_rub || 0,
-                chance_weight: 10,
+                chance_weight: preservedWeight || 10,
                 rarity: itemRarity,
                 condition: qualityCode
             };
+            preservedWeight = null;
 
             openEditor(encodeURIComponent(JSON.stringify(editorItem)));
             
