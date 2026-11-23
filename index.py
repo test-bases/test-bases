@@ -35749,108 +35749,204 @@ async def toggle_case_secret(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 1. Добавили нужные поля из фронтенда
+import math
+import statistics
+
+
+# ==========================================
+# 🧠 УМНЫЙ АНАЛИЗАТОР ШАНСОВ ПО БАЗЕ КЕЙСОВ
+# ==========================================
+async def fetch_chance_profile(supabase: httpx.AsyncClient) -> list[dict]:
+    """Собирает пары (price_rub, chance_weight) из всех активных кейсов"""
+    try:
+        res = await supabase.get(
+            "/cs_case_contents",
+            params={"select": "chance_weight,item:cs_items(price_rub)"}
+        )
+        if res.status_code != 200:
+            return []
+        points = []
+        for row in res.json():
+            item = row.get("item") or {}
+            p = float(item.get("price_rub") or 0)
+            w = float(row.get("chance_weight") or 0)
+            if p > 0 and w > 0:
+                points.append({"price_rub": p, "chance_weight": w})
+        return points
+    except Exception as e:
+        logging.error(f"[CHANCE_PROFILE] Ошибка чтения профиля: {e}")
+        return []
+
+
+def predict_smart_chance(price_rub: float, points: list[dict], jitter: bool = False) -> float:
+    """Подбирает шанс по цене на основе ближайших скинов из базы пользователя"""
+    p = max(float(price_rub or 0.01), 0.01)
+
+    if points:
+        log_p = math.log(p)
+        scored = sorted(
+            points,
+            key=lambda x: abs(math.log(max(x["price_rub"], 0.01)) - log_p)
+        )
+        nearest = scored[:5]
+
+        # Взвешенное среднее по близости в лог-шкале
+        weighted_sum = 0.0
+        weight_total = 0.0
+        for pt in nearest:
+            dist = abs(math.log(max(pt["price_rub"], 0.01)) - log_p)
+            w = 1.0 / (dist + 0.15)
+            weighted_sum += pt["chance_weight"] * w
+            weight_total += w
+
+        base_chance = weighted_sum / weight_total if weight_total > 0 else statistics.median([x["chance_weight"] for x in nearest])
+    else:
+        # Фолбэк-кривая, если база пуста (10₽ -> ~50, 1000₽ -> 0.01)
+        base_chance = 50.0 * ((10.0 / p) ** 1.85)
+
+    if jitter:
+        base_chance *= random.uniform(0.90, 1.10)
+
+    base_chance = max(0.01, min(100.0, base_chance))
+
+    if base_chance < 0.1:
+        return round(base_chance, 2)
+    elif base_chance < 2.0:
+        return round(base_chance, 2)
+    elif base_chance < 10.0:
+        return round(base_chance, 1)
+    return round(base_chance, 1)
+
+
+@app.post("/api/v1/admin/cases/chance_profile")
+async def get_admin_chance_profile(
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    points = await fetch_chance_profile(supabase)
+    return {"points": points}
+
+
+# ==========================================
+# 🔍 УМНЫЙ ПОИСК ПО СКЛАДУ БОТОВ (ОТ 0.01 ₽)
+# ==========================================
 class SearchCacheRequest(BaseModel):
     query: str = ""
-    min_price: float = 0.0
+    min_price: float = 0.01
     max_price: float = 9999999.0
     offset: int = 0
-    # 🔥 НОВЫЕ ПОЛЯ ДЛЯ ТУМБЛЕРОВ
-    hide_stickers: bool = False
-    hide_graffiti: bool = False
-    hide_bs: bool = False
+    sort_by: str = "price_asc"  # price_asc | price_desc
+    hide_stickers: bool = True
+    hide_graffiti: bool = True
+    hide_cases: bool = True
+    hide_souvenir: bool = True
+    hide_extras: bool = False  # брелки, музыка, агенты, пины
+    allowed_wears: list[str] = ["FN", "MW", "FT", "WW", "BS"]
+    allowed_rarities: list[str] = []
+
 
 @app.post("/api/v1/admin/cases/search_cache")
 async def admin_cases_search_cache(
-    req: SearchCacheRequest, 
+    req: SearchCacheRequest,
     supabase: httpx.AsyncClient = Depends(get_supabase_client)
 ):
     query = req.query.strip().replace("%", "").replace("?", "").replace("&", "")
-    
-    # Если нет ни текста, ни фильтров по цене, ни тумблеров — не грузим базу, отдаем пустоту
-    if len(query) < 2 and req.min_price == 0 and req.max_price >= 9999999 and not req.hide_stickers and not req.hide_graffiti and not req.hide_bs:
-        return []
+    min_p = max(float(req.min_price or 0.01), 0.01)
+    max_p = float(req.max_price or 9999999.0)
+
+    order_clause = "price_rub.asc" if req.sort_by == "price_asc" else "price_rub.desc"
 
     try:
-        # 1. Базовые параметры (с фильтрацией мусора на уровне БД Supabase)
         market_params = [
-            ("select", "market_hash_name,price_rub,rarity,image_url"), # 🔥 Берем только нужное
-            ("price_rub", f"gte.{req.min_price}"),
-            ("price_rub", f"lte.{req.max_price}"),
-            
-            # --- ИСКЛЮЧАЕМ ПУСТЫЕ КАРТИНКИ ---
+            ("select", "market_hash_name,price_rub,rarity,image_url"),
+            ("price_rub", f"gte.{min_p}"),
+            ("price_rub", f"lte.{max_p}"),
+            ("is_available", "eq.true"),
             ("image_url", "not.is.null"),
-            ("image_url", "neq."), # не пустая строка
-            
-            # --- ИСКЛЮЧАЕМ СУВЕНИРЫ И КЕЙСЫ (Они скрыты всегда) ---
-            ("market_hash_name", "not.ilike.*Souvenir*"),
-            ("market_hash_name", "not.ilike.*Сувенир*"),
-            ("market_hash_name", "not.ilike.*Case*"),
-            ("market_hash_name", "not.ilike.*Кейс*"),
-            ("market_hash_name", "not.ilike.*Capsule*"),
-            ("market_hash_name", "not.ilike.*Капсула*"),
-            ("market_hash_name", "not.ilike.*Package*"),
-            ("market_hash_name", "not.ilike.*Пакет*"),
-            
-            ("order", "price_rub.desc"),
+            ("image_url", "neq."),
+            ("order", order_clause),
             ("limit", "30"),
             ("offset", str(req.offset))
         ]
-        
-        # 🔥 УМНЫЙ ФИЛЬТР: Добавляем поиск по тексту, только если он есть
+
         if query:
             market_params.append(("market_hash_name", f"ilike.*{query}*"))
-            
-        # ==========================================
-        # 🔥 ДИНАМИЧЕСКИЕ ФИЛЬТРЫ ОТ ТУМБЛЕРОВ 🔥
-        # ==========================================
+
+        if req.hide_souvenir:
+            market_params.append(("market_hash_name", "not.ilike.*Souvenir*"))
+            market_params.append(("market_hash_name", "not.ilike.*Сувенир*"))
+
+        if req.hide_cases:
+            for kw in ["Case", "Кейс", "Capsule", "Капсула", "Package", "Пакет", "Pin", "Key", "Pass", "Viewer"]:
+                market_params.append(("market_hash_name", f"not.ilike.*{kw}*"))
+
         if req.hide_stickers:
             market_params.append(("market_hash_name", "not.ilike.*Sticker*"))
             market_params.append(("market_hash_name", "not.ilike.*Наклейка*"))
-            
-        if req.hide_graffiti:
-            market_params.append(("market_hash_name", "not.ilike.*Graffiti*"))
-            market_params.append(("market_hash_name", "not.ilike.*Граффити*"))
-            market_params.append(("market_hash_name", "not.ilike.*Patch*"))
-            market_params.append(("market_hash_name", "not.ilike.*Патч*"))
-            
-        if req.hide_bs:
-            market_params.append(("market_hash_name", "not.ilike.*Battle-Scarred*"))
-            market_params.append(("market_hash_name", "not.ilike.*Закаленное в боях*"))
-        # ==========================================
-        
-        # Делаем один быстрый запрос в Supabase
-        # httpx корректно склеит одинаковые ключи (market_hash_name) через &
-        res_cache = await supabase.get("/market_cache", params=market_params)
-        
-        if res_cache.status_code != 200:
-            print(f"⚠️ Ошибка Supabase market_cache: {res_cache.text}")
-            return []
-            
-        items = res_cache.json()
 
+        if req.hide_graffiti:
+            for kw in ["Graffiti", "Граффити", "Patch", "Патч"]:
+                market_params.append(("market_hash_name", f"not.ilike.*{kw}*"))
+
+        if req.hide_extras:
+            for kw in ["Charm", "Music Kit", "Agent", "Patch", "Collectible"]:
+                market_params.append(("market_hash_name", f"not.ilike.*{kw}*"))
+
+        # Фильтр износа: исключаем все снятые галочки
+        wear_keywords = {
+            "FN": ["(Factory New)", "Прямо с завода"],
+            "MW": ["(Minimal Wear)", "Немного поношенное"],
+            "FT": ["(Field-Tested)", "После полевых испытаний"],
+            "WW": ["(Well-Worn)", "Поношенное"],
+            "BS": ["(Battle-Scarred)", "Закаленное в боях"],
+        }
+        allowed_set = {w.upper() for w in (req.allowed_wears or [])}
+        for code, kws in wear_keywords.items():
+            if code not in allowed_set:
+                for kw in kws:
+                    market_params.append(("market_hash_name", f"not.ilike.*{kw}*"))
+
+        # Фильтр редкости
+        if req.allowed_rarities:
+            rarity_expand = {
+                "common": ["common", "consumer", "white"],
+                "blue": ["blue", "milspec", "industrial"],
+                "purple": ["purple", "restricted"],
+                "pink": ["pink", "classified"],
+                "red": ["red", "covert"],
+                "gold": ["gold", "knife", "contraband"],
+            }
+            rar_vals = []
+            for r in req.allowed_rarities:
+                rar_vals.extend(rarity_expand.get(r.lower(), [r.lower()]))
+            if rar_vals:
+                market_params.append(("rarity", f"in.({','.join(set(rar_vals))})"))
+
+        res_cache = await supabase.get("/market_cache", params=market_params)
+        if res_cache.status_code != 200:
+            logging.error(f"⚠️ Ошибка Supabase market_cache: {res_cache.text}")
+            return []
+
+        items = res_cache.json()
         if not isinstance(items, list) or not items:
             return []
 
         unique_items = []
         seen = set()
-        
-        # 2. Чистим дубликаты и формируем красивый ответ для фронтенда
         for it in items:
             name = it.get("market_hash_name", "")
             if name and name not in seen:
                 seen.add(name)
                 unique_items.append({
                     "market_hash_name": name,
-                    "image_url": it.get("image_url") or "https://placehold.co/150", 
-                    "price_rub": it.get("price_rub", 0),
+                    "image_url": it.get("image_url") or "https://placehold.co/150",
+                    "price_rub": float(it.get("price_rub") or 0),
                     "rarity": it.get("rarity", "blue")
                 })
-                
+
         return unique_items
 
     except Exception as e:
-        print(f"⚠️ Ошибка в search_cache: {e}")
+        logging.error(f"⚠️ Ошибка в search_cache: {e}")
         return []
         
 @app.post("/api/v1/admin/cases/clear")
@@ -36047,169 +36143,191 @@ async def admin_get_case_items(request: Request):
     # Сортируем по цене (дорогие сверху)
     return sorted(flat_data, key=lambda x: x.get('price', 0), reverse=True)
 
+# ==========================================
+# ⚡ УМНАЯ НЕЙРО-СБОРКА КЕЙСА (V2)
+# ==========================================
 @app.post("/api/v1/admin/cases/auto_generate")
-async def admin_auto_generate_case(request: Request):
+async def admin_auto_generate_case(
+    request: Request,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
     data = await request.json()
     case_tag = data.get("case_tag")
-    total_budget_rub = float(data.get("budget_rub", 1000))
-    mode = data.get("mode", "full") # 🔥 Читаем режим: 'full' или 'single'
+    if not case_tag:
+        raise HTTPException(status_code=400, detail="Не указан case_tag")
 
-    if not case_tag or total_budget_rub <= 0:
-        raise HTTPException(status_code=400, detail="Неверные параметры")
+    replace_existing = bool(data.get("replace_existing", False))
+    use_smart_chance = bool(data.get("use_smart_chance", True))
+    hide_stickers = bool(data.get("hide_stickers", True))
+    hide_graffiti = bool(data.get("hide_graffiti", True))
+    hide_bs = bool(data.get("hide_bs", True))
 
-    if mode == "single":
-        # 🔥 РЕЖИМ ЗАМЕНЫ: 100% бюджета уходит на 1 предмет
-        weight = float(data.get("chance_weight", 0.01))
-        structure = [{"tier": "single", "pct": 1.0, "count": 1, "weight": weight}]
+    tiers = data.get("tiers") or []
+    active_tiers = [t for t in tiers if t.get("enabled") and int(t.get("count", 0)) > 0]
+
+    if not active_tiers:
+        raise HTTPException(status_code=400, detail="Включите хотя бы одну категорию скинов (кол-во > 0)")
+
+    # 1. Загружаем профиль шансов из твоей базы
+    chance_points = await fetch_chance_profile(supabase) if use_smart_chance else []
+
+    # 2. Если режим «Пересобрать с нуля» — очищаем текущий кейс
+    used_names = set()
+    if replace_existing:
+        links_res = await supabase.get("/cs_case_contents", params={"case_tag": f"eq.{case_tag}", "select": "item_id"})
+        old_ids = [row["item_id"] for row in links_res.json()] if links_res.status_code == 200 else []
+        await supabase.delete("/cs_case_contents", params={"case_tag": f"eq.{case_tag}"})
+        if old_ids:
+            await supabase.patch("/cs_items", params={"id": f"in.({','.join(map(str, old_ids))})"}, json={"is_active": False})
     else:
-        # 🔥 РЕЖИМ СБОРКИ КЕЙСА: Собираем по настройкам
-        top_count = int(data.get("top_count", 1))
-        mid_count = int(data.get("mid_count", 3))
-        cheap_count = int(data.get("cheap_count", 6))
-
-        top_weight = float(data.get("top_weight", 0.01))
-        mid_weight = float(data.get("mid_weight", 1.0))
-        cheap_weight = float(data.get("cheap_weight", 10.0))
-
-        raw_structure = [
-            {"tier": "top",   "base_pct": 0.45, "count": top_count,   "weight": top_weight},
-            {"tier": "mid",   "base_pct": 0.30, "count": mid_count,   "weight": mid_weight},
-            {"tier": "cheap", "base_pct": 0.25, "count": cheap_count, "weight": cheap_weight},
-        ]
-        
-        # Считаем сумму процентов (чтобы можно было собирать кейс без массовки или без боссов)
-        active_pct_sum = sum(t["base_pct"] for t in raw_structure if t["count"] > 0)
-        if active_pct_sum <= 0:
-            raise HTTPException(status_code=400, detail="Укажите количество скинов больше нуля!")
-
-        structure = []
-        for t in raw_structure:
-            if t["count"] > 0:
-                normalized_pct = t["base_pct"] / active_pct_sum
-                structure.append({
-                    "tier": t["tier"],
-                    "pct": normalized_pct,
-                    "count": t["count"],
-                    "weight": t["weight"]
-                })
+        # Запоминаем уже лежащие в кейсе скины, чтобы не плодить дубликаты
+        cur_res = await supabase.get("/cs_case_contents", params={"case_tag": f"eq.{case_tag}", "select": "item:cs_items(market_hash_name)"})
+        if cur_res.status_code == 200:
+            for row in cur_res.json():
+                mhn = (row.get("item") or {}).get("market_hash_name")
+                if mhn:
+                    used_names.add(mhn)
 
     generated_items = []
-    used_names = set() 
 
-    for tier in structure:
-        # Идеальная цена для ОДНОГО предмета в корзине
-        target_price = (total_budget_rub * tier["pct"]) / tier["count"]
+    for tier in active_tiers:
+        count = int(tier.get("count", 1))
+        min_p = max(float(tier.get("min_price", 0.01)), 0.01)
+        max_p = max(float(tier.get("max_price", min_p + 10)), min_p)
+        manual_weight = float(tier.get("weight", 1.0))
 
-        for _ in range(tier["count"]):
-            # Ищем любые скины вокруг нашей цены (от 50% до 150%)
-            min_p = target_price * 0.5
-            max_p = target_price * 1.5
+        base_params = [
+            ("select", "market_hash_name,price_rub,rarity,image_url"),
+            ("price_rub", f"gte.{min_p}"),
+            ("price_rub", f"lte.{max_p}"),
+            ("is_available", "eq.true"),
+            ("image_url", "not.is.null"),
+            ("image_url", "neq."),
+            ("market_hash_name", "not.ilike.*Souvenir*"),
+            ("market_hash_name", "not.ilike.*Сувенир*"),
+            ("market_hash_name", "not.ilike.*Case*"),
+            ("market_hash_name", "not.ilike.*Кейс*"),
+            ("market_hash_name", "not.ilike.*Capsule*"),
+            ("market_hash_name", "not.ilike.*Капсула*"),
+            ("market_hash_name", "not.ilike.*Package*"),
+            ("market_hash_name", "not.ilike.*Пакет*"),
+            ("limit", "250")
+        ]
+        if hide_stickers:
+            base_params.append(("market_hash_name", "not.ilike.*Sticker*"))
+            base_params.append(("market_hash_name", "not.ilike.*Наклейка*"))
+        if hide_graffiti:
+            base_params.append(("market_hash_name", "not.ilike.*Graffiti*"))
+            base_params.append(("market_hash_name", "not.ilike.*Граффити*"))
+            base_params.append(("market_hash_name", "not.ilike.*Patch*"))
+            base_params.append(("market_hash_name", "not.ilike.*Патч*"))
+        if hide_bs:
+            base_params.append(("market_hash_name", "not.ilike.*Battle-Scarred*"))
+            base_params.append(("market_hash_name", "not.ilike.*Закаленное в боях*"))
 
-            market_res = supabase.table("market_cache")\
-                .select("market_hash_name, price_rub, rarity")\
-                .gte("price_rub", min_p)\
-                .lte("price_rub", max_p)\
-                .eq("is_available", True)\
-                .limit(200)\
-                .execute()
-            
-            items = market_res.data
-            
-            # Если нет скинов в диапазоне, берем просто самые близкие по цене 
-            if not items:
-                fallback_res = supabase.table("market_cache")\
-                    .select("market_hash_name, price_rub, rarity")\
-                    .eq("is_available", True)\
-                    .limit(500)\
-                    .execute() # 🔥 ДОБАВЛЕН ЛИМИТ (Защита от краша памяти)
-                items = fallback_res.data
-                if not items: continue
+        m_res = await supabase.get("/market_cache", params=base_params)
+        pool = m_res.json() if m_res.status_code == 200 else []
 
-            # 🔥 УМНЫЙ ПОИСК 🔥: Сортируем так, чтобы предмет с самой близкой к target_price ценой был первым!
-            available_items = [i for i in items if i["market_hash_name"] not in used_names]
-            
-            if not available_items:
-                available_items = items # Разрешаем дубликат, если уникальных больше нет
+        # Фолбэк: расширяем диапазон на +-40%, если точно в вилке пусто
+        if not pool:
+            fb_params = base_params.copy()
+            fb_params[1] = ("price_rub", f"gte.{max(0.01, min_p * 0.6)}")
+            fb_params[2] = ("price_rub", f"lte.{max_p * 1.4}")
+            fb_res = await supabase.get("/market_cache", params=fb_params)
+            pool = fb_res.json() if fb_res.status_code == 200 else []
 
-            # Сортируем по разнице цен (чем ближе к идеалу, тем лучше)
-            available_items.sort(key=lambda x: abs(x["price_rub"] - target_price))
+        if not pool:
+            continue
 
-            # Берем самый подходящий предмет
-            selected_item = available_items[0]
-            used_names.add(selected_item["market_hash_name"])
-            
-            # 🔥 ИСПРАВЛЕН ОТСТУП: Теперь добавление идет ВНУТРИ цикла (будет 6 скинов, а не 1)
+        # Распределяем целевые цены равномерно внутри [min_p, max_p]
+        for idx in range(count):
+            frac = (idx + 0.5) / count
+            target_p = min_p + (max_p - min_p) * frac
+
+            fresh = [c for c in pool if c.get("market_hash_name") not in used_names]
+            candidates = fresh if fresh else pool
+            candidates.sort(key=lambda x: abs(float(x.get("price_rub") or 0) - target_p))
+            chosen = random.choice(candidates[:min(5, len(candidates))])
+
+            mhn = chosen["market_hash_name"]
+            used_names.add(mhn)
+            item_price_rub = float(chosen.get("price_rub") or 0)
+
+            weight = (
+                predict_smart_chance(item_price_rub, chance_points, jitter=True)
+                if use_smart_chance
+                else manual_weight
+            )
+
             generated_items.append({
-                "market_hash_name": selected_item["market_hash_name"],
-                "price_rub": selected_item["price_rub"],
-                "rarity": selected_item.get("rarity", "blue"),
-                "chance_weight": tier["weight"]
+                "market_hash_name": mhn,
+                "price_rub": item_price_rub,
+                "rarity": chosen.get("rarity", "blue"),
+                "image_url": chosen.get("image_url") or "https://placehold.co/100",
+                "chance_weight": weight
             })
 
     if not generated_items:
-        raise HTTPException(status_code=400, detail="В базе нет подходящих предметов!")
+        raise HTTPException(status_code=400, detail="По заданным ценам и фильтрам на складе не нашлось скинов")
 
-    # 4. Вытягиваем картинки
-    names_list = [item["market_hash_name"] for item in generated_items]
-    img_res = supabase.table("skin_images_dict").select("market_hash_name, icon_url").in_("market_hash_name", names_list).execute()
-    images_dict = {img['market_hash_name']: img['icon_url'] for img in img_res.data}
-
-    # 5. Обрабатываем и сохраняем
+    # 3. Сохраняем в cs_items + cs_case_contents
     saved_count = 0
+    cond_map = {
+        "Factory New": "FN", "Minimal Wear": "MW", "Field-Tested": "FT",
+        "Well-Worn": "WW", "Battle-Scarred": "BS"
+    }
+
     for item in generated_items:
         raw_name = item["market_hash_name"]
-        
         clean_name = raw_name
-        condition = "-"
+        condition = ""
         cond_match = re.search(r"(.*?)\s+\(([^)]+)\)$", raw_name)
         if cond_match:
             clean_name = cond_match.group(1).strip()
             raw_cond = cond_match.group(2)
-            cond_map = {"Factory New": "FN", "Minimal Wear": "MW", "Field-Tested": "FT", "Well-Worn": "WW", "Battle-Scarred": "BS"}
             condition = cond_map.get(raw_cond, raw_cond)
 
-        img_hash = images_dict.get(raw_name, "")
-        icon_url = f"https://community.cloudflare.steamstatic.com/economy/image/{img_hash}/300fx300f" if img_hash and not img_hash.startswith("http") else (img_hash or "https://placehold.co/100")
+        price_rub = float(item["price_rub"])
+        price_tickets = round(price_rub * 0.5, 2)
+        weight = float(item["chance_weight"])
 
-        skin_id = None
-        try:
-            # 🔥 ИММУТАБЕЛЬНОЕ УЛУЧШЕНИЕ: 
-            # Больше не ищем existing_skin. Мы ВСЕГДА создаем новую строку, 
-            # чтобы цена генерации зафиксировалась и не конфликтовала с историей.
-            item_payload = {
-                "name": clean_name,
-                "image_url": icon_url,
-                "rarity": item["rarity"],
-                "condition": condition,
-                "chance_weight": float(item["chance_weight"]), 
-                "quantity": 1,
-                "is_active": True,
-                "boost_percent": 0.0,
-                "price": int(item["price_rub"] * 0.6), # Авто-расчет билетов 60%
-                "case_tag": case_tag,
-                "price_rub": float(item["price_rub"]),
-                "market_hash_name": raw_name
-            }
+        item_payload = {
+            "name": clean_name,
+            "image_url": item["image_url"],
+            "rarity": item["rarity"],
+            "condition": condition or None,
+            "chance_weight": weight,
+            "quantity": 1,
+            "is_active": True,
+            "boost_percent": 0.0,
+            "price": price_tickets,
+            "case_tag": case_tag,
+            "price_rub": price_rub,
+            "market_hash_name": raw_name
+        }
 
-            res_item = supabase.table("cs_items").insert(item_payload).execute()
-            if res_item.data:
-                skin_id = res_item.data[0]['id']
-
-            if skin_id:
-                existing_link = supabase.table("cs_case_contents").select("id").eq("case_tag", case_tag).eq("item_id", skin_id).execute()
-                if not existing_link.data:
-                    link_payload = {
-                        "case_tag": case_tag,
-                        "item_id": skin_id,
-                        "chance_weight": float(item["chance_weight"])
-                    }
-                    supabase.table("cs_case_contents").insert(link_payload).execute()
-                    saved_count += 1
-        except Exception as e:
-            print(f"Ошибка сохранения {clean_name}: {e}")
+        ins_res = await supabase.post(
+            "/cs_items",
+            json=item_payload,
+            headers={"Prefer": "return=representation"}
+        )
+        if ins_res.status_code >= 400 or not ins_res.json():
             continue
 
-    return {"status": "ok", "message": f"Сгенерировано и добавлено {saved_count} скинов!"}
+        skin_id = ins_res.json()[0]["id"]
+        link_res = await supabase.post(
+            "/cs_case_contents",
+            json={
+                "case_tag": case_tag,
+                "item_id": skin_id,
+                "chance_weight": weight
+            }
+        )
+        if link_res.status_code < 400:
+            saved_count += 1
+
+    action_word = "Пересобран кейс, добавлено" if replace_existing else "Добавлено"
+    return {"status": "ok", "message": f"{action_word} {saved_count} скинов!"}
     
     
 # 3. Сохранить (Умное сохранение: Скин + Связь)
