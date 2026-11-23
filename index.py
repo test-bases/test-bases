@@ -35953,31 +35953,71 @@ async def admin_clone_case_item(request: Request):
         print(f"Link Error: {e}")
         return {"status": "error", "message": "Скин уже добавлен в этот кейс"}
 
-# 1. Получить список кейсов (Группировка по таблице связей)
+def _norm_case_name(name: str) -> str:
+    clean = re.sub(r"^(?:(?:КЕЙС|CASE|Кейс|Case)\s*\|\s*)+", "", (name or "").strip(), flags=re.IGNORECASE)
+    return clean.strip().lower()
+
+
+# 1. Получить список кейсов (с картинками и флагом скрытности из shop_cache)
 @app.post("/api/v1/admin/cases/list_tags")
 async def admin_get_case_tags(request: Request):
     try:
-        # 1. Твоя оригинальная логика подсчета скинов
         res = supabase.table("cs_case_contents").select("case_tag").execute()
         tags = {}
         for row in res.data:
             tag = row.get("case_tag")
             if tag:
                 tags[tag] = tags.get(tag, 0) + 1
-                
-        # 2. 🔥 ДОБАВЛЕНО: Читаем shop_cache, чтобы узнать, какие скрыты
+
         cache_res = supabase.table("shop_cache").select("data").eq("category_id", 2716312).execute()
-        secret_cases = set()
+        secret_keys = set()
+        image_map = {}
+
         if cache_res.data:
             shop_data = cache_res.data[0].get("data", [])
-            secret_cases = {item.get("name") for item in shop_data if item.get("is_secret")}
+            if isinstance(shop_data, str):
+                shop_data = json.loads(shop_data)
 
-        # Отдаем на фронт инфу вместе с флагом is_secret
-        result = [{"name": k, "count": v, "is_secret": k in secret_cases} for k, v in tags.items()]
+            for item in shop_data:
+                if not isinstance(item, dict) or item.get("is_folder"):
+                    continue
+                key = _norm_case_name(item.get("name", ""))
+                if item.get("is_secret"):
+                    secret_keys.add(key)
+                if item.get("image_url"):
+                    image_map[key] = item["image_url"]
+
+        result = [
+            {
+                "name": k,
+                "count": v,
+                "is_secret": _norm_case_name(k) in secret_keys,
+                "image_url": image_map.get(_norm_case_name(k), "")
+            }
+            for k, v in tags.items()
+        ]
         return result
     except Exception as e:
         print(f"List Tags Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# 1.1. Список всех кейсов из магазина (для выборки в модалке «Создать»)
+@app.post("/api/v1/admin/cases/shop_cases")
+async def admin_get_shop_cases(request: Request):
+    try:
+        cache_res = supabase.table("shop_cache").select("data").eq("category_id", 2716312).execute()
+        if not cache_res.data:
+            return []
+
+        shop_data = cache_res.data[0].get("data", [])
+        if isinstance(shop_data, str):
+            shop_data = json.loads(shop_data)
+
+        return [i for i in shop_data if isinstance(i, dict) and not i.get("is_folder")]
+    except Exception as e:
+        print(f"Shop Cases Error: {e}")
+        return []
 
 # 2. Получить предметы (JOIN запрос: Связи + Данные скина)
 @app.post("/api/v1/admin/cases/get_items")
