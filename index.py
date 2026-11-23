@@ -25180,8 +25180,13 @@ RAM_SHOP_CACHE = {}
 RAM_CACHE_TTL = 600  # 10 минут
 
 
-async def sync_all_shop_categories():
+async def sync_all_shop_categories(supabase_client=None):
     """Забирает весь активный магазин из Bot-T через /index (status=[1]), группирует по category_id и сохраняет в Supabase (shop_cache)"""
+    if not BOTT_BOT_TOKEN and not BOTT_SECRET_KEY:
+        raise RuntimeError(
+            f"СЛЕТЕЛИ ТОКЕНЫ В VERCEL! BotToken: {bool(BOTT_BOT_TOKEN)}, SecretKey: {bool(BOTT_SECRET_KEY)}"
+        )
+
     params = {}
     if BOTT_BOT_TOKEN:
         params["botToken"] = BOTT_BOT_TOKEN
@@ -25189,10 +25194,6 @@ async def sync_all_shop_categories():
         params["secretKey"] = BOTT_SECRET_KEY
 
     headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
-    sb_headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}"
-    }
 
     # ==========================================
     # 1. ЗАБИРАЕМ ВЕСЬ МАГАЗИН С ПАГИНАЦИЕЙ
@@ -25215,8 +25216,6 @@ async def sync_all_shop_categories():
                 json=payload,
                 headers=headers
             )
-            logging.info(f"[SHOP_SYNC] /index offset={offset} status={resp.status_code}")
-
             if resp.status_code != 200:
                 raise RuntimeError(f"Bot-T HTTP {resp.status_code}: {resp.text[:300]}")
 
@@ -25237,13 +25236,22 @@ async def sync_all_shop_categories():
         raise RuntimeError("Bot-T вернул пустой список категорий/товаров")
 
     # ==========================================
-    # 2. СПАСАЕМ ФЛАГИ СЕКРЕТНОСТИ ИЗ СТАРОГО КЭША
+    # 2. СПАСАЕМ ФЛАГИ is_secret ИЗ СТАРОГО КЭША
     # ==========================================
-    secret_ids = set()
-    secret_names = set()
+    client_sb = supabase_client
+    close_sb = False
+    if not client_sb:
+        client_sb = httpx.AsyncClient(
+            base_url=f"{SUPABASE_URL}/rest/v1",
+            headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+        )
+        close_sb = True
+
     try:
-        async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers=sb_headers) as sb_client:
-            old_resp = await sb_client.get("/shop_cache", params={"select": "category_id,data"})
+        secret_ids = set()
+        secret_names = set()
+        try:
+            old_resp = await client_sb.get("/shop_cache", params={"select": "category_id,data"})
             if old_resp.status_code == 200:
                 for row in old_resp.json():
                     old_items = row.get("data", [])
@@ -25255,66 +25263,65 @@ async def sync_all_shop_categories():
                                 secret_ids.add(int(it["id"]))
                             if it.get("name"):
                                 secret_names.add(it["name"])
-    except Exception as e:
-        logging.error(f"[SHOP_SYNC] Не удалось прочитать старый кэш для спасения флагов: {e}")
+        except Exception as e:
+            logging.error(f"[SHOP_SYNC] Не удалось прочитать старый кэш для is_secret: {e}")
 
-    # ==========================================
-    # 3. ПАРСИМ И ГРУППИРУЕМ ПО category_id
-    # ==========================================
-    grouped = {}  # { parent_category_id: [mapped_items...] }
+        # ==========================================
+        # 3. ПАРСИМ И ГРУППИРУЕМ ПО category_id
+        # ==========================================
+        grouped = {}
 
-    for item in all_raw_items:
-        if item.get("is_hide"):
-            continue
+        for item in all_raw_items:
+            if item.get("is_hide"):
+                continue
 
-        parent_id = int(item.get("category_id") or 0)
-        item_id = item.get("id")
-        is_folder = (item.get("type") == 0)
+            parent_id = int(item.get("category_id") or 0)
+            item_id = item.get("id")
+            is_folder = (item.get("type") == 0)
 
-        design = item.get("design") or {}
-        photo = item.get("photo") or {}
-        price_obj = item.get("price") or {}
-        setting = item.get("setting") or {}
+            design = item.get("design") or {}
+            photo = item.get("photo") or {}
+            price_obj = item.get("price") or {}
+            setting = item.get("setting") or {}
 
-        name = design.get("title") or item.get("name") or "Без названия"
-        image_url = design.get("image") or photo.get("abs_path") or "https://placehold.co/150?text=No+Image"
+            name = design.get("title") or item.get("name") or "Без названия"
+            image_url = design.get("image") or photo.get("abs_path") or "https://placehold.co/150?text=No+Image"
 
-        raw_amount = price_obj.get("amount", 0)
-        try:
-            price = int(float(raw_amount)) // 100 if raw_amount else 0
-        except (ValueError, TypeError):
-            price = 0
+            raw_amount = price_obj.get("amount", 0)
+            try:
+                price = int(float(raw_amount)) // 100 if raw_amount else 0
+            except (ValueError, TypeError):
+                price = 0
 
-        raw_count = setting.get("count")
-        count = int(raw_count) if raw_count is not None else None
+            raw_count = setting.get("count")
+            count = int(raw_count) if raw_count is not None else None
 
-        is_secret = (item_id in secret_ids) or (name in secret_names)
+            is_secret = (item_id in secret_ids) or (name in secret_names)
 
-        grouped.setdefault(parent_id, []).append({
-            "id": item_id,
-            "name": name,
-            "price": price,
-            "image_url": image_url,
-            "is_folder": is_folder,
-            "count": count,
-            "is_secret": is_secret
-        })
+            grouped.setdefault(parent_id, []).append({
+                "id": item_id,
+                "name": name,
+                "price": price,
+                "image_url": image_url,
+                "is_folder": is_folder,
+                "count": count,
+                "is_secret": is_secret
+            })
 
-    # ==========================================
-    # 4. СОХРАНЯЕМ ВСЕ КАТЕГОРИИ В SUPABASE
-    # ==========================================
-    now_iso = datetime.now(timezone.utc).isoformat()
-    rows_to_upsert = [
-        {
-            "category_id": cat_id,
-            "data": items,
-            "updated_at": now_iso
-        }
-        for cat_id, items in grouped.items()
-    ]
+        # ==========================================
+        # 4. СОХРАНЯЕМ ВСЕ КАТЕГОРИИ В SUPABASE
+        # ==========================================
+        now_iso = datetime.now(timezone.utc).isoformat()
+        rows_to_upsert = [
+            {
+                "category_id": cat_id,
+                "data": items,
+                "updated_at": now_iso
+            }
+            for cat_id, items in grouped.items()
+        ]
 
-    async with httpx.AsyncClient(base_url=f"{SUPABASE_URL}/rest/v1", headers=sb_headers) as sb_client:
-        save_resp = await sb_client.post(
+        save_resp = await client_sb.post(
             "/shop_cache",
             params={"on_conflict": "category_id"},
             json=rows_to_upsert,
@@ -25323,22 +25330,22 @@ async def sync_all_shop_categories():
         if save_resp.status_code >= 400:
             raise RuntimeError(f"Supabase upsert {save_resp.status_code}: {save_resp.text}")
 
-    logging.info(f"[SHOP_SYNC] Обновлено категорий: {len(grouped)}, всего элементов: {len(all_raw_items)}")
+        RAM_SHOP_CACHE.clear()
+        return grouped
 
-    # Сбрасываем кэш в памяти, чтобы фронт сразу подтянул свежие данные
-    RAM_SHOP_CACHE.clear()
+    finally:
+        if close_sb:
+            await client_sb.aclose()
 
-    return grouped
 
-
-async def fetch_and_cache_goods_background(category_id: int):
-    """Обертка для совместимости: обновляет кэш магазина и возвращает элементы нужной категории"""
+async def fetch_and_cache_goods_background(category_id: int, supabase_client=None):
+    """Обертка для совместимости: обновляет кэш и возвращает элементы нужной категории"""
     try:
-        grouped = await sync_all_shop_categories()
+        grouped = await sync_all_shop_categories(supabase_client=supabase_client)
         return grouped.get(int(category_id), [])
     except Exception as e:
-        logging.error(f"[BG_SHOP] Ошибка обновления товаров: {e}")
-        return []
+        logging.error(f"[BG_SHOP] Ошибка: {e}")
+        raise e
 
 
 @app.get("/api/cron/sync-shop")
