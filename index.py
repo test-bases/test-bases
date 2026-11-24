@@ -5250,7 +5250,16 @@ async def admin_save_promo_banners(
     return {"success": True}
 
 
-def pick_daily_promo_code(banner: dict, today_msk) -> str:
+MSK_TZ = timezone(timedelta(hours=3))
+
+DEFAULT_PROMO_BANNERS_CONFIG = {
+    "enabled": True,
+    "alternate_even_odd": False,  # Чётные числа = партнер, нечётные = наш код
+    "banners": []
+}
+
+
+def pick_daily_promo_code(banner: dict, today_msk, alternate_mode: bool = False) -> str:
     """Выбирает актуальный промокод на текущую дату (МСК)."""
     raw_lines = banner.get("codes") or []
     if isinstance(raw_lines, str):
@@ -5264,7 +5273,7 @@ def pick_daily_promo_code(banner: dict, today_msk) -> str:
     today_str = today_msk.strftime("%Y-%m-%d")
     plain_codes = []
 
-    # 1. Сначала ищем точное совпадение по дате "YYYY-MM-DD: CODE"
+    # 1. Приоритет — точная дата "YYYY-MM-DD: CODE"
     for line in raw_lines:
         if ":" in line:
             date_part, code_part = line.split(":", 1)
@@ -5276,7 +5285,7 @@ def pick_daily_promo_code(banner: dict, today_msk) -> str:
     if not plain_codes:
         return ""
 
-    # 2. Иначе ротируем список по дням от start_date
+    # 2. Ротация по дням от start_date
     start_str = banner.get("start_date") or today_str
     try:
         start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
@@ -5284,7 +5293,9 @@ def pick_daily_promo_code(banner: dict, today_msk) -> str:
         start_date = today_msk
 
     day_offset = (today_msk - start_date).days
-    return plain_codes[day_offset % len(plain_codes)]
+    # Если баннер показывается через день (чёт/нечет), шагаем через 2 дня, чтобы не пропускать коды
+    step = (day_offset // 2) if alternate_mode else day_offset
+    return plain_codes[step % len(plain_codes)]
 
 
 async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.AsyncClient) -> list:
@@ -5298,23 +5309,36 @@ async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.As
         return []
 
     today_msk = datetime.now(MSK_TZ).date()
+    alternate_mode = bool(cfg.get("alternate_even_odd", False))
+    is_even_day = (today_msk.day % 2 == 0)
+
     active_list = []
     internal_codes = []
 
     for b in raw_banners:
         if not isinstance(b, dict) or not b.get("enabled", True):
             continue
-        code = pick_daily_promo_code(b, today_msk)
+
+        b_type = b.get("type", "partner")
+
+        # Фильтр чётных/нечётных чисел месяца
+        if alternate_mode:
+            if is_even_day and b_type != "partner":
+                continue
+            if not is_even_day and b_type != "internal":
+                continue
+
+        code = pick_daily_promo_code(b, today_msk, alternate_mode=alternate_mode)
         if not code:
             continue
 
         item = {
             "id": b.get("id") or code,
-            "type": b.get("type", "partner"),  # "partner" | "internal"
+            "type": b_type,
             "title": b.get("title") or "",
             "code": code,
             "image_url": b.get("image_url") or "",
-            "accent_color": b.get("accent_color") or ("#ffd700" if b.get("type") == "partner" else "#9146ff"),
+            "accent_color": b.get("accent_color") or ("#ffd700" if b_type == "partner" else "#9146ff"),
             "target_url": b.get("target_url") or "",
             "cta_text": b.get("cta_text") or "Перейти",
             "limit_label": b.get("limit_label") or "",
@@ -5323,10 +5347,9 @@ async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.As
             "max_activations": None,
         }
         active_list.append(item)
-        if item["type"] == "internal":
+        if b_type == "internal":
             internal_codes.append(code)
 
-    # Для наших внутренних кодов тянем реальные счётчики из cs_codes одним запросом
     if internal_codes:
         try:
             in_filter = ",".join(f'"{c}"' for c in set(internal_codes))
