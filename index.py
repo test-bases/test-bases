@@ -5186,6 +5186,171 @@ async def claim_welcome_case(
         "tier_label": selected_tier["label"],
     }
 
+from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel
+
+MSK_TZ = timezone(timedelta(hours=3))
+
+DEFAULT_PROMO_BANNERS_CONFIG = {
+    "enabled": True,
+    "banners": []
+}
+
+class PromoBannersSaveRequest(BaseModel):
+    initData: str
+    config: dict
+
+
+@app.post("/api/v1/admin/promo_banners/get")
+async def admin_get_promo_banners(
+    req: InitDataRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or int(user_info.get("id", 0)) not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    res = await supabase.get("/settings", params={"key": "eq.promo_banners_config"})
+    cfg = DEFAULT_PROMO_BANNERS_CONFIG
+    if res.status_code == 200:
+        rows = res.json()
+        if isinstance(rows, list) and rows and isinstance(rows[0].get("value"), dict):
+            cfg = {**DEFAULT_PROMO_BANNERS_CONFIG, **rows[0]["value"]}
+
+    return {"config": cfg}
+
+
+@app.post("/api/v1/admin/promo_banners/save")
+async def admin_save_promo_banners(
+    req: PromoBannersSaveRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client),
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or int(user_info.get("id", 0)) not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    check_res = await supabase.get("/settings", params={"key": "eq.promo_banners_config", "select": "key"})
+    exists = check_res.status_code == 200 and bool(check_res.json())
+
+    if exists:
+        save_res = await supabase.patch(
+            "/settings",
+            params={"key": "eq.promo_banners_config"},
+            json={"value": req.config},
+        )
+    else:
+        save_res = await supabase.post(
+            "/settings",
+            json={"key": "promo_banners_config", "value": req.config},
+        )
+
+    if save_res.status_code not in (200, 201, 204):
+        raise HTTPException(status_code=500, detail=f"Supabase error: {save_res.text}")
+
+    return {"success": True}
+
+
+def pick_daily_promo_code(banner: dict, today_msk) -> str:
+    """Выбирает актуальный промокод на текущую дату (МСК)."""
+    raw_lines = banner.get("codes") or []
+    if isinstance(raw_lines, str):
+        raw_lines = [line.strip() for line in raw_lines.splitlines() if line.strip()]
+    else:
+        raw_lines = [str(line).strip() for line in raw_lines if str(line).strip()]
+
+    if not raw_lines:
+        return (banner.get("code") or "").strip()
+
+    today_str = today_msk.strftime("%Y-%m-%d")
+    plain_codes = []
+
+    # 1. Сначала ищем точное совпадение по дате "YYYY-MM-DD: CODE"
+    for line in raw_lines:
+        if ":" in line:
+            date_part, code_part = line.split(":", 1)
+            if date_part.strip() == today_str and code_part.strip():
+                return code_part.strip()
+        else:
+            plain_codes.append(line)
+
+    if not plain_codes:
+        return ""
+
+    # 2. Иначе ротируем список по дням от start_date
+    start_str = banner.get("start_date") or today_str
+    try:
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+    except ValueError:
+        start_date = today_msk
+
+    day_offset = (today_msk - start_date).days
+    return plain_codes[day_offset % len(plain_codes)]
+
+
+async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.AsyncClient) -> list:
+    """Собирает активные промо-баннеры на сегодня + подтягивает активации из cs_codes."""
+    cfg = global_settings.get("promo_banners_config")
+    if not isinstance(cfg, dict) or not cfg.get("enabled", True):
+        return []
+
+    raw_banners = cfg.get("banners") or []
+    if not isinstance(raw_banners, list):
+        return []
+
+    today_msk = datetime.now(MSK_TZ).date()
+    active_list = []
+    internal_codes = []
+
+    for b in raw_banners:
+        if not isinstance(b, dict) or not b.get("enabled", True):
+            continue
+        code = pick_daily_promo_code(b, today_msk)
+        if not code:
+            continue
+
+        item = {
+            "id": b.get("id") or code,
+            "type": b.get("type", "partner"),  # "partner" | "internal"
+            "title": b.get("title") or "",
+            "code": code,
+            "image_url": b.get("image_url") or "",
+            "accent_color": b.get("accent_color") or ("#ffd700" if b.get("type") == "partner" else "#9146ff"),
+            "target_url": b.get("target_url") or "",
+            "cta_text": b.get("cta_text") or "Перейти",
+            "limit_label": b.get("limit_label") or "",
+            "disclaimer": b.get("disclaimer") or "Серия ограничена, проверяйте наличие у партнера",
+            "activations_count": 0,
+            "max_activations": None,
+        }
+        active_list.append(item)
+        if item["type"] == "internal":
+            internal_codes.append(code)
+
+    # Для наших внутренних кодов тянем реальные счётчики из cs_codes одним запросом
+    if internal_codes:
+        try:
+            in_filter = ",".join(f'"{c}"' for c in set(internal_codes))
+            cs_res = await supabase.get(
+                "/cs_codes",
+                params={
+                    "code": f"in.({in_filter})",
+                    "select": "code,activated_by_ids,used_by_ids,max_uses,is_active",
+                },
+            )
+            if cs_res.status_code == 200:
+                cs_map = {row["code"]: row for row in cs_res.json() if isinstance(row, dict)}
+                for item in active_list:
+                    if item["type"] == "internal" and item["code"] in cs_map:
+                        row = cs_map[item["code"]]
+                        used_by = row.get("used_by_ids") or []
+                        activated_by = row.get("activated_by_ids") or []
+                        item["activations_count"] = len(used_by) + len(activated_by)
+                        item["max_activations"] = row.get("max_uses")
+        except Exception as e:
+            logging.warning(f"[PROMO_BANNERS] Не удалось получить статистику cs_codes: {e}")
+
+    return active_list
+
 # =================================================================
 # ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ С ПОДДЕРЖКОЙ ПОДПИСКИ РОЗЫГРЫШЕЙ)
 # =================================================================
@@ -5286,6 +5451,8 @@ async def get_bootstrap_data(
             else []
         )
 
+        promo_banners = await resolve_active_promo_banners(global_settings, supabase)
+
         return {
             "user": {
                 "id": None,
@@ -5306,6 +5473,7 @@ async def get_bootstrap_data(
             },
             "challenge": None,
             "menu": menu_content,
+            "promo_banners": promo_banners,
             "quests": [],
             "weekly_goals": {
                 "goals": [],
@@ -5635,7 +5803,7 @@ async def get_bootstrap_data(
                 if "streak_days" in b_data[0]:
                     user_data["streak_days"] = b_data[0].get("streak_days", 1)
 
-               # 👇 ЗАПИСЫВАЕМ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ НАПРЯМУЮ ИЗ ТАБЛИЦЫ USERS 👇
+                # 👇 ЗАПИСЫВАЕМ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ НАПРЯМУЮ ИЗ ТАБЛИЦЫ USERS 👇
                 prem_until_raw = b_data[0].get("raffles_premium_until")
                 is_prem_active = False
                 if prem_until_raw:
@@ -5736,11 +5904,14 @@ async def get_bootstrap_data(
                 if isinstance(r, dict):
                     r["is_joined"] = r.get("id") in joined_ids
 
+        promo_banners = await resolve_active_promo_banners(global_settings, supabase)
+
         return {
             "user": user_data,
             "challenge": user_data.get("challenge"),
             "constructor": constructor_state,
             "menu": menu_content,
+            "promo_banners": promo_banners,
             "quests": quests_list,
             "weekly_goals": goals_data,
             "cauldron": cauldron_data,
