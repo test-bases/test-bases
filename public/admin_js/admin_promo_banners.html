@@ -9,7 +9,7 @@
     <style>
         :root {
             --bg: #09090b;
-            --card: rgba(18, 18, 24, 0.84);
+            --card: rgba(18, 18, 24, 0.86);
             --primary-purple: #7c3aed;
             --primary-purple-light: #c084fc;
             --text: #ffffff;
@@ -94,7 +94,11 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
+        .toggle-row:first-of-type { padding-top: 2px; }
+        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
         .toggle-info { display: flex; flex-direction: column; gap: 2px; }
         .toggle-title { font-size: 11.5px; font-weight: 700; color: #fff; }
         .toggle-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.3; }
@@ -128,125 +132,120 @@
             box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
         }
 
-        .field { margin-bottom: 8px; }
-        .field:last-child { margin-bottom: 0; }
-        .field-lbl {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 9.5px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-        .inp, .sel, .txt {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.38);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 9px;
-            padding: 8px 10px;
-            color: #ffffff;
-            font-size: 11.5px;
-            font-weight: 600;
-            outline: none;
-            font-family: inherit;
-            transition: border-color 0.15s;
-        }
-        .txt {
-            resize: vertical;
-            min-height: 76px;
-            font-family: 'SF Mono', Consolas, monospace;
-            font-size: 11px;
-            line-height: 1.45;
-        }
-        .inp:focus, .sel:focus, .txt:focus { border-color: rgba(251, 191, 36, 0.55); }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-        .item-card {
+        /* === КОМПАКТНАЯ КАРТОЧКА В СПИСКЕ === */
+        .compact-card {
             background: var(--card);
             border: 1px solid rgba(255, 255, 255, 0.09);
             border-radius: 13px;
-            padding: 11px;
-            margin-bottom: 10px;
+            padding: 10px 11px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        .item-card.is-partner { border-color: rgba(251, 191, 36, 0.25); }
-        .item-card.is-internal { border-color: rgba(145, 70, 255, 0.3); }
+        .compact-card.is-partner { border-left: 3px solid var(--gold); }
+        .compact-card.is-internal { border-left: 3px solid #9146ff; }
+        .compact-card.is-off { opacity: 0.55; }
 
-        .item-head {
+        .compact-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 9px;
-            padding-bottom: 7px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            gap: 8px;
         }
-        .item-head-left { display: flex; align-items: center; gap: 7px; }
-        .item-badge {
-            font-size: 8.5px;
+        .compact-info {
+            min-width: 0;
+            flex: 1;
+            cursor: pointer;
+        }
+        .compact-badges {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+        .pill {
+            font-size: 8px;
             font-weight: 800;
             text-transform: uppercase;
-            padding: 2.5px 7px;
+            padding: 2px 6px;
             border-radius: 5px;
-            background: rgba(145, 70, 255, 0.22);
-            color: #d8b4fe;
+            letter-spacing: 0.4px;
         }
-        .item-badge.gold { background: rgba(251, 191, 36, 0.18); color: var(--gold); }
-        .item-actions { display: flex; align-items: center; gap: 5px; }
+        .pill.gold { background: rgba(251, 191, 36, 0.16); color: var(--gold); }
+        .pill.purple { background: rgba(145, 70, 255, 0.22); color: #d8b4fe; }
+        .pill.live { background: rgba(52, 199, 89, 0.16); color: #4ade80; }
+        .pill.rest { background: rgba(255, 255, 255, 0.08); color: #a1a1aa; }
+
+        .compact-title {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .compact-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 3px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .code-chip {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 10px;
+            font-weight: 800;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 2px 6px;
+            border-radius: 5px;
+        }
+
+        .compact-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 7px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .action-btns { display: flex; align-items: center; gap: 5px; }
         .icon-btn {
-            width: 24px; height: 24px;
+            height: 26px;
+            min-width: 26px;
+            padding: 0 7px;
             border-radius: 7px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             background: rgba(255, 255, 255, 0.05);
-            color: #d4d4d8;
-            display: flex; align-items: center; justify-content: center;
+            color: #e4e4e7;
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px;
             font-size: 10px;
-            cursor: pointer;
-        }
-        .icon-btn:active { transform: scale(0.9); }
-        .icon-btn.del {
-            color: var(--danger);
-            border-color: rgba(255, 69, 58, 0.28);
-            background: rgba(255, 69, 58, 0.1);
-        }
-
-        /* ЖИВОЕ ПРЕВЬЮ БАННЕРА 1-В-1 КАК НА ГЛАВНОЙ */
-        .preview-box {
-            min-height: 122px;
-            border-radius: 14px;
-            padding: 11px 13px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 10px;
-        }
-
-        .presets-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-        .color-dot {
-            width: 20px; height: 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-        .color-dot.active { border-color: #ffffff; transform: scale(1.1); }
-
-        .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
-        .btn-add {
-            width: 100%;
-            padding: 10px 8px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px dashed rgba(192, 132, 252, 0.45);
-            color: var(--primary-purple-light);
-            font-size: 10.5px;
             font-weight: 700;
             cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 5px;
         }
-        .btn-add.gold { border-color: rgba(251, 191, 36, 0.45); color: var(--gold); }
-        .btn-add:active { transform: scale(0.97); }
+        .icon-btn:active { transform: scale(0.92); }
+        .icon-btn.edit { color: #c084fc; border-color: rgba(192, 132, 252, 0.32); background: rgba(139, 92, 246, 0.14); }
+        .icon-btn.copy { color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.1); }
+        .icon-btn.del { color: var(--danger); border-color: rgba(255, 69, 58, 0.28); background: rgba(255, 69, 58, 0.1); }
 
+        .btn-create {
+            width: 100%;
+            padding: 11px;
+            border-radius: 11px;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px dashed rgba(251, 191, 36, 0.45);
+            color: var(--gold);
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            margin-top: 4px;
+        }
+        .btn-create:active { transform: scale(0.97); }
+
+        /* === НИЖНЯЯ ПАНЕЛЬ === */
         .bottom-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -272,6 +271,7 @@
         }
         .btn-save:active { transform: scale(0.97); }
 
+        /* === МОДАЛКИ / ДИАЛОГИ === */
         .modal-overlay {
             position: fixed; inset: 0;
             background: rgba(4, 4, 7, 0.88);
@@ -281,19 +281,153 @@
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 12px;
         }
-        .modal-box { width: 92%; max-width: 310px; text-align: center; }
+        .dialog-card {
+            width: 100%;
+            max-width: 360px;
+            max-height: 88vh;
+            background: #141419;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.94) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .dialog-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+        .dialog-title { font-size: 13.5px; font-weight: 800; color: #fff; }
+        .dialog-close {
+            width: 26px; height: 26px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: #a1a1aa;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dialog-body {
+            padding: 12px 14px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+        }
+        .dialog-foot {
+            padding: 10px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Карточки выбора типа */
+        .type-choice-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: transform 0.12s;
+        }
+        .type-choice-btn:last-child { margin-bottom: 0; }
+        .type-choice-btn:active { transform: scale(0.97); }
+        .type-choice-btn.gold { border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.06); }
+        .type-choice-btn.purple { border-color: rgba(145, 70, 255, 0.4); background: rgba(145, 70, 255, 0.08); }
+        .type-ico {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+
+        /* Поля внутри диалога редактора */
+        .field { margin-bottom: 9px; }
+        .field:last-child { margin-bottom: 0; }
+        .field-lbl {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 9.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;
+        }
+        .inp, .sel, .txt {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            border-radius: 9px;
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 11.5px;
+            font-weight: 600;
+            outline: none;
+            font-family: inherit;
+        }
+        .txt {
+            resize: vertical;
+            min-height: 76px;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+        .inp:focus, .sel:focus, .txt:focus { border-color: rgba(251, 191, 36, 0.55); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .preview-box {
+            min-height: 116px;
+            border-radius: 13px;
+            padding: 11px 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .presets-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .color-dot {
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-dot.active { border-color: #ffffff; transform: scale(1.1); }
+
+        .m-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.68) 0%, rgba(109, 40, 217, 0.52) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.55);
+            color: #fff; font-size: 11.5px; font-weight: 800; cursor: pointer;
+        }
+        .m-btn.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.14);
+            color: #d4d4d8;
+        }
+
+        .notice-box { width: 92%; max-width: 300px; text-align: center; }
         .m-icon { font-size: 30px; margin-bottom: 8px; }
         .m-head { font-size: 14.5px; font-weight: 800; color: #fff; margin-bottom: 5px; }
         .m-desc { font-size: 11px; color: #f4f4f5; line-height: 1.45; margin-bottom: 14px; }
-        .m-btn {
-            width: 100%; padding: 9.5px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(109, 40, 217, 0.45) 100%);
-            border: 1px solid rgba(216, 180, 254, 0.55);
-            color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -313,52 +447,102 @@
 
     <main id="main-content">
         <div class="glass-card">
-            <div class="section-lbl">Глобальное управление</div>
+            <div class="section-lbl">Настройки показа</div>
+
             <div class="toggle-row">
                 <div class="toggle-info">
                     <span class="toggle-title">Показывать промо-баннеры</span>
-                    <span class="toggle-desc">Крутятся в главном слайдере у всех (включая админов)</span>
+                    <span class="toggle-desc">Активны в главном слайдере у всех (включая админов)</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="cfg-enabled" onchange="cfg.enabled = this.checked; updateStatusPill();">
                     <span class="slider"></span>
                 </label>
             </div>
-        </div>
 
-        <div class="glass-card" style="padding: 9px 11px;">
-            <div style="font-size: 10px; color: var(--text-muted); line-height: 1.45;">
-                <b style="color:#fff;">Как работает смена кодов каждый день (МСК):</b><br>
-                • Вписывай по одному коду на строку — они будут меняться каждый день в 00:00 МСК от даты старта.<br>
-                • Либо укажи точную дату: <code style="color:#fbbf24;">2026-11-25: TOPSKIN25</code>.<br>
-                • Для типа <b style="color:#c084fc;">Наш код</b> счётчик активаций подтягивается сам из <code>cs_codes</code>.
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <span class="toggle-title">Чётные / Нечётные числа</span>
+                    <span class="toggle-desc" id="parity-hint">Чётные числа = Партнёр • Нечётные = Наш код</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfg-alternate" onchange="cfg.alternate_even_odd = this.checked; updateParityHint(); renderList();">
+                    <span class="slider"></span>
+                </label>
             </div>
         </div>
 
-        <div id="banners-container"></div>
-
-        <div class="add-row">
-            <button class="btn-add gold" onclick="addBanner('partner')">
-                <i class="fa-solid fa-plus"></i> Партнерский
-            </button>
-            <button class="btn-add" onclick="addBanner('internal')">
-                <i class="fa-solid fa-plus"></i> Наш код (cs_codes)
-            </button>
+        <div class="section-lbl" style="padding: 0 2px;">
+            <span>Список баннеров</span>
+            <span id="banners-count" style="color:var(--text-muted);">0 шт.</span>
         </div>
+
+        <div id="banners-list"></div>
+
+        <button class="btn-create" onclick="openTypePicker()">
+            <i class="fa-solid fa-plus"></i> Создать баннер
+        </button>
     </main>
 
     <div class="bottom-bar">
         <button class="btn-save" id="save-btn" onclick="saveConfig()">
-            <i class="fa-solid fa-floppy-disk"></i> Сохранить баннеры
+            <i class="fa-solid fa-floppy-disk"></i> Сохранить изменения
         </button>
     </div>
 
-    <div id="modal" class="modal-overlay" onclick="if(event.target===this) closeModal()">
-        <div class="modal-box">
+    <!-- ДИАЛОГ 1: ВЫБОР ТИПА ПРИ СОЗДАНИИ -->
+    <div id="type-modal" class="modal-overlay" onclick="if(event.target===this) closeTypePicker()">
+        <div class="dialog-card" style="max-width: 330px;">
+            <div class="dialog-head">
+                <span class="dialog-title">Выберите тип баннера</span>
+                <button class="dialog-close" onclick="closeTypePicker()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dialog-body">
+                <button class="type-choice-btn gold" onclick="startCreateBanner('partner')">
+                    <div class="type-ico" style="background:rgba(251,191,36,0.16); color:#fbbf24;">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:12.5px; font-weight:800; color:#fbbf24;">Партнёрский</div>
+                        <div style="font-size:10px; color:#a1a1aa; margin-top:2px;">TopSkin и др. — копирование кода и переход на сайт</div>
+                    </div>
+                </button>
+
+                <button class="type-choice-btn purple" onclick="startCreateBanner('internal')">
+                    <div class="type-ico" style="background:rgba(145,70,255,0.2); color:#c084fc;">
+                        <i class="fa-solid fa-ticket-simple"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:12.5px; font-weight:800; color:#d8b4fe;">Наш код (HATElavka)</div>
+                        <div style="font-size:10px; color:#a1a1aa; margin-top:2px;">Активация в лавке + живой счётчик из cs_codes</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ДИАЛОГ 2: РЕДАКТОР КАРТОЧКИ БАННЕРА -->
+    <div id="editor-modal" class="modal-overlay" onclick="if(event.target===this) closeEditor()">
+        <div class="dialog-card">
+            <div class="dialog-head">
+                <span class="dialog-title" id="editor-title">Редактор баннера</span>
+                <button class="dialog-close" onclick="closeEditor()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dialog-body" id="editor-body"></div>
+            <div class="dialog-foot">
+                <button class="m-btn secondary" onclick="closeEditor()">Отмена</button>
+                <button class="m-btn" onclick="applyEditor()">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА УВЕДОМЛЕНИЙ -->
+    <div id="notice-modal" class="modal-overlay" onclick="if(event.target===this) closeNotice()">
+        <div class="notice-box">
             <div class="m-icon" id="m-icon"></div>
             <div class="m-head" id="m-head"></div>
             <div class="m-desc" id="m-desc"></div>
-            <button class="m-btn" onclick="closeModal()">Понятно</button>
+            <button class="m-btn" style="width:100%;" onclick="closeNotice()">Понятно</button>
         </div>
     </div>
 
@@ -373,7 +557,9 @@
 
         const COLOR_PRESETS = ['#ffd700', '#9146ff', '#34c759', '#ff9500', '#00c7be', '#ff453a', '#2aabee'];
 
-        let cfg = { enabled: true, banners: [] };
+        let cfg = { enabled: true, alternate_even_odd: false, banners: [] };
+        let editingIndex = null; // null = создание нового
+        let draft = null;
 
         function goBack() {
             if (window.history.length > 1) window.history.back();
@@ -388,13 +574,24 @@
             return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
         }
 
-        function getTodayMskStr() {
+        function getTodayMskDate() {
             const now = new Date();
-            const msk = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+            return new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+        }
+
+        function getTodayMskStr() {
+            const msk = getTodayMskDate();
             const y = msk.getFullYear();
             const m = String(msk.getMonth() + 1).padStart(2, '0');
             const d = String(msk.getDate()).padStart(2, '0');
             return `${y}-${m}-${d}`;
+        }
+
+        function isBannerActiveToday(b) {
+            if (b.enabled === false) return false;
+            if (!cfg.alternate_even_odd) return true;
+            const isEven = getTodayMskDate().getDate() % 2 === 0;
+            return isEven ? b.type === 'partner' : b.type === 'internal';
         }
 
         function pickTodayCode(b) {
@@ -415,26 +612,27 @@
                     plain.push(line);
                 }
             }
-            if (!plain.length) return 'НЕТ КОДА НА СЕГОДНЯ';
+            if (!plain.length) return 'НЕТ НА СЕГОДНЯ';
 
             const startStr = b.start_date || todayStr;
             const dToday = new Date(todayStr + 'T00:00:00Z');
             const dStart = new Date(startStr + 'T00:00:00Z');
             const diffDays = isNaN(dStart.getTime()) ? 0 : Math.floor((dToday - dStart) / 86400000);
-            const idx = ((diffDays % plain.length) + plain.length) % plain.length;
+            const step = cfg.alternate_even_odd ? Math.floor(diffDays / 2) : diffDays;
+            const idx = ((step % plain.length) + plain.length) % plain.length;
             return plain[idx];
         }
 
-        function showModal(type, title, desc) {
+        function showNotice(type, title, desc) {
             const isOk = type === 'success';
             document.getElementById('m-icon').innerHTML = isOk
                 ? '<i class="fa-solid fa-circle-check" style="color:#34c759;"></i>'
                 : '<i class="fa-solid fa-circle-exclamation" style="color:#ff453a;"></i>';
             document.getElementById('m-head').textContent = title;
             document.getElementById('m-desc').innerHTML = desc;
-            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('notice-modal').style.display = 'flex';
         }
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function closeNotice() { document.getElementById('notice-modal').style.display = 'none'; }
 
         function updateStatusPill() {
             const pill = document.getElementById('status-pill');
@@ -446,6 +644,17 @@
                 pill.textContent = 'ВЫКЛЮЧЕНО';
                 pill.style.background = 'rgba(255, 69, 58, 0.14)';
                 pill.style.color = '#ff453a';
+            }
+        }
+
+        function updateParityHint() {
+            const el = document.getElementById('parity-hint');
+            const dayNum = getTodayMskDate().getDate();
+            const isEven = dayNum % 2 === 0;
+            if (cfg.alternate_even_odd) {
+                el.innerHTML = `Сегодня <b style="color:#fff;">${dayNum} число</b> (${isEven ? 'чётное' : 'нечётное'}) → <b style="color:${isEven ? '#fbbf24' : '#c084fc'};">${isEven ? 'Партнёр' : 'Наш код'}</b>`;
+            } else {
+                el.textContent = 'Чётные числа = Партнёр • Нечётные = Наш код';
             }
         }
 
@@ -487,100 +696,57 @@
             `;
         }
 
-        function refreshPreview(i) {
-            const el = document.getElementById(`preview-wrap-${i}`);
-            if (el && cfg.banners[i]) el.innerHTML = buildPreviewHtml(cfg.banners[i]);
-        }
-
-        function renderBanners() {
-            const box = document.getElementById('banners-container');
+        function renderList() {
             const list = cfg.banners || [];
+            document.getElementById('banners-count').textContent = `${list.length} шт.`;
+            const box = document.getElementById('banners-list');
+
             if (!list.length) {
-                box.innerHTML = `<div class="glass-card" style="text-align:center; color:var(--text-muted); font-size:11px; padding:18px;">Баннеров пока нет. Добавь партнерский или наш код ниже.</div>`;
+                box.innerHTML = `<div class="glass-card" style="text-align:center; color:var(--text-muted); font-size:11px; padding:20px;">Баннеров пока нет. Нажми «Создать баннер» ниже.</div>`;
                 return;
             }
 
             box.innerHTML = list.map((b, i) => {
                 const isPartner = b.type === 'partner';
-                const codesText = Array.isArray(b.codes) ? b.codes.join('\n') : (b.codes || '');
+                const activeToday = isBannerActiveToday(b);
+                const codeToday = pickTodayCode(b);
+                const codesCount = Array.isArray(b.codes) ? b.codes.length : 0;
+
+                const dayPill = cfg.alternate_even_odd
+                    ? (activeToday
+                        ? `<span class="pill live">Сегодня в эфире</span>`
+                        : `<span class="pill rest">${isPartner ? 'По чётным' : 'По нечётным'}</span>`)
+                    : '';
+
                 return `
-                    <div class="item-card ${isPartner ? 'is-partner' : 'is-internal'}">
-                        <div class="item-head">
-                            <div class="item-head-left">
-                                <span class="item-badge ${isPartner ? 'gold' : ''}">${isPartner ? 'Партнер' : 'Наш код'}</span>
-                                <label class="switch" style="transform:scale(0.82); transform-origin:left center;">
-                                    <input type="checkbox" ${b.enabled !== false ? 'checked' : ''} onchange="cfg.banners[${i}].enabled = this.checked;">
-                                    <span class="slider"></span>
-                                </label>
+                    <div class="compact-card ${isPartner ? 'is-partner' : 'is-internal'} ${b.enabled === false ? 'is-off' : ''}">
+                        <div class="compact-top">
+                            <div class="compact-info" onclick="openEditor(${i})">
+                                <div class="compact-badges">
+                                    <span class="pill ${isPartner ? 'gold' : 'purple'}">${isPartner ? 'Партнер' : 'Наш код'}</span>
+                                    ${dayPill}
+                                </div>
+                                <div class="compact-title">${esc(b.title || 'Без названия')}</div>
+                                <div class="compact-meta">
+                                    <span class="code-chip">${esc(codeToday)}</span>
+                                    <span>Кодов: ${codesCount}</span>
+                                </div>
                             </div>
-                            <div class="item-actions">
+                            <label class="switch">
+                                <input type="checkbox" ${b.enabled !== false ? 'checked' : ''} onchange="cfg.banners[${i}].enabled = this.checked; renderList();">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="compact-actions">
+                            <div class="action-btns">
+                                <button class="icon-btn edit" onclick="openEditor(${i})"><i class="fa-solid fa-pen"></i> Изменить</button>
+                                <button class="icon-btn copy" onclick="duplicateBanner(${i})" title="Копировать баннер"><i class="fa-regular fa-copy"></i> Копия</button>
+                            </div>
+                            <div class="action-btns">
                                 <button class="icon-btn" onclick="moveBanner(${i}, -1)" title="Вверх"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button class="icon-btn" onclick="moveBanner(${i}, 1)" title="Вниз"><i class="fa-solid fa-arrow-down"></i></button>
                                 <button class="icon-btn del" onclick="removeBanner(${i})" title="Удалить"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-
-                        <div id="preview-wrap-${i}">${buildPreviewHtml(b)}</div>
-
-                        <div class="grid-2" style="margin-bottom:8px;">
-                            <div class="field" style="margin:0;">
-                                <label class="field-lbl">Тип баннера</label>
-                                <select class="sel" onchange="cfg.banners[${i}].type = this.value; renderBanners();">
-                                    <option value="partner" ${isPartner ? 'selected' : ''}>Партнер (внешний)</option>
-                                    <option value="internal" ${!isPartner ? 'selected' : ''}>Наш код (cs_codes)</option>
-                                </select>
-                            </div>
-                            <div class="field" style="margin:0;">
-                                <label class="field-lbl">Дата старта ротации</label>
-                                <input class="inp" type="date" value="${esc(b.start_date || getTodayMskStr())}" onchange="cfg.banners[${i}].start_date = this.value; refreshPreview(${i});">
-                            </div>
-                        </div>
-
-                        <div class="field">
-                            <label class="field-lbl">Название сверху</label>
-                            <input class="inp" value="${esc(b.title)}" oninput="cfg.banners[${i}].title = this.value; refreshPreview(${i});" placeholder="${isPartner ? 'Промокод TopSkin' : 'Бесплатный кейс дня'}">
-                        </div>
-
-                        <div class="field">
-                            <label class="field-lbl">
-                                <span>Коды (по 1 на день)</span>
-                                <span style="color:var(--gold);">Сегодня: ${esc(pickTodayCode(b))}</span>
-                            </label>
-                            <textarea class="txt" oninput="updateCodes(${i}, this.value)" placeholder="CODE1&#10;CODE2&#10;2026-11-26: SPECIAL">${esc(codesText)}</textarea>
-                        </div>
-
-                        ${isPartner ? `
-                            <div class="grid-2" style="margin-bottom:8px;">
-                                <div class="field" style="margin:0;">
-                                    <label class="field-lbl">Ссылка партнера</label>
-                                    <input class="inp" value="${esc(b.target_url)}" oninput="cfg.banners[${i}].target_url = this.value;" placeholder="https://topskin...">
-                                </div>
-                                <div class="field" style="margin:0;">
-                                    <label class="field-lbl">Текст кнопки</label>
-                                    <input class="inp" value="${esc(b.cta_text || 'Перейти')}" oninput="cfg.banners[${i}].cta_text = this.value; refreshPreview(${i});" placeholder="На TopSkin">
-                                </div>
-                            </div>
-                            <div class="grid-2" style="margin-bottom:8px;">
-                                <div class="field" style="margin:0;">
-                                    <label class="field-lbl">Лимит (текстом, опц.)</label>
-                                    <input class="inp" value="${esc(b.limit_label || '')}" oninput="cfg.banners[${i}].limit_label = this.value; refreshPreview(${i});" placeholder="50 шт.">
-                                </div>
-                                <div class="field" style="margin:0;">
-                                    <label class="field-lbl">Подпись снизу</label>
-                                    <input class="inp" value="${esc(b.disclaimer || '')}" oninput="cfg.banners[${i}].disclaimer = this.value; refreshPreview(${i});" placeholder="Серия ограничена...">
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        <div class="field">
-                            <label class="field-lbl">URL фоновой картинки</label>
-                            <input class="inp" value="${esc(b.image_url || '')}" oninput="cfg.banners[${i}].image_url = this.value; refreshPreview(${i});" placeholder="https://.../banner.jpg">
-                        </div>
-
-                        <div class="field">
-                            <label class="field-lbl">Акцентный цвет</label>
-                            <div class="presets-row">
-                                ${COLOR_PRESETS.map(c => `<div class="color-dot ${(b.accent_color || '').toLowerCase() === c ? 'active' : ''}" style="background:${c};" onclick="cfg.banners[${i}].accent_color='${c}'; renderBanners();"></div>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -588,15 +754,20 @@
             }).join('');
         }
 
-        function updateCodes(i, rawVal) {
-            cfg.banners[i].codes = rawVal.split('\n').map(s => s.trim()).filter(Boolean);
-            refreshPreview(i);
+        // === ВЫБОР ТИПА ===
+        function openTypePicker() {
+            haptic('light');
+            document.getElementById('type-modal').style.display = 'flex';
+        }
+        function closeTypePicker() {
+            document.getElementById('type-modal').style.display = 'none';
         }
 
-        function addBanner(type) {
-            haptic('light');
+        function startCreateBanner(type) {
+            closeTypePicker();
             const isPartner = type === 'partner';
-            cfg.banners.push({
+            editingIndex = null;
+            draft = {
                 id: 'promo_' + Date.now().toString(36),
                 enabled: true,
                 type: type,
@@ -609,14 +780,132 @@
                 cta_text: isPartner ? 'Перейти' : '',
                 limit_label: isPartner ? '50 активаций' : '',
                 disclaimer: isPartner ? 'Серия ограничена, проверяйте наличие у партнера' : ''
-            });
-            renderBanners();
+            };
+            renderEditorBody();
+            document.getElementById('editor-title').textContent = isPartner ? 'Новый партнёрский баннер' : 'Новый наш промокод';
+            document.getElementById('editor-modal').style.display = 'flex';
+        }
+
+        // === РЕДАКТОР В ДИАЛОГЕ ===
+        function openEditor(i) {
+            haptic('light');
+            editingIndex = i;
+            draft = JSON.parse(JSON.stringify(cfg.banners[i]));
+            renderEditorBody();
+            document.getElementById('editor-title').textContent = draft.type === 'partner' ? 'Редактор: Партнёр' : 'Редактор: Наш код';
+            document.getElementById('editor-modal').style.display = 'flex';
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-modal').style.display = 'none';
+            draft = null;
+            editingIndex = null;
+        }
+
+        function refreshDraftPreview() {
+            const wrap = document.getElementById('draft-preview-wrap');
+            if (wrap && draft) wrap.innerHTML = buildPreviewHtml(draft);
+            const todayLbl = document.getElementById('draft-today-code');
+            if (todayLbl && draft) todayLbl.textContent = 'Сегодня: ' + pickTodayCode(draft);
+        }
+
+        function renderEditorBody() {
+            const isPartner = draft.type === 'partner';
+            const codesText = Array.isArray(draft.codes) ? draft.codes.join('\n') : (draft.codes || '');
+
+            document.getElementById('editor-body').innerHTML = `
+                <div id="draft-preview-wrap">${buildPreviewHtml(draft)}</div>
+
+                <div class="grid-2" style="margin-bottom:9px;">
+                    <div class="field" style="margin:0;">
+                        <label class="field-lbl">Тип</label>
+                        <select class="sel" onchange="draft.type = this.value; renderEditorBody();">
+                            <option value="partner" ${isPartner ? 'selected' : ''}>Партнёр</option>
+                            <option value="internal" ${!isPartner ? 'selected' : ''}>Наш код (cs_codes)</option>
+                        </select>
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label class="field-lbl">Дата старта</label>
+                        <input class="inp" type="date" value="${esc(draft.start_date || getTodayMskStr())}" onchange="draft.start_date = this.value; refreshDraftPreview();">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="field-lbl">Название сверху</label>
+                    <input class="inp" value="${esc(draft.title)}" oninput="draft.title = this.value; refreshDraftPreview();" placeholder="${isPartner ? 'Промокод TopSkin' : 'Бесплатный кейс дня'}">
+                </div>
+
+                <div class="field">
+                    <label class="field-lbl">
+                        <span>Коды (1 строка = 1 день)</span>
+                        <span id="draft-today-code" style="color:var(--gold);">Сегодня: ${esc(pickTodayCode(draft))}</span>
+                    </label>
+                    <textarea class="txt" oninput="draft.codes = this.value.split('\\n').map(s=>s.trim()).filter(Boolean); refreshDraftPreview();" placeholder="CODE1&#10;CODE2&#10;2026-11-26: SPECIAL">${esc(codesText)}</textarea>
+                </div>
+
+                ${isPartner ? `
+                    <div class="grid-2" style="margin-bottom:9px;">
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Ссылка партнёра</label>
+                            <input class="inp" value="${esc(draft.target_url)}" oninput="draft.target_url = this.value;" placeholder="https://topskin...">
+                        </div>
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Текст кнопки</label>
+                            <input class="inp" value="${esc(draft.cta_text || 'Перейти')}" oninput="draft.cta_text = this.value; refreshDraftPreview();">
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-bottom:9px;">
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Лимит (текст, опц.)</label>
+                            <input class="inp" value="${esc(draft.limit_label || '')}" oninput="draft.limit_label = this.value; refreshDraftPreview();" placeholder="50 шт.">
+                        </div>
+                        <div class="field" style="margin:0;">
+                            <label class="field-lbl">Подпись снизу</label>
+                            <input class="inp" value="${esc(draft.disclaimer || '')}" oninput="draft.disclaimer = this.value; refreshDraftPreview();" placeholder="Серия ограничена...">
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="field">
+                    <label class="field-lbl">URL фоновой картинки</label>
+                    <input class="inp" value="${esc(draft.image_url || '')}" oninput="draft.image_url = this.value; refreshDraftPreview();" placeholder="https://.../banner.jpg">
+                </div>
+
+                <div class="field">
+                    <label class="field-lbl">Акцентный цвет</label>
+                    <div class="presets-row">
+                        ${COLOR_PRESETS.map(c => `<div class="color-dot ${(draft.accent_color || '').toLowerCase() === c ? 'active' : ''}" style="background:${c};" onclick="draft.accent_color='${c}'; renderEditorBody();"></div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function applyEditor() {
+            if (!draft) return;
+            haptic('medium');
+            if (editingIndex === null) {
+                cfg.banners.push(draft);
+            } else {
+                cfg.banners[editingIndex] = draft;
+            }
+            closeEditor();
+            renderList();
+        }
+
+        // === КОПИРОВАНИЕ, УДАЛЕНИЕ, СОРТИРОВКА ===
+        function duplicateBanner(i) {
+            haptic('medium');
+            const clone = JSON.parse(JSON.stringify(cfg.banners[i]));
+            clone.id = 'promo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+            clone.title = (clone.title || 'Баннер') + ' (копия)';
+            cfg.banners.splice(i + 1, 0, clone);
+            renderList();
         }
 
         function removeBanner(i) {
             haptic('medium');
             cfg.banners.splice(i, 1);
-            renderBanners();
+            renderList();
         }
 
         function moveBanner(i, dir) {
@@ -626,9 +915,10 @@
             const tmp = cfg.banners[i];
             cfg.banners[i] = cfg.banners[next];
             cfg.banners[next] = tmp;
-            renderBanners();
+            renderList();
         }
 
+        // === ЗАГРУЗКА И СОХРАНЕНИЕ ===
         async function loadConfig() {
             try {
                 const res = await fetch('/api/v1/admin/promo_banners/get', {
@@ -641,10 +931,12 @@
                 if (data.config) cfg = data.config;
                 if (!Array.isArray(cfg.banners)) cfg.banners = [];
                 document.getElementById('cfg-enabled').checked = cfg.enabled !== false;
+                document.getElementById('cfg-alternate').checked = Boolean(cfg.alternate_even_odd);
                 updateStatusPill();
-                renderBanners();
+                updateParityHint();
+                renderList();
             } catch (e) {
-                showModal('error', 'Ошибка загрузки', esc(e.message));
+                showNotice('error', 'Ошибка загрузки', esc(e.message));
             }
         }
 
@@ -668,10 +960,10 @@
                 sessionStorage.removeItem('session_bootstrap');
 
                 try { tg?.HapticFeedback?.notificationOccurred('success'); } catch (e) {}
-                showModal('success', 'Сохранено', 'Промо-баннеры обновлены и сразу появятся в слайдере.');
+                showNotice('success', 'Сохранено', 'Настройки промо-баннеров обновлены и сразу применились в слайдере.');
             } catch (e) {
                 try { tg?.HapticFeedback?.notificationOccurred('error'); } catch (err) {}
-                showModal('error', 'Ошибка', esc(e.message));
+                showNotice('error', 'Ошибка', esc(e.message));
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = oldHtml;
