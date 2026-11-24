@@ -1089,6 +1089,8 @@ function renderPromoBanners(banners) {
 
     if (!hasNewSlides) return;
 
+    const fragment = document.createDocumentFragment();
+
     banners.forEach((b) => {
         const isPartner = b.type === 'partner';
         const safeCode = escapeHTML(b.code || '');
@@ -1160,8 +1162,11 @@ function renderPromoBanners(banners) {
             ${subInfoHtml}
         `;
 
-        wrapper.appendChild(slide);
+        fragment.appendChild(slide);
     });
+
+    // Вставляем промо-баннеры в самое начало слайдера
+    wrapper.prepend(fragment);
 }
 
 function updateShortcutStatuses(userData, allQuests) {
