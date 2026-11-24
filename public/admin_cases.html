@@ -43,6 +43,16 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* 🔒 Блокировка прокрутки нижнего экрана при открытых модалках */
+        body.modal-open {
+            overflow: hidden !important;
+            position: fixed;
+            width: 100%;
+            left: 0;
+            right: 0;
+            overscroll-behavior: none;
+        }
+
         /* HEADER */
         .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .back-btn { 
@@ -111,6 +121,9 @@
             gap: 8px; 
             padding-bottom: 90px;
         }
+        .items-grid.bulk-mode {
+            padding-bottom: 160px;
+        }
         @media (min-width: 601px) {
             .items-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
         }
@@ -118,7 +131,9 @@
         .item-card {
             background: var(--card-bg); border: 1px solid var(--card-border);
             border-radius: 13px; padding: 8px 7px 9px; position: relative; overflow: hidden;
-            cursor: pointer; transition: transform 0.1s; display: flex; flex-direction: column; justify-content: space-between;
+            cursor: pointer; transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            display: flex; flex-direction: column; justify-content: space-between;
+            user-select: none; -webkit-user-select: none;
         }
         .item-card:active { transform: scale(0.97); }
         
@@ -129,6 +144,69 @@
         .item-card[data-rarity="red"]::after { background: var(--r-red); }
         .item-card[data-rarity="gold"]::after { background: var(--r-gold); }
 
+        /* Чекбокс и выделение в режиме массовых шансов */
+        .bulk-check {
+            display: none;
+            position: absolute; top: 6px; left: 6px; z-index: 5;
+            width: 20px; height: 20px; border-radius: 6px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            color: transparent; font-size: 11px;
+            align-items: center; justify-content: center;
+            transition: 0.15s;
+        }
+        .items-grid.bulk-mode .bulk-check { display: flex; }
+        .items-grid.bulk-mode .badge-cond { opacity: 0; }
+        .items-grid.bulk-mode .item-card.selected {
+            border-color: #7ee787;
+            background: rgba(46, 160, 67, 0.18);
+            box-shadow: 0 0 0 1px rgba(126, 231, 135, 0.4), 0 4px 14px rgba(46, 160, 67, 0.22);
+        }
+        .items-grid.bulk-mode .item-card.selected .bulk-check {
+            background: #2ea043;
+            border-color: #7ee787;
+            color: #fff;
+        }
+
+        /* Нижняя панель массового выставления шансов */
+        .bulk-chance-bar {
+            position: fixed; left: 10px; right: 10px;
+            bottom: calc(12px + var(--safe-bottom));
+            z-index: 150;
+            background: rgba(20, 20, 24, 0.92);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(126, 231, 135, 0.35);
+            border-radius: 18px;
+            padding: 11px 12px;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+            display: none; flex-direction: column; gap: 9px;
+            animation: fadeIn 0.18s ease;
+        }
+        .bulk-chance-bar.active { display: flex; }
+        .bulk-bar-top {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .bulk-bar-count {
+            font-size: 12px; font-weight: 800; color: #7ee787;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .bulk-bar-actions {
+            display: flex; align-items: center; gap: 6px;
+        }
+        .bulk-mini-btn {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+            color: #fff; font-size: 11px; font-weight: 700;
+            padding: 5px 9px; border-radius: 8px; cursor: pointer;
+        }
+        .bulk-mini-btn:active { transform: scale(0.95); }
+        .bulk-bar-bottom {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .bulk-bar-bottom .form-input {
+            flex: 1; padding: 9px 11px; font-weight: 700;
+            background: #141414; border-color: rgba(255,255,255,0.14);
+        }
+
         .card-top-badges {
             display: flex; justify-content: space-between; align-items: center;
             gap: 4px; margin-bottom: 4px; width: 100%;
@@ -136,7 +214,7 @@
         .badge-cond {
             font-size: 8px; font-weight: 800; color: #ddd;
             background: rgba(255,255,255,0.08); padding: 2px 5px; border-radius: 5px;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.3px; transition: opacity 0.15s;
         }
         .badge-chance {
             font-size: 9px; font-weight: 800; color: #7ee787;
@@ -164,6 +242,7 @@
             position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000;
             display: none; align-items: flex-end;
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            overscroll-behavior: none;
         }
         .modal-active { display: flex; }
         .bottom-sheet { 
@@ -173,6 +252,7 @@
             width: 100%; border-radius: 22px 22px 0 0; 
             padding: 16px 14px calc(16px + var(--safe-bottom)); 
             max-height: calc(92vh - var(--safe-top)); overflow-y: auto; 
+            overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
             display: flex; flex-direction: column; gap: 10px;
             box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
         }
@@ -183,6 +263,7 @@
             display: none; align-items: center; justify-content: center;
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
             padding: calc(14px + var(--safe-top)) 14px calc(14px + var(--safe-bottom));
+            overscroll-behavior: none;
         }
         .center-modal.active { display: flex; }
         .center-box { 
@@ -190,13 +271,15 @@
             backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
             width: 100%; max-width: 390px; border-radius: 18px; padding: 15px; 
             box-shadow: 0 12px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.12); 
-            display: flex; flex-direction: column; max-height: 100%; 
+            display: flex; flex-direction: column; max-height: 100%;
+            overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
         }
 
         /* СПИСОК НЕСОЗДАННЫХ КЕЙСОВ В МОДАЛКЕ */
         .available-cases-list {
             display: flex; flex-direction: column; gap: 8px;
-            max-height: 280px; overflow-y: auto; padding-right: 4px; margin-bottom: 14px;
+            max-height: 280px; overflow-y: auto; overscroll-behavior: contain;
+            padding-right: 4px; margin-bottom: 14px;
         }
         .available-case-row {
             display: flex; align-items: center; gap: 10px;
@@ -273,6 +356,7 @@
         }
         .btn-save { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; box-shadow: 0 3px 12px rgba(255, 215, 0, 0.22); }
         .btn-save:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-save:disabled { opacity: 0.5; pointer-events: none; }
         .btn-delete { background: rgba(255, 59, 48, 0.15); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3); }
         .btn-reroll { background: rgba(255, 215, 0, 0.14); color: var(--primary); border: 1px solid rgba(255, 215, 0, 0.3); }
         .icon-btn { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; position: relative; font-size: 13px; }
@@ -382,7 +466,32 @@
         </div>
     </div>
 
+    <!-- ПАНЕЛЬ МАССОВОГО ВЫСТАВЛЕНИЯ ШАНСОВ -->
+    <div id="bulk-chance-bar" class="bulk-chance-bar">
+        <div class="bulk-bar-top">
+            <div class="bulk-bar-count">
+                <i class="fa-solid fa-percent"></i>
+                <span id="bulk-selected-count">Выбрано: 0</span>
+            </div>
+            <div class="bulk-bar-actions">
+                <button type="button" id="bulk-select-all-btn" class="bulk-mini-btn" onclick="toggleSelectAllBulk()">Выбрать все</button>
+                <button type="button" class="bulk-mini-btn" onclick="exitBulkChanceMode()" style="color:var(--text-sec);">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <div class="bulk-bar-bottom">
+            <input type="number" id="bulk-chance-input" class="form-input" placeholder="Шанс % (каждому)" step="any" inputmode="decimal" onkeydown="if(event.key==='Enter'){ event.preventDefault(); applyBulkChance(); }">
+            <button type="button" id="bulk-apply-btn" class="admin-action-btn btn-save" onclick="applyBulkChance()" style="flex: 0 0 auto; padding: 10px 14px;" disabled>
+                <i class="fa-solid fa-check"></i> ПРИМЕНИТЬ
+            </button>
+        </div>
+    </div>
+
     <div class="fab-container" id="fabMenu">
+        <div class="fab-option" onclick="enterBulkChanceMode()" style="color: #7ee787; border-color: rgba(46, 160, 67, 0.5);">
+            <span>Массовые шансы</span> <i class="fa-solid fa-percent"></i>
+        </div>
         <div class="fab-option" onclick="openGeneratorModal()" style="color: var(--primary); border-color: var(--primary);">
             <span>Умная сборка</span> <i class="fa-solid fa-bolt"></i>
         </div>
@@ -434,7 +543,7 @@
                 <button onclick="closeGlobalReskinModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div style="overflow-y: auto; padding-right: 4px; margin-bottom: 12px;">
+            <div style="overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; margin-bottom: 12px;">
                 <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 12px; text-align: center; line-height: 1.4;">
                     Заменит скины на случайные за <b>ту же цену</b>. Цены и шансы останутся без изменений.
                 </div>
@@ -645,7 +754,7 @@
                 </div>
             </div>
 
-            <div id="lib-results" style="flex:1; overflow-y: auto; margin-top:4px;" onscroll="handleScroll(this)">
+            <div id="lib-results" style="flex:1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-top:4px;" onscroll="handleScroll(this)">
                 <div style="text-align:center; color:var(--text-sec); padding:20px;">Загрузка...</div>
             </div>
         </div>
@@ -800,7 +909,6 @@
                             <i class="fa-solid fa-magnifying-glass"></i> СКЛАД
                         </button>
                     </div>
-                    </div>
                     <button type="submit" class="admin-action-btn btn-save" style="width: 100%;">
                         <i class="fa-solid fa-check"></i> СОХРАНИТЬ С НАСТРОЙКАМИ
                     </button>
@@ -815,6 +923,7 @@
         tg.expand();
 
         let currentCase = null; 
+        let currentCaseItems = [];
         let searchTimeout = null;
         let currentOffset = 0;
         let isFetching = false;
@@ -823,9 +932,32 @@
         let preservedWeight = null;
         let genReplaceMode = false;
 
+        // Режим массового выставления шансов
+        let bulkMode = false;
+        let selectedItemIndices = new Set();
+
+        // Блокировка скролла фона
+        let isBodyScrollLocked = false;
+        let savedScrollY = 0;
+
         let shopCasesCache = [];
         let existingCaseTags = new Set();
         let chanceProfilePoints = [];
+
+        function syncBodyScrollLock() {
+            const hasOpenModal = Boolean(document.querySelector('.modal-overlay.modal-active, .center-modal.active'));
+            if (hasOpenModal && !isBodyScrollLocked) {
+                savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+                document.body.style.top = `-${savedScrollY}px`;
+                document.body.classList.add('modal-open');
+                isBodyScrollLocked = true;
+            } else if (!hasOpenModal && isBodyScrollLocked) {
+                document.body.classList.remove('modal-open');
+                document.body.style.top = '';
+                window.scrollTo(0, savedScrollY);
+                isBodyScrollLocked = false;
+            }
+        }
 
         function cleanCaseTitle(rawName) {
             let displayName = (rawName || '').trim();
@@ -945,9 +1077,151 @@
         loadCases();
         loadChanceProfile();
 
+        // 🔥 МАССОВОЕ ВЫСТАВЛЕНИЕ ШАНСОВ
+        function enterBulkChanceMode() {
+            if (document.getElementById('fabMenu').classList.contains('fab-menu-open')) toggleFab();
+            if (!currentCaseItems || currentCaseItems.length === 0) {
+                return tg.showAlert("В кейсе пока нет скинов для выделения.");
+            }
+            bulkMode = true;
+            selectedItemIndices.clear();
+            document.getElementById('fabMenu').classList.remove('show');
+            document.getElementById('bulk-chance-bar').classList.add('active');
+            document.getElementById('bulk-chance-input').value = '';
+            const grid = document.querySelector('#itemsContainer .items-grid');
+            if (grid) {
+                grid.classList.add('bulk-mode');
+                grid.querySelectorAll('.item-card.selected').forEach(c => c.classList.remove('selected'));
+            }
+            updateBulkBarUI();
+            tg.HapticFeedback?.impactOccurred('light');
+        }
+
+        function exitBulkChanceMode() {
+            bulkMode = false;
+            selectedItemIndices.clear();
+            document.getElementById('bulk-chance-bar').classList.remove('active');
+            if (currentCase) document.getElementById('fabMenu').classList.add('show');
+            const grid = document.querySelector('#itemsContainer .items-grid');
+            if (grid) {
+                grid.classList.remove('bulk-mode');
+                grid.querySelectorAll('.item-card.selected').forEach(c => c.classList.remove('selected'));
+            }
+        }
+
+        function toggleSelectAllBulk() {
+            const grid = document.querySelector('#itemsContainer .items-grid');
+            if (!grid || currentCaseItems.length === 0) return;
+
+            if (selectedItemIndices.size === currentCaseItems.length) {
+                selectedItemIndices.clear();
+                grid.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+            } else {
+                currentCaseItems.forEach((_, idx) => selectedItemIndices.add(idx));
+                grid.querySelectorAll('.item-card').forEach(c => c.classList.add('selected'));
+            }
+            updateBulkBarUI();
+            tg.HapticFeedback?.selectionChanged();
+        }
+
+        function updateBulkBarUI() {
+            const count = selectedItemIndices.size;
+            document.getElementById('bulk-selected-count').innerText = `Выбрано: ${count}`;
+            document.getElementById('bulk-apply-btn').disabled = count === 0;
+            const allBtn = document.getElementById('bulk-select-all-btn');
+            allBtn.innerText = (count > 0 && count === currentCaseItems.length) ? 'Снять все' : 'Выбрать все';
+        }
+
+        function handleItemCardClick(idx, cardEl) {
+            if (bulkMode) {
+                if (selectedItemIndices.has(idx)) {
+                    selectedItemIndices.delete(idx);
+                    cardEl.classList.remove('selected');
+                } else {
+                    selectedItemIndices.add(idx);
+                    cardEl.classList.add('selected');
+                }
+                updateBulkBarUI();
+                tg.HapticFeedback?.selectionChanged();
+            } else {
+                const item = currentCaseItems[idx];
+                if (item) openEditor(item);
+            }
+        }
+
+        async function applyBulkChance() {
+            if (selectedItemIndices.size === 0) return;
+            const rawVal = document.getElementById('bulk-chance-input').value.toString().replace(',', '.').trim();
+            const newChance = parseFloat(rawVal);
+
+            if (isNaN(newChance) || newChance <= 0) {
+                return tg.showAlert("Введите корректный шанс больше 0!");
+            }
+
+            const applyBtn = document.getElementById('bulk-apply-btn');
+            const oldHtml = applyBtn.innerHTML;
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            const targets = Array.from(selectedItemIndices)
+                .map(i => currentCaseItems[i])
+                .filter(Boolean);
+
+            let failed = 0;
+            const batchSize = 5;
+
+            try {
+                for (let i = 0; i < targets.length; i += batchSize) {
+                    const batch = targets.slice(i, i + batchSize);
+                    const results = await Promise.all(batch.map(item => {
+                        const payload = {
+                            id: item.id || null,
+                            name: item.name,
+                            image_url: item.image_url || '',
+                            price: parseFloat(item.price) || 0,
+                            price_rub: parseFloat(item.price_rub) || 0,
+                            chance_weight: newChance,
+                            rarity: item.rarity || 'blue',
+                            condition: item.condition || null,
+                            case_tag: currentCase,
+                            market_hash_name: item.market_hash_name || item.name
+                        };
+                        return fetch('/api/v1/admin/cases/save_item', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).then(r => r.ok).catch(() => false);
+                    }));
+                    failed += results.filter(ok => !ok).length;
+                }
+
+                exitBulkChanceMode();
+                await loadItems(currentCase);
+                loadChanceProfile();
+
+                if (failed === 0) {
+                    tg.HapticFeedback?.notificationOccurred('success');
+                } else {
+                    tg.HapticFeedback?.notificationOccurred('warning');
+                    tg.showAlert(`Обновлено ${targets.length - failed} из ${targets.length} скинов.`);
+                }
+            } catch (e) {
+                tg.showAlert("Сбой при массовом обновлении шансов.");
+            } finally {
+                applyBtn.innerHTML = oldHtml;
+                applyBtn.disabled = false;
+            }
+        }
+
         // 🔥 ГЛОБАЛЬНЫЙ РЕСКИН И БЫСТРЫЙ РЕСКИН ТЕКУЩЕГО КЕЙСА
-        function openGlobalReskinModal() { document.getElementById('modal-global-reskin').classList.add('active'); }
-        function closeGlobalReskinModal() { document.getElementById('modal-global-reskin').classList.remove('active'); }
+        function openGlobalReskinModal() {
+            document.getElementById('modal-global-reskin').classList.add('active');
+            syncBodyScrollLock();
+        }
+        function closeGlobalReskinModal() {
+            document.getElementById('modal-global-reskin').classList.remove('active');
+            syncBodyScrollLock();
+        }
 
         function reskinCurrentCaseQuick() {
             toggleFab();
@@ -1125,8 +1399,13 @@
         }
 
         function handleBack() {
+            if (bulkMode) {
+                exitBulkChanceMode();
+                return;
+            }
             if (currentCase) {
                 currentCase = null;
+                currentCaseItems = [];
                 document.getElementById('view-items').classList.remove('active');
                 document.getElementById('view-cases').classList.add('active');
                 document.getElementById('page-title').innerText = 'Кейсы';
@@ -1252,9 +1531,13 @@
                 });
             }
             document.getElementById('modal-create-case').classList.add('active');
+            syncBodyScrollLock();
         }
 
-        function closeCreateCaseModal() { document.getElementById('modal-create-case').classList.remove('active'); }
+        function closeCreateCaseModal() {
+            document.getElementById('modal-create-case').classList.remove('active');
+            syncBodyScrollLock();
+        }
 
         function selectShopCaseToCreate(rawName) {
             const clean = cleanCaseTitle(rawName);
@@ -1272,6 +1555,7 @@
         }
 
         function openCaseView(tagName) {
+            exitBulkChanceMode();
             currentCase = tagName;
             document.getElementById('page-title').innerText = cleanCaseTitle(tagName);
             document.getElementById('view-cases').classList.remove('active');
@@ -1297,24 +1581,27 @@
                     body: JSON.stringify({case_tag: tag})
                 });
                 const items = await res.json();
-                if (items.length === 0) {
+                if (!items || items.length === 0) {
+                    currentCaseItems = [];
                     cont.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sec);">В кейсе пока пусто</div>';
                     return;
                 }
 
                 items.sort((a, b) => (parseFloat(b.price_rub || b.price) || 0) - (parseFloat(a.price_rub || a.price) || 0));
+                currentCaseItems = items;
 
-                let html = '<div class="items-grid">';
-                items.forEach(item => {
-                    const safeJson = encodeURIComponent(JSON.stringify(item));
+                let html = `<div class="items-grid${bulkMode ? ' bulk-mode' : ''}">`;
+                items.forEach((item, idx) => {
                     const condBadge = item.condition && item.condition !== '-' ? `<span class="badge-cond">${item.condition}</span>` : `<span></span>`;
                     const rubVal = parseFloat(item.price_rub || 0);
                     const rubStr = rubVal < 10 ? rubVal.toFixed(2).replace(/\.00$/, '') : Math.round(rubVal);
                     const tixVal = parseFloat(item.price || 0);
                     const tixStr = tixVal < 10 ? tixVal.toFixed(1).replace(/\.0$/, '') : Math.round(tixVal);
+                    const isSelected = bulkMode && selectedItemIndices.has(idx);
 
                     html += `
-                    <div class="item-card" data-rarity="${item.rarity}" onclick="openEditor('${safeJson}')">
+                    <div class="item-card${isSelected ? ' selected' : ''}" data-rarity="${item.rarity}" onclick="handleItemCardClick(${idx}, this)">
+                        <div class="bulk-check"><i class="fa-solid fa-check"></i></div>
                         <div class="card-top-badges">
                             ${condBadge}
                             <span class="badge-chance">${item.chance_weight}%</span>
@@ -1368,8 +1655,14 @@
             badge.style.display = count > 0 ? 'flex' : 'none';
         }
 
-        function openLibFiltersModal() { document.getElementById('modal-lib-filters').classList.add('active'); }
-        function closeLibFiltersModal() { document.getElementById('modal-lib-filters').classList.remove('active'); }
+        function openLibFiltersModal() {
+            document.getElementById('modal-lib-filters').classList.add('active');
+            syncBodyScrollLock();
+        }
+        function closeLibFiltersModal() {
+            document.getElementById('modal-lib-filters').classList.remove('active');
+            syncBodyScrollLock();
+        }
 
         function applyLibFilters() {
             updateFilterBadge();
@@ -1397,6 +1690,7 @@
         function openLibrarySearch() {
             toggleFab();
             document.getElementById('modal-library').classList.add('modal-active');
+            syncBodyScrollLock();
             document.getElementById('lib-search-inp').value = '';
             document.getElementById('lib-price-min').value = '0.01';
             document.getElementById('lib-price-max').value = '';
@@ -1557,19 +1851,19 @@
                 rarity: rarityMap[(item.rarity || 'blue').toLowerCase()] || 'blue',
                 condition: qualityCode
             };
-            openEditor(encodeURIComponent(JSON.stringify(editorItem)));
+            openEditor(editorItem);
             tg.HapticFeedback?.notificationOccurred('success');
         }
 
-        function openEditor(jsonStr) {
+        function openEditor(itemOrJson) {
             if (document.getElementById('fabMenu').classList.contains('fab-menu-open')) toggleFab();
             const modal = document.getElementById('modal-editor');
             const form = document.getElementById('edit-form');
             const delBtn = document.getElementById('btn-delete');
             const rerollBtn = document.getElementById('btn-reroll');
 
-            if (jsonStr) {
-                const item = JSON.parse(decodeURIComponent(jsonStr));
+            if (itemOrJson) {
+                const item = typeof itemOrJson === 'string' ? JSON.parse(decodeURIComponent(itemOrJson)) : itemOrJson;
                 form.id.value = item.id || '';
                 form.link_id.value = item.link_id || ''; 
                 form.market_hash_name.value = item.market_hash_name || item.name; 
@@ -1596,10 +1890,17 @@
             }
             updatePreview();
             modal.classList.add('modal-active');
+            syncBodyScrollLock();
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
-        function closeGeneratorModal() { document.getElementById('modal-generator').classList.remove('active'); }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('modal-active');
+            syncBodyScrollLock();
+        }
+        function closeGeneratorModal() {
+            document.getElementById('modal-generator').classList.remove('active');
+            syncBodyScrollLock();
+        }
 
         function updatePreview() {
             document.getElementById('p-img').src = document.getElementById('inp-img').value || 'https://placehold.co/100';
@@ -1654,6 +1955,7 @@
             recalcTierRangesFromBudget();
             toggleGenSmartChance();
             document.getElementById('modal-generator').classList.add('active');
+            syncBodyScrollLock();
         }
 
         function executeAutoGenerate() {
@@ -1737,6 +2039,7 @@
                 loadCases();
 
                 document.getElementById('modal-library').classList.add('modal-active');
+                syncBodyScrollLock();
                 document.getElementById('lib-search-inp').value = '';
                 document.getElementById('lib-price-min').value = Math.max(0.01, parseFloat((targetPriceRub * 0.8).toFixed(2)));
                 document.getElementById('lib-price-max').value = parseFloat((targetPriceRub * 1.2).toFixed(2));
