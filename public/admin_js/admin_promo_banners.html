@@ -558,6 +558,7 @@
         const COLOR_PRESETS = ['#ffd700', '#9146ff', '#34c759', '#ff9500', '#00c7be', '#ff453a', '#2aabee'];
 
         let cfg = { enabled: true, alternate_even_odd: false, banners: [] };
+        let csStats = {};
         let editingIndex = null; // null = создание нового
         let draft = null;
 
@@ -666,9 +667,19 @@
                 ? `background: linear-gradient(95deg, rgba(16,16,20,0.92) 0%, rgba(16,16,20,0.72) 55%, rgba(16,16,20,0.45) 100%), url('${esc(b.image_url)}') center/cover no-repeat;`
                 : `background: linear-gradient(135deg, #1f1f26 0%, #141418 100%);`;
 
-            const subHtml = isPartner
-                ? `<div style="font-size: 9px; color: rgba(255,255,255,0.65); line-height: 1.25; margin-top: 4px;">${b.limit_label ? `Лимит: ${esc(b.limit_label)} • ` : ''}${esc(b.disclaimer || 'Серия ограничена, проверяйте наличие у партнера')}</div>`
-                : `<div style="font-size: 9.5px; font-weight: 700; color: #4ade80; margin-top: 4px;"><i class="fa-solid fa-fire" style="margin-right:3px;"></i>Активировали: 0 из N (из cs_codes)</div>`;
+           let subHtml = '';
+            if (isPartner) {
+                subHtml = `<div style="font-size: 9px; color: rgba(255,255,255,0.65); line-height: 1.25; margin-top: 4px;">${b.limit_label ? `Лимит: ${esc(b.limit_label)} • ` : ''}${esc(b.disclaimer || 'Серия ограничена, проверяйте наличие у партнера')}</div>`;
+            } else {
+                const st = csStats[codeToday];
+                if (st) {
+                    const isOut = st.max !== null && st.used >= st.max;
+                    const txt = st.max !== null ? `Активировали: ${st.used} из ${st.max}` : `Активировали: ${st.used}`;
+                    subHtml = `<div style="font-size: 9.5px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; margin-top: 4px;"><i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="margin-right:3px;"></i>${txt}</div>`;
+                } else {
+                    subHtml = `<div style="font-size: 9.5px; font-weight: 700; color: #ff9500; margin-top: 4px;"><i class="fa-solid fa-triangle-exclamation" style="margin-right:3px;"></i>Код не найден в cs_codes</div>`;
+                }
+            }
 
             const btnHtml = isPartner
                 ? `<div style="background:${accent}; color:#000; border-radius:8px; padding:6px 10px; font-size:9.5px; font-weight:900; text-transform:uppercase; white-space:nowrap;">${esc(b.cta_text || 'Перейти')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8.5px;"></i></div>`
@@ -730,6 +741,9 @@
                                 <div class="compact-meta">
                                     <span class="code-chip">${esc(codeToday)}</span>
                                     <span>Кодов: ${codesCount}</span>
+                                    ${!isPartner && csStats[codeToday]
+                                        ? `<span style="color:#4ade80; font-weight:700;">• ${csStats[codeToday].used}/${csStats[codeToday].max ?? '∞'}</span>`
+                                        : ''}
                                 </div>
                             </div>
                             <label class="switch">
@@ -929,6 +943,7 @@
                 if (!res.ok) throw new Error('Нет доступа или ошибка сервера');
                 const data = await res.json();
                 if (data.config) cfg = data.config;
+                csStats = data.cs_stats || {};
                 if (!Array.isArray(cfg.banners)) cfg.banners = [];
                 document.getElementById('cfg-enabled').checked = cfg.enabled !== false;
                 document.getElementById('cfg-alternate').checked = Boolean(cfg.alternate_even_odd);
