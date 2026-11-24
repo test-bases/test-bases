@@ -1076,10 +1076,18 @@ function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
     if (!wrapper) return;
 
-    // Удаляем прошлые динамические промо-слайды перед перерисовкой
-    wrapper.querySelectorAll('.promo-banner-slide').forEach(el => el.remove());
+    const oldSlides = wrapper.querySelectorAll('.promo-banner-slide');
+    const hadOldSlides = oldSlides.length > 0;
+    oldSlides.forEach(el => el.remove());
 
-    if (!Array.isArray(banners) || banners.length === 0) return;
+    const hasNewSlides = Array.isArray(banners) && banners.length > 0;
+
+    // Если состав промо-слайдов в DOM менялся — сбрасываем подпись, чтобы setupSlider() не пропустил пересборку
+    if (hadOldSlides || hasNewSlides) {
+        lastSliderSignature = '';
+    }
+
+    if (!hasNewSlides) return;
 
     banners.forEach((b) => {
         const isPartner = b.type === 'partner';
