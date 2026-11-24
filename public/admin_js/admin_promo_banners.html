@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Промо-баннеры | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --bg: #09090b;
+            --card: rgba(18, 18, 24, 0.84);
+            --primary-purple: #7c3aed;
+            --primary-purple-light: #c084fc;
+            --text: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent-green: #34c759;
+            --danger: #ff453a;
+            --gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            position: fixed;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: calc(env(safe-area-inset-top, 8px) + 8px) 12px 8px;
+            background: rgba(9, 9, 11, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            z-index: 20;
+            flex-shrink: 0;
+        }
+        .top-left { display: flex; align-items: center; gap: 8px; }
+        .back-btn {
+            width: 30px; height: 30px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .back-btn:active { transform: scale(0.92); }
+        .page-title { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; }
+        .page-sub { font-size: 9px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        #main-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 12px 95px;
+        }
+
+        .glass-card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border-radius: 13px;
+            padding: 11px;
+            margin-bottom: 10px;
+        }
+        .section-lbl {
+            font-size: 8.5px;
+            font-weight: 800;
+            color: var(--primary-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+        .toggle-title { font-size: 11.5px; font-weight: 700; color: #fff; }
+        .toggle-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.3; }
+
+        .switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .slider:before {
+            content: "";
+            position: absolute;
+            height: 16px; width: 16px;
+            left: 2px; bottom: 2px;
+            background: #a1a1aa;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        .switch input:checked + .slider {
+            background: rgba(52, 199, 89, 0.35);
+            border-color: rgba(74, 222, 128, 0.6);
+        }
+        .switch input:checked + .slider:before {
+            transform: translateX(16px);
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+        }
+
+        .field { margin-bottom: 8px; }
+        .field:last-child { margin-bottom: 0; }
+        .field-lbl {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .inp, .sel, .txt {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.38);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 9px;
+            padding: 8px 10px;
+            color: #ffffff;
+            font-size: 11.5px;
+            font-weight: 600;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        .txt {
+            resize: vertical;
+            min-height: 76px;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+        .inp:focus, .sel:focus, .txt:focus { border-color: rgba(251, 191, 36, 0.55); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .item-card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 13px;
+            padding: 11px;
+            margin-bottom: 10px;
+        }
+        .item-card.is-partner { border-color: rgba(251, 191, 36, 0.25); }
+        .item-card.is-internal { border-color: rgba(145, 70, 255, 0.3); }
+
+        .item-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 9px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .item-head-left { display: flex; align-items: center; gap: 7px; }
+        .item-badge {
+            font-size: 8.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 2.5px 7px;
+            border-radius: 5px;
+            background: rgba(145, 70, 255, 0.22);
+            color: #d8b4fe;
+        }
+        .item-badge.gold { background: rgba(251, 191, 36, 0.18); color: var(--gold); }
+        .item-actions { display: flex; align-items: center; gap: 5px; }
+        .icon-btn {
+            width: 24px; height: 24px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #d4d4d8;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn.del {
+            color: var(--danger);
+            border-color: rgba(255, 69, 58, 0.28);
+            background: rgba(255, 69, 58, 0.1);
+        }
+
+        /* ЖИВОЕ ПРЕВЬЮ БАННЕРА 1-В-1 КАК НА ГЛАВНОЙ */
+        .preview-box {
+            min-height: 122px;
+            border-radius: 14px;
+            padding: 11px 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .presets-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .color-dot {
+            width: 20px; height: 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-dot.active { border-color: #ffffff; transform: scale(1.1); }
+
+        .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+        .btn-add {
+            width: 100%;
+            padding: 10px 8px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(192, 132, 252, 0.45);
+            color: var(--primary-purple-light);
+            font-size: 10.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .btn-add.gold { border-color: rgba(251, 191, 36, 0.45); color: var(--gold); }
+        .btn-add:active { transform: scale(0.97); }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(9, 9, 11, 0.94);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 30;
+        }
+        .btn-save {
+            width: 100%;
+            padding: 11px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.72) 0%, rgba(109, 40, 217, 0.56) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.58);
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.32);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .btn-save:active { transform: scale(0.97); }
+
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(4, 4, 7, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-box { width: 92%; max-width: 310px; text-align: center; }
+        .m-icon { font-size: 30px; margin-bottom: 8px; }
+        .m-head { font-size: 14.5px; font-weight: 800; color: #fff; margin-bottom: 5px; }
+        .m-desc { font-size: 11px; color: #f4f4f5; line-height: 1.45; margin-bottom: 14px; }
+        .m-btn {
+            width: 100%; padding: 9.5px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(109, 40, 217, 0.45) 100%);
+            border: 1px solid rgba(216, 180, 254, 0.55);
+            color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="top-left">
+            <button class="back-btn" onclick="goBack()"><i class="fa-solid fa-chevron-left"></i></button>
+            <div>
+                <div class="page-title">Промо-баннеры</div>
+                <div class="page-sub">Раздача в слайдере</div>
+            </div>
+        </div>
+        <div id="status-pill" style="font-size:9px; font-weight:800; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,0.06); color:#a1a1aa;">
+            Загрузка...
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="glass-card">
+            <div class="section-lbl">Глобальное управление</div>
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <span class="toggle-title">Показывать промо-баннеры</span>
+                    <span class="toggle-desc">Крутятся в главном слайдере у всех (включая админов)</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfg-enabled" onchange="cfg.enabled = this.checked; updateStatusPill();">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="glass-card" style="padding: 9px 11px;">
+            <div style="font-size: 10px; color: var(--text-muted); line-height: 1.45;">
+                <b style="color:#fff;">Как работает смена кодов каждый день (МСК):</b><br>
+                • Вписывай по одному коду на строку — они будут меняться каждый день в 00:00 МСК от даты старта.<br>
+                • Либо укажи точную дату: <code style="color:#fbbf24;">2026-11-25: TOPSKIN25</code>.<br>
+                • Для типа <b style="color:#c084fc;">Наш код</b> счётчик активаций подтягивается сам из <code>cs_codes</code>.
+            </div>
+        </div>
+
+        <div id="banners-container"></div>
+
+        <div class="add-row">
+            <button class="btn-add gold" onclick="addBanner('partner')">
+                <i class="fa-solid fa-plus"></i> Партнерский
+            </button>
+            <button class="btn-add" onclick="addBanner('internal')">
+                <i class="fa-solid fa-plus"></i> Наш код (cs_codes)
+            </button>
+        </div>
+    </main>
+
+    <div class="bottom-bar">
+        <button class="btn-save" id="save-btn" onclick="saveConfig()">
+            <i class="fa-solid fa-floppy-disk"></i> Сохранить баннеры
+        </button>
+    </div>
+
+    <div id="modal" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal-box">
+            <div class="m-icon" id="m-icon"></div>
+            <div class="m-head" id="m-head"></div>
+            <div class="m-desc" id="m-desc"></div>
+            <button class="m-btn" onclick="closeModal()">Понятно</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => goBack());
+        }
+
+        const COLOR_PRESETS = ['#ffd700', '#9146ff', '#34c759', '#ff9500', '#00c7be', '#ff453a', '#2aabee'];
+
+        let cfg = { enabled: true, banners: [] };
+
+        function goBack() {
+            if (window.history.length > 1) window.history.back();
+            else window.location.href = '/admin.html';
+        }
+
+        function haptic(type = 'light') {
+            try { tg?.HapticFeedback?.impactOccurred(type); } catch (e) {}
+        }
+
+        function esc(str) {
+            return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+        }
+
+        function getTodayMskStr() {
+            const now = new Date();
+            const msk = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+            const y = msk.getFullYear();
+            const m = String(msk.getMonth() + 1).padStart(2, '0');
+            const d = String(msk.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function pickTodayCode(b) {
+            const lines = Array.isArray(b.codes)
+                ? b.codes.map(s => String(s).trim()).filter(Boolean)
+                : String(b.codes || '').split('\n').map(s => s.trim()).filter(Boolean);
+            if (!lines.length) return 'НЕТ КОДА';
+
+            const todayStr = getTodayMskStr();
+            const plain = [];
+            for (const line of lines) {
+                if (line.includes(':')) {
+                    const idx = line.indexOf(':');
+                    const dPart = line.slice(0, idx).trim();
+                    const cPart = line.slice(idx + 1).trim();
+                    if (dPart === todayStr && cPart) return cPart;
+                } else {
+                    plain.push(line);
+                }
+            }
+            if (!plain.length) return 'НЕТ КОДА НА СЕГОДНЯ';
+
+            const startStr = b.start_date || todayStr;
+            const dToday = new Date(todayStr + 'T00:00:00Z');
+            const dStart = new Date(startStr + 'T00:00:00Z');
+            const diffDays = isNaN(dStart.getTime()) ? 0 : Math.floor((dToday - dStart) / 86400000);
+            const idx = ((diffDays % plain.length) + plain.length) % plain.length;
+            return plain[idx];
+        }
+
+        function showModal(type, title, desc) {
+            const isOk = type === 'success';
+            document.getElementById('m-icon').innerHTML = isOk
+                ? '<i class="fa-solid fa-circle-check" style="color:#34c759;"></i>'
+                : '<i class="fa-solid fa-circle-exclamation" style="color:#ff453a;"></i>';
+            document.getElementById('m-head').textContent = title;
+            document.getElementById('m-desc').innerHTML = desc;
+            document.getElementById('modal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function updateStatusPill() {
+            const pill = document.getElementById('status-pill');
+            if (cfg.enabled) {
+                pill.textContent = 'АКТИВНО';
+                pill.style.background = 'rgba(52, 199, 89, 0.16)';
+                pill.style.color = '#4ade80';
+            } else {
+                pill.textContent = 'ВЫКЛЮЧЕНО';
+                pill.style.background = 'rgba(255, 69, 58, 0.14)';
+                pill.style.color = '#ff453a';
+            }
+        }
+
+        function buildPreviewHtml(b) {
+            const isPartner = b.type === 'partner';
+            const accent = b.accent_color || (isPartner ? '#ffd700' : '#9146ff');
+            const codeToday = pickTodayCode(b);
+            const bgStyle = b.image_url
+                ? `background: linear-gradient(95deg, rgba(16,16,20,0.92) 0%, rgba(16,16,20,0.72) 55%, rgba(16,16,20,0.45) 100%), url('${esc(b.image_url)}') center/cover no-repeat;`
+                : `background: linear-gradient(135deg, #1f1f26 0%, #141418 100%);`;
+
+            const subHtml = isPartner
+                ? `<div style="font-size: 9px; color: rgba(255,255,255,0.65); line-height: 1.25; margin-top: 4px;">${b.limit_label ? `Лимит: ${esc(b.limit_label)} • ` : ''}${esc(b.disclaimer || 'Серия ограничена, проверяйте наличие у партнера')}</div>`
+                : `<div style="font-size: 9.5px; font-weight: 700; color: #4ade80; margin-top: 4px;"><i class="fa-solid fa-fire" style="margin-right:3px;"></i>Активировали: 0 из N (из cs_codes)</div>`;
+
+            const btnHtml = isPartner
+                ? `<div style="background:${accent}; color:#000; border-radius:8px; padding:6px 10px; font-size:9.5px; font-weight:900; text-transform:uppercase; white-space:nowrap;">${esc(b.cta_text || 'Перейти')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8.5px;"></i></div>`
+                : `<div style="background:linear-gradient(135deg,#9146ff,#6a11cb); color:#fff; border-radius:8px; padding:6px 10px; font-size:9.5px; font-weight:900; text-transform:uppercase; white-space:nowrap;"><i class="fa-solid fa-ticket-simple" style="font-size:8.5px;"></i> Ввести</div>`;
+
+            return `
+                <div class="preview-box" style="${bgStyle}">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:8.5px; font-weight:900; text-transform:uppercase; color:${accent}; background:rgba(0,0,0,0.45); border:1px solid ${accent}55; padding:2px 6px; border-radius:5px;">
+                            ${isPartner ? 'Партнер' : 'Бонус дня'}
+                        </span>
+                        <span style="font-size:12px; font-weight:900; color:#fff; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${esc(b.title || 'Без названия')}
+                        </span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;">
+                        <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.55); border:1px dashed ${accent}88; border-radius:8px; padding:4px 8px; max-width:62%;">
+                            <span style="font-family:'SF Mono',Consolas,monospace; font-size:12px; font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(codeToday)}</span>
+                            <i class="fa-regular fa-copy" style="font-size:10px; color:#ccc;"></i>
+                        </div>
+                        ${btnHtml}
+                    </div>
+                    ${subHtml}
+                </div>
+            `;
+        }
+
+        function refreshPreview(i) {
+            const el = document.getElementById(`preview-wrap-${i}`);
+            if (el && cfg.banners[i]) el.innerHTML = buildPreviewHtml(cfg.banners[i]);
+        }
+
+        function renderBanners() {
+            const box = document.getElementById('banners-container');
+            const list = cfg.banners || [];
+            if (!list.length) {
+                box.innerHTML = `<div class="glass-card" style="text-align:center; color:var(--text-muted); font-size:11px; padding:18px;">Баннеров пока нет. Добавь партнерский или наш код ниже.</div>`;
+                return;
+            }
+
+            box.innerHTML = list.map((b, i) => {
+                const isPartner = b.type === 'partner';
+                const codesText = Array.isArray(b.codes) ? b.codes.join('\n') : (b.codes || '');
+                return `
+                    <div class="item-card ${isPartner ? 'is-partner' : 'is-internal'}">
+                        <div class="item-head">
+                            <div class="item-head-left">
+                                <span class="item-badge ${isPartner ? 'gold' : ''}">${isPartner ? 'Партнер' : 'Наш код'}</span>
+                                <label class="switch" style="transform:scale(0.82); transform-origin:left center;">
+                                    <input type="checkbox" ${b.enabled !== false ? 'checked' : ''} onchange="cfg.banners[${i}].enabled = this.checked;">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="item-actions">
+                                <button class="icon-btn" onclick="moveBanner(${i}, -1)" title="Вверх"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button class="icon-btn" onclick="moveBanner(${i}, 1)" title="Вниз"><i class="fa-solid fa-arrow-down"></i></button>
+                                <button class="icon-btn del" onclick="removeBanner(${i})" title="Удалить"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+
+                        <div id="preview-wrap-${i}">${buildPreviewHtml(b)}</div>
+
+                        <div class="grid-2" style="margin-bottom:8px;">
+                            <div class="field" style="margin:0;">
+                                <label class="field-lbl">Тип баннера</label>
+                                <select class="sel" onchange="cfg.banners[${i}].type = this.value; renderBanners();">
+                                    <option value="partner" ${isPartner ? 'selected' : ''}>Партнер (внешний)</option>
+                                    <option value="internal" ${!isPartner ? 'selected' : ''}>Наш код (cs_codes)</option>
+                                </select>
+                            </div>
+                            <div class="field" style="margin:0;">
+                                <label class="field-lbl">Дата старта ротации</label>
+                                <input class="inp" type="date" value="${esc(b.start_date || getTodayMskStr())}" onchange="cfg.banners[${i}].start_date = this.value; refreshPreview(${i});">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-lbl">Название сверху</label>
+                            <input class="inp" value="${esc(b.title)}" oninput="cfg.banners[${i}].title = this.value; refreshPreview(${i});" placeholder="${isPartner ? 'Промокод TopSkin' : 'Бесплатный кейс дня'}">
+                        </div>
+
+                        <div class="field">
+                            <label class="field-lbl">
+                                <span>Коды (по 1 на день)</span>
+                                <span style="color:var(--gold);">Сегодня: ${esc(pickTodayCode(b))}</span>
+                            </label>
+                            <textarea class="txt" oninput="updateCodes(${i}, this.value)" placeholder="CODE1&#10;CODE2&#10;2026-11-26: SPECIAL">${esc(codesText)}</textarea>
+                        </div>
+
+                        ${isPartner ? `
+                            <div class="grid-2" style="margin-bottom:8px;">
+                                <div class="field" style="margin:0;">
+                                    <label class="field-lbl">Ссылка партнера</label>
+                                    <input class="inp" value="${esc(b.target_url)}" oninput="cfg.banners[${i}].target_url = this.value;" placeholder="https://topskin...">
+                                </div>
+                                <div class="field" style="margin:0;">
+                                    <label class="field-lbl">Текст кнопки</label>
+                                    <input class="inp" value="${esc(b.cta_text || 'Перейти')}" oninput="cfg.banners[${i}].cta_text = this.value; refreshPreview(${i});" placeholder="На TopSkin">
+                                </div>
+                            </div>
+                            <div class="grid-2" style="margin-bottom:8px;">
+                                <div class="field" style="margin:0;">
+                                    <label class="field-lbl">Лимит (текстом, опц.)</label>
+                                    <input class="inp" value="${esc(b.limit_label || '')}" oninput="cfg.banners[${i}].limit_label = this.value; refreshPreview(${i});" placeholder="50 шт.">
+                                </div>
+                                <div class="field" style="margin:0;">
+                                    <label class="field-lbl">Подпись снизу</label>
+                                    <input class="inp" value="${esc(b.disclaimer || '')}" oninput="cfg.banners[${i}].disclaimer = this.value; refreshPreview(${i});" placeholder="Серия ограничена...">
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div class="field">
+                            <label class="field-lbl">URL фоновой картинки</label>
+                            <input class="inp" value="${esc(b.image_url || '')}" oninput="cfg.banners[${i}].image_url = this.value; refreshPreview(${i});" placeholder="https://.../banner.jpg">
+                        </div>
+
+                        <div class="field">
+                            <label class="field-lbl">Акцентный цвет</label>
+                            <div class="presets-row">
+                                ${COLOR_PRESETS.map(c => `<div class="color-dot ${(b.accent_color || '').toLowerCase() === c ? 'active' : ''}" style="background:${c};" onclick="cfg.banners[${i}].accent_color='${c}'; renderBanners();"></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCodes(i, rawVal) {
+            cfg.banners[i].codes = rawVal.split('\n').map(s => s.trim()).filter(Boolean);
+            refreshPreview(i);
+        }
+
+        function addBanner(type) {
+            haptic('light');
+            const isPartner = type === 'partner';
+            cfg.banners.push({
+                id: 'promo_' + Date.now().toString(36),
+                enabled: true,
+                type: type,
+                title: isPartner ? 'Промокод TopSkin' : 'Промокод HATElavka',
+                codes: [],
+                start_date: getTodayMskStr(),
+                image_url: '',
+                accent_color: isPartner ? '#ffd700' : '#9146ff',
+                target_url: isPartner ? 'https://' : '',
+                cta_text: isPartner ? 'Перейти' : '',
+                limit_label: isPartner ? '50 активаций' : '',
+                disclaimer: isPartner ? 'Серия ограничена, проверяйте наличие у партнера' : ''
+            });
+            renderBanners();
+        }
+
+        function removeBanner(i) {
+            haptic('medium');
+            cfg.banners.splice(i, 1);
+            renderBanners();
+        }
+
+        function moveBanner(i, dir) {
+            const next = i + dir;
+            if (next < 0 || next >= cfg.banners.length) return;
+            haptic('light');
+            const tmp = cfg.banners[i];
+            cfg.banners[i] = cfg.banners[next];
+            cfg.banners[next] = tmp;
+            renderBanners();
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/v1/admin/promo_banners/get', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg?.initData || '' })
+                });
+                if (!res.ok) throw new Error('Нет доступа или ошибка сервера');
+                const data = await res.json();
+                if (data.config) cfg = data.config;
+                if (!Array.isArray(cfg.banners)) cfg.banners = [];
+                document.getElementById('cfg-enabled').checked = cfg.enabled !== false;
+                updateStatusPill();
+                renderBanners();
+            } catch (e) {
+                showModal('error', 'Ошибка загрузки', esc(e.message));
+            }
+        }
+
+        async function saveConfig() {
+            const btn = document.getElementById('save-btn');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Сохраняем...';
+            haptic('medium');
+
+            try {
+                const res = await fetch('/api/v1/admin/promo_banners/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg?.initData || '', config: cfg })
+                });
+                const ans = await res.json();
+                if (!res.ok) throw new Error(ans.detail || 'Ошибка сохранения');
+
+                localStorage.removeItem('cache_bootstrap');
+                sessionStorage.removeItem('session_bootstrap');
+
+                try { tg?.HapticFeedback?.notificationOccurred('success'); } catch (e) {}
+                showModal('success', 'Сохранено', 'Промо-баннеры обновлены и сразу появятся в слайдере.');
+            } catch (e) {
+                try { tg?.HapticFeedback?.notificationOccurred('error'); } catch (err) {}
+                showModal('error', 'Ошибка', esc(e.message));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }
+        }
+
+        loadConfig();
+    </script>
+</body>
+</html>
