@@ -5217,7 +5217,19 @@ async def admin_get_promo_banners(
         if isinstance(rows, list) and rows and isinstance(rows[0].get("value"), dict):
             cfg = {**DEFAULT_PROMO_BANNERS_CONFIG, **rows[0]["value"]}
 
-    return {"config": cfg}
+    # Собираем все коды из внутренних баннеров, чтобы показать живую стату в админке
+    all_internal_codes = []
+    for b in (cfg.get("banners") or []):
+        if isinstance(b, dict) and b.get("type") == "internal":
+            for line in (b.get("codes") or []):
+                raw = str(line).strip()
+                if ":" in raw:
+                    raw = raw.split(":", 1)[1].strip()
+                if raw:
+                    all_internal_codes.append(raw)
+
+    cs_stats = await fetch_cs_codes_stats(all_internal_codes, supabase)
+    return {"config": cfg, "cs_stats": cs_stats}
 
 
 @app.post("/api/v1/admin/promo_banners/save")
@@ -5298,6 +5310,42 @@ def pick_daily_promo_code(banner: dict, today_msk, alternate_mode: bool = False)
     return plain_codes[step % len(plain_codes)]
 
 
+async def fetch_cs_codes_stats(codes: list, supabase: httpx.AsyncClient) -> dict:
+    """Возвращает словарь {code: {used, max, opened, case_name, is_active}} из cs_codes."""
+    clean_codes = list({str(c).strip() for c in codes if str(c).strip()})
+    if not clean_codes:
+        return {}
+
+    stats = {}
+    try:
+        in_filter = ",".join(f'"{c}"' for c in clean_codes)
+        res = await supabase.get(
+            "/cs_codes",
+            params={
+                "code": f"in.({in_filter})",
+                "select": "code,activated_by_ids,used_by_ids,max_uses,current_uses,is_active,target_case_name",
+            },
+        )
+        if res.status_code == 200:
+            for row in res.json():
+                if not isinstance(row, dict) or not row.get("code"):
+                    continue
+                used_by = [str(x) for x in (row.get("used_by_ids") or [])]
+                activated_by = [str(x) for x in (row.get("activated_by_ids") or [])]
+                # Объединяем через set, чтобы один юзер никогда не посчитался дважды
+                total_taken = max(len(set(used_by) | set(activated_by)), int(row.get("current_uses") or 0))
+                stats[row["code"]] = {
+                    "used": total_taken,
+                    "opened": len(set(used_by)),
+                    "max": row.get("max_uses"),
+                    "is_active": bool(row.get("is_active", True)),
+                    "case_name": row.get("target_case_name") or "",
+                }
+    except Exception as e:
+        logging.warning(f"[PROMO_BANNERS] Ошибка чтения cs_codes: {e}")
+
+    return stats
+
 async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.AsyncClient) -> list:
     """Собирает активные промо-баннеры на сегодня + подтягивает активации из cs_codes."""
     cfg = global_settings.get("promo_banners_config")
@@ -5351,26 +5399,12 @@ async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.As
             internal_codes.append(code)
 
     if internal_codes:
-        try:
-            in_filter = ",".join(f'"{c}"' for c in set(internal_codes))
-            cs_res = await supabase.get(
-                "/cs_codes",
-                params={
-                    "code": f"in.({in_filter})",
-                    "select": "code,activated_by_ids,used_by_ids,max_uses,is_active",
-                },
-            )
-            if cs_res.status_code == 200:
-                cs_map = {row["code"]: row for row in cs_res.json() if isinstance(row, dict)}
-                for item in active_list:
-                    if item["type"] == "internal" and item["code"] in cs_map:
-                        row = cs_map[item["code"]]
-                        used_by = row.get("used_by_ids") or []
-                        activated_by = row.get("activated_by_ids") or []
-                        item["activations_count"] = len(used_by) + len(activated_by)
-                        item["max_activations"] = row.get("max_uses")
-        except Exception as e:
-            logging.warning(f"[PROMO_BANNERS] Не удалось получить статистику cs_codes: {e}")
+        cs_stats = await fetch_cs_codes_stats(internal_codes, supabase)
+        for item in active_list:
+            if item["type"] == "internal" and item["code"] in cs_stats:
+                st = cs_stats[item["code"]]
+                item["activations_count"] = st["used"]
+                item["max_activations"] = st["max"]
 
     return active_list
 
