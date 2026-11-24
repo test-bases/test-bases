@@ -4887,6 +4887,12 @@ if (isBrowserMode) {
                             checkMatrixEvent(freshBoot.matrix_quest, freshBoot.welcome_config);
                         }
 
+                        // 🔥 Подхватываем свежие промо-баннеры даже при тёплом кэше
+                        if (freshBoot && Array.isArray(freshBoot.promo_banners)) {
+                            renderPromoBanners(freshBoot.promo_banners);
+                            setupSlider();
+                        }
+
                         // 🔥 Проверяем, не прилетел ли нам бесплатный кейс пока нас не было
                         if (freshBoot && freshBoot.my_active_cases) {
                             const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
