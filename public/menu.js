@@ -862,8 +862,6 @@ function setupSlider() {
 
     // Добавили s.dataset.promoSig, чтобы слайдер обновлялся при смене кода дня или счётчика активаций
     const currentSignature = visibleSlides.map(s => s.dataset.promoSig || s.dataset.event || s.href || s.src).join('|');
-
-    const currentSignature = visibleSlides.map(s => s.dataset.event || s.href || s.src).join('|');
     if (currentSignature === lastSliderSignature && sliderAbortController) return;
     lastSliderSignature = currentSignature;
 
@@ -937,8 +935,77 @@ function setupSlider() {
         });
     }
     const dots = dotsContainer ? dotsContainer.querySelectorAll('.mr-dot') : [];
+    function showSlide(index) {
+        if (index >= visibleSlides.length) index = 0; 
+        if (index < 0) index = visibleSlides.length - 1;
+        
+        visibleSlides.forEach((slide, i) => {
+            if (i === index) {
+                slide.style.opacity = '1';
+                slide.style.pointerEvents = 'auto';
+                slide.style.zIndex = '5';
+                if (dots[i]) {
+                    dots[i].style.background = 'var(--primary-color, #ffd700)';
+                    dots[i].style.width = '14px';
+                    dots[i].style.borderRadius = '4px';
+                    dots[i].style.boxShadow = '0 0 8px rgba(255,215,0,0.5)';
+                }
+            } else {
+                slide.style.opacity = '0';
+                slide.style.pointerEvents = 'none';
+                slide.style.zIndex = '1';
+                if (dots[i]) {
+                    dots[i].style.background = 'rgba(255,255,255,0.2)';
+                    dots[i].style.width = '6px';
+                    dots[i].style.borderRadius = '50%';
+                    dots[i].style.boxShadow = 'none';
+                }
+            }
+        });
+        currentSlideIndex = index;
+    }
+    
+    function nextSlide() { showSlide(currentSlideIndex + 1); }
+    function prevSlide() { showSlide(currentSlideIndex - 1); }
+    function resetSlideInterval() { 
+        clearInterval(slideInterval); 
+        if (visibleSlides.length > 1) {
+            slideInterval = setInterval(nextSlide, 5000); 
+        }
+    }
 
-    // ================================================================
+    let touchStartX = 0, touchStartY = 0, touchEndX = 0, isSwiping = false;
+    container.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchEndX = touchStartX; isSwiping = false;
+    }, { passive: true, signal });
+
+    container.addEventListener('touchmove', (e) => {
+        if (touchStartX === 0 && touchStartY === 0) return;
+        const diffX = touchStartX - e.touches[0].clientX; const diffY = touchStartY - e.touches[0].clientY;
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            isSwiping = true; if (e.cancelable) { e.preventDefault(); e.stopPropagation(); }
+        }
+        touchEndX = e.touches[0].clientX;
+    }, { passive: false, signal });
+
+    container.addEventListener('touchend', (e) => {
+        if (isSwiping) {
+            e.stopPropagation(); const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) { if (diff > 0) nextSlide(); else prevSlide(); resetSlideInterval(); }
+        }
+        touchStartX = 0; touchStartY = 0; isSwiping = false;
+    }, { passive: true, signal });
+    
+    allSlides.forEach(slide => {
+        slide.onclick = (e) => { if (isSwiping) { e.preventDefault(); e.stopPropagation(); return false; } };
+    });
+
+    if (currentSlideIndex >= visibleSlides.length) currentSlideIndex = 0;
+    showSlide(currentSlideIndex); 
+    resetSlideInterval();
+}
+
+// ================================================================
 // ДИНАМИЧЕСКИЕ ПРОМО-БАННЕРЫ В СЛАЙДЕРЕ (ПАРТНЕР + ВНУТРЕННИЕ)
 // ================================================================
 window.copyPromoCode = async function(event, code, btnEl) {
@@ -1087,76 +1154,6 @@ function renderPromoBanners(banners) {
 
         wrapper.appendChild(slide);
     });
-}
-
-    function showSlide(index) {
-        if (index >= visibleSlides.length) index = 0; 
-        if (index < 0) index = visibleSlides.length - 1;
-        
-        visibleSlides.forEach((slide, i) => {
-            if (i === index) {
-                slide.style.opacity = '1';
-                slide.style.pointerEvents = 'auto';
-                slide.style.zIndex = '5';
-                if (dots[i]) {
-                    dots[i].style.background = 'var(--primary-color, #ffd700)';
-                    dots[i].style.width = '14px';
-                    dots[i].style.borderRadius = '4px';
-                    dots[i].style.boxShadow = '0 0 8px rgba(255,215,0,0.5)';
-                }
-            } else {
-                slide.style.opacity = '0';
-                slide.style.pointerEvents = 'none';
-                slide.style.zIndex = '1';
-                if (dots[i]) {
-                    dots[i].style.background = 'rgba(255,255,255,0.2)';
-                    dots[i].style.width = '6px';
-                    dots[i].style.borderRadius = '50%';
-                    dots[i].style.boxShadow = 'none';
-                }
-            }
-        });
-        currentSlideIndex = index;
-    }
-    
-    function nextSlide() { showSlide(currentSlideIndex + 1); }
-    function prevSlide() { showSlide(currentSlideIndex - 1); }
-    function resetSlideInterval() { 
-        clearInterval(slideInterval); 
-        if (visibleSlides.length > 1) {
-            slideInterval = setInterval(nextSlide, 5000); 
-        }
-    }
-
-    let touchStartX = 0, touchStartY = 0, touchEndX = 0, isSwiping = false;
-    container.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchEndX = touchStartX; isSwiping = false;
-    }, { passive: true, signal });
-
-    container.addEventListener('touchmove', (e) => {
-        if (touchStartX === 0 && touchStartY === 0) return;
-        const diffX = touchStartX - e.touches[0].clientX; const diffY = touchStartY - e.touches[0].clientY;
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
-            isSwiping = true; if (e.cancelable) { e.preventDefault(); e.stopPropagation(); }
-        }
-        touchEndX = e.touches[0].clientX;
-    }, { passive: false, signal });
-
-    container.addEventListener('touchend', (e) => {
-        if (isSwiping) {
-            e.stopPropagation(); const diff = touchStartX - touchEndX;
-            if (Math.abs(diff) > 50) { if (diff > 0) nextSlide(); else prevSlide(); resetSlideInterval(); }
-        }
-        touchStartX = 0; touchStartY = 0; isSwiping = false;
-    }, { passive: true, signal });
-    
-    allSlides.forEach(slide => {
-        slide.onclick = (e) => { if (isSwiping) { e.preventDefault(); e.stopPropagation(); return false; } };
-    });
-
-    if (currentSlideIndex >= visibleSlides.length) currentSlideIndex = 0;
-    showSlide(currentSlideIndex); 
-    resetSlideInterval();
 }
 
 function updateShortcutStatuses(userData, allQuests) {
