@@ -847,7 +847,7 @@ function setupSlider() {
     container.style.minHeight = '130px'; 
     container.style.position = 'relative';
 
-    // --- УМНАЯ ЗАГЛУШКА ---
+    // --- УМНАЯ ЗАГЛУШКА (теперь учитывает и динамические промо-слайды) ---
     const realSlides = container.querySelectorAll('.slide:not(#default-banner-slide)');
     const placeholder = document.getElementById('default-banner-slide');
     const hasActiveEvents = Array.from(realSlides).some(s => s.style.display !== 'none');
@@ -859,6 +859,9 @@ function setupSlider() {
 
     const allSlides = container.querySelectorAll('.slide');
     const visibleSlides = Array.from(allSlides).filter(slide => slide.style.display !== 'none');
+
+    // Добавили s.dataset.promoSig, чтобы слайдер обновлялся при смене кода дня или счётчика активаций
+    const currentSignature = visibleSlides.map(s => s.dataset.promoSig || s.dataset.event || s.href || s.src).join('|');
 
     const currentSignature = visibleSlides.map(s => s.dataset.event || s.href || s.src).join('|');
     if (currentSignature === lastSliderSignature && sliderAbortController) return;
@@ -934,6 +937,157 @@ function setupSlider() {
         });
     }
     const dots = dotsContainer ? dotsContainer.querySelectorAll('.mr-dot') : [];
+
+    // ================================================================
+// ДИНАМИЧЕСКИЕ ПРОМО-БАННЕРЫ В СЛАЙДЕРЕ (ПАРТНЕР + ВНУТРЕННИЕ)
+// ================================================================
+window.copyPromoCode = async function(event, code, btnEl) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (!code) return;
+
+    let copied = false;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(code);
+            copied = true;
+        }
+    } catch (e) {}
+
+    // Фоллбэк для мобильных WebView, где clipboard API иногда капризничает
+    if (!copied) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            ta.style.cssText = 'position:fixed; top:-9999px; opacity:0;';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            copied = true;
+        } catch (e) {}
+    }
+
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+
+    if (btnEl) {
+        const oldHtml = btnEl.innerHTML;
+        btnEl.innerHTML = '<i class="fa-solid fa-check" style="color:#34c759;"></i>';
+        setTimeout(() => { btnEl.innerHTML = oldHtml; }, 1500);
+    }
+};
+
+window.openPromoPartnerLink = function(event, url) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (!url) return;
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light');
+    if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(url);
+    } else {
+        window.open(url, '_blank');
+    }
+};
+
+window.quickActivatePromo = function(event, code) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (typeof window.openCouponModal === 'function') {
+        window.openCouponModal();
+        const input = document.getElementById('coupon-input');
+        if (input) input.value = code;
+    }
+};
+
+function renderPromoBanners(banners) {
+    const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
+    if (!wrapper) return;
+
+    // Удаляем прошлые динамические промо-слайды перед перерисовкой
+    wrapper.querySelectorAll('.promo-banner-slide').forEach(el => el.remove());
+
+    if (!Array.isArray(banners) || banners.length === 0) return;
+
+    banners.forEach((b) => {
+        const isPartner = b.type === 'partner';
+        const safeCode = escapeHTML(b.code || '');
+        const safeTitle = escapeHTML(b.title || (isPartner ? 'Промокод партнера' : 'Промокод дня'));
+        const safeUrl = (b.target_url || '').replace(/'/g, "\\'");
+        const safeJsCode = (b.code || '').replace(/'/g, "\\'");
+        const accent = b.accent_color || (isPartner ? '#ffd700' : '#9146ff');
+
+        // Фон: картинка из админки + темный градиент, чтобы текст всегда читался
+        const bgStyle = b.image_url
+            ? `background: linear-gradient(95deg, rgba(16,16,20,0.92) 0%, rgba(16,16,20,0.72) 55%, rgba(16,16,20,0.45) 100%), url('${escapeHTML(b.image_url)}') center/cover no-repeat;`
+            : `background: linear-gradient(135deg, #1f1f26 0%, #141418 100%);`;
+
+        // Нижняя строка: для партнера — дисклеймер про лимит, для нашего — реальный счётчик
+        let subInfoHtml = '';
+        if (isPartner) {
+            const limitPrefix = b.limit_label ? `Лимит: ${escapeHTML(b.limit_label)} • ` : '';
+            const disclaimer = escapeHTML(b.disclaimer || 'Серия ограничена, проверяйте наличие у партнера');
+            subInfoHtml = `<div style="font-size: 9px; color: rgba(255,255,255,0.65); line-height: 1.25; margin-top: 4px;">${limitPrefix}${disclaimer}</div>`;
+        } else {
+            const used = Number(b.activations_count || 0);
+            const max = b.max_activations ? Number(b.max_activations) : null;
+            const isOut = max !== null && used >= max;
+            const counterText = max !== null
+                ? (isOut ? 'Все активации разобрали' : `Активировали: ${used} из ${max}`)
+                : `Активировали: ${used}`;
+            subInfoHtml = `<div style="font-size: 9.5px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; margin-top: 4px;">
+                <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="margin-right: 3px;"></i>${counterText}
+            </div>`;
+        }
+
+        // Кнопка действия справа/снизу
+        const actionBtnHtml = isPartner
+            ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: ${accent}; color: #000; border: none; border-radius: 9px; padding: 7px 11px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+                   ${escapeHTML(b.cta_text || 'Перейти')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 9px;"></i>
+               </button>`
+            : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: linear-gradient(135deg, #9146ff 0%, #6a11cb 100%); color: #fff; border: none; border-radius: 9px; padding: 7px 11px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(145,70,255,0.35);">
+                   <i class="fa-solid fa-ticket-simple" style="font-size: 9px;"></i> Ввести
+               </button>`;
+
+        const slide = document.createElement('div');
+        slide.className = 'slide promo-banner-slide';
+        slide.dataset.event = `promo_${b.id}`;
+        slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}`;
+        slide.style.cssText = `${bgStyle} border-radius: 16px; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);`;
+
+        slide.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 6px; padding-right: 45px;">
+                <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: ${accent}; background: rgba(0,0,0,0.45); border: 1px solid ${accent}55; padding: 2px 7px; border-radius: 6px;">
+                    ${isPartner ? 'Партнер' : 'Бонус дня'}
+                </span>
+                <span style="font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">
+                    ${safeTitle}
+                </span>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px;">
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.55); border: 1px dashed ${accent}88; border-radius: 9px; padding: 5px 8px 5px 10px; max-width: 60%; backdrop-filter: blur(6px);">
+                    <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 0.8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${safeCode}
+                    </span>
+                    <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                        <i class="fa-regular fa-copy" style="font-size: 11px;"></i>
+                    </button>
+                </div>
+                ${actionBtnHtml}
+            </div>
+
+            ${subInfoHtml}
+        `;
+
+        wrapper.appendChild(slide);
+    });
+}
 
     function showSlide(index) {
         if (index >= visibleSlides.length) index = 0; 
@@ -2000,6 +2154,9 @@ async function renderFullInterface(data) {
             eventSlide.querySelector('img').src = data.cauldron.banner_image_url;
         }
     }
+
+    // 🔥 Рендерим динамические промо-баннеры (партнерские + наши)
+    renderPromoBanners(data.promo_banners || []);
 
     updateShortcutStatuses(userData, allQuests);
     updateShopTile(userData.active_trade_status || 'none');
