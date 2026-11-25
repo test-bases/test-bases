@@ -967,11 +967,18 @@ function setupSlider() {
     
     function nextSlide() { showSlide(currentSlideIndex + 1); }
     function prevSlide() { showSlide(currentSlideIndex - 1); }
-    function resetSlideInterval() { 
-        clearInterval(slideInterval); 
-        if (visibleSlides.length > 1) {
-            slideInterval = setInterval(nextSlide, 5000); 
-        }
+    function resetSlideInterval() {
+        clearTimeout(slideInterval);
+        if (visibleSlides.length <= 1) return;
+
+        const activeSlide = visibleSlides[currentSlideIndex];
+        // Промо-баннеры висят 10 секунд, обычные слайды — 5 секунд
+        const delay = activeSlide?.classList.contains('promo-banner-slide') ? 10000 : 5000;
+
+        slideInterval = setTimeout(() => {
+            nextSlide();
+            resetSlideInterval();
+        }, delay);
     }
 
     let touchStartX = 0, touchStartY = 0, touchEndX = 0, isSwiping = false;
@@ -1080,6 +1087,11 @@ window._lastPromoBanners = [];
 window._promoWaitingSubReturn = false;
 
 window.checkPromoSubscription = async function(force = false) {
+    // Админ всегда пропускает проверку
+    if (userData?.is_admin) {
+        window._promoSubState = 'subscribed';
+        return;
+    }
     if (window._promoSubState === 'checking') return;
     if (!force && (window._promoSubState === 'subscribed' || window._promoSubState === 'unsubscribed')) return;
 
@@ -1157,12 +1169,16 @@ function renderPromoBanners(banners) {
 
     if (!hasNewSlides) return;
 
-    if (window._promoSubState === 'unknown') {
+    const isAdmin = Boolean(userData?.is_admin);
+
+    if (isAdmin) {
+        window._promoSubState = 'subscribed';
+    } else if (window._promoSubState === 'unknown') {
         window.checkPromoSubscription(false);
     }
 
-    const isSubscribed = window._promoSubState === 'subscribed';
-    const isCheckingSub = window._promoSubState === 'checking' || window._promoSubState === 'unknown';
+    const isSubscribed = isAdmin || window._promoSubState === 'subscribed';
+    const isCheckingSub = !isAdmin && (window._promoSubState === 'checking' || window._promoSubState === 'unknown');
 
     const fragment = document.createDocumentFragment();
 
@@ -1277,7 +1293,6 @@ function renderPromoBanners(banners) {
                 </div>
             `;
         } else {
-            // Текст отдельно без коробки, стекло только на мини-капсуле с кнопкой
             codeZoneHtml = `
                 <div style="font-size: 8px; font-weight: 600; color: rgba(255,255,255,0.72); line-height: 1.25; text-shadow: 0 1px 4px rgba(0,0,0,0.95); margin-bottom: 1px;">
                     <i class="fa-solid fa-lock" style="color: ${theme.accent}; margin-right: 3px; font-size: 7.5px;"></i>Код только для участников канала
@@ -1322,7 +1337,6 @@ function renderPromoBanners(banners) {
         `;
 
         slide.innerHTML = `
-            <!-- Чистая картинка без блюра и фильтров -->
             <img src="${escapeHTML(finalImgUrl)}" alt="" style="
                 position: absolute;
                 inset: 0;
@@ -1335,7 +1349,6 @@ function renderPromoBanners(banners) {
                 z-index: 0;
             ">
 
-            <!-- Лёгкое затемнение правого края для читаемости текста -->
             <div style="
                 position: absolute;
                 inset: 0;
@@ -1344,7 +1357,6 @@ function renderPromoBanners(banners) {
                 z-index: 1;
             "></div>
 
-            <!-- Контент строго в правой половине -->
             <div style="
                 position: relative;
                 z-index: 2;
