@@ -1082,7 +1082,6 @@ function renderPromoBanners(banners) {
 
     const hasNewSlides = Array.isArray(banners) && banners.length > 0;
 
-    // Если состав промо-слайдов в DOM менялся — сбрасываем подпись, чтобы setupSlider() не пропустил пересборку
     if (hadOldSlides || hasNewSlides) {
         lastSliderSignature = '';
     }
@@ -1094,78 +1093,125 @@ function renderPromoBanners(banners) {
     banners.forEach((b) => {
         const isPartner = b.type === 'partner';
         const safeCode = escapeHTML(b.code || '');
-        const safeTitle = escapeHTML(b.title || (isPartner ? 'Промокод партнера' : 'Промокод дня'));
+        const safeTitle = escapeHTML(b.title || (isPartner ? 'TopSkin' : 'HATElavka'));
         const safeUrl = (b.target_url || '').replace(/'/g, "\\'");
         const safeJsCode = (b.code || '').replace(/'/g, "\\'");
-        const accent = b.accent_color || (isPartner ? '#ffd700' : '#9146ff');
 
-        // Фон: картинка из админки + темный градиент, чтобы текст всегда читался
-        const bgStyle = b.image_url
-            ? `background: linear-gradient(95deg, rgba(16,16,20,0.92) 0%, rgba(16,16,20,0.72) 55%, rgba(16,16,20,0.45) 100%), url('${escapeHTML(b.image_url)}') center/cover no-repeat;`
-            : `background: linear-gradient(135deg, #1f1f26 0%, #141418 100%);`;
+        // Акценты под палитру баннеров: оранжевый под TopSkin, золотой под HATElavka
+        const accent = b.accent_color || (isPartner ? '#ff8a1f' : '#ffd700');
 
-        // Нижняя строка: для партнера — дисклеймер про лимит, для нашего — реальный счётчик
+        // Дефолтные картинки из public/static (если в админке задан свой image_url — подхватится он)
+        const defaultImg = isPartner
+            ? '/static/topskin-banner_menu.webp'
+            : '/static/hatelavka-banner_menu.webp';
+        const finalImgUrl = b.image_url || defaultImg;
+
+        // Персонажа слева не затемняем, мягко уводим в тень только правую часть под стекло
+        const bgStyle = `
+            background:
+                linear-gradient(90deg, rgba(10,10,14,0.02) 0%, rgba(10,10,14,0.22) 38%, rgba(10,10,14,0.72) 100%),
+                url('${escapeHTML(finalImgUrl)}') left center / cover no-repeat;
+        `;
+
+        // Нижняя компактная строка статуса/лимита
         let subInfoHtml = '';
         if (isPartner) {
-            const limitPrefix = b.limit_label ? `Лимит: ${escapeHTML(b.limit_label)} • ` : '';
-            const disclaimer = escapeHTML(b.disclaimer || 'Серия ограничена, проверяйте наличие у партнера');
-            subInfoHtml = `<div style="font-size: 9px; color: rgba(255,255,255,0.65); line-height: 1.25; margin-top: 4px;">${limitPrefix}${disclaimer}</div>`;
+            const limitPrefix = b.limit_label ? `${escapeHTML(b.limit_label)} • ` : '';
+            const disclaimer = escapeHTML(b.disclaimer || 'Лимит ограничен');
+            subInfoHtml = `
+                <div style="font-size: 8px; color: rgba(255,255,255,0.62); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${limitPrefix}${disclaimer}
+                </div>
+            `;
         } else {
             const used = Number(b.activations_count || 0);
             const max = b.max_activations ? Number(b.max_activations) : null;
             const isOut = max !== null && used >= max;
             const counterText = max !== null
-                ? (isOut ? 'Все активации разобрали' : `Активировали: ${used} из ${max}`)
-                : `Активировали: ${used}`;
-            subInfoHtml = `<div style="font-size: 9.5px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; margin-top: 4px;">
-                <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="margin-right: 3px;"></i>${counterText}
-            </div>`;
+                ? (isOut ? 'Активации закончились' : `Активаций: ${used} / ${max}`)
+                : `Активаций: ${used}`;
+            subInfoHtml = `
+                <div style="font-size: 8.5px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="font-size: 8px; margin-right: 3px;"></i>${counterText}
+                </div>
+            `;
         }
 
-        // Кнопка действия справа/снизу
+        // Компактная кнопка действия
         const actionBtnHtml = isPartner
-            ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: ${accent}; color: #000; border: none; border-radius: 9px; padding: 7px 11px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
-                   ${escapeHTML(b.cta_text || 'Перейти')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 9px;"></i>
+            ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: linear-gradient(135deg, ${accent} 0%, #ff5e00 100%); color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(0,0,0,0.35);">
+                   ${escapeHTML(b.cta_text || 'Сайт')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 7.5px;"></i>
                </button>`
-            : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: linear-gradient(135deg, #9146ff 0%, #6a11cb 100%); color: #fff; border: none; border-radius: 9px; padding: 7px 11px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(145,70,255,0.35);">
-                   <i class="fa-solid fa-ticket-simple" style="font-size: 9px;"></i> Ввести
+            : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(255,215,0,0.25);">
+                   <i class="fa-solid fa-bolt" style="font-size: 8px;"></i> Ввести
                </button>`;
 
         const slide = document.createElement('div');
         slide.className = 'slide promo-banner-slide';
         slide.dataset.event = `promo_${b.id}`;
         slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}`;
-        slide.style.cssText = `${bgStyle} border-radius: 16px; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);`;
+        slide.style.cssText = `
+            ${bgStyle}
+            border-radius: 16px;
+            box-sizing: border-box;
+            padding: 8px;
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        `;
 
+        // Вся информация собрана справа в стеклянной премиум-плашке
         slide.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 6px; padding-right: 45px;">
-                <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; color: ${accent}; background: rgba(0,0,0,0.45); border: 1px solid ${accent}55; padding: 2px 7px; border-radius: 6px;">
-                    ${isPartner ? 'Партнер' : 'Бонус дня'}
-                </span>
-                <span style="font-size: 13px; font-weight: 900; color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">
-                    ${safeTitle}
-                </span>
-            </div>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px;">
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.55); border: 1px dashed ${accent}88; border-radius: 9px; padding: 5px 8px 5px 10px; max-width: 60%; backdrop-filter: blur(6px);">
-                    <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 0.8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${safeCode}
+            <div style="
+                width: 60%;
+                min-width: 192px;
+                max-width: 240px;
+                background: rgba(14, 14, 18, 0.56);
+                backdrop-filter: blur(14px) saturate(140%);
+                -webkit-backdrop-filter: blur(14px) saturate(140%);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+                border-radius: 12px;
+                padding: 8px 9px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                gap: 5px;
+            ">
+                <!-- Верх: бейдж + заголовок (с отступом справа под точки слайдера) -->
+                <div style="display: flex; align-items: center; gap: 5px; padding-right: 34px; min-width: 0;">
+                    <span style="font-size: 7.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; color: ${accent}; background: ${accent}1f; border: 1px solid ${accent}45; padding: 1.5px 5px; border-radius: 5px; flex-shrink: 0;">
+                        ${isPartner ? 'Партнер' : 'Код дня'}
                     </span>
-                    <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                        <i class="fa-regular fa-copy" style="font-size: 11px;"></i>
-                    </button>
+                    <span style="font-size: 10.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${safeTitle}
+                    </span>
                 </div>
-                ${actionBtnHtml}
-            </div>
 
-            ${subInfoHtml}
+                <!-- Центр: промокод + копирование + кнопка действия -->
+                <div style="display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0;">
+                    <div style="flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; background: rgba(0,0,0,0.42); border: 1px dashed ${accent}75; border-radius: 7px; padding: 3px 3px 3px 7px;">
+                        <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 10.5px; font-weight: 900; color: #fff; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${safeCode}
+                        </span>
+                        <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.1); color: #fff; border: none; border-radius: 5px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                            <i class="fa-regular fa-copy" style="font-size: 9.5px;"></i>
+                        </button>
+                    </div>
+                    ${actionBtnHtml}
+                </div>
+
+                <!-- Низ: счётчик или лимит -->
+                ${subInfoHtml}
+            </div>
         `;
 
         fragment.appendChild(slide);
     });
 
-    // Вставляем промо-баннеры в самое начало слайдера
     wrapper.prepend(fragment);
 }
 
