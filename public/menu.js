@@ -1283,7 +1283,7 @@ function renderPromoBanners(banners) {
             <img class="promo-bg-img" src="${escapeHTML(finalImgUrl)}" alt="">
             <div class="promo-overlay">
                 <div class="promo-content">
-                    <div class="promo-kicker" style="color: ${theme.accent};">Код дня</div>
+                    <div class="promo-kicker" style="color: ${theme.accent};">Бесплатное открытие кейса!</div>
                     <div class="promo-title">${safeSubtitle}</div>
                     ${codeZoneHtml}
                     ${subInfoHtml}
