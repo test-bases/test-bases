@@ -1148,8 +1148,77 @@ if (!window._promoSubReturnListenerAdded) {
     window.addEventListener('focus', onReturnFromChannel);
 }
 
+window._pcSmoothedBannerCache = window._pcSmoothedBannerCache || {};
+
+function smoothBannerForPC(imgEl) {
+    // На телефонах и Retina-экранах (DPR >= 1.5) оставляем нативный рендер
+    const dpr = window.devicePixelRatio || 1;
+    if (!imgEl || dpr >= 1.5 || imgEl.dataset.smoothed === '1') return;
+
+    const src = imgEl.getAttribute('src');
+    if (!src) return;
+
+    const container = document.getElementById('main-slider-container');
+    const boxW = Math.max(container?.clientWidth || 480, 320);
+    const boxH = Math.max(container?.clientHeight || 140, 130);
+    const cacheKey = `${src}_${boxW}x${boxH}`;
+
+    if (window._pcSmoothedBannerCache[cacheKey]) {
+        imgEl.dataset.smoothed = '1';
+        imgEl.src = window._pcSmoothedBannerCache[cacheKey];
+        return;
+    }
+
+    const natW = imgEl.naturalWidth;
+    const natH = imgEl.naturalHeight;
+    if (!natW || !natH) return;
+
+    // Вычисляем реальный размер картинки под object-fit: cover
+    const scale = Math.max(boxW / natW, boxH / natH);
+    const targetW = Math.round(natW * scale * dpr);
+    const targetH = Math.round(natH * scale * dpr);
+
+    // Если сжимать почти нечего — не трогаем
+    if (natW <= targetW * 1.15) return;
+
+    try {
+        // Пошаговое уменьшение пополам убирает шум на ПК без эффекта мыла
+        let curW = natW;
+        let curH = natH;
+        let source = imgEl;
+
+        while (curW * 0.5 > targetW) {
+            curW = Math.round(curW * 0.5);
+            curH = Math.round(curH * 0.5);
+            const stepCanvas = document.createElement('canvas');
+            stepCanvas.width = curW;
+            stepCanvas.height = curH;
+            const sCtx = stepCanvas.getContext('2d');
+            sCtx.imageSmoothingEnabled = true;
+            sCtx.imageSmoothingQuality = 'high';
+            sCtx.drawImage(source, 0, 0, curW, curH);
+            source = stepCanvas;
+        }
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = targetW;
+        finalCanvas.height = targetH;
+        const fCtx = finalCanvas.getContext('2d');
+        fCtx.imageSmoothingEnabled = true;
+        fCtx.imageSmoothingQuality = 'high';
+        fCtx.drawImage(source, 0, 0, targetW, targetH);
+
+        const smoothedUrl = finalCanvas.toDataURL('image/webp', 0.92);
+        window._pcSmoothedBannerCache[cacheKey] = smoothedUrl;
+        imgEl.dataset.smoothed = '1';
+        imgEl.src = smoothedUrl;
+    } catch (e) {
+        // Если картинка с внешнего домена без CORS — молча оставляем оригинал
+    }
+}
+
 // ================================================================
-// РЕНДЕР ПРОМО-БАННЕРОВ (БЕЗ ГРОМОЗДКОГО БЛЮРА + МЯГКИЙ ФОН)
+// РЕНДЕР ПРОМО-БАННЕРОВ (СГЛАЖИВАНИЕ ДЛЯ ПК + ЧИСТЫЙ РЕНДЕР НА МОБИЛКЕ)
 // ================================================================
 function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
@@ -1191,7 +1260,6 @@ function renderPromoBanners(banners) {
         const safeUrl = (b.target_url || '').replace(/'/g, "\\'");
         const safeJsCode = (b.code || '').replace(/'/g, "\\'");
 
-        // Чистое тёмное стекло с тонким цветным кантом (оранжевый TopSkin / золотой HATElavka)
         const theme = isPartner
             ? {
                 accent: '#ff8a1f',
@@ -1213,7 +1281,6 @@ function renderPromoBanners(banners) {
             : '/static/hatelavka-banner_menu.webp';
         const finalImgUrl = b.image_url || defaultImg;
 
-        // Нижняя строка статуса
         let subInfoHtml = '';
         if (isPartner) {
             const limitPrefix = b.limit_label ? `${escapeHTML(b.limit_label)} • ` : '';
@@ -1237,7 +1304,6 @@ function renderPromoBanners(banners) {
             `;
         }
 
-        // Компактная зона кода / подписки (стекло строго в одну линию)
         let codeZoneHtml = '';
         if (isSubscribed) {
             const actionBtnHtml = isPartner
@@ -1337,13 +1403,14 @@ function renderPromoBanners(banners) {
         `;
 
         slide.innerHTML = `
-            <img src="${escapeHTML(finalImgUrl)}" alt="" style="
+            <img class="promo-bg-img" src="${escapeHTML(finalImgUrl)}" alt="" style="
                 position: absolute;
                 inset: 0;
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 object-position: left center;
+                image-rendering: auto;
                 display: block;
                 pointer-events: none;
                 z-index: 0;
@@ -1380,6 +1447,16 @@ function renderPromoBanners(banners) {
                 ${subInfoHtml}
             </div>
         `;
+
+        // Запускаем сглаживание для ПК сразу после загрузки картинки
+        const bgImg = slide.querySelector('.promo-bg-img');
+        if (bgImg) {
+            if (bgImg.complete && bgImg.naturalWidth > 0) {
+                smoothBannerForPC(bgImg);
+            } else {
+                bgImg.addEventListener('load', () => smoothBannerForPC(bgImg), { once: true });
+            }
+        }
 
         fragment.appendChild(slide);
     });
