@@ -1492,8 +1492,8 @@ body.browser-mode, body.browser-mode .main-content-scrollable { scrollbar-width:
     max-width: 100%;
     padding: 3px 3px 3px 8px;
     border-radius: 9px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /*backdrop-filter: blur(8px);*/
+    /*-webkit-backdrop-filter: blur(8px);*/
     box-sizing: border-box;
 }
 
