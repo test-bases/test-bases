@@ -1150,12 +1150,7 @@ if (!window._promoSubReturnListenerAdded) {
 
 window._pcSmoothedBannerCache = window._pcSmoothedBannerCache || {};
 
-// ================================================================
-// РЕНДЕР ПРОМО-БАННЕРОВ (ЧИСТЫЙ ОРИГИНАЛ БЕЗ КАНВАСА И БЛЮРА)
-// ================================================================
-// ================================================================
-// РЕНДЕР ПРОМО-БАННЕРОВ (СТРУКТУРА 1-В-1 КАК У БП)
-// ================================================================
+
 function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
     if (!wrapper) return;
@@ -1217,16 +1212,11 @@ function renderPromoBanners(banners) {
             : '/static/hatelavka-banner_menu.webp';
         const finalImgUrl = b.image_url || defaultImg;
 
-        // Нижняя строка: оранжевая у TopSkin, жёлтая у активаций HATElavka
         let subInfoHtml = '';
         if (isPartner) {
             const limitPrefix = b.limit_label ? `${escapeHTML(b.limit_label)} • ` : '';
             const disclaimer = escapeHTML(b.disclaimer || 'Лимит ограничен');
-            subInfoHtml = `
-                <div style="font-size: 8px; font-weight: 700; color: #ff8a1f; text-shadow: 0 1px 4px rgba(0,0,0,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
-                    ${limitPrefix}${disclaimer}
-                </div>
-            `;
+            subInfoHtml = `<div class="promo-subinfo" style="color: #ff8a1f;">${limitPrefix}${disclaimer}</div>`;
         } else {
             const used = Number(b.activations_count || 0);
             const max = b.max_activations ? Number(b.max_activations) : null;
@@ -1235,89 +1225,50 @@ function renderPromoBanners(banners) {
                 ? (isOut ? 'Активации закончились' : `Активаций: ${used} / ${max}`)
                 : `Активаций: ${used}`;
             subInfoHtml = `
-                <div style="font-size: 8px; font-weight: 700; color: ${isOut ? '#ff453a' : '#ffd700'}; text-shadow: 0 1px 4px rgba(0,0,0,0.95); white-space: nowrap;">
-                    <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="font-size: 7.5px; margin-right: 3px;"></i>${counterText}
+                <div class="promo-subinfo" style="color: ${isOut ? '#ff453a' : '#ffd700'};">
+                    <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="margin-right: 3px;"></i>${counterText}
                 </div>
             `;
         }
 
-        // Зона кода / подписки
+        const pillStyle = `background: ${theme.glassBg}; border: 1px solid ${theme.glassBorder}; box-shadow: ${theme.glassShadow};`;
+
         let codeZoneHtml = '';
         if (isSubscribed) {
             const actionBtnHtml = isPartner
-                ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 6px; padding: 4px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;">
-                       ${escapeHTML(b.cta_text || 'Сайт')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 7px;"></i>
+                ? `<button type="button" class="promo-action-btn" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: ${theme.btnBg};">
+                       ${escapeHTML(b.cta_text || 'Сайт')} <i class="fa-solid fa-arrow-up-right-from-square"></i>
                    </button>`
-                : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 6px; padding: 4px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;">
-                       <i class="fa-solid fa-bolt" style="font-size: 7.5px;"></i> Ввести
+                : `<button type="button" class="promo-action-btn" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: ${theme.btnBg};">
+                       <i class="fa-solid fa-bolt"></i> Ввести
                    </button>`;
 
             codeZoneHtml = `
-                <div style="
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    max-width: 100%;
-                    padding: 3px 3px 3px 8px;
-                    border-radius: 9px;
-                    background: ${theme.glassBg};
-                    backdrop-filter: blur(8px);
-                    -webkit-backdrop-filter: blur(8px);
-                    border: 1px solid ${theme.glassBorder};
-                    box-shadow: ${theme.glassShadow};
-                    box-sizing: border-box;
-                ">
-                    <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 10.5px; font-weight: 900; color: #fff; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${safeCode}
-                    </span>
-                    <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                        <i class="fa-regular fa-copy" style="font-size: 9.5px;"></i>
+                <div class="promo-code-pill" style="${pillStyle}">
+                    <span class="promo-code-text">${safeCode}</span>
+                    <button type="button" class="promo-icon-btn" onclick="copyPromoCode(event, '${safeJsCode}', this)">
+                        <i class="fa-regular fa-copy"></i>
                     </button>
                     ${actionBtnHtml}
                 </div>
             `;
         } else if (isCheckingSub) {
             codeZoneHtml = `
-                <div style="
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    padding: 5px 9px;
-                    border-radius: 9px;
-                    background: ${theme.glassBg};
-                    backdrop-filter: blur(8px);
-                    -webkit-backdrop-filter: blur(8px);
-                    border: 1px solid ${theme.glassBorder};
-                    font-size: 8.5px;
-                    font-weight: 700;
-                    color: rgba(255,255,255,0.85);
-                ">
-                    <i class="fa-solid fa-spinner fa-spin" style="color: ${theme.accent}; font-size: 9px;"></i>
-                    Проверка...
+                <div class="promo-code-pill" style="${pillStyle} padding: 5px 10px; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.85);">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: ${theme.accent};"></i> Проверка...
                 </div>
             `;
         } else {
             codeZoneHtml = `
-                <div style="font-size: 8px; font-weight: 600; color: rgba(255,255,255,0.72); line-height: 1.25; text-shadow: 0 1px 4px rgba(0,0,0,0.95); margin-bottom: 1px;">
-                    <i class="fa-solid fa-lock" style="color: ${theme.accent}; margin-right: 3px; font-size: 7.5px;"></i>Код только для участников канала
+                <div class="promo-lock-hint">
+                    <i class="fa-solid fa-lock" style="color: ${theme.accent}; margin-right: 3px;"></i>Код только для участников канала
                 </div>
-                <div style="
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 3px;
-                    border-radius: 9px;
-                    background: ${theme.glassBg};
-                    backdrop-filter: blur(8px);
-                    -webkit-backdrop-filter: blur(8px);
-                    border: 1px solid ${theme.glassBorder};
-                    box-shadow: ${theme.glassShadow};
-                ">
-                    <button type="button" onclick="openPromoChannelSub(event)" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 6px; padding: 4px 9px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                        <i class="fa-brands fa-telegram" style="font-size: 9.5px;"></i> Подписаться
+                <div class="promo-code-pill" style="${pillStyle} padding-left: 3px;">
+                    <button type="button" class="promo-action-btn" onclick="openPromoChannelSub(event)" style="background: ${theme.btnBg};">
+                        <i class="fa-brands fa-telegram"></i> Подписаться
                     </button>
-                    <button type="button" onclick="recheckPromoSub(event, this)" title="Проверить подписку" style="background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 6px; width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
-                        <i class="fa-solid fa-rotate-right" style="font-size: 8.5px;"></i>
+                    <button type="button" class="promo-icon-btn" onclick="recheckPromoSub(event, this)" title="Проверить подписку">
+                        <i class="fa-solid fa-rotate-right"></i>
                     </button>
                 </div>
             `;
@@ -1327,43 +1278,14 @@ function renderPromoBanners(banners) {
         slide.className = 'slide promo-banner-slide';
         slide.dataset.event = `promo_${b.id}`;
         slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}_${window._promoSubState}`;
-        // Как у БП: чистый контейнер без padding и flex
-        slide.style.cssText = 'position: relative; background: #000; overflow: hidden;';
 
         slide.innerHTML = `
-            <img src="${escapeHTML(finalImgUrl)}" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: left center; display: block;">
-
-            <div style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                padding: 16px 14px 10px 14px;
-                box-sizing: border-box;
-                background: linear-gradient(90deg, transparent 0%, transparent 45%, rgba(0,0,0,0.68) 78%, rgba(0,0,0,0.92) 100%);
-            ">
-                <div style="
-                    text-align: right;
-                    max-width: 58%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-end;
-                    gap: 3px;
-                ">
-                    <div style="font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.9px; color: ${theme.accent}; text-shadow: 0 1px 5px rgba(0,0,0,0.9);">
-                        Код дня
-                    </div>
-
-                    <div style="font-size: 11px; font-weight: 800; color: #fff; line-height: 1.15; text-shadow: 0 1px 6px rgba(0,0,0,0.95); margin-bottom: 2px;">
-                        ${safeSubtitle}
-                    </div>
-
+            <img class="promo-bg-img" src="${escapeHTML(finalImgUrl)}" alt="">
+            <div class="promo-overlay">
+                <div class="promo-content">
+                    <div class="promo-kicker" style="color: ${theme.accent};">Код дня</div>
+                    <div class="promo-title">${safeSubtitle}</div>
                     ${codeZoneHtml}
-
                     ${subInfoHtml}
                 </div>
             </div>
