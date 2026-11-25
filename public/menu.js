@@ -1153,6 +1153,9 @@ window._pcSmoothedBannerCache = window._pcSmoothedBannerCache || {};
 // ================================================================
 // РЕНДЕР ПРОМО-БАННЕРОВ (ЧИСТЫЙ ОРИГИНАЛ БЕЗ КАНВАСА И БЛЮРА)
 // ================================================================
+// ================================================================
+// РЕНДЕР ПРОМО-БАННЕРОВ (СТРУКТУРА 1-В-1 КАК У БП)
+// ================================================================
 function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
     if (!wrapper) return;
@@ -1197,14 +1200,14 @@ function renderPromoBanners(banners) {
             ? {
                 accent: '#ff8a1f',
                 glassBg: 'rgba(18, 12, 8, 0.52)',
-                glassBorder: 'rgba(255, 138, 31, 0.36)',
+                glassBorder: 'rgba(255, 138, 31, 0.38)',
                 glassShadow: '0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 190, 130, 0.16)',
                 btnBg: 'linear-gradient(135deg, #ff9924 0%, #ff5a00 100%)'
             }
             : {
                 accent: '#ffd700',
                 glassBg: 'rgba(16, 15, 10, 0.52)',
-                glassBorder: 'rgba(255, 215, 0, 0.34)',
+                glassBorder: 'rgba(255, 215, 0, 0.36)',
                 glassShadow: '0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 235, 150, 0.16)',
                 btnBg: 'linear-gradient(135deg, #ffe047 0%, #ffaa00 100%)'
             };
@@ -1214,12 +1217,13 @@ function renderPromoBanners(banners) {
             : '/static/hatelavka-banner_menu.webp';
         const finalImgUrl = b.image_url || defaultImg;
 
+        // Нижняя строка: оранжевая у TopSkin, жёлтая у активаций HATElavka
         let subInfoHtml = '';
         if (isPartner) {
             const limitPrefix = b.limit_label ? `${escapeHTML(b.limit_label)} • ` : '';
             const disclaimer = escapeHTML(b.disclaimer || 'Лимит ограничен');
             subInfoHtml = `
-                <div style="font-size: 7.5px; color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                <div style="font-size: 8px; font-weight: 700; color: #ff8a1f; text-shadow: 0 1px 4px rgba(0,0,0,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
                     ${limitPrefix}${disclaimer}
                 </div>
             `;
@@ -1231,12 +1235,13 @@ function renderPromoBanners(banners) {
                 ? (isOut ? 'Активации закончились' : `Активаций: ${used} / ${max}`)
                 : `Активаций: ${used}`;
             subInfoHtml = `
-                <div style="font-size: 8px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; text-shadow: 0 1px 4px rgba(0,0,0,0.95); white-space: nowrap;">
+                <div style="font-size: 8px; font-weight: 700; color: ${isOut ? '#ff453a' : '#ffd700'}; text-shadow: 0 1px 4px rgba(0,0,0,0.95); white-space: nowrap;">
                     <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="font-size: 7.5px; margin-right: 3px;"></i>${counterText}
                 </div>
             `;
         }
 
+        // Зона кода / подписки
         let codeZoneHtml = '';
         if (isSubscribed) {
             const actionBtnHtml = isPartner
@@ -1322,61 +1327,45 @@ function renderPromoBanners(banners) {
         slide.className = 'slide promo-banner-slide';
         slide.dataset.event = `promo_${b.id}`;
         slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}_${window._promoSubState}`;
-        slide.style.cssText = `
-            position: relative;
-            border-radius: 16px;
-            box-sizing: border-box;
-            padding: 16px 12px 9px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: #101014;
-        `;
+        // Как у БП: чистый контейнер без padding и flex
+        slide.style.cssText = 'position: relative; background: #000; overflow: hidden;';
 
         slide.innerHTML = `
-            <img src="${escapeHTML(finalImgUrl)}" alt="" style="
+            <img src="${escapeHTML(finalImgUrl)}" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: left center; display: block;">
+
+            <div style="
                 position: absolute;
-                inset: 0;
+                top: 0;
+                left: 0;
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
-                object-position: left center;
-                display: block;
-                pointer-events: none;
-                z-index: 0;
-            ">
-
-            <div style="
-                position: absolute;
-                inset: 0;
-                background: linear-gradient(90deg, rgba(10,10,14,0) 35%, rgba(10,10,14,0.62) 72%, rgba(10,10,14,0.82) 100%);
-                pointer-events: none;
-                z-index: 1;
-            "></div>
-
-            <div style="
-                position: relative;
-                z-index: 2;
-                max-width: 58%;
                 display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                text-align: right;
-                gap: 3px;
+                align-items: center;
+                justify-content: flex-end;
+                padding: 16px 14px 10px 14px;
+                box-sizing: border-box;
+                background: linear-gradient(90deg, transparent 0%, transparent 45%, rgba(0,0,0,0.68) 78%, rgba(0,0,0,0.92) 100%);
             ">
-                <div style="font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.9px; color: ${theme.accent}; text-shadow: 0 1px 5px rgba(0,0,0,0.9);">
-                    Код дня
+                <div style="
+                    text-align: right;
+                    max-width: 58%;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 3px;
+                ">
+                    <div style="font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.9px; color: ${theme.accent}; text-shadow: 0 1px 5px rgba(0,0,0,0.9);">
+                        Код дня
+                    </div>
+
+                    <div style="font-size: 11px; font-weight: 800; color: #fff; line-height: 1.15; text-shadow: 0 1px 6px rgba(0,0,0,0.95); margin-bottom: 2px;">
+                        ${safeSubtitle}
+                    </div>
+
+                    ${codeZoneHtml}
+
+                    ${subInfoHtml}
                 </div>
-
-                <div style="font-size: 11px; font-weight: 800; color: #fff; line-height: 1.15; text-shadow: 0 1px 6px rgba(0,0,0,0.95); margin-bottom: 2px;">
-                    ${safeSubtitle}
-                </div>
-
-                ${codeZoneHtml}
-
-                ${subInfoHtml}
             </div>
         `;
 
