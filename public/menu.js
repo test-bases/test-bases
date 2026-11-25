@@ -1151,7 +1151,7 @@ if (!window._promoSubReturnListenerAdded) {
 window._pcSmoothedBannerCache = window._pcSmoothedBannerCache || {};
 
 // ================================================================
-// РЕНДЕР ПРОМО-БАННЕРОВ (СГЛАЖИВАНИЕ ДЛЯ ПК + ЧИСТЫЙ РЕНДЕР НА МОБИЛКЕ)
+// РЕНДЕР ПРОМО-БАННЕРОВ (ЧИСТЫЙ ОРИГИНАЛ БЕЗ КАНВАСА И БЛЮРА)
 // ================================================================
 function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
@@ -1336,14 +1336,13 @@ function renderPromoBanners(banners) {
         `;
 
         slide.innerHTML = `
-            <img class="promo-bg-img" src="${escapeHTML(finalImgUrl)}" alt="" style="
+            <img src="${escapeHTML(finalImgUrl)}" alt="" style="
                 position: absolute;
                 inset: 0;
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 object-position: left center;
-                image-rendering: auto;
                 display: block;
                 pointer-events: none;
                 z-index: 0;
@@ -1380,16 +1379,6 @@ function renderPromoBanners(banners) {
                 ${subInfoHtml}
             </div>
         `;
-
-        // Запускаем сглаживание для ПК сразу после загрузки картинки
-        const bgImg = slide.querySelector('.promo-bg-img');
-        if (bgImg) {
-            if (bgImg.complete && bgImg.naturalWidth > 0) {
-                smoothBannerForPC(bgImg);
-            } else {
-                bgImg.addEventListener('load', () => smoothBannerForPC(bgImg), { once: true });
-            }
-        }
 
         fragment.appendChild(slide);
     });
