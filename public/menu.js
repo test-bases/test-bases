@@ -1072,15 +1072,84 @@ window.quickActivatePromo = function(event, code) {
     }
 };
 
+// ================================================================
+// ПРОВЕРКА ПОДПИСКИ ДЛЯ ПРОМОКОДОВ В СЛАЙДЕРЕ
+// ================================================================
+window._promoSubState = 'unknown'; // 'unknown' | 'checking' | 'subscribed' | 'unsubscribed'
+window._lastPromoBanners = [];
+window._promoWaitingSubReturn = false;
+
+window.checkPromoSubscription = async function(force = false) {
+    if (window._promoSubState === 'checking') return;
+    if (!force && (window._promoSubState === 'subscribed' || window._promoSubState === 'unsubscribed')) return;
+
+    window._promoSubState = 'checking';
+    try {
+        const res = await makeApiRequest('/api/v1/user/check_subscription', {}, 'POST', true);
+        window._promoSubState = (res && res.is_subscribed) ? 'subscribed' : 'unsubscribed';
+    } catch (e) {
+        window._promoSubState = 'unsubscribed';
+    }
+
+    if (window._lastPromoBanners.length > 0) {
+        renderPromoBanners(window._lastPromoBanners);
+        setupSlider();
+    }
+};
+
+window.openPromoChannelSub = function(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    window._promoWaitingSubReturn = true;
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light');
+
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink('https://t.me/hatelove_ttv');
+    } else {
+        window.open('https://t.me/hatelove_ttv', '_blank');
+    }
+};
+
+window.recheckPromoSub = async function(event, btnEl) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (btnEl) {
+        btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 9px;"></i>';
+    }
+    await window.checkPromoSubscription(true);
+};
+
+// Автопроверка подписки, когда юзер возвращается из канала обратно в приложение
+if (!window._promoSubReturnListenerAdded) {
+    window._promoSubReturnListenerAdded = true;
+    const onReturnFromChannel = () => {
+        if (!document.hidden && window._promoWaitingSubReturn && window._promoSubState !== 'subscribed') {
+            window._promoWaitingSubReturn = false;
+            window.checkPromoSubscription(true);
+        }
+    };
+    document.addEventListener('visibilitychange', onReturnFromChannel);
+    window.addEventListener('focus', onReturnFromChannel);
+}
+
+// ================================================================
+// РЕНДЕР ПРОМО-БАННЕРОВ (БЕЗ ГРОМОЗДКОГО БЛЮРА + МЯГКИЙ ФОН)
+// ================================================================
 function renderPromoBanners(banners) {
     const wrapper = document.querySelector('#main-slider-container .slider-wrapper');
     if (!wrapper) return;
+
+    window._lastPromoBanners = Array.isArray(banners) ? banners : [];
 
     const oldSlides = wrapper.querySelectorAll('.promo-banner-slide');
     const hadOldSlides = oldSlides.length > 0;
     oldSlides.forEach(el => el.remove());
 
-    const hasNewSlides = Array.isArray(banners) && banners.length > 0;
+    const hasNewSlides = window._lastPromoBanners.length > 0;
 
     if (hadOldSlides || hasNewSlides) {
         lastSliderSignature = '';
@@ -1088,38 +1157,54 @@ function renderPromoBanners(banners) {
 
     if (!hasNewSlides) return;
 
+    // Если статус подписки еще не проверяли — запускаем проверку в фоне
+    if (window._promoSubState === 'unknown') {
+        window.checkPromoSubscription(false);
+    }
+
+    const isSubscribed = window._promoSubState === 'subscribed';
+    const isCheckingSub = window._promoSubState === 'checking' || window._promoSubState === 'unknown';
+
     const fragment = document.createDocumentFragment();
 
-    banners.forEach((b) => {
+    window._lastPromoBanners.forEach((b) => {
         const isPartner = b.type === 'partner';
         const safeCode = escapeHTML(b.code || '');
-        const safeTitle = escapeHTML(b.title || (isPartner ? 'TopSkin' : 'HATElavka'));
+        const safeSubtitle = escapeHTML(
+            b.title || (isPartner ? 'Бонус на TopSkin' : 'Бесплатный кейс в HATElavka')
+        );
         const safeUrl = (b.target_url || '').replace(/'/g, "\\'");
         const safeJsCode = (b.code || '').replace(/'/g, "\\'");
 
-        // Акценты под палитру баннеров: оранжевый под TopSkin, золотой под HATElavka
-        const accent = b.accent_color || (isPartner ? '#ff8a1f' : '#ffd700');
+        // Палитры под баннеры: оранжевая для TopSkin, золотая для HATElavka
+        const theme = isPartner
+            ? {
+                accent: '#ff8a1f',
+                glassBg: 'linear-gradient(135deg, rgba(255, 118, 20, 0.24) 0%, rgba(28, 12, 6, 0.62) 100%)',
+                glassBorder: 'rgba(255, 145, 50, 0.42)',
+                glassShadow: '0 6px 20px rgba(0, 0, 0, 0.48), 0 0 16px rgba(255, 110, 0, 0.16), inset 0 1px 0 rgba(255, 196, 140, 0.32)',
+                btnBg: 'linear-gradient(135deg, #ff9924 0%, #ff5a00 100%)'
+            }
+            : {
+                accent: '#ffd700',
+                glassBg: 'linear-gradient(135deg, rgba(255, 215, 0, 0.20) 0%, rgba(24, 20, 10, 0.62) 100%)',
+                glassBorder: 'rgba(255, 215, 0, 0.38)',
+                glassShadow: '0 6px 20px rgba(0, 0, 0, 0.48), 0 0 16px rgba(255, 215, 0, 0.14), inset 0 1px 0 rgba(255, 240, 160, 0.34)',
+                btnBg: 'linear-gradient(135deg, #ffe047 0%, #ffaa00 100%)'
+            };
 
-        // Дефолтные картинки из public/static (если в админке задан свой image_url — подхватится он)
         const defaultImg = isPartner
             ? '/static/topskin-banner_menu.webp'
             : '/static/hatelavka-banner_menu.webp';
         const finalImgUrl = b.image_url || defaultImg;
 
-        // Персонажа слева не затемняем, мягко уводим в тень только правую часть под стекло
-        const bgStyle = `
-            background:
-                linear-gradient(90deg, rgba(10,10,14,0.02) 0%, rgba(10,10,14,0.22) 38%, rgba(10,10,14,0.72) 100%),
-                url('${escapeHTML(finalImgUrl)}') left center / cover no-repeat;
-        `;
-
-        // Нижняя компактная строка статуса/лимита
+        // Нижняя мелкая строка (лимит / активации)
         let subInfoHtml = '';
         if (isPartner) {
             const limitPrefix = b.limit_label ? `${escapeHTML(b.limit_label)} • ` : '';
             const disclaimer = escapeHTML(b.disclaimer || 'Лимит ограничен');
             subInfoHtml = `
-                <div style="font-size: 8px; color: rgba(255,255,255,0.62); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-size: 7.5px; color: rgba(255,255,255,0.58); text-shadow: 0 1px 4px rgba(0,0,0,0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
                     ${limitPrefix}${disclaimer}
                 </div>
             `;
@@ -1131,80 +1216,163 @@ function renderPromoBanners(banners) {
                 ? (isOut ? 'Активации закончились' : `Активаций: ${used} / ${max}`)
                 : `Активаций: ${used}`;
             subInfoHtml = `
-                <div style="font-size: 8.5px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="font-size: 8px; margin-right: 3px;"></i>${counterText}
+                <div style="font-size: 8px; font-weight: 700; color: ${isOut ? '#ff453a' : '#4ade80'}; text-shadow: 0 1px 5px rgba(0,0,0,0.95); white-space: nowrap;">
+                    <i class="fa-solid ${isOut ? 'fa-circle-xmark' : 'fa-fire'}" style="font-size: 7.5px; margin-right: 3px;"></i>${counterText}
                 </div>
             `;
         }
 
-        // Компактная кнопка действия
-        const actionBtnHtml = isPartner
-            ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: linear-gradient(135deg, ${accent} 0%, #ff5e00 100%); color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(0,0,0,0.35);">
-                   ${escapeHTML(b.cta_text || 'Сайт')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 7.5px;"></i>
-               </button>`
-            : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(255,215,0,0.25);">
-                   <i class="fa-solid fa-bolt" style="font-size: 8px;"></i> Ввести
-               </button>`;
+        // Зона кода (блюр ТОЛЬКО на ней)
+        let codeZoneHtml = '';
+        if (isSubscribed) {
+            const actionBtnHtml = isPartner
+                ? `<button type="button" onclick="openPromoPartnerLink(event, '${safeUrl}')" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.35);">
+                       ${escapeHTML(b.cta_text || 'Сайт')} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 7.5px;"></i>
+                   </button>`
+                : `<button type="button" onclick="quickActivatePromo(event, '${safeJsCode}')" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 7px; padding: 5px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.35);">
+                       <i class="fa-solid fa-bolt" style="font-size: 8px;"></i> Ввести
+                   </button>`;
+
+            codeZoneHtml = `
+                <div style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    max-width: 100%;
+                    padding: 4px 5px 4px 9px;
+                    border-radius: 10px;
+                    background: ${theme.glassBg};
+                    backdrop-filter: blur(14px) saturate(135%);
+                    -webkit-backdrop-filter: blur(14px) saturate(135%);
+                    border: 1px solid ${theme.glassBorder};
+                    box-shadow: ${theme.glassShadow};
+                    box-sizing: border-box;
+                ">
+                    <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 11px; font-weight: 900; color: #fff; letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">
+                        ${safeCode}
+                    </span>
+                    <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.14); color: #fff; border: none; border-radius: 6px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                        <i class="fa-regular fa-copy" style="font-size: 10px;"></i>
+                    </button>
+                    ${actionBtnHtml}
+                </div>
+            `;
+        } else if (isCheckingSub) {
+            codeZoneHtml = `
+                <div style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 10px;
+                    border-radius: 10px;
+                    background: ${theme.glassBg};
+                    backdrop-filter: blur(14px);
+                    -webkit-backdrop-filter: blur(14px);
+                    border: 1px solid ${theme.glassBorder};
+                    box-shadow: ${theme.glassShadow};
+                    font-size: 9px;
+                    font-weight: 700;
+                    color: rgba(255,255,255,0.85);
+                ">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: ${theme.accent}; font-size: 10px;"></i>
+                    Проверка подписки...
+                </div>
+            `;
+        } else {
+            // Нет подписки — вместо кода показываем аккуратную стеклянную плашку с кнопкой
+            codeZoneHtml = `
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 5px;
+                    max-width: 100%;
+                    padding: 6px 8px;
+                    border-radius: 10px;
+                    background: ${theme.glassBg};
+                    backdrop-filter: blur(14px) saturate(135%);
+                    -webkit-backdrop-filter: blur(14px) saturate(135%);
+                    border: 1px solid ${theme.glassBorder};
+                    box-shadow: ${theme.glassShadow};
+                    box-sizing: border-box;
+                ">
+                    <div style="font-size: 8.5px; font-weight: 600; color: rgba(255,255,255,0.92); line-height: 1.25; text-align: right;">
+                        <i class="fa-solid fa-lock" style="color: ${theme.accent}; margin-right: 3px; font-size: 8px;"></i>Код доступен только для участников канала. Подпишись, и он станет виден
+                    </div>
+                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                        <button type="button" onclick="openPromoChannelSub(event)" style="background: ${theme.btnBg}; color: #000; border: none; border-radius: 6px; padding: 4px 8px; font-size: 8.5px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.35);">
+                            <i class="fa-brands fa-telegram" style="font-size: 9.5px;"></i> Подписаться
+                        </button>
+                        <button type="button" onclick="recheckPromoSub(event, this)" title="Проверить подписку" style="background: rgba(255,255,255,0.14); color: #fff; border: none; border-radius: 6px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fa-solid fa-rotate-right" style="font-size: 9px;"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
 
         const slide = document.createElement('div');
         slide.className = 'slide promo-banner-slide';
         slide.dataset.event = `promo_${b.id}`;
-        slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}`;
+        slide.dataset.promoSig = `promo_${b.id}_${b.code}_${b.activations_count || 0}_${window._promoSubState}`;
         slide.style.cssText = `
-            ${bgStyle}
+            position: relative;
             border-radius: 16px;
             box-sizing: border-box;
-            padding: 8px;
+            padding: 16px 12px 9px 12px;
             display: flex;
-            align-items: stretch;
+            align-items: center;
             justify-content: flex-end;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.08);
+            background: #101014;
         `;
 
-        // Вся информация собрана справа в стеклянной премиум-плашке
         slide.innerHTML = `
+            <!-- Слой 1: картинка через img с мягким сглаживанием (убирает перешарп) -->
+            <img src="${escapeHTML(finalImgUrl)}" alt="" style="
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: left center;
+                filter: contrast(0.94) brightness(0.92) blur(0.35px);
+                transform: scale(1.02);
+                pointer-events: none;
+                z-index: 0;
+            ">
+
+            <!-- Слой 2: мягкое затемнение только справа, чтобы текст читался без плашки -->
             <div style="
-                width: 60%;
-                min-width: 192px;
-                max-width: 240px;
-                background: rgba(14, 14, 18, 0.56);
-                backdrop-filter: blur(14px) saturate(140%);
-                -webkit-backdrop-filter: blur(14px) saturate(140%);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-                border-radius: 12px;
-                padding: 8px 9px;
-                box-sizing: border-box;
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(95deg, rgba(10,10,14,0) 0%, rgba(10,10,14,0.15) 36%, rgba(10,10,14,0.68) 76%, rgba(10,10,14,0.84) 100%);
+                pointer-events: none;
+                z-index: 1;
+            "></div>
+
+            <!-- Слой 3: сам контент справа (без общего контейнера-блюра) -->
+            <div style="
+                position: relative;
+                z-index: 2;
+                max-width: 66%;
                 display: flex;
                 flex-direction: column;
-                justify-content: space-between;
-                gap: 5px;
+                align-items: flex-end;
+                text-align: right;
+                gap: 4px;
             ">
-                <!-- Верх: бейдж + заголовок (с отступом справа под точки слайдера) -->
-                <div style="display: flex; align-items: center; gap: 5px; padding-right: 34px; min-width: 0;">
-                    <span style="font-size: 7.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; color: ${accent}; background: ${accent}1f; border: 1px solid ${accent}45; padding: 1.5px 5px; border-radius: 5px; flex-shrink: 0;">
-                        ${isPartner ? 'Партнер' : 'Код дня'}
-                    </span>
-                    <span style="font-size: 10.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${safeTitle}
-                    </span>
+                <div style="font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.9px; color: ${theme.accent}; text-shadow: 0 1px 6px rgba(0,0,0,0.95);">
+                    Код дня
                 </div>
 
-                <!-- Центр: промокод + копирование + кнопка действия -->
-                <div style="display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0;">
-                    <div style="flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; background: rgba(0,0,0,0.42); border: 1px dashed ${accent}75; border-radius: 7px; padding: 3px 3px 3px 7px;">
-                        <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 10.5px; font-weight: 900; color: #fff; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${safeCode}
-                        </span>
-                        <button type="button" onclick="copyPromoCode(event, '${safeJsCode}', this)" style="background: rgba(255,255,255,0.1); color: #fff; border: none; border-radius: 5px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-                            <i class="fa-regular fa-copy" style="font-size: 9.5px;"></i>
-                        </button>
-                    </div>
-                    ${actionBtnHtml}
+                <div style="font-size: 11px; font-weight: 800; color: #fff; line-height: 1.15; text-shadow: 0 2px 8px rgba(0,0,0,0.95); margin-bottom: 2px;">
+                    ${safeSubtitle}
                 </div>
 
-                <!-- Низ: счётчик или лимит -->
+                ${codeZoneHtml}
+
                 ${subInfoHtml}
             </div>
         `;
