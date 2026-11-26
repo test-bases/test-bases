@@ -102,6 +102,14 @@
         }
         .folder-count { font-size: 9px; color: var(--text-sec); margin-top: 3px; }
 
+        .folder-upgrade-tag {
+            font-size: 8px; font-weight: 800; color: #d8b4fe;
+            background: rgba(136, 71, 255, 0.22);
+            border: 1px solid rgba(192, 132, 252, 0.38);
+            border-radius: 5px; padding: 1px 5px; margin-top: 3px;
+            max-width: 92%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
         .case-secret-btn {
             position: absolute; top: 5px; right: 5px;
             background: rgba(0,0,0,0.55); border: none;
@@ -109,6 +117,21 @@
             width: 24px; height: 24px; border-radius: 7px;
             display: flex; align-items: center; justify-content: center;
             transition: 0.2s; backdrop-filter: blur(4px);
+        }
+
+        .case-upgrade-btn {
+            position: absolute; top: 5px; left: 5px;
+            background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-sec); font-size: 10px; cursor: pointer; z-index: 10;
+            width: 24px; height: 24px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; backdrop-filter: blur(4px);
+        }
+        .case-upgrade-btn.active {
+            background: rgba(136, 71, 255, 0.28);
+            border-color: rgba(192, 132, 252, 0.6);
+            color: #d8b4fe;
+            box-shadow: 0 0 8px rgba(136, 71, 255, 0.35);
         }
 
         .case-folder.create-new { border: 1px dashed var(--text-sec); background: rgba(255,255,255,0.02); }
@@ -275,6 +298,29 @@
             overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
         }
 
+        /* ПРЕВЬЮ ЛЕСЕНКИ АПГРЕЙДА */
+        .ladder-preview-box {
+            background: rgba(136, 71, 255, 0.08);
+            border: 1px dashed rgba(192, 132, 252, 0.35);
+            border-radius: 11px;
+            padding: 9px 10px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            color: #e4e4e7;
+            line-height: 1.5;
+        }
+        .ladder-step-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.07);
+            padding: 2px 7px; border-radius: 6px; font-weight: 700;
+            margin: 2px 0;
+        }
+        .ladder-step-chip.current {
+            background: rgba(255, 215, 0, 0.16); color: var(--primary);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        .ladder-arrow { color: #c084fc; font-size: 10px; margin: 0 4px; font-weight: 800; }
+
         /* СПИСОК НЕСОЗДАННЫХ КЕЙСОВ В МОДАЛКЕ */
         .available-cases-list {
             display: flex; flex-direction: column; gap: 8px;
@@ -328,6 +374,7 @@
             padding: 8px 6px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.15s;
         }
         .seg-btn.active { background: var(--primary); color: #000; }
+        .seg-btn.purple.active { background: linear-gradient(135deg, #8847ff, #d32ce6); color: #fff; }
 
         .chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
         .chip-btn {
@@ -489,6 +536,9 @@
     </div>
 
     <div class="fab-container" id="fabMenu">
+        <div class="fab-option" onclick="openUpgradeModalFromFab()" style="color: #d8b4fe; border-color: rgba(192, 132, 252, 0.55);">
+            <span>Апгрейд кейса</span> <i class="fa-solid fa-angles-up"></i>
+        </div>
         <div class="fab-option" onclick="enterBulkChanceMode()" style="color: #7ee787; border-color: rgba(46, 160, 67, 0.5);">
             <span>Массовые шансы</span> <i class="fa-solid fa-percent"></i>
         </div>
@@ -509,6 +559,59 @@
         </div>
         <div class="fab-main" onclick="toggleFab()">
             <i class="fa-solid fa-plus"></i>
+        </div>
+    </div>
+
+    <!-- 🚀 МОДАЛКА НАСТРОЙКИ АПГРЕЙДА КЕЙСА (ЛЕСЕНКА) -->
+    <div id="modal-case-upgrade" class="center-modal" onclick="if(event.target===this) closeUpgradeModal()">
+        <div class="center-box" style="overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                <h3 style="margin:0; color:#d8b4fe; font-size: 15px;">
+                    <i class="fa-solid fa-angles-up"></i> Апгрейд: <span id="upg-case-title" style="color:#fff;"></span>
+                </h3>
+                <button onclick="closeUpgradeModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="toggle-row" style="margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 12px; font-weight: 700; color: #fff;">Включить апгрейд кейса</div>
+                    <div style="font-size: 10px; color: var(--text-sec);">Предлагать испытание при открытии</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="upg-enabled" onchange="toggleUpgradeFieldsUI()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div id="upg-fields-wrap" style="transition: opacity 0.2s;">
+                <label class="form-label">Апгрейдится в кейс</label>
+                <select id="upg-target-case" class="form-select" style="margin-bottom: 12px;" onchange="renderUpgradeLadderPreview()"></select>
+
+                <label class="form-label">Источник сообщений</label>
+                <div class="seg-group" id="upg-source-group">
+                    <button type="button" class="seg-btn purple" data-source="twitch" onclick="selectUpgradeSource('twitch')">Twitch</button>
+                    <button type="button" class="seg-btn purple" data-source="telegram" onclick="selectUpgradeSource('telegram')">Telegram</button>
+                    <button type="button" class="seg-btn purple active" data-source="both" onclick="selectUpgradeSource('both')">TG + Twitch</button>
+                </div>
+
+                <label class="form-label">Лимит времени на выполнение</label>
+                <div class="seg-group" id="upg-period-group">
+                    <button type="button" class="seg-btn active" data-period="day" onclick="selectUpgradePeriod('day')">День</button>
+                    <button type="button" class="seg-btn" data-period="week" onclick="selectUpgradePeriod('week')">Неделя</button>
+                    <button type="button" class="seg-btn" data-period="month" onclick="selectUpgradePeriod('month')">Месяц</button>
+                    <button type="button" class="seg-btn" data-period="global" onclick="selectUpgradePeriod('global')">Глобально</button>
+                </div>
+
+                <label class="form-label">Сколько новых сообщений написать (+N)</label>
+                <input type="number" id="upg-target-count" class="form-input" value="50" min="1" step="1" inputmode="numeric" style="margin-bottom: 12px; font-weight: 800; color: var(--primary);" oninput="renderUpgradeLadderPreview()">
+
+                <label class="form-label">Цепочка лесенки (превью)</label>
+                <div id="upg-ladder-preview" class="ladder-preview-box"></div>
+            </div>
+
+            <button id="upg-save-btn" type="button" onclick="saveCaseUpgradeRule()" class="admin-action-btn btn-save" style="padding: 13px; width: 100%; background: linear-gradient(135deg, #8847ff, #d32ce6); color: #fff; flex-shrink: 0;">
+                <i class="fa-solid fa-check"></i> СОХРАНИТЬ НАСТРОЙКУ
+            </button>
         </div>
     </div>
 
@@ -579,19 +682,16 @@
                 <button onclick="closeGeneratorModal()" style="background:none; border:none; color:var(--text-sec); font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Режим: добавить или пересобрать -->
             <div class="seg-group">
                 <button type="button" id="gen-mode-append" class="seg-btn active" onclick="setGenMode(false)">+ Добавить к текущим</button>
                 <button type="button" id="gen-mode-replace" class="seg-btn" onclick="setGenMode(true)">♻️ Пересобрать с нуля</button>
             </div>
 
-            <!-- Быстрый пресет бюджета -->
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                 <span style="font-size:11px; color:var(--text-sec); font-weight:700; white-space:nowrap;">База цены ₽:</span>
                 <input type="number" id="gen-budget" class="form-input" value="500" step="any" style="padding:7px 10px; font-weight:800; color:var(--primary); text-align:center;" oninput="recalcTierRangesFromBudget()">
             </div>
 
-            <!-- Умный шанс из анализа базы -->
             <div class="toggle-row" style="margin-bottom:10px; padding:8px 10px;">
                 <div>
                     <div style="font-size: 12px; font-weight: 700; color: #7ee787;"><i class="fa-solid fa-brain"></i> Умные шансы из базы</div>
@@ -603,7 +703,6 @@
                 </label>
             </div>
 
-            <!-- ТИР 1: ТОП -->
             <div class="tier-card" id="tier-card-top">
                 <div class="tier-header">
                     <span style="font-size:12px; color:#ff4d4d; font-weight:800;">🔥 ТОП (Боссы)</span>
@@ -634,7 +733,6 @@
                 </div>
             </div>
 
-            <!-- ТИР 2: СРЕДНИЕ -->
             <div class="tier-card" id="tier-card-mid">
                 <div class="tier-header">
                     <span style="font-size:12px; color:#d32ce6; font-weight:800;">💜 СРЕДНИЕ (Окупаемость)</span>
@@ -665,7 +763,6 @@
                 </div>
             </div>
 
-            <!-- ТИР 3: ДЕШЁВЫЕ -->
             <div class="tier-card" id="tier-card-cheap">
                 <div class="tier-header">
                     <span style="font-size:12px; color:#4b69ff; font-weight:800;">💙 ДЕШЁВЫЕ (Ширп)</span>
@@ -696,7 +793,6 @@
                 </div>
             </div>
 
-            <!-- Быстрые фильтры мусора -->
             <div class="chips-row" style="margin-bottom: 12px;">
                 <button type="button" id="gen-f-stickers" class="chip-btn active" onclick="this.classList.toggle('active')">🚫 Наклейки</button>
                 <button type="button" id="gen-f-graffiti" class="chip-btn active" onclick="this.classList.toggle('active')">🚫 Граффити</button>
@@ -718,7 +814,6 @@
             </div>
             
             <div class="admin-form">
-                <!-- Строка поиска + кнопка фильтров -->
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" id="lib-search-inp" class="form-input" placeholder="Поиск скина (AK-47, AWP...)..." oninput="debounceSearch()">
                     <button type="button" class="icon-btn" onclick="openLibFiltersModal()" style="background:rgba(255,215,0,0.14); color:var(--primary); border:1px solid rgba(255,215,0,0.3);">
@@ -727,7 +822,6 @@
                     </button>
                 </div>
 
-                <!-- Сортировка + Баланс -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px;">
                     <select id="lib-sort" class="form-select" style="width:auto; flex:1; padding:7px 10px; font-size:11px; font-weight:700;" onchange="debounceSearch(true)">
                         <option value="price_asc">Сначала дешёвые (0.01 ₽ ↑)</option>
@@ -738,13 +832,11 @@
                     </div>
                 </div>
 
-                <!-- Мин/Макс цена от 0.01 -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
                     <input type="number" id="lib-price-min" class="form-input" step="0.01" min="0.01" placeholder="От 0.01 ₽" oninput="debounceSearch()">
                     <input type="number" id="lib-price-max" class="form-input" step="0.01" placeholder="До ₽" oninput="debounceSearch()">
                 </div>
 
-                <!-- Быстрые пресеты цены -->
                 <div class="chips-row" style="margin-top: 8px;">
                     <button type="button" class="chip-btn" onclick="setQuickPrice(0.01, 10)">до 10 ₽</button>
                     <button type="button" class="chip-btn" onclick="setQuickPrice(10, 50)">10–50 ₽</button>
@@ -942,7 +1034,14 @@
 
         let shopCasesCache = [];
         let existingCaseTags = new Set();
+        let allCaseTagsList = [];
         let chanceProfilePoints = [];
+
+        // 🚀 Настройки апгрейда кейсов (лесенка)
+        let upgradeRulesMap = {}; // case_tag -> rule
+        let editingUpgradeCaseTag = null;
+        let selectedUpgradeSource = 'both';
+        let selectedUpgradePeriod = 'day';
 
         function syncBodyScrollLock() {
             const hasOpenModal = Boolean(document.querySelector('.modal-overlay.modal-active, .center-modal.active'));
@@ -1076,6 +1175,196 @@
 
         loadCases();
         loadChanceProfile();
+
+        // ============================================================
+        // 🚀 НАСТРОЙКА АПГРЕЙДА КЕЙСА (ЛЕСЕНКА)
+        // ============================================================
+        function openUpgradeModalFromFab() {
+            if (document.getElementById('fabMenu').classList.contains('fab-menu-open')) toggleFab();
+            if (!currentCase) return;
+            openUpgradeModal(null, currentCase);
+        }
+
+        function openUpgradeModal(event, caseTag) {
+            if (event) event.stopPropagation();
+            editingUpgradeCaseTag = caseTag;
+
+            document.getElementById('upg-case-title').innerText = cleanCaseTitle(caseTag);
+
+            // Заполняем список всех кейсов кроме текущего
+            const sel = document.getElementById('upg-target-case');
+            sel.innerHTML = '<option value="">-- Выберите целевой кейс --</option>';
+            allCaseTagsList.forEach(tag => {
+                if (tag === caseTag) return;
+                const opt = document.createElement('option');
+                opt.value = tag;
+                opt.textContent = cleanCaseTitle(tag);
+                sel.appendChild(opt);
+            });
+
+            const existing = upgradeRulesMap[caseTag];
+            document.getElementById('upg-enabled').checked = Boolean(existing && existing.enabled);
+            sel.value = existing?.target_case_tag || '';
+            document.getElementById('upg-target-count').value = existing?.target_count || 50;
+
+            selectUpgradeSource(existing?.msg_source || 'both', true);
+            selectUpgradePeriod(existing?.period || 'day', true);
+            toggleUpgradeFieldsUI();
+            renderUpgradeLadderPreview();
+
+            document.getElementById('modal-case-upgrade').classList.add('active');
+            syncBodyScrollLock();
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('modal-case-upgrade').classList.remove('active');
+            editingUpgradeCaseTag = null;
+            syncBodyScrollLock();
+        }
+
+        function toggleUpgradeFieldsUI() {
+            const on = document.getElementById('upg-enabled').checked;
+            const wrap = document.getElementById('upg-fields-wrap');
+            wrap.style.opacity = on ? '1' : '0.45';
+            wrap.style.pointerEvents = on ? 'auto' : 'none';
+            renderUpgradeLadderPreview();
+        }
+
+        function selectUpgradeSource(src, silent = false) {
+            selectedUpgradeSource = src;
+            document.querySelectorAll('#upg-source-group .seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.source === src);
+            });
+            if (!silent) renderUpgradeLadderPreview();
+        }
+
+        function selectUpgradePeriod(period, silent = false) {
+            selectedUpgradePeriod = period;
+            document.querySelectorAll('#upg-period-group .seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+            if (!silent) renderUpgradeLadderPreview();
+        }
+
+        function renderUpgradeLadderPreview() {
+            const box = document.getElementById('upg-ladder-preview');
+            if (!box || !editingUpgradeCaseTag) return;
+
+            const enabled = document.getElementById('upg-enabled').checked;
+            const targetTag = document.getElementById('upg-target-case').value;
+            const count = parseInt(document.getElementById('upg-target-count').value) || 0;
+
+            if (!enabled) {
+                box.innerHTML = `<span style="color:var(--text-sec);">Апгрейд выключен — кейс будет открываться сразу без испытания.</span>`;
+                return;
+            }
+            if (!targetTag) {
+                box.innerHTML = `<span style="color:#ff9500;">Выберите целевой кейс, до которого можно улучшить.</span>`;
+                return;
+            }
+
+            // Собираем виртуальную карту с учётом текущего редактирования
+            const tempMap = { ...upgradeRulesMap };
+            tempMap[editingUpgradeCaseTag] = {
+                enabled: true,
+                target_case_tag: targetTag,
+                target_count: count,
+                msg_source: selectedUpgradeSource,
+                period: selectedUpgradePeriod
+            };
+
+            const visited = new Set([editingUpgradeCaseTag]);
+            let html = `<span class="ladder-step-chip current">${cleanCaseTitle(editingUpgradeCaseTag)}</span>`;
+            let cursor = editingUpgradeCaseTag;
+            let hasLoop = false;
+
+            for (let step = 0; step < 10; step++) {
+                const rule = tempMap[cursor];
+                if (!rule || !rule.enabled || !rule.target_case_tag) break;
+
+                const nextTag = rule.target_case_tag;
+                if (visited.has(nextTag)) {
+                    hasLoop = true;
+                    html += `<span class="ladder-arrow">→ 🔁 Цикл!</span>`;
+                    break;
+                }
+                visited.add(nextTag);
+                html += `<span class="ladder-arrow">→ +${rule.target_count} сообщ. →</span>`;
+                html += `<span class="ladder-step-chip">${cleanCaseTitle(nextTag)}</span>`;
+                cursor = nextTag;
+            }
+
+            if (hasLoop) {
+                html += `<div style="color:var(--danger); margin-top:6px; font-weight:700;">⚠️ Обнаружен цикл в лесенке! Выберите другой целевой кейс.</div>`;
+            }
+            box.innerHTML = html;
+        }
+
+        async function saveCaseUpgradeRule() {
+            if (!editingUpgradeCaseTag) return;
+            const enabled = document.getElementById('upg-enabled').checked;
+            const targetTag = document.getElementById('upg-target-case').value;
+            const targetCount = parseInt(document.getElementById('upg-target-count').value) || 0;
+
+            if (enabled && !targetTag) {
+                return tg.showAlert("Выберите целевой кейс для апгрейда!");
+            }
+            if (enabled && targetCount <= 0) {
+                return tg.showAlert("Количество сообщений должно быть больше 0!");
+            }
+
+            // Проверка на цикл перед сохранением
+            if (enabled) {
+                const visited = new Set([editingUpgradeCaseTag]);
+                let cursor = targetTag;
+                while (cursor) {
+                    if (visited.has(cursor)) {
+                        return tg.showAlert("Ошибка: эта настройка создаёт бесконечный цикл в лесенке!");
+                    }
+                    visited.add(cursor);
+                    const r = upgradeRulesMap[cursor];
+                    cursor = (r && r.enabled) ? r.target_case_tag : null;
+                }
+            }
+
+            const btn = document.getElementById('upg-save-btn');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> СОХРАНЕНИЕ...';
+
+            try {
+                const payload = {
+                    initData: tg.initData,
+                    case_tag: editingUpgradeCaseTag,
+                    enabled: enabled,
+                    target_case_tag: targetTag,
+                    msg_source: selectedUpgradeSource,
+                    period: selectedUpgradePeriod,
+                    target_count: Math.max(1, targetCount)
+                };
+
+                const res = await fetch('/api/v1/admin/cases/upgrade_rule/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    upgradeRulesMap[editingUpgradeCaseTag] = data.rule || payload;
+                    tg.HapticFeedback?.notificationOccurred('success');
+                    closeUpgradeModal();
+                    if (!currentCase) loadCases();
+                } else {
+                    tg.showAlert("Ошибка: " + (data.detail || "Не удалось сохранить"));
+                }
+            } catch (e) {
+                tg.showAlert("Сбой сети при сохранении настройки апгрейда.");
+            } finally {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
 
         // 🔥 МАССОВОЕ ВЫСТАВЛЕНИЕ ШАНСОВ
         function enterBulkChanceMode() {
@@ -1426,7 +1715,7 @@
             }
 
             try {
-                const [tagsRes, shopRes] = await Promise.all([
+                const [tagsRes, shopRes, rulesRes] = await Promise.all([
                     fetch('/api/v1/admin/cases/list_tags', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({initData: tg.initData})
@@ -1434,11 +1723,25 @@
                     fetch('/api/v1/admin/cases/shop_cases', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({initData: tg.initData})
+                    }).catch(() => null),
+                    fetch('/api/v1/admin/cases/upgrade_rules', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({initData: tg.initData})
                     }).catch(() => null)
                 ]);
 
                 const data = await tagsRes.json();
                 shopCasesCache = (shopRes && shopRes.ok) ? await shopRes.json() : [];
+
+                upgradeRulesMap = {};
+                if (rulesRes && rulesRes.ok) {
+                    const rulesArr = await rulesRes.json();
+                    if (Array.isArray(rulesArr)) {
+                        rulesArr.forEach(r => {
+                            if (r && r.case_tag) upgradeRulesMap[r.case_tag] = r;
+                        });
+                    }
+                }
 
                 const shopImageMap = {};
                 if (Array.isArray(shopCasesCache)) {
@@ -1448,6 +1751,7 @@
                 }
 
                 existingCaseTags = new Set();
+                allCaseTagsList = [];
                 grid.innerHTML = '';
                 
                 const addDiv = document.createElement('div');
@@ -1463,6 +1767,7 @@
                     if (!t.name) return;
                     const displayName = cleanCaseTitle(t.name);
                     existingCaseTags.add(normalizeCaseKey(t.name));
+                    allCaseTagsList.push(t.name);
                     
                     reskinList.innerHTML += `
                         <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #fff; cursor: pointer; padding: 4px 0;">
@@ -1473,6 +1778,13 @@
                     const eyeIcon = isSecret ? 'fa-eye-slash' : 'fa-eye';
                     const eyeColor = isSecret ? 'color: var(--danger);' : 'color: var(--text-sec);';
                     const imgUrl = t.image_url || shopImageMap[normalizeCaseKey(t.name)] || '';
+                    const safeTagArg = t.name.replace(/'/g, "\\'");
+
+                    const upgRule = upgradeRulesMap[t.name];
+                    const hasUpgrade = Boolean(upgRule && upgRule.enabled && upgRule.target_case_tag);
+                    const upgTagHtml = hasUpgrade
+                        ? `<div class="folder-upgrade-tag">↑ ${cleanCaseTitle(upgRule.target_case_tag)}</div>`
+                        : '';
 
                     const visualHtml = imgUrl
                         ? `<img src="${imgUrl}" class="folder-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
@@ -1483,12 +1795,16 @@
                     div.className = 'case-folder';
                     div.onclick = () => openCaseView(t.name);
                     div.innerHTML = `
-                        <button class="case-secret-btn" onclick="toggleCaseSecret(event, '${t.name.replace(/'/g, "\\'")}')" style="${eyeColor}">
+                        <button class="case-upgrade-btn${hasUpgrade ? ' active' : ''}" onclick="openUpgradeModal(event, '${safeTagArg}')" title="Апгрейд кейса">
+                            <i class="fa-solid fa-angles-up"></i>
+                        </button>
+                        <button class="case-secret-btn" onclick="toggleCaseSecret(event, '${safeTagArg}')" style="${eyeColor}">
                             <i class="fa-solid ${eyeIcon}"></i>
                         </button>
                         ${visualHtml}
                         <div class="folder-name">${displayName}</div>
                         <div class="folder-count">${t.count} скинов</div>
+                        ${upgTagHtml}
                     `;
                     grid.appendChild(div);
                 });
