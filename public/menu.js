@@ -2938,7 +2938,6 @@ items.forEach(item => {
             </span>
         </button>
     </div>`;
-}
             } else if (originalPrice === 9999) {
                 buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center;">
                     <button class="action-btn" onclick="showCouponCaseInfo('${safeName}')" style="background: transparent; color: #9146FF; border: none; width: 100%; height: 100%; border-radius: 12px; font-weight: 900; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-transform: uppercase; cursor: pointer; transition: 0.2s ease;"><i class="fa-solid fa-lock" style="font-size: 14px; margin-bottom: 2px;"></i>КУПОННЫЙ</button>
