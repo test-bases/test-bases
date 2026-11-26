@@ -2203,6 +2203,23 @@ class RevealLetterRequest(BaseModel):
 class GuessAdminTextRequest(BaseModel):
     initData: str
     custom_text: str = "" # Если нужно передавать пустое значение (чтобы скрыть текст)
+
+# ==========================================
+# 🚀 МОДЕЛИ ДЛЯ АПГРЕЙДА КЕЙСОВ (ЛЕСЕНКА)
+# ==========================================
+from datetime import datetime, timedelta, timezone
+
+class UpgradeAuthRequest(BaseModel):
+    initData: str = ""
+
+class UpgradeRuleSaveRequest(BaseModel):
+    initData: str = ""
+    case_tag: str
+    enabled: bool = False
+    target_case_tag: str = ""
+    msg_source: str = "both"   # twitch | telegram | both
+    period: str = "day"        # day | week | month | global
+    target_count: int = 50
     
 # ⬇️⬇️⬇️ ВСТАВИТЬ СЮДА (НАЧАЛО БЛОКА) ⬇️⬇️⬇️
 
@@ -36299,22 +36316,6 @@ async def open_current_upgrading_case(
 # ⚙️ ЛОГИКА АДМИНКИ (RELATIONAL: CS_ITEMS + CONTENTS)
 # ====================================================
 
-# ==========================================
-# 🚀 МОДЕЛИ ДЛЯ АПГРЕЙДА КЕЙСОВ (ЛЕСЕНКА)
-# ==========================================
-from datetime import datetime, timedelta, timezone
-
-class UpgradeAuthRequest(BaseModel):
-    initData: str = ""
-
-class UpgradeRuleSaveRequest(BaseModel):
-    initData: str = ""
-    case_tag: str
-    enabled: bool = False
-    target_case_tag: str = ""
-    msg_source: str = "both"   # twitch | telegram | both
-    period: str = "day"        # day | week | month | global
-    target_count: int = 50
 # ==========================================
 # 🧠 ХЕЛПЕРЫ ПОДСЧЁТА ПРОГРЕССА (TWITCH / TG / BOTH)
 # ==========================================
