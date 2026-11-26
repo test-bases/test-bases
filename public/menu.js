@@ -242,6 +242,8 @@ let lastSliderSignature = '';
 // Массив имен кейсов, которые сейчас бесплатны для юзера
 window.activeFreeCases = [];
 window.currentCategoryId = 2716312; // <--- ТЫКАЙ СЮДА (добавь эту строку)
+window.caseUpgradeRulesMap = {};    // Правила апгрейда кейсов (лесенка)
+window.activeCaseUpgrade = null;    // Активное испытание апгрейда юзера
 
 // ================================================================
 // 🔥 УМНАЯ ЛОГИКА КУПОНОВ (ТАБЛИЦА cs_codes)
@@ -784,6 +786,10 @@ async function refreshDataSilently() {
             
             if (hbData.unread_notifications !== undefined) {
                 updateNotificationsBadge(hbData.unread_notifications);
+            }
+            if (hbData.active_case_upgrade !== undefined) {
+                window.activeCaseUpgrade = hbData.active_case_upgrade;
+                renderActiveUpgradeBanner();
             }
             
             // 🔥 ДОБАВЛЕНО: Синхронизация розыгрышей в фоне 🔥
@@ -2196,6 +2202,19 @@ async function renderFullInterface(data) {
 
     window.activeFreeCases = data.my_active_cases || [];
 
+    if (Array.isArray(data.case_upgrade_rules)) {
+        window.caseUpgradeRulesMap = {};
+        data.case_upgrade_rules.forEach(r => {
+            if (r && r.enabled && r.case_tag && r.target_case_tag) {
+                window.caseUpgradeRulesMap[r.case_tag.trim().toLowerCase()] = r;
+            }
+        });
+    }
+    if (data.active_case_upgrade !== undefined) {
+        window.activeCaseUpgrade = data.active_case_upgrade;
+        renderActiveUpgradeBanner();
+    }
+
     if (document.getElementById('ticketStats')) {
         let tNum = Number(userData.tickets || 0);
         document.getElementById('ticketStats').textContent = tNum % 1 === 0 ? tNum.toString() : tNum.toFixed(2).replace('.', ',');
@@ -3258,6 +3277,7 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
             ${priceBlockHtml}
             
             ${statsBlockHTML}
+            ${buildCaseUpgradeOfferHtml(name)}
             
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button id="case-cancel-btn" style="flex: 1; background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 14px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase; backdrop-filter: blur(10px); transition: 0.2s;">Отмена</button>
@@ -3268,7 +3288,6 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
             </div>
         </div>
     `;
-
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.style.opacity = '1');
 
@@ -3302,6 +3321,23 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
     };
 
     cancelBtn.onclick = closeDialog;
+
+    const upgradeStartBtn = overlay.querySelector('#case-upgrade-start-btn');
+    if (upgradeStartBtn) {
+        upgradeStartBtn.onclick = () => {
+            closeDialog();
+            startCaseUpgradeChallenge({
+                item_id: id,
+                price: price,
+                title: name,
+                image_url: imageUrl,
+                currency: currency,
+                coupon_code: activeCoupon,
+                is_free_open: isFreeOpen,
+                active_coupon_obj: activeCouponObj
+            });
+        };
+    }
     
     confirmBtn.onclick = async () => {
         closeDialog();
@@ -7556,6 +7592,286 @@ window.showActivityWallModal = function(currentMsgs, requiredMsgs) {
             window.hasShownActivityWall = false; 
         }, 300);
     };
+};
+
+// ================================================================
+// 🚀 АПГРЕЙД КЕЙСОВ (ЛЕСЕНКА ИСПЫТАНИЙ)
+// ================================================================
+function getUpgradeRuleForCase(caseName) {
+    const key = String(caseName || '').trim().toLowerCase();
+    return (window.caseUpgradeRulesMap && window.caseUpgradeRulesMap[key]) || null;
+}
+
+function formatUpgradeSourceRu(src) {
+    if (src === 'twitch') return 'Twitch';
+    if (src === 'telegram') return 'Telegram';
+    return 'Twitch + Telegram';
+}
+
+function formatUpgradePeriodRu(period) {
+    const map = { day: 'за 24 ч', week: 'за 7 дн', month: 'за 30 дн', global: 'без срока' };
+    return map[period] || '';
+}
+
+function cleanUpgradeCaseName(name) {
+    return String(name || '').replace(/^(Кейс|Case)\s*\|\s*/i, '').trim();
+}
+
+function buildCaseUpgradeOfferHtml(caseName) {
+    if (window.activeCaseUpgrade) return '';
+    const rule = getUpgradeRuleForCase(caseName);
+    if (!rule || !rule.enabled || !rule.target_case_tag) return '';
+
+    const targetClean = escapeHTML(cleanUpgradeCaseName(rule.target_case_tag));
+    const srcText = formatUpgradeSourceRu(rule.msg_source);
+    const periodText = formatUpgradePeriodRu(rule.period);
+
+    return `
+        <div style="width: 100%; margin-bottom: 14px; background: linear-gradient(135deg, rgba(136, 71, 255, 0.16) 0%, rgba(211, 44, 230, 0.08) 100%); border: 1px solid rgba(192, 132, 252, 0.42); border-radius: 14px; padding: 11px 12px; box-sizing: border-box; text-align: left;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-size: 10px; font-weight: 900; color: #d8b4fe; text-transform: uppercase; letter-spacing: 0.4px;">
+                    <i class="fa-solid fa-angles-up"></i> Можно улучшить кейс
+                </span>
+                <span style="font-size: 9px; font-weight: 700; color: #fbbf24;">+${rule.target_count} сообщ.</span>
+            </div>
+            <div style="font-size: 11px; color: #e4e4e7; line-height: 1.35; margin-bottom: 9px;">
+                Напиши <b>+${rule.target_count}</b> сообщений (${srcText}, ${periodText}) и получи вместо этого <b style="color:#fbbf24;">${targetClean}</b>. Отказаться и забрать текущий можно в любой момент.
+            </div>
+            <button id="case-upgrade-start-btn" type="button" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(216, 180, 254, 0.55); background: linear-gradient(135deg, #8847ff 0%, #d32ce6 100%); color: #fff; font-size: 11px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(136, 71, 255, 0.35);">
+                <i class="fa-solid fa-bolt"></i> Апнуть до «${targetClean}»
+            </button>
+        </div>
+    `;
+}
+
+async function startCaseUpgradeChallenge(opts) {
+    const loader = document.getElementById('purchase-loader');
+    if (loader) {
+        loader.querySelector('.loader-text').innerText = "Запускаем испытание...";
+        loader.classList.add('active');
+    }
+    try {
+        const payload = {
+            item_id: opts.item_id,
+            price: opts.price,
+            title: opts.title,
+            image_url: opts.image_url,
+            currency: opts.currency,
+            coupon_code: opts.coupon_code || null
+        };
+        const res = await makeApiRequest('/api/v1/cases/upgrade/start', payload, 'POST', true);
+        if (res && res.upgrade) {
+            window.activeCaseUpgrade = res.upgrade;
+
+            // Если тратили купон — убираем его из локального списка
+            if (opts.is_free_open) {
+                const idx = window.activeFreeCases.findIndex(c => {
+                    if (opts.active_coupon_obj && c === opts.active_coupon_obj) return true;
+                    if (typeof c === 'object' && c !== null) {
+                        return (c.target_case_name || '').trim().toLowerCase() === (opts.title || '').trim().toLowerCase();
+                    }
+                    return typeof c === 'string' && c.trim().toLowerCase() === (opts.title || '').trim().toLowerCase();
+                });
+                if (idx > -1) window.activeFreeCases.splice(idx, 1);
+                resetCasesCache();
+                if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+                    renderItems(itemsCache[window.currentCategoryId]);
+                }
+            } else if (typeof checkBalance === 'function') {
+                checkBalance(true, true);
+            }
+
+            renderActiveUpgradeBanner();
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+            customAlert(`⚡ Испытание запущено!\nНапиши +${res.upgrade.target_count} сообщений, чтобы улучшить кейс до «${cleanUpgradeCaseName(res.upgrade.target_case_tag)}».`);
+        }
+    } catch (e) {
+        // Ошибка уже обработана внутри makeApiRequest
+    } finally {
+        if (loader) loader.classList.remove('active');
+    }
+}
+
+function renderActiveUpgradeBanner() {
+    const shopGrid = document.getElementById('shop-grid');
+    if (!shopGrid) return;
+
+    let banner = document.getElementById('active-case-upgrade-banner');
+    const upg = window.activeCaseUpgrade;
+
+    if (!upg || !['active', 'ready'].includes(upg.status)) {
+        if (banner) banner.remove();
+        return;
+    }
+
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'active-case-upgrade-banner';
+        shopGrid.parentNode.insertBefore(banner, shopGrid);
+    }
+
+    const done = Math.max(0, Number(upg.progress || 0));
+    const target = Math.max(1, Number(upg.target_count || 1));
+    const isCompleted = done >= target || upg.status === 'ready';
+    const pct = Math.min(100, Math.round((done / target) * 100));
+
+    const curName = escapeHTML(cleanUpgradeCaseName(upg.current_case_tag));
+    const tgtName = escapeHTML(cleanUpgradeCaseName(upg.target_case_tag));
+    const srcText = formatUpgradeSourceRu(upg.msg_source);
+
+    let deadlineHtml = '';
+    if (upg.expires_at) {
+        const diffMs = new Date(upg.expires_at) - Date.now();
+        if (diffMs <= 0) {
+            deadlineHtml = `<span style="color:#ff453a;">Время вышло</span>`;
+        } else {
+            const hrs = Math.floor(diffMs / 3600000);
+            const mins = Math.floor((diffMs % 3600000) / 60000);
+            deadlineHtml = `<span>Осталось: ${hrs > 24 ? Math.floor(hrs / 24) + 'д ' + (hrs % 24) + 'ч' : hrs + 'ч ' + mins + 'м'}</span>`;
+        }
+    } else {
+        deadlineHtml = `<span>Без срока</span>`;
+    }
+
+    banner.style.cssText = "margin: 8px 0 14px; padding: 12px 13px; border-radius: 15px; background: linear-gradient(135deg, rgba(136, 71, 255, 0.18) 0%, rgba(24, 24, 28, 0.92) 100%); border: 1px solid rgba(192, 132, 252, 0.42); box-shadow: 0 6px 20px rgba(0,0,0,0.4);";
+    banner.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+            <div style="font-size:11px; font-weight:900; color:#d8b4fe; text-transform:uppercase;">
+                <i class="fa-solid fa-angles-up"></i> Апгрейд кейса · Шаг ${upg.step_level || 1}
+            </div>
+            <div style="font-size:10px; color:#a1a1aa; font-weight:700;">${deadlineHtml}</div>
+        </div>
+        <div style="font-size:12px; color:#fff; font-weight:700; margin-bottom:8px;">
+            ${curName} <i class="fa-solid fa-arrow-right" style="color:#c084fc; font-size:10px; margin:0 4px;"></i> <span style="color:#fbbf24;">${tgtName}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:#ccc; font-weight:700; margin-bottom:5px;">
+            <span>Сообщения (${srcText})</span>
+            <span style="color:${isCompleted ? '#4ade80' : '#fbbf24'};">${Math.min(done, target)} / ${target}</span>
+        </div>
+        <div style="width:100%; height:7px; background:rgba(0,0,0,0.55); border-radius:4px; overflow:hidden; margin-bottom:10px;">
+            <div style="width:${pct}%; height:100%; background:${isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, #8847ff, #d32ce6)'}; border-radius:4px; transition:width 0.3s ease;"></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+            ${isCompleted
+                ? `<button type="button" onclick="claimCaseUpgradeStep()" style="flex:1.4; padding:10px; border:none; border-radius:10px; background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;"><i class="fa-solid fa-bolt"></i> Забрать «${tgtName}»</button>`
+                : ''
+            }
+            <button type="button" onclick="openCurrentUpgradingCase()" style="flex:1; padding:10px; border:1px solid rgba(255,255,255,0.14); border-radius:10px; background:rgba(255,255,255,0.06); color:#fff; font-size:10px; font-weight:800; text-transform:uppercase; cursor:pointer;">
+                Открыть «${curName}»
+            </button>
+        </div>
+    `;
+}
+
+window.claimCaseUpgradeStep = async function() {
+    const loader = document.getElementById('purchase-loader');
+    if (loader) {
+        loader.querySelector('.loader-text').innerText = "Улучшаем кейс...";
+        loader.classList.add('active');
+    }
+    try {
+        const res = await makeApiRequest('/api/v1/cases/upgrade/advance', {}, 'POST', true);
+        window.activeCaseUpgrade = res.upgrade || null;
+        renderActiveUpgradeBanner();
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+
+        const newName = cleanUpgradeCaseName(res.upgraded_case_tag);
+        if (res.next_rule && res.next_rule.enabled && res.next_rule.target_case_tag) {
+            const nextTgt = cleanUpgradeCaseName(res.next_rule.target_case_tag);
+            showShopModal({
+                title: `🎉 Кейс улучшен до «${newName}»!`,
+                subtitle: `Можно открыть <b>${escapeHTML(newName)}</b> прямо сейчас или пойти выше по лесенке до <b style="color:#fbbf24;">${escapeHTML(nextTgt)}</b> за <b>+${res.next_rule.target_count}</b> сообщений (${formatUpgradeSourceRu(res.next_rule.msg_source)}, ${formatUpgradePeriodRu(res.next_rule.period)}).`,
+                confirmText: `АПНУТЬ ДО «${nextTgt}»`,
+                confirmClass: "btn-purple-modal",
+                cancelText: `ОТКРЫТЬ «${newName}»`,
+                showCancel: true,
+                onConfirm: async (close) => {
+                    close();
+                    await continueUpgradeLadder();
+                },
+                onCancel: async () => {
+                    await openCurrentUpgradingCase(true);
+                }
+            });
+        } else {
+            // Последняя ступенька лесенки — сразу открываем улучшенный кейс
+            await openCurrentUpgradingCase(true);
+        }
+    } catch (e) {
+    } finally {
+        if (loader) loader.classList.remove('active');
+    }
+};
+
+async function continueUpgradeLadder() {
+    const loader = document.getElementById('purchase-loader');
+    if (loader) {
+        loader.querySelector('.loader-text').innerText = "Запускаем следующий шаг...";
+        loader.classList.add('active');
+    }
+    try {
+        const res = await makeApiRequest('/api/v1/cases/upgrade/next_step', {}, 'POST', true);
+        if (res && res.upgrade) {
+            window.activeCaseUpgrade = res.upgrade;
+            renderActiveUpgradeBanner();
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+        }
+    } catch (e) {
+    } finally {
+        if (loader) loader.classList.remove('active');
+    }
+}
+
+window.openCurrentUpgradingCase = async function(skipConfirm = false) {
+    const upg = window.activeCaseUpgrade;
+    if (!upg) return;
+
+    const doOpen = async () => {
+        const loader = document.getElementById('purchase-loader');
+        if (loader) {
+            loader.querySelector('.loader-text').innerText = "Крутим барабан...";
+            loader.classList.add('active');
+        }
+        try {
+            const caseTag = upg.current_case_tag;
+            const [contentsResp, resData] = await Promise.all([
+                makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(caseTag)}`, {}, 'GET', true),
+                makeApiRequest('/api/v1/cases/upgrade/open_current', {}, 'POST', true)
+            ]);
+
+            window.activeCaseUpgrade = null;
+            renderActiveUpgradeBanner();
+
+            const possibleItems = (contentsResp && contentsResp.length > 0)
+                ? contentsResp
+                : [{ name: "Mystery Item", image_url: "", rarity: "common" }];
+            const winner = resData.winner || { name: "Ошибка", image_url: "", rarity: "common" };
+
+            const strip = [];
+            for (let i = 0; i < 80; i++) strip.push(possibleItems[Math.floor(Math.random() * possibleItems.length)]);
+            strip[60] = winner;
+
+            launchRoulette(strip, winner, resData.messages || [], resData.lacky || 0, caseTag, resData.max_lacky || 5, upg.paid_currency === 'coupon', 0);
+        } catch (e) {
+        } finally {
+            if (loader) loader.classList.remove('active');
+        }
+    };
+
+    if (skipConfirm) return doOpen();
+
+    const curName = cleanUpgradeCaseName(upg.current_case_tag);
+    showShopModal({
+        title: `Открыть «${curName}»?`,
+        subtitle: "Текущее испытание апгрейда отменится, и ты сразу откроешь кейс, который уже на руках.",
+        confirmText: "ОТКРЫТЬ СЕЙЧАС",
+        confirmClass: "btn-yellow-modal",
+        showCancel: true,
+        onConfirm: (close) => {
+            close();
+            doOpen();
+        }
+    });
 };
 
 // ================================================================
