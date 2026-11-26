@@ -773,13 +773,35 @@ async function refreshDataSilently() {
                     if (freshRaffles) initDynamicRaffleSlider(freshRaffles);
                 }).catch(() => {});
                 
-            // 🔥 МАГИЯ: Стягиваем купоны. Вдруг админ выдал нам кейс или прилетел Twitch Drop! 🔥
+            // 🔥 МАГИЯ: Стягиваем купоны, но не теряем bypass_lock при обновлении 🔥
             makeApiRequest('/api/cs/my_active_promos', {}, 'GET', true).then(res => {
                 if (res && res.active_cases) {
-                    const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
-                    const newFreeCases = JSON.stringify(res.active_cases);
+                    const prevList = window.activeFreeCases || [];
+                    const pool = [...prevList];
+
+                    const mergedCases = res.active_cases.map(incoming => {
+                        if (typeof incoming === 'string') {
+                            const idx = pool.findIndex(p => typeof p === 'object' && p !== null && (p.target_case_name || '').trim().toLowerCase() === incoming.trim().toLowerCase());
+                            if (idx > -1) return pool.splice(idx, 1)[0];
+                            return incoming;
+                        }
+                        if (typeof incoming === 'object' && incoming !== null && incoming.bypass_lock === undefined) {
+                            const idx = pool.findIndex(p => typeof p === 'object' && p !== null && (
+                                (incoming.code && p.code === incoming.code) ||
+                                ((p.target_case_name || '').trim().toLowerCase() === (incoming.target_case_name || '').trim().toLowerCase())
+                            ));
+                            if (idx > -1) {
+                                const oldObj = pool.splice(idx, 1)[0];
+                                return { ...incoming, bypass_lock: oldObj.bypass_lock };
+                            }
+                        }
+                        return incoming;
+                    });
+
+                    const oldFreeCases = JSON.stringify(prevList);
+                    const newFreeCases = JSON.stringify(mergedCases);
                     if (oldFreeCases !== newFreeCases) {
-                        window.activeFreeCases = res.active_cases;
+                        window.activeFreeCases = mergedCases;
                         if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
                             renderItems(itemsCache[window.currentCategoryId]);
                         }
@@ -2907,10 +2929,10 @@ items.forEach(item => {
             
             // ⚡ 1. Кнопки снова чистые и прозрачные (без лишних фонов)
             if (showFreeButton) {
-                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center;">
-                    <button class="action-btn btn-buy" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')" style="background: transparent; color: #34c759; text-shadow: 0 0 10px rgba(52, 199, 89, 0.9), 0 0 20px rgba(52, 199, 89, 0.4); width: 100%; height: 100%; border: none; border-radius: 12px; font-weight: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; text-transform: uppercase; cursor: pointer; outline: none; transition: transform 0.2s ease;">
-                        <span style="font-size: 9px; opacity: 0.9; margin-top: 12px;">ОТКРЫТЬ</span>
-                        <span style="font-size: 13px;">БЕСПЛАТНО</span>
+                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center; margin-top: -6px;">
+                    <button class="action-btn free-open-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
+                        <span class="free-open-top">ОТКРЫТЬ</span>
+                        <span class="free-open-main">БЕСПЛАТНО</span>
                     </button>
                 </div>`;
             } else if (originalPrice === 9999) {
