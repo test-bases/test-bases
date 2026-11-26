@@ -1653,3 +1653,326 @@ body.browser-mode, body.browser-mode .main-content-scrollable { scrollbar-width:
     0%, 100% { transform: scale(1) translateZ(0); }
     50%      { transform: scale(1.04) translateZ(0); }
 }
+
+/* ==========================================
+   КНОПКА «ОТКРЫТЬ БЕСПЛАТНО» В СТИЛЕ RAFFLES
+========================================== */
+.rfl-free-btn {
+    width: 100%;
+    height: 36px !important;
+    min-height: 36px;
+    padding: 3px 6px;
+    border-radius: 9px !important;
+    background: linear-gradient(135deg, rgba(52, 199, 89, 0.28) 0%, rgba(16, 185, 129, 0.16) 100%) !important;
+    border: 1px solid rgba(74, 222, 128, 0.48) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35), 0 0 12px rgba(52, 199, 89, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.24) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.05;
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.12s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+.rfl-free-btn:active {
+    transform: scale3d(0.95, 0.95, 1) !important;
+}
+.rfl-free-top {
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(220, 252, 231, 0.88);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.rfl-free-main {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: -0.1px;
+    color: #4ade80;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+.rfl-free-main i {
+    font-size: 8px !important;
+    color: #fbbf24 !important;
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5)) !important;
+}
+
+/* ==========================================
+   МОДАЛКА «СОДЕРЖИМОЕ КЕЙСА» 1в1 КАК RAFFLES
+========================================== */
+#case-contents-modal.rfl-modal {
+    background: rgba(4, 4, 7, 0.88) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    padding: 12px;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+#case-contents-modal .rfl-contents-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 94% !important;
+    max-width: 350px !important;
+    max-height: 86vh !important;
+    padding: 6px 2px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0 !important;
+    overflow: hidden !important;
+}
+
+#case-contents-modal:not(.hidden) .rfl-contents-box {
+    animation: rflModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes rflModalPop {
+    0%   { opacity: 0; transform: scale3d(0.92, 0.92, 1) translate3d(0, 8px, 0); }
+    100% { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+}
+
+.rfl-modal-icon {
+    font-size: 22px;
+    color: #d8b4fe;
+    margin-bottom: 6px;
+    line-height: 1;
+    filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6));
+    flex-shrink: 0;
+}
+
+.rfl-modal-head {
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: -0.25px;
+    color: #ffffff;
+    margin-bottom: 3px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+    flex-shrink: 0;
+}
+
+.rfl-modal-sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: #a1a1aa;
+    margin-bottom: 11px;
+    letter-spacing: -0.1px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    flex-shrink: 0;
+}
+
+/* Лоадер как в raffles */
+.rfl-contents-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 0;
+    color: #f4f4f5;
+    font-size: 10.5px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.rfl-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid rgba(255, 255, 255, 0.12);
+    border-top-color: #c084fc;
+    border-radius: 50%;
+    animation: global-spin 0.85s linear infinite;
+}
+
+/* Плашка шанса и цены */
+#case-stats-block {
+    width: 100%;
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+.rfl-stats-card {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.14) 0%, rgba(18, 18, 24, 0.82) 60%, rgba(109, 40, 217, 0.16) 100%);
+    border: 1px solid rgba(192, 132, 252, 0.28);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    border-radius: 13px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.rfl-stats-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+.rfl-stat-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+.rfl-stat-lbl {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.rfl-stat-val {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+}
+.rfl-stat-divider {
+    width: 1px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Спойлер «Важно знать» */
+.rfl-faq-box {
+    margin-top: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    overflow: hidden;
+    text-align: left;
+}
+.rfl-faq-head {
+    padding: 7px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #f4f4f5;
+    letter-spacing: -0.1px;
+}
+.rfl-faq-body {
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 10px 9px 10px;
+    font-size: 9.5px;
+    color: #d4d4d8;
+    line-height: 1.38;
+}
+.rfl-faq-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.rfl-faq-item i {
+    font-size: 9.5px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.rfl-faq-item b {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Сетка дропа */
+.rfl-contents-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    padding: 2px 2px 10px 2px !important;
+    width: 100% !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+}
+
+.rfl-drop-card {
+    position: relative;
+    background: rgba(18, 18, 24, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-width: 2px;
+    border-radius: 10px !important;
+    padding: 6px 4px 5px 4px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 0;
+}
+.rfl-drop-card img {
+    width: 100%;
+    max-width: 56px;
+    height: 40px;
+    object-fit: contain;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+.rfl-drop-card .content-name {
+    font-size: 8px;
+    font-weight: 700;
+    color: #f4f4f5;
+    line-height: 1.15;
+    height: 18px;
+    letter-spacing: -0.1px;
+}
+.rfl-drop-card .content-quality {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 1px 5px;
+    border-radius: 5px;
+    margin-top: 2px;
+}
+.rfl-drop-price {
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+.rfl-drop-price i {
+    color: #fbbf24;
+    font-size: 9px;
+}
+
+/* Нижняя кнопка закрытия как .m-btn в raffles */
+.rfl-close-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 9.5px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.12s ease;
+}
+.rfl-close-btn:active {
+    transform: scale3d(0.96, 0.96, 1);
+}
