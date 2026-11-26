@@ -1702,6 +1702,9 @@ body.browser-mode, body.browser-mode .main-content-scrollable { scrollbar-width:
     font-size: 8px !important;
     color: #fbbf24 !important;
     filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5)) !important;
+    position: relative;
+    top: -1.5px;
+    line-height: 1;
 }
 
 /* ==========================================
