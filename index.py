@@ -35626,6 +35626,626 @@ async def cancel_tg_challenge_paid(request: Request):
             raise e
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ==========================================
+# 🎮 1. СТАРТ ИСПЫТАНИЯ АПГРЕЙДА (СПИСАНИЕ / КУПОН + ФИКСАЦИЯ START_VALUE)
+# ==========================================
+@app.post("/api/v1/cases/upgrade/start")
+async def start_case_upgrade(
+    request_data: ShopBuyRequest,
+    background_tasks: BackgroundTasks,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(request_data.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    telegram_id = int(user_info["id"])
+    await verify_user_not_banned(telegram_id, supabase)
+
+    item_id = request_data.item_id
+    price = float(request_data.price or 0)
+    item_title = (getattr(request_data, "title", "") or "").strip()
+    currency = getattr(request_data, "currency", "coins")
+    coupon_code = getattr(request_data, "coupon_code", None)
+
+    if not item_title:
+        raise HTTPException(status_code=400, detail="Не указано название кейса")
+
+    # 1. Проверяем, нет ли уже активного испытания у юзера
+    existing_res = await supabase.get(
+        "/user_case_upgrades",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "status": "in.(active,ready)",
+            "limit": "1"
+        }
+    )
+    if existing_res.status_code == 200 and existing_res.json():
+        raise HTTPException(status_code=400, detail="У вас уже есть активное испытание апгрейда!")
+
+    # 2. Проверяем правило апгрейда для этого кейса
+    rule_res = await supabase.get(
+        "/case_upgrade_rules",
+        params={"case_tag": f"eq.{item_title}", "enabled": "eq.true", "limit": "1"}
+    )
+    rule_list = rule_res.json() if rule_res.status_code == 200 else []
+    if not rule_list or not rule_list[0].get("target_case_tag"):
+        raise HTTPException(status_code=400, detail="Для этого кейса апгрейд сейчас отключён.")
+    rule = rule_list[0]
+
+    # 3. Защита секретного кейса
+    try:
+        goods_res = await supabase.get("/goods", params={"id": f"eq.{item_id}", "select": "is_secret"})
+        goods_data = goods_res.json()
+        if goods_data and isinstance(goods_data, list) and goods_data[0].get("is_secret", False):
+            if not coupon_code:
+                raise HTTPException(status_code=403, detail="⛔ Этот кейс скрыт и открывается только по купону!")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"[UPGRADE START] Ошибка проверки is_secret: {e}")
+
+    # 4. Читаем данные юзера (включая total-счётчики сообщений)
+    user_db_resp = await supabase.get(
+        "/users",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "select": "bot_t_coins,bott_internal_id,bott_secret_key,tickets,trade_link,is_banned,last_balance_sync,trust_level,monthly_message_count,telegram_monthly_message_count,total_message_count,telegram_total_message_count,is_admin,total_spent,total_extracted"
+        }
+    )
+    user_data_list = user_db_resp.json()
+    if user_db_resp.status_code >= 400 or not isinstance(user_data_list, list) or not user_data_list:
+        raise HTTPException(status_code=404, detail="Пользователь не найден.")
+
+    user_record = user_data_list[0]
+    if user_record.get("is_banned"):
+        raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован за нарушение правил.")
+
+    # 5. Проверка купона (если передан)
+    is_free_purchase = False
+    promo_data = None
+    is_bypassed = False
+
+    if coupon_code and coupon_code.strip():
+        coupon_code = coupon_code.strip()
+        if coupon_code == "FREE_BY_ID":
+            code_res = await supabase.get(
+                "/cs_codes",
+                params={
+                    "target_case_name": f"ilike.{item_title}",
+                    "is_active": "eq.true",
+                    "or": f"(activated_by_ids.cs.{{{telegram_id}}},assigned_to.eq.{telegram_id})"
+                }
+            )
+        else:
+            code_res = await supabase.get("/cs_codes", params={"code": f"eq.{coupon_code}", "is_active": "eq.true"})
+
+        code_data = code_res.json()
+        if not code_data or not isinstance(code_data, list):
+            raise HTTPException(status_code=400, detail="⛔ Неверный код или вы его не активировали!")
+
+        code_data.sort(key=lambda c: bool(c.get("bypass_lock", False)), reverse=True)
+        for candidate in code_data:
+            c_used = candidate.get("used_by_ids") or []
+            c_activated = candidate.get("activated_by_ids") or []
+            c_assigned = candidate.get("assigned_to")
+            has_rights = (telegram_id in c_activated) or (c_assigned == telegram_id)
+            if has_rights and (telegram_id not in c_used) and candidate.get("current_uses", 0) < candidate.get("max_uses", 1):
+                promo_data = candidate
+                break
+
+        if not promo_data:
+            raise HTTPException(status_code=400, detail="⛔ Вы уже использовали этот код или лимит исчерпан!")
+
+        coupon_code = promo_data["code"]
+        target_case_name = promo_data.get("target_case_name")
+        if target_case_name and target_case_name.strip().lower() != item_title.lower():
+            raise HTTPException(status_code=400, detail="⛔ Этот купон предназначен для другого кейса!")
+
+        is_free_purchase = True
+        is_bypassed = bool(promo_data.get("bypass_lock", False))
+
+    # 6. Проверка активности и трейд-ссылки
+    await verify_activity_lock(user_record, supabase, bypass_lock=is_bypassed)
+
+    trade_link = user_record.get("trade_link")
+    if not trade_link or "partner=" not in trade_link or "token=" not in trade_link:
+        raise HTTPException(status_code=400, detail="⚠️ У вас не привязана Trade-ссылка!")
+
+    bott_internal_id = user_record.get("bott_internal_id")
+    bott_secret_key = user_record.get("bott_secret_key")
+    current_balance_kopecks = float(user_record.get("bot_t_coins", 0))
+    current_tickets = float(user_record.get("tickets", 0))
+    current_trust = user_record.get("trust_level", "gray")
+
+    if not bott_internal_id or not bott_secret_key:
+        raise HTTPException(status_code=400, detail="Ошибка авторизации. Перезайдите в бот.")
+
+    # 7. Атомарное списание валюты ИЛИ трата купона
+    if not is_free_purchase:
+        if currency == "coins":
+            settings_res = await supabase.get("/settings", params={"key": "eq.admin_controls", "select": "value"})
+            if settings_res.status_code == 200 and settings_res.json():
+                if settings_res.json()[0].get("value", {}).get("coins_purchases_enabled", True) is False:
+                    raise HTTPException(status_code=403, detail="🛠 Покупки за монеты в данный момент отключены!")
+
+        if price == 9999:
+            raise HTTPException(status_code=403, detail="Этот кейс нельзя купить. Он выдается только по купону!")
+
+        multipliers = {"green": 1.0, "gray": 2.0, "red": 3.0}
+        final_price = price * multipliers.get(current_trust, 2.0)
+
+        if currency == "tickets":
+            if current_tickets < final_price:
+                raise HTTPException(status_code=400, detail=f"Недостаточно билетов! Цена для вас: {final_price}")
+            new_balance = round(current_tickets - final_price, 2)
+            update_col = "tickets"
+            old_balance = current_tickets
+        else:
+            if current_balance_kopecks < (final_price * 100):
+                raise HTTPException(status_code=400, detail=f"Недостаточно средств! Цена для вас: {int(final_price)}")
+            new_balance = int(current_balance_kopecks - (final_price * 100))
+            update_col = "bot_t_coins"
+            old_balance = current_balance_kopecks
+
+        patch_resp = await supabase.patch(
+            "/users",
+            params={"telegram_id": f"eq.{telegram_id}", update_col: f"eq.{old_balance}"},
+            json={update_col: new_balance},
+            headers={"Prefer": "return=representation"}
+        )
+        if patch_resp.status_code >= 400 or not patch_resp.json():
+            raise HTTPException(status_code=400, detail="Транзакция обрабатывается. Не нажимайте дважды!")
+
+        if currency != "tickets":
+            async def send_to_bott_bg_upg(b_id, cat_id, u_id, sec_key, base_cost, final_cost):
+                try:
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        await client.post(
+                            "https://api.bot-t.com/v1/shopdigital/order-public/create",
+                            json={"bot_id": int(b_id), "category_id": cat_id, "count": 1, "user_id": int(u_id), "secret_user_key": sec_key}
+                        )
+                        penalty = final_cost - base_cost
+                        if penalty > 0:
+                            await client.post(
+                                "https://api.bot-t.com/v1/bot/user/subtract-balance",
+                                params={"botToken": BOTT_BOT_TOKEN, "secretKey": BOTT_SECRET_KEY},
+                                json={"bot_id": int(b_id), "user_id": int(u_id), "sum": float(penalty), "comment": "Наценка за Траст-фактор (Апгрейд кейса)"}
+                            )
+                except Exception as e:
+                    logging.error(f"[Bot-T BG Upgrade Error]: {e}")
+
+            background_tasks.add_task(send_to_bott_bg_upg, BOTT_BOT_ID, item_id, bott_internal_id, bott_secret_key, price, final_price)
+    else:
+        used_ids = list(promo_data.get("used_by_ids") or [])
+        activated_ids = list(promo_data.get("activated_by_ids") or [])
+        current_uses_db = promo_data.get("current_uses", 0)
+        if telegram_id not in used_ids:
+            used_ids.append(telegram_id)
+        if telegram_id in activated_ids:
+            activated_ids.remove(telegram_id)
+
+        patch_coupon = await supabase.patch(
+            "/cs_codes",
+            params={"code": f"eq.{coupon_code}", "current_uses": f"eq.{current_uses_db}"},
+            json={"current_uses": current_uses_db + 1, "used_by_ids": used_ids, "activated_by_ids": activated_ids},
+            headers={"Prefer": "return=representation"}
+        )
+        if patch_coupon.status_code >= 400 or not patch_coupon.json():
+            raise HTTPException(status_code=400, detail="Купон уже в процессе использования!")
+
+    # 8. Создаём запись испытания (фиксируем start_value с нуля)
+    msg_source = rule.get("msg_source", "both")
+    period = rule.get("period", "day")
+    start_val = _get_user_total_msgs(user_record, msg_source)
+
+    ins_payload = {
+        "telegram_id": telegram_id,
+        "original_case_tag": item_title,
+        "current_case_tag": item_title,
+        "target_case_tag": rule["target_case_tag"],
+        "item_id": item_id,
+        "paid_price": price,
+        "paid_currency": "coupon" if is_free_purchase else currency,
+        "coupon_code": coupon_code if is_free_purchase else None,
+        "bypass_lock": is_bypassed,
+        "msg_source": msg_source,
+        "period": period,
+        "start_value": start_val,
+        "target_count": int(rule.get("target_count") or 50),
+        "step_level": 1,
+        "expires_at": _calc_upgrade_expires_at(period),
+        "status": "active"
+    }
+
+    ins_res = await supabase.post(
+        "/user_case_upgrades",
+        json=ins_payload,
+        headers={"Prefer": "return=representation"}
+    )
+    if ins_res.status_code >= 400 or not ins_res.json():
+        logging.error(f"[UPGRADE START] Ошибка записи в БД: {ins_res.text}")
+        raise HTTPException(status_code=500, detail="Не удалось запустить испытание")
+
+    created = ins_res.json()[0]
+    return {"status": "ok", "upgrade": enrich_upgrade_with_progress(created, user_record, telegram_id)}
+
+
+# ==========================================
+# ⬆️ 2. ПОДТВЕРДИТЬ ВЫПОЛНЕНИЕ ШАГА (ЗАМЕНА КЕЙСА + ПРОВЕРКА СЛЕДУЮЩЕЙ СТУПЕНИ)
+# ==========================================
+@app.post("/api/v1/cases/upgrade/advance")
+async def advance_case_upgrade(
+    req: UpgradeAuthRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    telegram_id = int(user_info["id"])
+
+    u_res = await supabase.get(
+        "/users",
+        params={"telegram_id": f"eq.{telegram_id}", "select": "total_message_count,telegram_total_message_count"}
+    )
+    user_row = u_res.json()[0] if u_res.status_code == 200 and u_res.json() else {}
+
+    upg = await get_active_case_upgrade(telegram_id, user_row, supabase)
+    if not upg:
+        raise HTTPException(status_code=404, detail="Активное испытание не найдено")
+
+    if upg["is_expired"] and upg["status"] != "ready":
+        raise HTTPException(status_code=400, detail="Время испытания истекло! Вы можете открыть текущий кейс.")
+
+    if upg["status"] != "ready" and upg["progress"] < upg["target_count"]:
+        left = upg["target_count"] - upg["progress"]
+        raise HTTPException(status_code=400, detail=f"Испытание ещё не выполнено! Осталось сообщений: {left}")
+
+    new_case_tag = upg["target_case_tag"]
+
+    # Обновляем текущий кейс юзера на улучшенный (идемпотентно)
+    patch_res = await supabase.patch(
+        "/user_case_upgrades",
+        params={"id": f"eq.{upg['id']}"},
+        json={
+            "current_case_tag": new_case_tag,
+            "status": "ready",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        headers={"Prefer": "return=representation"}
+    )
+    updated = patch_res.json()[0] if patch_res.status_code < 400 and patch_res.json() else upg
+
+    # Проверяем, есть ли следующая ступенька лесенки для нового кейса
+    next_res = await supabase.get(
+        "/case_upgrade_rules",
+        params={"case_tag": f"eq.{new_case_tag}", "enabled": "eq.true", "limit": "1"}
+    )
+    next_list = next_res.json() if next_res.status_code == 200 else []
+    next_rule = next_list[0] if (next_list and next_list[0].get("target_case_tag")) else None
+
+    return {
+        "status": "ok",
+        "upgraded_case_tag": new_case_tag,
+        "next_rule": next_rule,
+        "upgrade": enrich_upgrade_with_progress(updated, user_row, telegram_id)
+    }
+
+
+# ==========================================
+# 🔥 3. ПРОДОЛЖИТЬ ПО ЛЕСЕНКЕ (СЛЕДУЮЩАЯ СТУПЕНЬКА)
+# ==========================================
+@app.post("/api/v1/cases/upgrade/next_step")
+async def next_step_case_upgrade(
+    req: UpgradeAuthRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    telegram_id = int(user_info["id"])
+
+    u_res = await supabase.get(
+        "/users",
+        params={"telegram_id": f"eq.{telegram_id}", "select": "total_message_count,telegram_total_message_count"}
+    )
+    user_row = u_res.json()[0] if u_res.status_code == 200 and u_res.json() else {}
+
+    upg = await get_active_case_upgrade(telegram_id, user_row, supabase)
+    if not upg or upg["status"] != "ready":
+        raise HTTPException(status_code=400, detail="Сначала завершите текущий шаг апгрейда!")
+
+    current_tag = upg["current_case_tag"]
+    next_res = await supabase.get(
+        "/case_upgrade_rules",
+        params={"case_tag": f"eq.{current_tag}", "enabled": "eq.true", "limit": "1"}
+    )
+    next_list = next_res.json() if next_res.status_code == 200 else []
+    if not next_list or not next_list[0].get("target_case_tag"):
+        raise HTTPException(status_code=400, detail="Для этого кейса больше нет ступеней апгрейда.")
+
+    next_rule = next_list[0]
+    new_source = next_rule.get("msg_source", "both")
+    new_period = next_rule.get("period", "day")
+    new_start_val = _get_user_total_msgs(user_row, new_source)
+
+    patch_res = await supabase.patch(
+        "/user_case_upgrades",
+        params={"id": f"eq.{upg['id']}", "status": "eq.ready"},
+        json={
+            "target_case_tag": next_rule["target_case_tag"],
+            "msg_source": new_source,
+            "period": new_period,
+            "start_value": new_start_val,
+            "target_count": int(next_rule.get("target_count") or 50),
+            "step_level": int(upg.get("step_level") or 1) + 1,
+            "expires_at": _calc_upgrade_expires_at(new_period),
+            "status": "active",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        headers={"Prefer": "return=representation"}
+    )
+    if patch_res.status_code >= 400 or not patch_res.json():
+        raise HTTPException(status_code=400, detail="Не удалось перейти на следующий шаг.")
+
+    return {
+        "status": "ok",
+        "upgrade": enrich_upgrade_with_progress(patch_res.json()[0], user_row, telegram_id)
+    }
+
+
+# ==========================================
+# 🎰 4. ОТКРЫТЬ ТЕКУЩИЙ КЕЙС (ОТКАЗ ОТ ИСПЫТАНИЯ ИЛИ ФИНИШ ЛЕСЕНКИ)
+# ==========================================
+@app.post("/api/v1/cases/upgrade/open_current")
+async def open_current_upgrading_case(
+    req: UpgradeAuthRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    import asyncio
+    import time
+    import random
+
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    telegram_id = int(user_info["id"])
+    await verify_user_not_banned(telegram_id, supabase)
+
+    # 1. Достаём юзера и его активное испытание
+    u_res, upg_res = await asyncio.gather(
+        supabase.get(
+            "/users",
+            params={
+                "telegram_id": f"eq.{telegram_id}",
+                "select": "trust_level,is_admin,total_extracted,monthly_message_count,telegram_monthly_message_count,is_banned"
+            }
+        ),
+        supabase.get(
+            "/user_case_upgrades",
+            params={
+                "telegram_id": f"eq.{telegram_id}",
+                "status": "in.(active,ready)",
+                "order": "id.desc",
+                "limit": "1"
+            }
+        )
+    )
+
+    u_list = u_res.json() if u_res.status_code == 200 else []
+    upg_list = upg_res.json() if upg_res.status_code == 200 else []
+    if not u_list:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if not upg_list:
+        raise HTTPException(status_code=404, detail="Нет активного кейса для открытия")
+
+    user_record = u_list[0]
+    upg = upg_list[0]
+    case_title = upg["current_case_tag"]
+    paid_currency = upg.get("paid_currency", "coins")
+    paid_price = float(upg.get("paid_price") or 0)
+    is_bypassed = bool(upg.get("bypass_lock", False))
+    current_trust = user_record.get("trust_level", "gray")
+    is_shadow_nerfed = float(user_record.get("total_extracted") or 0) > 1000
+    is_admin_user = bool(user_record.get("is_admin", False))
+
+    market_balance = await verify_activity_lock(user_record, supabase, bypass_lock=is_bypassed)
+
+    # 2. Загружаем содержимое кейса и lacky
+    async def fetch_lacky():
+        resp = await supabase.get(
+            "/cs_history",
+            params={"user_id": f"eq.{telegram_id}", "case_name": f"eq.{case_title}", "order": "created_at.desc", "limit": "1", "select": "lacky"}
+        )
+        data = resp.json()
+        return int(data[0].get("lacky", 0)) if data and isinstance(data, list) else 0
+
+    async def fetch_contents():
+        resp = await supabase.get(
+            "/cs_case_contents",
+            params={"case_tag": f"eq.{case_title}", "select": "chance_weight, item:cs_items(*)"}
+        )
+        return resp.json()
+
+    last_lacky, rows = await asyncio.gather(fetch_lacky(), fetch_contents())
+    if not rows or not isinstance(rows, list):
+        raise HTTPException(status_code=500, detail="Кейс не настроен в базе.")
+
+    all_items, weights = [], []
+    for row in rows:
+        skin = row.get("item")
+        if skin and skin.get("is_active", True):
+            all_items.append(skin)
+            weights.append(float(row.get("chance_weight", 10)))
+
+    if not all_items:
+        raise HTTPException(status_code=500, detail="В кейсе нет активных скинов.")
+
+    # 3. АТОМАРНАЯ БЛОКИРОВКА ОТ ДАБЛ-КЛИКА: переводим испытание в opened
+    lock_res = await supabase.patch(
+        "/user_case_upgrades",
+        params={"id": f"eq.{upg['id']}", "status": "in.(active,ready)"},
+        json={"status": "opened", "updated_at": datetime.now(timezone.utc).isoformat()},
+        headers={"Prefer": "return=representation"}
+    )
+    if lock_res.status_code >= 400 or not lock_res.json():
+        raise HTTPException(status_code=400, detail="Кейс уже открывается, подождите!")
+
+    # 4. Математика рулетки (1-в-1 с /api/v1/shop/buy)
+    is_event_case = (paid_price == 9999) or (paid_currency == "coupon")
+    base_case_price = paid_price / 2.0 if paid_currency == "tickets" else paid_price
+
+    if base_case_price >= 250:
+        target_lacky = 10
+    elif base_case_price >= 100:
+        target_lacky = 7
+    else:
+        target_lacky = 5
+
+    if is_event_case or current_trust == "red":
+        current_lacky = 0
+        db_lacky = last_lacky
+    else:
+        current_lacky = last_lacky + 1
+        if current_lacky > target_lacky:
+            current_lacky = 1
+        db_lacky = current_lacky
+
+    target_value = base_case_price * 0.70 if paid_currency == "tickets" else base_case_price * 0.66
+
+    if is_shadow_nerfed or (market_balance <= 2000 and not is_admin_user):
+        new_weights = []
+        for skin, w in zip(all_items, weights):
+            skin_price = float(skin.get("price_rub", 0))
+            profit_ratio = skin_price / base_case_price if base_case_price > 0 else 1
+            adjusted_weight = w
+
+            if is_shadow_nerfed:
+                adjusted_weight = w * 0.001 if profit_ratio > 1.0 else w * 3.0
+            elif market_balance <= 1000:
+                if profit_ratio > 1.8:
+                    adjusted_weight = w * 0.0001
+                elif profit_ratio > 1.2:
+                    adjusted_weight = w * 0.1
+                elif profit_ratio > 1.0:
+                    adjusted_weight = w * 0.5
+                else:
+                    adjusted_weight = w * 2.0
+                current_lacky = 0
+                db_lacky = last_lacky
+            else:
+                if profit_ratio > 2.5:
+                    adjusted_weight = w * 0.1
+                elif profit_ratio > 1.5:
+                    adjusted_weight = w * 0.5
+                elif profit_ratio > 1.0:
+                    adjusted_weight = w * 0.8
+                else:
+                    adjusted_weight = w * 1.2
+            new_weights.append(adjusted_weight)
+        weights = new_weights
+
+    final_items, final_weights = [], []
+    if current_lacky == target_lacky and not is_event_case:
+        if is_shadow_nerfed:
+            pity_candidates = [s for s in all_items if float(s.get("price_rub", 0)) > base_case_price]
+            pity_candidates.sort(key=lambda x: float(x.get("price_rub", 0)))
+            final_items = pity_candidates[:3] if pity_candidates else sorted(all_items, key=lambda x: float(x.get("price_rub", 0)))[:3]
+            final_weights = [1.0] * len(final_items)
+        else:
+            for skin, w in zip(all_items, weights):
+                skin_price = float(skin.get("price_rub", 0))
+                if skin_price > base_case_price:
+                    final_items.append(skin)
+                    if skin_price >= base_case_price * 5.0:
+                        final_weights.append(w * 0.005)
+                    elif skin_price >= base_case_price * 2.0:
+                        final_weights.append(w * 0.05)
+                    elif skin_price >= base_case_price * 1.2:
+                        final_weights.append(w * 0.5)
+                    else:
+                        final_weights.append(w * 3.0)
+        if not final_items:
+            final_items, final_weights = all_items, weights
+    else:
+        is_surprise_drop = False if (current_trust == "red" or is_shadow_nerfed) else (random.random() < 0.07)
+        surprise_items, surprise_weights = [], []
+        normal_items, normal_weights = [], []
+        pity_multiplier = 1.0 + (current_lacky * 0.1)
+
+        for skin, w in zip(all_items, weights):
+            skin_price = float(skin.get("price_rub", 0))
+            if base_case_price > 0 and base_case_price < skin_price <= base_case_price * 3.0:
+                surprise_items.append(skin)
+                surprise_weights.append(w)
+
+            normal_items.append(skin)
+            trust_modifier = 1.0
+            if current_trust == "red":
+                if skin_price >= base_case_price:
+                    trust_modifier = 0.2
+                elif skin_price >= target_value:
+                    trust_modifier = 0.5
+                else:
+                    trust_modifier = 2.5
+            elif current_trust == "green":
+                if skin_price >= base_case_price:
+                    trust_modifier = 1.15
+                elif skin_price < target_value:
+                    trust_modifier = 0.9
+
+            if target_value <= skin_price < base_case_price * 1.5:
+                normal_weights.append(w * pity_multiplier * trust_modifier)
+            else:
+                normal_weights.append(w * trust_modifier)
+
+        if is_surprise_drop and surprise_items:
+            final_items, final_weights = surprise_items, surprise_weights
+        else:
+            final_items, final_weights = normal_items, normal_weights
+
+    winner = random.choices(final_items, weights=final_weights, k=1)[0]
+    current_code = upg.get("coupon_code") or f"UPG_{upg['id']}_{int(time.time())}"
+    current_source = "raffle" if is_bypassed else "case"
+
+    h_res = await supabase.post(
+        "/cs_history",
+        json={
+            "user_id": telegram_id,
+            "item_id": int(winner["id"]),
+            "case_name": str(case_title),
+            "code_used": current_code,
+            "status": "pending",
+            "lacky": db_lacky,
+            "source": current_source,
+            "details": f"Выигрыш (Апгрейд): {winner['name']}"
+        },
+        headers={"Prefer": "return=representation"}
+    )
+    h_data = h_res.json()
+    history_id = h_data[0].get("id") if isinstance(h_data, list) and h_data else None
+
+    roulette_strip = random.choices(all_items, weights=weights, k=80)
+    roulette_strip[60] = winner
+
+    winner_output = winner.copy()
+    winner_output["id"] = history_id
+    winner_output["real_item_id"] = winner["id"]
+
+    return {
+        "status": "ok",
+        "winner": winner_output,
+        "roulette_strip": roulette_strip,
+        "history_id": history_id,
+        "lacky": 0 if (is_event_case or current_trust == "red") else current_lacky,
+        "max_lacky": target_lacky,
+        "messages": [f"Выпало: {winner['name']}"]
+    }
+
 # ====================================================
 # ⚙️ ЛОГИКА АДМИНКИ (RELATIONAL: CS_ITEMS + CONTENTS)
 # ====================================================
