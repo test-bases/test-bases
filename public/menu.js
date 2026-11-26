@@ -7751,10 +7751,12 @@ function renderActiveUpgradeBanner() {
         <div style="width:100%; height:7px; background:rgba(0,0,0,0.55); border-radius:4px; overflow:hidden; margin-bottom:10px;">
             <div style="width:${pct}%; height:100%; background:${isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, #8847ff, #d32ce6)'}; border-radius:4px; transition:width 0.3s ease;"></div>
         </div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
             ${isCompleted
                 ? `<button type="button" onclick="claimCaseUpgradeStep()" style="flex:1.4; padding:10px; border:none; border-radius:10px; background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;"><i class="fa-solid fa-bolt"></i> Забрать «${tgtName}»</button>`
-                : ''
+                : (upg.can_simulate
+                    ? `<button type="button" onclick="adminSimulateUpgradeComplete()" style="flex:1; padding:10px; border:1px dashed #fbbf24; border-radius:10px; background:rgba(251,191,36,0.14); color:#fbbf24; font-size:10px; font-weight:900; text-transform:uppercase; cursor:pointer;"><i class="fa-solid fa-flask"></i> [ADMIN] Выполнить</button>`
+                    : '')
             }
             <button type="button" onclick="openCurrentUpgradingCase()" style="flex:1; padding:10px; border:1px solid rgba(255,255,255,0.14); border-radius:10px; background:rgba(255,255,255,0.06); color:#fff; font-size:10px; font-weight:800; text-transform:uppercase; cursor:pointer;">
                 Открыть «${curName}»
@@ -7762,6 +7764,17 @@ function renderActiveUpgradeBanner() {
         </div>
     `;
 }
+
+window.adminSimulateUpgradeComplete = async function() {
+    try {
+        const res = await makeApiRequest('/api/v1/admin/cases/upgrade/simulate_complete', {}, 'POST', true);
+        if (res && res.upgrade) {
+            window.activeCaseUpgrade = res.upgrade;
+            renderActiveUpgradeBanner();
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
+        }
+    } catch (e) {}
+};
 
 window.claimCaseUpgradeStep = async function() {
     const loader = document.getElementById('purchase-loader');
