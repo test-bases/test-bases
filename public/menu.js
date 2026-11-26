@@ -2935,7 +2935,7 @@ items.forEach(item => {
                 <div style="${innerWrapStyle}">
                     <div class="item-title case-top-title" style="position: absolute; top: ${titleTop}; left: 50%; transform: translateX(-50%); z-index: 1; white-space: nowrap; pointer-events: none; width: auto !important; max-width: 95% !important; padding: 2px 8px !important; font-weight: 800; color: #fff; text-align: center; text-transform: uppercase; background: transparent !important;">${formatItemName(cleanName)}</div>
                     
-                    <div class="item-image-wrapper case-img-wrap" onclick="openCaseContents(event, '${safeName}', ${contentsPriceParam})" style="background: transparent; padding-top: 70%;">
+                    <div class="item-image-wrapper case-img-wrap" onclick="openCaseContents(event, '${safeName}', ${contentsPriceParam})" style="background: transparent; padding-top: 100%;">
                         <!-- ⚡ ТО САМОЕ ЖИДКОЕ СТЕКЛО: Полупрозрачный черный (0.5) + блюр. Больше никакой черноты! ⚡ -->
                         <div class="case-info-overlay" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"><span>Посмотреть дроп</span></div>
                         <img src="${safeImg}" class="item-image case-zoom" loading="lazy" onload="this.classList.add('loaded')" style="transform: scale(1.4) translateY(0px) translateZ(0); transform-origin: top center; border-radius: 0;">
