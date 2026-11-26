@@ -2889,7 +2889,7 @@ items.forEach(item => {
 
         // 🔥 МАГИЯ ТУТ: Создаем ВНУТРЕННЮЮ обертку с overflow: hidden, которая отрезает черный фон!
         // 🔥 В конец строки добавили background: rgba(0, 0, 0, 0.4);
-        const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; padding-top: 32px; flex-grow: 1;`;
+        const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: visible; clip-path: inset(-40px 0px 0px 0px round 0 0 12px 12px); -webkit-clip-path: inset(-40px 0px 0px 0px round 0 0 12px 12px); border-radius: 12px; padding-top: 32px; flex-grow: 1;`;
 
         if (item.is_folder) {
             el.innerHTML = `
