@@ -405,7 +405,7 @@ html, body {
     padding: 0 !important;
     border-radius: 0 !important;
     object-fit: contain;
-    transform: translateY(4px) translateZ(0) !important;
+    transform: translateZ(0);
     transform-origin: top center;
     margin-top: 0;
     filter: none;
