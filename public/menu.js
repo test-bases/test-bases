@@ -2931,8 +2931,11 @@ items.forEach(item => {
             if (showFreeButton) {
                 buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
                     <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
-                        <span class="rfl-free-top">Открыть</span>
-                        <span class="rfl-free-main"><i class="fa-solid fa-bolt"></i> Бесплатно</span>
+                        <i class="fa-solid fa-bolt rfl-free-bolt"></i>
+                        <span class="rfl-free-col">
+                            <span class="rfl-free-top">Открыть</span>
+                            <span class="rfl-free-main">Бесплатно</span>
+                        </span>
                     </button>
                 </div>`;
             } else if (originalPrice === 9999) {
@@ -3776,9 +3779,10 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
                 }
             }
 
+            const fastImg = formatInspectImgUrl(item.image_url);
             return `
                 <div class="content-item rfl-drop-card ${rClass}" style="${optStyle}" onclick="openCaseSkinInspect(${idx})">
-                    <img src="${item.image_url}" loading="lazy">
+                    <img src="${fastImg}" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                     <div class="content-name">${item.name.split('|').pop().trim()}</div>
                     <div class="content-quality">${item.condition || 'FN'}</div>
                     <div class="rfl-drop-price" style="color: ${priceColor};">
@@ -3853,7 +3857,18 @@ window.openCaseSkinInspect = function(index) {
 
     img.classList.remove('zoomed');
     modal.classList.remove('is-zoomed');
-    img.src = formatInspectImgUrl(item.image_url);
+
+    const nextSrc = formatInspectImgUrl(item.image_url);
+    if (img.getAttribute('src') !== nextSrc) {
+        img.style.opacity = '0';
+        img.onload = () => { img.style.opacity = '1'; };
+        img.src = nextSrc;
+        if (img.complete && img.naturalWidth > 0) {
+            img.style.opacity = '1';
+        }
+    } else {
+        img.style.opacity = '1';
+    }
 
     document.getElementById('inspect-skin-title').textContent = item.name || 'Скин';
 
@@ -3883,14 +3898,21 @@ window.openCaseSkinInspect = function(index) {
 
 window.closeSkinInspect = function() {
     const modal = document.getElementById('skin-inspect-modal');
+    const img = document.getElementById('inspect-skin-img');
     if (modal) {
         modal.classList.remove('visible');
         modal.classList.remove('is-zoomed');
     }
-    const img = document.getElementById('inspect-skin-img');
-    if (img) img.classList.remove('zoomed');
+    if (img) {
+        img.classList.remove('zoomed');
+        setTimeout(() => {
+            if (modal && !modal.classList.contains('visible')) {
+                img.removeAttribute('src');
+                img.style.opacity = '0';
+            }
+        }, 200);
+    }
 };
-
 window.toggleSkinZoom = function(box) {
     const img = box.querySelector('img');
     const modal = document.getElementById('skin-inspect-modal');
