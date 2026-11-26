@@ -2887,9 +2887,8 @@ items.forEach(item => {
             couponHeaderAdded = true;
         }
 
-        // 🔥 МАГИЯ ТУТ: Создаем ВНУТРЕННЮЮ обертку с overflow: hidden, которая отрезает черный фон!
-        // 🔥 В конец строки добавили background: rgba(0, 0, 0, 0.4);
-        const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: visible; clip-path: inset(-40px 0px 0px 0px round 0 0 12px 12px); -webkit-clip-path: inset(-40px 0px 0px 0px round 0 0 12px 12px); border-radius: 12px; padding-top: 32px; flex-grow: 1;`;
+        // 1. В innerWrapStyle верни обычный overflow: hidden и padding-top: 22px
+const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; padding-top: 22px; flex-grow: 1;`;
 
         if (item.is_folder) {
             el.innerHTML = `
@@ -2937,7 +2936,7 @@ items.forEach(item => {
                 <div style="${innerWrapStyle}">
                     <div class="item-title case-top-title" style="position: absolute; top: ${titleTop}; left: 50%; transform: translateX(-50%); z-index: 1; white-space: nowrap; pointer-events: none; width: auto !important; max-width: 95% !important; padding: 2px 8px !important; font-weight: 800; color: #fff; text-align: center; text-transform: uppercase; background: transparent !important;">${formatItemName(cleanName)}</div>
                     
-                    <div class="item-image-wrapper case-img-wrap" onclick="openCaseContents(event, '${safeName}', ${contentsPriceParam})" style="background: transparent; padding-top: 80%;">
+                    <div class="item-image-wrapper case-img-wrap" onclick="openCaseContents(event, '${safeName}', ${contentsPriceParam})" style="background: transparent; padding-top: 100%;">
                         <!-- ⚡ ТО САМОЕ ЖИДКОЕ СТЕКЛО: Полупрозрачный черный (0.5) + блюр. Больше никакой черноты! ⚡ -->
                         <div class="case-info-overlay" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"><span>Посмотреть дроп</span></div>
                         <img src="${safeImg}" class="item-image case-zoom" loading="lazy" onload="this.classList.add('loaded')">
