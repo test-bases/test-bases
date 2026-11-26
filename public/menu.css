@@ -403,9 +403,9 @@ html, body {
     top: 0 !important;
     left: 0 !important;
     padding: 0 !important;
-    border-radius: 12px;
+    border-radius: 0 !important;
     object-fit: contain;
-    transform: scale(1.4) translateY(-8px) translateZ(0); /* было -15px */
+    transform: translateY(4px) translateZ(0) !important;
     transform-origin: top center;
     margin-top: 0;
     filter: none;
