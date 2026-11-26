@@ -3751,7 +3751,9 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
             </div>
         `;
         
-        list.innerHTML = data.map(item => {
+        window._currentCaseContentsData = data;
+        
+        list.innerHTML = data.map((item, idx) => {
             let rClass = 'blue'; 
             const r = (item.rarity || '').toLowerCase();
             if (r.includes('purple')) rClass = 'purple'; 
@@ -3775,7 +3777,7 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
             }
 
             return `
-                <div class="content-item rfl-drop-card ${rClass}" style="${optStyle}">
+                <div class="content-item rfl-drop-card ${rClass}" style="${optStyle}" onclick="openCaseSkinInspect(${idx})">
                     <img src="${item.image_url}" loading="lazy">
                     <div class="content-name">${item.name.split('|').pop().trim()}</div>
                     <div class="content-quality">${item.condition || 'FN'}</div>
@@ -3794,6 +3796,110 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
 };
 
 window.closeContentsModal = () => document.getElementById('case-contents-modal').classList.add('hidden');
+
+function formatInspectImgUrl(url) {
+    if (!url) return '';
+    let clean = String(url).trim();
+    if (clean.includes('steamstatic.com') || clean.includes('akamaihd.net')) {
+        clean = clean
+            .replace('steamcommunity-a.akamaihd.net', 'community.cloudflare.steamstatic.com')
+            .replace('community.akamai.steamstatic.com', 'community.cloudflare.steamstatic.com')
+            .replace(/\/360fx360f|\/200fx200f|\/180fx180f|\/120fx120f/g, '')
+            .replace(/\/+$/, '');
+        return clean + '/360fx360f';
+    }
+    return clean;
+}
+
+function formatCaseSkinWearRu(cond, title = '') {
+    const c = String(cond || '').trim().toUpperCase();
+    const shortMap = {
+        'FN': 'Прямо с завода',
+        'MW': 'Немного поношенное',
+        'FT': 'После полевых испытаний',
+        'WW': 'Поношенное',
+        'BS': 'Закалённое в боях'
+    };
+    if (shortMap[c]) return shortMap[c];
+
+    const raw = (String(cond || '') + ' ' + String(title || '')).toLowerCase();
+    if (raw.includes('factory new') || raw.includes('прямо с завода')) return 'Прямо с завода';
+    if (raw.includes('minimal wear') || raw.includes('немного поношенное')) return 'Немного поношенное';
+    if (raw.includes('field-tested') || raw.includes('после полевых')) return 'После полевых испытаний';
+    if (raw.includes('well-worn') || raw.includes('поношенное')) return 'Поношенное';
+    if (raw.includes('battle-scarred') || raw.includes('закален')) return 'Закалённое в боях';
+    return 'Базовое';
+}
+
+function formatCaseSkinRarityRu(rarity) {
+    const r = String(rarity || '').toLowerCase().trim();
+    if (r.includes('common') || r.includes('consumer') || r.includes('ширпотреб')) return { name: 'Ширпотреб', color: '#b0c3d9' };
+    if (r.includes('industrial') || r.includes('промышлен')) return { name: 'Промышленное', color: '#5e98d9' };
+    if (r.includes('mil-spec') || r.includes('blue') || r.includes('rare') || r.includes('армейск')) return { name: 'Армейское', color: '#4b69ff' };
+    if (r.includes('restricted') || r.includes('purple') || r.includes('mythical') || r.includes('запрещен')) return { name: 'Запрещённое', color: '#8847ff' };
+    if (r.includes('classified') || r.includes('pink') || r.includes('legendary') || r.includes('засекречен')) return { name: 'Засекреченное', color: '#d32ce6' };
+    if (r.includes('covert') || r.includes('red') || r.includes('ancient') || r.includes('тайное')) return { name: 'Тайное', color: '#eb4b4b' };
+    if (r.includes('extraordinary') || r.includes('gold') || r.includes('immortal') || r.includes('нож') || r.includes('перчатк')) return { name: 'Необычайное', color: '#ffd700' };
+    return { name: 'Армейское', color: '#4b69ff' };
+}
+
+window.openCaseSkinInspect = function(index) {
+    const item = (window._currentCaseContentsData || [])[index];
+    if (!item) return;
+
+    const modal = document.getElementById('skin-inspect-modal');
+    const img = document.getElementById('inspect-skin-img');
+    if (!modal || !img) return;
+
+    img.classList.remove('zoomed');
+    modal.classList.remove('is-zoomed');
+    img.src = formatInspectImgUrl(item.image_url);
+
+    document.getElementById('inspect-skin-title').textContent = item.name || 'Скин';
+
+    const wearEl = document.getElementById('inspect-skin-wear');
+    const isNoCondition = /sticker|наклейка|graffiti|граффити|patch|нашивка|charm|брелок|pin|значок/i.test(item.name || '');
+    if (isNoCondition) {
+        wearEl.style.display = 'none';
+    } else {
+        wearEl.style.display = 'inline-flex';
+        wearEl.textContent = formatCaseSkinWearRu(item.condition, item.name);
+    }
+
+    const rarityData = formatCaseSkinRarityRu(item.rarity);
+    const rarityEl = document.getElementById('inspect-skin-rarity');
+    rarityEl.textContent = rarityData.name;
+    rarityEl.style.color = rarityData.color;
+    rarityEl.style.borderColor = `${rarityData.color}80`;
+    rarityEl.style.background = `${rarityData.color}15`;
+    rarityEl.style.boxShadow = `0 0 10px ${rarityData.color}35`;
+
+    const priceVal = parseFloat(item.price_rub) || 0;
+    document.getElementById('inspect-skin-price').innerHTML = `${priceVal} <i class="fa-solid fa-coins" style="color:#fbbf24; font-size:9px;"></i>`;
+
+    modal.classList.add('visible');
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+};
+
+window.closeSkinInspect = function() {
+    const modal = document.getElementById('skin-inspect-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        modal.classList.remove('is-zoomed');
+    }
+    const img = document.getElementById('inspect-skin-img');
+    if (img) img.classList.remove('zoomed');
+};
+
+window.toggleSkinZoom = function(box) {
+    const img = box.querySelector('img');
+    const modal = document.getElementById('skin-inspect-modal');
+    if (img) {
+        const isZoomed = img.classList.toggle('zoomed');
+        if (modal) modal.classList.toggle('is-zoomed', isZoomed);
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('medium');
+    }
+};
 
 window.showReplacementChoice = function(options, historyId) {
     const modal = document.getElementById('replacement-modal'); 
