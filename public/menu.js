@@ -2887,8 +2887,7 @@ items.forEach(item => {
             couponHeaderAdded = true;
         }
 
-        // 1. В innerWrapStyle верни обычный overflow: hidden и padding-top: 22px
-const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; padding-top: 22px; flex-grow: 1;`;
+        const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; padding-top: 40px; flex-grow: 1;`;
 
         if (item.is_folder) {
             el.innerHTML = `
@@ -2939,7 +2938,7 @@ const innerWrapStyle = `position: relative; width: 100%; height: 100%; display: 
                     <div class="item-image-wrapper case-img-wrap" onclick="openCaseContents(event, '${safeName}', ${contentsPriceParam})" style="background: transparent; padding-top: 70%;">
                         <!-- ⚡ ТО САМОЕ ЖИДКОЕ СТЕКЛО: Полупрозрачный черный (0.5) + блюр. Больше никакой черноты! ⚡ -->
                         <div class="case-info-overlay" style="background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"><span>Посмотреть дроп</span></div>
-                        <img src="${safeImg}" class="item-image case-zoom" loading="lazy" onload="this.classList.add('loaded')">
+                        <img src="${safeImg}" class="item-image case-zoom" loading="lazy" onload="this.classList.add('loaded')" style="transform: translateY(6px) translateZ(0); border-radius: 0;">
                     </div>
                     
                     <div class="item-info" style="padding: 0 10px 10px 10px; flex-grow: 1; position: relative; z-index: 8;">${buttonHtml}</div>
