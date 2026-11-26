@@ -5409,7 +5409,7 @@ async def resolve_active_promo_banners(global_settings: dict, supabase: httpx.As
     return active_list
 
 # =================================================================
-# ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ С ПОДДЕРЖКОЙ ПОДПИСКИ РОЗЫГРЫШЕЙ)
+# ТВОЙ ЭНДПОИНТ (ИЗМЕНЕННЫЙ С ПОДДЕРЖКОЙ ПОДПИСКИ РОЗЫГРЫШЕЙ + АПГРЕЙД КЕЙСОВ)
 # =================================================================
 @app.post("/api/v1/bootstrap")
 async def get_bootstrap_data(
@@ -5552,6 +5552,8 @@ async def get_bootstrap_data(
                 "visual_tier": 0,
                 "current_week_str": "",
             },
+            "case_upgrade_rules": [],
+            "active_case_upgrade": None,
         }
 
     # =================================================================
@@ -5606,13 +5608,13 @@ async def get_bootstrap_data(
             "/p2p_trades",
             params={"user_id": f"eq.{telegram_id}", "order": "created_at.desc"},
         )
-        # 👇 ДОБАВЛЕНЫ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ В SELECT 👇
+        # 👇 ДОБАВЛЕНЫ ПОЛЯ ПОДПИСКИ РОЗЫГРЫШЕЙ И СЧЕТЧИКИ СООБЩЕНИЙ ДЛЯ АПГРЕЙДА 👇
         balance_task = supabase.get(
             "/users",
             params={
                 "telegram_id": f"eq.{telegram_id}",
                 "select": (
-                    "bot_t_coins, tickets, last_new_year_gift_at, last_grind_at, last_free_ticket_claimed_at, streak_days, has_raffles_premium, raffles_premium_until, free_raffle_passes"
+                    "bot_t_coins, tickets, last_new_year_gift_at, last_grind_at, last_free_ticket_claimed_at, streak_days, has_raffles_premium, raffles_premium_until, free_raffle_passes, total_message_count, telegram_total_message_count"
                 ),
             },
         )
@@ -5660,6 +5662,10 @@ async def get_bootstrap_data(
         )
         daily_challenge_task = get_or_sync_daily_challenge(telegram_id, supabase)
         user_streak_task = calculate_user_streak(telegram_id, supabase)
+        upgrade_rules_task = supabase.get(
+            "/case_upgrade_rules",
+            params={"enabled": "eq.true", "select": "*"},
+        )
 
         (
             db_res,
@@ -5677,6 +5683,7 @@ async def get_bootstrap_data(
             raffle_parts_res,
             daily_challenge_res,
             user_streak_res,
+            upgrade_rules_res,
         ) = await asyncio.gather(
             rpc_task,
             notifs_task,
@@ -5693,6 +5700,7 @@ async def get_bootstrap_data(
             raffle_parts_task,
             daily_challenge_task,
             user_streak_task,
+            upgrade_rules_task,
             return_exceptions=True,
         )
 
@@ -5843,12 +5851,14 @@ async def get_bootstrap_data(
                         user_data["equipped_glow"] = inner_ach.get("glow_color")
 
         gift_available = True
+        user_msg_row = {}
         if (
             not isinstance(balance_res, Exception)
             and getattr(balance_res, "status_code", 500) == 200
         ):
             b_data = balance_res.json()
             if b_data:
+                user_msg_row = b_data[0]
                 user_data["balance"] = b_data[0].get("bot_t_coins", 0) / 100.0
                 user_data["tickets"] = b_data[0].get("tickets", 0)
                 user_data["last_grind_at"] = b_data[0].get(
@@ -5963,6 +5973,17 @@ async def get_bootstrap_data(
 
         promo_banners = await resolve_active_promo_banners(global_settings, supabase)
 
+        # 🚀 Правила апгрейда кейсов и активное испытание юзера
+        case_upgrade_rules = (
+            upgrade_rules_res.json()
+            if not isinstance(upgrade_rules_res, Exception)
+            and getattr(upgrade_rules_res, "status_code", 500) == 200
+            else []
+        )
+        active_case_upgrade = await get_active_case_upgrade(
+            telegram_id, user_msg_row, supabase
+        )
+
         return {
             "user": user_data,
             "challenge": user_data.get("challenge"),
@@ -5986,6 +6007,8 @@ async def get_bootstrap_data(
             ),
             "streak_config": streak_config,
             "user_streak": user_streak,
+            "case_upgrade_rules": case_upgrade_rules,
+            "active_case_upgrade": active_case_upgrade,
         }
 
     except HTTPException:
@@ -13410,7 +13433,7 @@ async def user_heartbeat(
 ):
     """
     Фоновое обновление данных. Поддерживает Telegram, VK, 
-    отдает уведомления и закэшированный статус игры.
+    отдает уведомления, статус игры и прогресс активного апгрейда кейса.
     """
     user_info = None
     telegram_id = None
@@ -13446,10 +13469,19 @@ async def user_heartbeat(
             supabase.get(
                 "/in_app_notifications", 
                 params={"user_id": f"eq.{telegram_id}", "is_read": "eq.false", "select": "id"}
+            ),
+            supabase.get(
+                "/user_case_upgrades",
+                params={
+                    "telegram_id": f"eq.{telegram_id}",
+                    "status": "in.(active,ready)",
+                    "order": "id.desc",
+                    "limit": "1"
+                }
             )
         ]
         
-        # Если кэш игры протух, добавляем запрос к БД третьей задачей
+        # Если кэш игры протух, добавляем запрос к БД четвёртой задачей
         if game_needs_update:
             tasks.append(
                 supabase.get("/guess_state", params={"id": "eq.1", "select": "is_active"})
@@ -13460,6 +13492,7 @@ async def user_heartbeat(
         
         rpc_resp = results[0]
         notif_resp = results[1]
+        upg_resp = results[2]
 
         if isinstance(rpc_resp, Exception) or rpc_resp.status_code == 400:
             logging.error(f"Heartbeat RPC Error: {rpc_resp}")
@@ -13474,9 +13507,25 @@ async def user_heartbeat(
             
         data['unread_notifications'] = unread_count
 
+        # 🚀 Прогресс активного апгрейда кейса (если он запущен)
+        active_upgrade = None
+        if not isinstance(upg_resp, Exception) and getattr(upg_resp, "status_code", 500) == 200:
+            upg_rows = upg_resp.json()
+            if isinstance(upg_rows, list) and upg_rows:
+                u_msg_res = await supabase.get(
+                    "/users",
+                    params={
+                        "telegram_id": f"eq.{telegram_id}",
+                        "select": "total_message_count,telegram_total_message_count"
+                    }
+                )
+                u_msg_row = u_msg_res.json()[0] if (u_msg_res.status_code == 200 and u_msg_res.json()) else {}
+                active_upgrade = await get_active_case_upgrade(telegram_id, u_msg_row, supabase)
+        data['active_case_upgrade'] = active_upgrade
+
         # 🔥 Обрабатываем статус игры, если мы его запрашивали у БД
         if game_needs_update:
-            game_resp = results[2]
+            game_resp = results[3]
             if not isinstance(game_resp, Exception) and game_resp.status_code == 200:
                 game_status_data = game_resp.json()
                 # Обновляем кэш
