@@ -1994,16 +1994,15 @@ body.browser-mode, body.browser-mode .main-content-scrollable { scrollbar-width:
 .skin-inspect-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: rgba(4, 4, 7, 0.92);
     z-index: 10050;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease, background 0.3s ease;
+    transition: opacity 0.18s ease;
+    will-change: opacity;
     padding: 20px;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
@@ -2061,15 +2060,16 @@ body.browser-mode, body.browser-mode .main-content-scrollable { scrollbar-width:
     max-width: 72vw;
     max-height: 240px;
     object-fit: contain;
-    filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.95));
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.3s ease;
+    filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.9));
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.12s ease;
+    will-change: transform;
+    transform: translateZ(0);
     cursor: zoom-in;
     transform-origin: center center;
 }
 .inspect-img-zoom.zoomed {
-    transform: scale(1.32);
+    transform: scale(1.32) translateZ(0);
     cursor: zoom-out;
-    filter: drop-shadow(0 22px 48px rgba(0, 0, 0, 1));
 }
 
 .inspect-close-box {
