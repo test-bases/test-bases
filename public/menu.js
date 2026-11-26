@@ -2929,10 +2929,10 @@ items.forEach(item => {
             
             // ⚡ 1. Кнопки снова чистые и прозрачные (без лишних фонов)
             if (showFreeButton) {
-                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center; margin-top: -6px;">
-                    <button class="action-btn free-open-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
-                        <span class="free-open-top">ОТКРЫТЬ</span>
-                        <span class="free-open-main">БЕСПЛАТНО</span>
+                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
+                    <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
+                        <span class="rfl-free-top">Открыть</span>
+                        <span class="rfl-free-main"><i class="fa-solid fa-bolt"></i> Бесплатно</span>
                     </button>
                 </div>`;
             } else if (originalPrice === 9999) {
@@ -3695,68 +3695,62 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
             profitChance = ((goodDropWeight / totalWeight) * 100).toFixed(1);
         }
         
-        // 🔥 ДОБАВЛЯЕМ ЛОГИКУ ВИЗУАЛА ДЛЯ КУПОННЫХ КЕЙСОВ 🔥
         let priceDisplayHtml = casePriceCoins 
-            ? `${casePriceCoins} <i class="fa-solid fa-coins" style="color: #ffd700; font-size: 15px;"></i>` 
-            : `<span style="font-size: 14px; font-weight: 900; color: #9146FF; text-shadow: 0 0 10px rgba(145,70,255,0.4);"><i class="fa-solid fa-lock"></i> КУПОН</span>`;
+            ? `${casePriceCoins} <i class="fa-solid fa-coins" style="color: #fbbf24; font-size: 12px;"></i>` 
+            : `<span style="font-size: 12px; font-weight: 800; color: #d8b4fe; text-shadow: 0 0 10px rgba(192,132,252,0.45);"><i class="fa-solid fa-ticket" style="font-size: 10px; margin-right: 3px;"></i>Купон</span>`;
             
         let chanceDisplayHtml = casePriceCoins
-            ? `<div style="font-size: 18px; font-weight: 900; color: ${profitChance > 15 ? '#34c759' : '#ffcc00'};">${profitChance}%</div>`
-            : `<div style="font-size: 18px; font-weight: 900; color: #8e8e93;">--</div>`;
+            ? `<div class="rfl-stat-val" style="color: ${profitChance > 15 ? '#4ade80' : '#fbbf24'};">${profitChance}%</div>`
+            : `<div class="rfl-stat-val" style="color: #a1a1aa;">--</div>`;
         
-        // Рендерим плашку с оптимизированным спойлером и премиальными иконками монет
         statsBlock.innerHTML = `
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.2); margin-bottom: 16px;">
-                
-                <div style="display: flex; justify-content: space-around; align-items: center;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-bottom: 4px;">Шанс на хороший скин</div>
+            <div class="rfl-stats-card">
+                <div class="rfl-stats-row">
+                    <div class="rfl-stat-col">
+                        <div class="rfl-stat-lbl">Шанс на хороший скин</div>
                         ${chanceDisplayHtml}
                     </div>
-                    <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.1);"></div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-bottom: 4px;">Цена кейса</div>
-                        <div style="font-size: 18px; font-weight: 900; color: #fff; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <div class="rfl-stat-divider"></div>
+                    <div class="rfl-stat-col">
+                        <div class="rfl-stat-lbl">Цена кейса</div>
+                        <div class="rfl-stat-val" style="color: #fff;">
                             ${priceDisplayHtml}
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; overflow: hidden;">
-                    <div onclick="toggleCaseFaq()" style="padding: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
-                        <div style="font-size: 11px; font-weight: 800; color: #ffd700; text-transform: uppercase; letter-spacing: 0.5px;">
-                            <i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i> Важно знать
-                        </div>
-                        <i id="case-faq-icon" class="fa-solid fa-chevron-down" style="color: #8e8e93; font-size: 10px; transition: transform 0.2s;"></i>
+                <div class="rfl-faq-box">
+                    <div class="rfl-faq-head" onclick="toggleCaseFaq()">
+                        <span><i class="fa-solid fa-circle-info" style="color: #d8b4fe; margin-right: 5px;"></i>Важно знать</span>
+                        <i id="case-faq-icon" class="fa-solid fa-chevron-down" style="color: #a1a1aa; font-size: 9px; transition: transform 0.2s;"></i>
                     </div>
                     
-                    <div id="case-faq-content" style="display: none; flex-direction: column; gap: 8px; padding: 0 10px 10px 10px; font-size: 10px; color: #ccc; line-height: 1.4;">
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-                            <i class="fa-solid fa-circle-exclamation" style="color: #ffd700; font-size: 10px; margin-top: 2px;"></i>
-                            <span><b>Окупаемость:</b> Считается строго от цены кейса в монетах (<i class="fa-solid fa-coins" style="color: #ffd700;"></i>).</span>
+                    <div id="case-faq-content" class="rfl-faq-body" style="display: none;">
+                        <div class="rfl-faq-item">
+                            <i class="fa-solid fa-circle-exclamation" style="color: #fbbf24;"></i>
+                            <span><b>Окупаемость:</b> считается строго от цены кейса в монетах (<i class="fa-solid fa-coins" style="color: #fbbf24;"></i>).</span>
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-                            <i class="fa-solid fa-ticket" style="color: #2AABEE; font-size: 10px; margin-top: 2px;"></i>
-                            <span><b>Билеты (🎟️):</b> Валюта вашей активности. Скины на неё не равняются, и окуп по ним не считается.</span>
+                        <div class="rfl-faq-item">
+                            <i class="fa-solid fa-ticket" style="color: #c084fc;"></i>
+                            <span><b>Билеты:</b> валюта вашей активности. Скины на неё не равняются, окуп по ним не считается.</span>
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-    <i class="fa-solid fa-shield-halved" style="color: #34c759; font-size: 10px; margin-top: 2px;"></i>
-    <span><b>Система Гаранта:</b> Защищает от минуса! Накопите необходимое количество открытий, и система гарантированно выдаст предмет по цене кейса (в монетках) либо дороже. Работает при открытии и за монеты, и за билеты.</span>
-</div>
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-                            <i class="fa-solid fa-gift" style="color: #ff9500; font-size: 10px; margin-top: 2px;"></i>
-                            <span><b>Бесплатный проект:</b> Вы не тратите реальные деньги. Баланс настроен так, чтобы проект мог существовать и радовать вас дальше.</span>
+                        <div class="rfl-faq-item">
+                            <i class="fa-solid fa-shield-halved" style="color: #4ade80;"></i>
+                            <span><b>Система Гаранта:</b> защищает от минуса — накопите нужное число открытий, и выпадет скин не дешевле кейса. Работает за монеты и за билеты.</span>
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 6px;">
-                            <i class="fa-brands fa-steam" style="color: #8e8e93; font-size: 10px; margin-top: 2px;"></i>
-                            <span><b>Цены:</b> Ориентировочные и могут незначительно отличаться от Торговой площадки Steam.</span>
+                        <div class="rfl-faq-item">
+                            <i class="fa-solid fa-gift" style="color: #fbbf24;"></i>
+                            <span><b>Бесплатный проект:</b> вы не тратите реальные деньги. Баланс настроен для стабильной работы проекта.</span>
+                        </div>
+                        <div class="rfl-faq-item">
+                            <i class="fa-brands fa-steam" style="color: #a1a1aa;"></i>
+                            <span><b>Цены:</b> ориентировочные и могут незначительно отличаться от Торговой площадки Steam.</span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
         
-        // Рендерим сами предметы (со "Светофором" и иконкой fa-coins)
         list.innerHTML = data.map(item => {
             let rClass = 'blue'; 
             const r = (item.rarity || '').toLowerCase();
@@ -3767,29 +3761,26 @@ window.openCaseContents = async function(event, caseName, casePriceCoins) {
 
             const itemPriceRub = parseFloat(item.price_rub) || 0;
             
-            // Логика "Светофора"
-            let priceColor = casePriceCoins ? '#ff3b30' : '#FFD700'; // Для купонных делаем золотым, для обычных — красный по умолчанию
+            let priceColor = casePriceCoins ? '#ff453a' : '#fbbf24';
             let optStyle = '';
 
             if (casePriceCoins) {
                 if (itemPriceRub > casePriceCoins) {
-                    // Зеленый (Окуп)
-                    priceColor = '#34c759';
-                    optStyle = `border: 1px solid rgba(52, 199, 89, 0.4); background: rgba(52, 199, 89, 0.05);`;
+                    priceColor = '#4ade80';
+                    optStyle = `border-color: rgba(74, 222, 128, 0.32); background: linear-gradient(135deg, rgba(52, 199, 89, 0.1) 0%, rgba(18, 18, 24, 0.65) 100%);`;
                 } else if (itemPriceRub >= (casePriceCoins * 0.5)) {
-                    // Желтый (Нормальный возврат: от 50% стоимости кейса)
-                    priceColor = '#ffcc00';
-                    optStyle = `border: 1px solid rgba(255, 204, 0, 0.4); background: rgba(255, 204, 0, 0.05);`;
+                    priceColor = '#fbbf24';
+                    optStyle = `border-color: rgba(251, 191, 36, 0.3); background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(18, 18, 24, 0.65) 100%);`;
                 }
             }
 
             return `
-                <div class="content-item ${rClass}" style="position: relative; ${optStyle}">
+                <div class="content-item rfl-drop-card ${rClass}" style="${optStyle}">
                     <img src="${item.image_url}" loading="lazy">
                     <div class="content-name">${item.name.split('|').pop().trim()}</div>
                     <div class="content-quality">${item.condition || 'FN'}</div>
-                    <div style="margin-top: 6px; font-size: 13px; font-weight: 800; color: ${priceColor}; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        ${itemPriceRub} <i class="fa-solid fa-coins" style="color: #ffd700; font-size: 12px;"></i>
+                    <div class="rfl-drop-price" style="color: ${priceColor};">
+                        ${itemPriceRub} <i class="fa-solid fa-coins"></i>
                     </div>
                 </div>
             `;
