@@ -6751,33 +6751,6 @@ window.handleSwapMainBtn = async () => {
     }
 };
 
-window.toggleGiveItem = (historyId, price, name, imageUrl) => {
-    const card = document.getElementById(`swap-inv-${historyId}`);
-    if (!card) return;
-
-    if (swapGivenItems.has(historyId)) {
-        swapGivenItems.delete(historyId);
-        card.style.borderColor = 'transparent';
-        card.style.background = '#232325';
-        card.querySelector('.swap-check').classList.add('hidden');
-    } else {
-        if (swapGivenItems.size >= 4) return customAlert("Максимум 4 предмета!");
-        swapGivenItems.set(historyId, { price, name, image_url: imageUrl });
-        card.style.borderColor = '#34c759';
-        card.style.background = 'rgba(52,199,89,0.05)';
-        card.querySelector('.swap-check').classList.remove('hidden');
-    }
-    
-    const totalSum = Array.from(swapGivenItems.values()).reduce((sum, item) => sum + item.price, 0);
-    if (swapTargetItem && swapTargetItem.price > totalSum) {
-        swapTargetItem = null;
-    }
-
-    document.getElementById('swap-give-sum').innerText = totalSum;
-    updateSwapBtnStep1();
-    if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-};
-
 function renderSwapInventory(items) {
     const grid = document.getElementById('swap-inventory-grid');
     if (items.length === 0) {
@@ -6844,6 +6817,30 @@ window.toggleGiveItem = (historyId, price, name, imageUrl) => {
     updateSwapBtnStep1();
     if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
 };
+
+function updateSwapBtnStep1() {
+    const btn = document.getElementById('swap-main-btn');
+    if (!btn) return;
+    if (swapGivenItems.size === 0) {
+        btn.disabled = true;
+        btn.innerText = "ВЫБЕРИТЕ СВОИ ПРЕДМЕТЫ";
+    } else {
+        btn.disabled = false;
+        btn.innerText = "ВЫБРАТЬ СКИН НА ЗАМЕНУ";
+    }
+}
+
+function updateSwapBtnStep2() {
+    const btn = document.getElementById('swap-main-btn');
+    if (!btn) return;
+    if (!swapTargetItem) {
+        btn.disabled = true;
+        btn.innerText = "ВЫБЕРИТЕ СКИН С МАРКЕТА";
+    } else {
+        btn.disabled = false;
+        btn.innerText = "ПЕРЕЙТИ К ОБМЕНУ";
+    }
+}
 
 window.renderSwapMarket = function() {
     const grid = document.getElementById('swap-market-grid');
