@@ -36302,6 +36302,8 @@ async def open_current_upgrading_case(
 # ==========================================
 # 🚀 МОДЕЛИ ДЛЯ АПГРЕЙДА КЕЙСОВ (ЛЕСЕНКА)
 # ==========================================
+from datetime import datetime, timedelta, timezone
+
 class UpgradeAuthRequest(BaseModel):
     initData: str = ""
 
