@@ -424,6 +424,30 @@
         </div>
     </div>
 
+    <!-- МОДАЛКА ОСМОТРА СКИНА (ZOOM И ХАРАКТЕРИСТИКИ) -->
+    <div id="skin-inspect-modal" class="skin-inspect-overlay" onclick="if(event.target===this) closeSkinInspect()">
+        <div class="inspect-sheet">
+            <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: #ffffff; text-transform: uppercase;">ОСМОТР СКИНА</h3>
+            <span style="font-size: 9px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Нажмите на скин для приближения</span>
+
+            <div class="inspect-img-box" onclick="toggleSkinZoom(this)">
+                <img id="inspect-skin-img" class="inspect-img-zoom" src="" alt="Скин" referrerpolicy="no-referrer">
+            </div>
+
+            <h3 id="inspect-skin-title" style="margin: 0 0 10px 0; font-size: 14px; font-weight: 800; color: #fff; line-height: 1.2;">-</h3>
+
+            <div class="inspect-tags-row">
+                <span id="inspect-skin-wear" class="inspect-pill">-</span>
+                <span id="inspect-skin-rarity" class="inspect-pill">-</span>
+                <span id="inspect-skin-price" class="inspect-pill" style="color: #fbbf24;">-</span>
+            </div>
+
+            <div class="inspect-close-box" style="max-width: 280px; margin: 0 auto; width: 100%;">
+                <button class="rfl-close-btn" style="margin-top: 0; font-weight: 800; text-transform: uppercase;" onclick="closeSkinInspect()">ЗАКРЫТЬ</button>
+            </div>
+        </div>
+    </div>
+
     <div id="replacement-modal" class="modal hidden" style="z-index: 30000 !important;">
         <div class="modal-content">
             <div class="modal-header">
