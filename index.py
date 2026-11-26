@@ -35631,6 +35631,247 @@ async def cancel_tg_challenge_paid(request: Request):
 # ====================================================
 
 # ==========================================
+# 🚀 МОДЕЛИ ДЛЯ АПГРЕЙДА КЕЙСОВ (ЛЕСЕНКА)
+# ==========================================
+class UpgradeAuthRequest(BaseModel):
+    initData: str = ""
+
+class UpgradeRuleSaveRequest(BaseModel):
+    initData: str = ""
+    case_tag: str
+    enabled: bool = False
+    target_case_tag: str = ""
+    msg_source: str = "both"   # twitch | telegram | both
+    period: str = "day"        # day | week | month | global
+    target_count: int = 50
+
+
+# ==========================================
+# 🧠 ХЕЛПЕРЫ ПОДСЧЁТА ПРОГРЕССА (TWITCH / TG / BOTH)
+# ==========================================
+def _get_user_total_msgs(user_row: dict, msg_source: str) -> int:
+    tw = int(user_row.get("total_message_count") or 0)
+    tg = int(user_row.get("telegram_total_message_count") or 0)
+    if msg_source == "twitch":
+        return tw
+    if msg_source == "telegram":
+        return tg
+    return tw + tg  # both
+
+
+def _calc_upgrade_expires_at(period: str) -> str | None:
+    now = datetime.now(timezone.utc)
+    if period == "day":
+        return (now + timedelta(days=1)).isoformat()
+    if period == "week":
+        return (now + timedelta(days=7)).isoformat()
+    if period == "month":
+        return (now + timedelta(days=30)).isoformat()
+    return None  # global
+
+
+def enrich_upgrade_with_progress(upgrade_row: dict, user_row: dict, telegram_id: int) -> dict:
+    """Добавляет актуальный прогресс, флаг просрочки и кнопку симуляции для админа."""
+    item = dict(upgrade_row)
+    current_total = _get_user_total_msgs(user_row, item.get("msg_source", "both"))
+    start_val = int(item.get("start_value") or 0)
+    target = max(1, int(item.get("target_count") or 1))
+
+    if item.get("status") == "ready":
+        progress = target
+    else:
+        progress = max(0, current_total - start_val)
+
+    is_expired = False
+    exp_raw = item.get("expires_at")
+    if exp_raw and item.get("status") == "active":
+        try:
+            exp_dt = datetime.fromisoformat(str(exp_raw).replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) >= exp_dt:
+                is_expired = True
+        except ValueError:
+            pass
+
+    item["progress"] = min(progress, target)
+    item["is_expired"] = is_expired
+    item["can_simulate"] = int(telegram_id) in ADMIN_IDS
+    return item
+
+
+async def get_active_case_upgrade(
+    telegram_id: int,
+    user_row: dict,
+    supabase: httpx.AsyncClient
+) -> dict | None:
+    """Возвращает текущее активное/готовое испытание юзера с посчитанным прогрессом."""
+    try:
+        res = await supabase.get(
+            "/user_case_upgrades",
+            params={
+                "telegram_id": f"eq.{int(telegram_id)}",
+                "status": "in.(active,ready)",
+                "order": "id.desc",
+                "limit": "1"
+            }
+        )
+        rows = res.json() if res.status_code == 200 else []
+        if not rows or not isinstance(rows, list):
+            return None
+
+        upg = enrich_upgrade_with_progress(rows[0], user_row, telegram_id)
+
+        # Если юзер уже набил цель, но статус ещё active — переводим в ready
+        if upg["status"] == "active" and not upg["is_expired"] and upg["progress"] >= upg["target_count"]:
+            await supabase.patch(
+                "/user_case_upgrades",
+                params={"id": f"eq.{upg['id']}"},
+                json={"status": "ready", "updated_at": datetime.now(timezone.utc).isoformat()}
+            )
+            upg["status"] = "ready"
+
+        return upg
+    except Exception as e:
+        logging.error(f"[UPGRADE] Ошибка чтения активного испытания: {e}")
+        return None
+
+
+# ==========================================
+# 🛠 АДМИНКА: СПИСОК И СОХРАНЕНИЕ ПРАВИЛ
+# ==========================================
+@app.post("/api/v1/admin/cases/upgrade_rules")
+async def admin_get_case_upgrade_rules(
+    req: UpgradeAuthRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    res = await supabase.get("/case_upgrade_rules", params={"select": "*"})
+    if res.status_code != 200:
+        return []
+    return res.json()
+
+
+@app.post("/api/v1/admin/cases/upgrade_rule/save")
+async def admin_save_case_upgrade_rule(
+    req: UpgradeRuleSaveRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    case_tag = req.case_tag.strip()
+    target_tag = req.target_case_tag.strip()
+
+    if not case_tag:
+        raise HTTPException(status_code=400, detail="Не указан case_tag")
+    if req.msg_source not in ("twitch", "telegram", "both"):
+        raise HTTPException(status_code=400, detail="Некорректный источник сообщений")
+    if req.period not in ("day", "week", "month", "global"):
+        raise HTTPException(status_code=400, detail="Некорректный период")
+    if req.enabled:
+        if not target_tag or target_tag == case_tag:
+            raise HTTPException(status_code=400, detail="Укажите другой целевой кейс")
+        if req.target_count < 1:
+            raise HTTPException(status_code=400, detail="Цель должна быть больше 0")
+
+        # Проверка на зацикливание лесенки на стороне сервера
+        all_res = await supabase.get("/case_upgrade_rules", params={"select": "case_tag,enabled,target_case_tag"})
+        rules_map = {
+            r["case_tag"]: r for r in (all_res.json() if all_res.status_code == 200 else [])
+            if isinstance(r, dict)
+        }
+        visited = {case_tag}
+        cursor = target_tag
+        while cursor:
+            if cursor in visited:
+                raise HTTPException(status_code=400, detail="Обнаружен цикл в лесенке апгрейдов!")
+            visited.add(cursor)
+            nxt = rules_map.get(cursor)
+            cursor = nxt["target_case_tag"] if (nxt and nxt.get("enabled")) else None
+
+    payload = {
+        "case_tag": case_tag,
+        "enabled": req.enabled,
+        "target_case_tag": target_tag,
+        "msg_source": req.msg_source,
+        "period": req.period,
+        "target_count": max(1, int(req.target_count)),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    res = await supabase.post(
+        "/case_upgrade_rules",
+        params={"on_conflict": "case_tag"},
+        json=payload,
+        headers={"Prefer": "resolution=merge-duplicates,return=representation"}
+    )
+    if res.status_code >= 400:
+        logging.error(f"[UPGRADE] Ошибка сохранения правила: {res.text}")
+        raise HTTPException(status_code=500, detail="Не удалось сохранить правило апгрейда")
+
+    saved = res.json()[0] if isinstance(res.json(), list) and res.json() else payload
+    return {"status": "ok", "rule": saved}
+
+
+# ==========================================
+# 🧪 СИМУЛЯЦИЯ ВЫПОЛНЕНИЯ ДЛЯ АДМИНА (1 КЛИК)
+# ==========================================
+@app.post("/api/v1/admin/cases/upgrade/simulate_complete")
+async def admin_simulate_case_upgrade_complete(
+    req: UpgradeAuthRequest,
+    supabase: httpx.AsyncClient = Depends(get_supabase_client)
+):
+    user_info = is_valid_init_data(req.initData, ALL_VALID_TOKENS)
+    if not user_info or user_info.get("id") not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Только для администратора")
+
+    telegram_id = int(user_info["id"])
+
+    # Берём текущее активное испытание админа
+    upg_res = await supabase.get(
+        "/user_case_upgrades",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "status": "in.(active,ready)",
+            "order": "id.desc",
+            "limit": "1"
+        }
+    )
+    rows = upg_res.json() if upg_res.status_code == 200 else []
+    if not rows:
+        raise HTTPException(status_code=404, detail="Нет активного испытания для симуляции")
+
+    upg = rows[0]
+
+    # Достаём счётчики админа, чтобы сдвинуть start_value и статус стал ready
+    u_res = await supabase.get(
+        "/users",
+        params={
+            "telegram_id": f"eq.{telegram_id}",
+            "select": "total_message_count,telegram_total_message_count"
+        }
+    )
+    user_row = (u_res.json()[0] if u_res.status_code == 200 and u_res.json() else {})
+    cur_total = _get_user_total_msgs(user_row, upg.get("msg_source", "both"))
+    target = max(1, int(upg.get("target_count") or 1))
+
+    patch_res = await supabase.patch(
+        "/user_case_upgrades",
+        params={"id": f"eq.{upg['id']}"},
+        json={
+            "start_value": max(0, cur_total - target),
+            "status": "ready",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        },
+        headers={"Prefer": "return=representation"}
+    )
+    updated = patch_res.json()[0] if patch_res.status_code < 400 and patch_res.json() else upg
+    return {"status": "ok", "upgrade": enrich_upgrade_with_progress(updated, user_row, telegram_id)}
+
+# ==========================================
 # МОДЕЛИ ЗАПРОСОВ
 # ==========================================
 
