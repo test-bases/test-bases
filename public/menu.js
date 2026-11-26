@@ -2929,15 +2929,16 @@ items.forEach(item => {
             
             // ⚡ 1. Кнопки снова чистые и прозрачные (без лишних фонов)
             if (showFreeButton) {
-                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
-                    <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
-                        <i class="fa-solid fa-bolt rfl-free-bolt"></i>
-                        <span class="rfl-free-col">
-                            <span class="rfl-free-top">Открыть</span>
-                            <span class="rfl-free-main">Бесплатно</span>
-                        </span>
-                    </button>
-                </div>`;
+    buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
+        <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
+            <i class="fa-solid fa-bolt rfl-free-bolt"></i>
+            <span class="rfl-free-col" style="display:flex; flex-direction:column; gap:3px; transform:translateY(-1.5px);">
+                <span class="rfl-free-top">Открыть</span>
+                <span class="rfl-free-main">Бесплатно</span>
+            </span>
+        </button>
+    </div>`;
+}
             } else if (originalPrice === 9999) {
                 buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center;">
                     <button class="action-btn" onclick="showCouponCaseInfo('${safeName}')" style="background: transparent; color: #9146FF; border: none; width: 100%; height: 100%; border-radius: 12px; font-weight: 900; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-transform: uppercase; cursor: pointer; transition: 0.2s ease;"><i class="fa-solid fa-lock" style="font-size: 14px; margin-bottom: 2px;"></i>КУПОННЫЙ</button>
