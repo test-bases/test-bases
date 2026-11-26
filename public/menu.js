@@ -288,6 +288,25 @@ function getAvailableCouponsForCase(itemName) {
     return coupons;
 }
 
+function resetCasesCache() {
+    try {
+        localStorage.removeItem('shop_items_cache');
+        sessionStorage.removeItem('session_shop_items');
+
+        ['cache_bootstrap', 'session_bootstrap'].forEach(key => {
+            const storage = key.startsWith('session_') ? sessionStorage : localStorage;
+            const raw = storage.getItem(key);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                parsed.my_active_cases = window.activeFreeCases || [];
+                parsed._ts = 0; // Помечаем кэш устаревшим, чтобы при следующем входе подтянулись свежие данные
+                storage.setItem(key, JSON.stringify(parsed));
+            }
+        });
+    } catch (e) {}
+}
+
 async function syncMyPromos() {
     try {
         const auth = getAuthPayload(); 
@@ -3078,11 +3097,12 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
 
     const displayPrice = price * trustMultiplier;
 
-    // Достаем промокод
+    // Достаем промокод и сам объект купона
     let activeCoupon = null;
+    let activeCouponObj = null;
     if (isFreeOpen) {
-        const couponObj = availableCoupons[0];
-        activeCoupon = (typeof couponObj === 'object' && couponObj.code) ? couponObj.code : "FREE_BY_ID";
+        activeCouponObj = availableCoupons[0];
+        activeCoupon = (typeof activeCouponObj === 'object' && activeCouponObj.code) ? activeCouponObj.code : "FREE_BY_ID";
     }
     
     // ================================================================
@@ -3345,28 +3365,22 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
             launchRoulette(strip, winner, resData.messages || [], resData.lacky, name, resData.max_lacky || targetLacky, isFreeOpen, oldLacky);
             
             if (isFreeOpen) {
-                const myId = typeof getMyUserIdStr === 'function' ? getMyUserIdStr() : String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "");
                 const indexToUpdate = window.activeFreeCases.findIndex(c => {
-                    if (typeof c === 'object') return c.code === activeCoupon;
-                    if (typeof c === 'string') return c.trim().toLowerCase() === (name || "").trim().toLowerCase();
+                    if (activeCouponObj && c === activeCouponObj) return true;
+                    if (typeof c === 'object' && c !== null) {
+                        if (activeCoupon && activeCoupon !== "FREE_BY_ID" && c.code === activeCoupon) return true;
+                        return (c.target_case_name || '').trim().toLowerCase() === (name || '').trim().toLowerCase();
+                    }
+                    if (typeof c === 'string') return c.trim().toLowerCase() === (name || '').trim().toLowerCase();
                     return false;
                 });
 
                 if (indexToUpdate > -1) {
-                    const coupon = window.activeFreeCases[indexToUpdate];
-                    if (typeof coupon === 'object') {
-                        if (!Array.isArray(coupon.used_by_ids)) coupon.used_by_ids = [];
-                        coupon.used_by_ids.push(myId);
-                        
-                        if (Array.isArray(coupon.activated_by_ids)) {
-                            const aIdx = coupon.activated_by_ids.indexOf(myId);
-                            if (aIdx > -1) coupon.activated_by_ids.splice(aIdx, 1);
-                        }
-                    } else {
-                        window.activeFreeCases.splice(indexToUpdate, 1);
-                    }
+                    window.activeFreeCases.splice(indexToUpdate, 1);
                 }
-                // Откладываем перерисовку сетки до закрытия рулетки, чтобы фон не дергался во время прокрутки
+
+                // Сразу сбрасываем кэш кейсов, чтобы при выходе/перезагрузке купон не воскресал
+                resetCasesCache();
                 window._needsShopRerenderAfterRoulette = true;
             }
 
@@ -3576,8 +3590,8 @@ window.closeRoulette = function() {
         if (typeof itemsCache !== 'undefined' && typeof window.currentCategoryId !== 'undefined') {
             if (typeof renderItems === 'function') renderItems(itemsCache[window.currentCategoryId] || []);
         }
+        if (typeof loadCategory === 'function') loadCategory(window.currentCategoryId || 2716312);
     }
-
     // Второй аргумент true (forceSync) не дает старому кэшу баланса мигнуть перед запросом
     if (typeof checkBalance === 'function') checkBalance(true, true);
 }
@@ -4819,6 +4833,7 @@ window.activateCouponSubmit = async () => {
             if (res.target_case_name && !window.activeFreeCases.includes(res.target_case_name)) {
                 window.activeFreeCases.push(res.target_case_name);
             }
+            resetCasesCache(); // <--- ВОТ СЮДА
             
             // Переходим в магазин
             const shopTab = document.querySelector('.toggle-option[data-target="view-shop"]');
