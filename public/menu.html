@@ -405,20 +405,22 @@
         <div id="r-win" class="win-screen"></div>
     </div>
 
-   <div id="case-contents-modal" class="modal hidden">
-        <div class="modal-content" style="width: 90%; max-width: 380px; max-height: 80vh; display: flex; flex-direction: column; padding: 20px; overflow: hidden;">
-            
-            <div class="modal-header" style="flex-shrink: 0; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 18px;">Содержимое</h3>
-                <button onclick="closeContentsModal()" class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+   <div id="case-contents-modal" class="modal rfl-modal hidden" onclick="if(event.target===this) closeContentsModal()">
+        <div class="modal-content rfl-contents-box">
+            <div class="rfl-modal-icon">
+                <i class="fa-solid fa-box-open"></i>
             </div>
-            
-            <div id="contents-loader" style="text-align:center; padding:20px; color:#888; flex-shrink: 0;">
-                <i class="fa-solid fa-circle-notch fa-spin"></i> Загрузка скинов...
+            <div class="rfl-modal-head">Содержимое кейса</div>
+            <div class="rfl-modal-sub">Возможный дроп и шансы выпадения</div>
+
+            <div id="contents-loader" class="rfl-contents-loader">
+                <div class="rfl-spinner"></div>
+                <span>Загрузка скинов...</span>
             </div>
-            
-            <div id="case-items-list" class="case-contents-grid" style="overflow-y: auto; flex-grow: 1; padding-bottom: 10px; margin: 0; align-content: flex-start;"></div>
-            
+
+            <div id="case-items-list" class="case-contents-grid rfl-contents-grid"></div>
+
+            <button class="rfl-close-btn" onclick="closeContentsModal()">Закрыть</button>
         </div>
     </div>
 
