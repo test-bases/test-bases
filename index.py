@@ -36315,8 +36315,6 @@ class UpgradeRuleSaveRequest(BaseModel):
     msg_source: str = "both"   # twitch | telegram | both
     period: str = "day"        # day | week | month | global
     target_count: int = 50
-
-
 # ==========================================
 # 🧠 ХЕЛПЕРЫ ПОДСЧЁТА ПРОГРЕССА (TWITCH / TG / BOTH)
 # ==========================================
