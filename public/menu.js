@@ -7791,7 +7791,7 @@ function openCaseUpgradeChoiceModal(opts) {
         <div class="rfl-stats-card" style="width:100%;">
             <div class="rfl-stats-row">
                 <div class="rfl-stat-col">
-                    <div class="rfl-stat-lbl">Цель (${srcText})</div>
+                    <div class="rfl-stat-lbl">Цель</div>
                     <div class="rfl-stat-val" style="color:#fbbf24;">+${opts.rule.target_count}</div>
                 </div>
                 <div class="rfl-stat-divider"></div>
@@ -7805,8 +7805,9 @@ function openCaseUpgradeChoiceModal(opts) {
                     <div class="rfl-stat-val" style="color:#fff; font-size:13px;">${priceTag}</div>
                 </div>
             </div>
-            <div class="rfl-upg-hint">
-                Напиши <b>+${opts.rule.target_count}</b> сообщений (${srcText}, ${periodText}), чтобы получить <b style="color:#fbbf24;">${tgtClean}</b>. Отказаться и забрать текущий кейс можно в любой момент.
+            <div class="rfl-upg-hint" style="color:#f4f4f5; background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);">
+                Напиши <b style="color:#ffffff;">+${opts.rule.target_count}</b> сообщений (${srcText}, ${periodText}), чтобы получить <b style="color:#fbbf24;">${tgtClean}</b>.
+                <div style="margin-top:6px; font-weight:700; color:#ffffff;">Отказаться и забрать текущий кейс можно в любой момент.</div>
             </div>
         </div>
 
