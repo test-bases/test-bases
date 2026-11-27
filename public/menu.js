@@ -7789,20 +7789,20 @@ function openCaseUpgradeChoiceModal(opts) {
         </div>
 
         <div class="rfl-stats-card" style="width:100%;">
-            <div class="rfl-stats-row">
-                <div class="rfl-stat-col">
-                    <div class="rfl-stat-lbl">Цель</div>
-                    <div class="rfl-stat-val" style="color:#fbbf24;">+${opts.rule.target_count}</div>
+            <div class="rfl-stats-row" style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:stretch; width:100%;">
+                <div class="rfl-stat-col" style="justify-content:center; gap:4px; min-width:0;">
+                    <div class="rfl-stat-lbl" style="line-height:1;">Цель</div>
+                    <div class="rfl-stat-val" style="color:#fbbf24; font-size:13px; line-height:1.2; min-height:16px; white-space:nowrap;">+${opts.rule.target_count}</div>
                 </div>
-                <div class="rfl-stat-divider"></div>
-                <div class="rfl-stat-col">
-                    <div class="rfl-stat-lbl">Срок</div>
-                    <div class="rfl-stat-val" style="color:#d8b4fe; font-size:12.5px;">${periodText}</div>
+                <div class="rfl-stat-divider" style="align-self:center;"></div>
+                <div class="rfl-stat-col" style="justify-content:center; gap:4px; min-width:0;">
+                    <div class="rfl-stat-lbl" style="line-height:1;">Срок</div>
+                    <div class="rfl-stat-val" style="color:#d8b4fe; font-size:13px; line-height:1.2; min-height:16px; white-space:nowrap;">${periodText}</div>
                 </div>
-                <div class="rfl-stat-divider"></div>
-                <div class="rfl-stat-col">
-                    <div class="rfl-stat-lbl">Вход</div>
-                    <div class="rfl-stat-val" style="color:#fff; font-size:13px;">${priceTag}</div>
+                <div class="rfl-stat-divider" style="align-self:center;"></div>
+                <div class="rfl-stat-col" style="justify-content:center; gap:4px; min-width:0;">
+                    <div class="rfl-stat-lbl" style="line-height:1;">Вход</div>
+                    <div class="rfl-stat-val" style="color:#fff; font-size:13px; line-height:1.2; min-height:16px; white-space:nowrap;">${priceTag}</div>
                 </div>
             </div>
             <div class="rfl-upg-hint" style="color:#f4f4f5; background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);">
