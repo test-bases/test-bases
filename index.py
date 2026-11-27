@@ -35886,16 +35886,27 @@ async def start_case_upgrade(
     else:
         used_ids = list(promo_data.get("used_by_ids") or [])
         activated_ids = list(promo_data.get("activated_by_ids") or [])
-        current_uses_db = promo_data.get("current_uses", 0)
+        current_uses_db = int(promo_data.get("current_uses", 0))
+        max_uses_db = int(promo_data.get("max_uses", 1))
+        new_uses = current_uses_db + 1
+
         if telegram_id not in used_ids:
             used_ids.append(telegram_id)
         if telegram_id in activated_ids:
             activated_ids.remove(telegram_id)
 
+        coupon_patch_body = {
+            "current_uses": new_uses,
+            "used_by_ids": used_ids,
+            "activated_by_ids": activated_ids
+        }
+        if new_uses >= max_uses_db:
+            coupon_patch_body["is_active"] = False
+
         patch_coupon = await supabase.patch(
             "/cs_codes",
             params={"code": f"eq.{coupon_code}", "current_uses": f"eq.{current_uses_db}"},
-            json={"current_uses": current_uses_db + 1, "used_by_ids": used_ids, "activated_by_ids": activated_ids},
+            json=coupon_patch_body,
             headers={"Prefer": "return=representation"}
         )
         if patch_coupon.status_code >= 400 or not patch_coupon.json():
@@ -35971,10 +35982,10 @@ async def advance_case_upgrade(
 
     new_case_tag = upg["target_case_tag"]
 
-    # Обновляем текущий кейс юзера на улучшенный (идемпотентно)
+    # Обновляем текущий кейс юзера на улучшенный строго если он ещё не открыт
     patch_res = await supabase.patch(
         "/user_case_upgrades",
-        params={"id": f"eq.{upg['id']}"},
+        params={"id": f"eq.{upg['id']}", "status": "in.(active,ready)"},
         json={
             "current_case_tag": new_case_tag,
             "status": "ready",
@@ -35982,7 +35993,9 @@ async def advance_case_upgrade(
         },
         headers={"Prefer": "return=representation"}
     )
-    updated = patch_res.json()[0] if patch_res.status_code < 400 and patch_res.json() else upg
+    if patch_res.status_code >= 400 or not patch_res.json():
+        raise HTTPException(status_code=400, detail="Испытание уже закрыто или кейс открыт!")
+    updated = patch_res.json()[0]
 
     # Проверяем, есть ли следующая ступенька лесенки для нового кейса
     next_res = await supabase.get(
