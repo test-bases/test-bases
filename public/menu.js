@@ -290,6 +290,22 @@ function getAvailableCouponsForCase(itemName) {
     return coupons;
 }
 
+function syncUpgradeStateToCache(upgradeObj) {
+    try {
+        ['cache_bootstrap', 'session_bootstrap'].forEach(key => {
+            const storage = key.startsWith('session_') ? sessionStorage : localStorage;
+            const raw = storage.getItem(key);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                parsed.active_case_upgrade = upgradeObj || null;
+                parsed.my_active_cases = window.activeFreeCases || [];
+                storage.setItem(key, JSON.stringify(parsed));
+            }
+        });
+    } catch (e) {}
+}
+
 function resetCasesCache() {
     try {
         localStorage.removeItem('shop_items_cache');
@@ -302,6 +318,7 @@ function resetCasesCache() {
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed === 'object') {
                 parsed.my_active_cases = window.activeFreeCases || [];
+                parsed.active_case_upgrade = window.activeCaseUpgrade || null;
                 parsed._ts = 0; // Помечаем кэш устаревшим, чтобы при следующем входе подтянулись свежие данные
                 storage.setItem(key, JSON.stringify(parsed));
             }
@@ -788,8 +805,16 @@ async function refreshDataSilently() {
                 updateNotificationsBadge(hbData.unread_notifications);
             }
             if (hbData.active_case_upgrade !== undefined) {
-                window.activeCaseUpgrade = hbData.active_case_upgrade;
-                renderActiveUpgradeBanner();
+                const prevUpgStr = JSON.stringify(window.activeCaseUpgrade || null);
+                const nextUpgStr = JSON.stringify(hbData.active_case_upgrade || null);
+                if (prevUpgStr !== nextUpgStr) {
+                    window.activeCaseUpgrade = hbData.active_case_upgrade;
+                    syncUpgradeStateToCache(window.activeCaseUpgrade);
+                    renderActiveUpgradeBanner();
+                    if (document.getElementById('case-upgrade-manage-modal')) {
+                        window.openCaseUpgradeModal();
+                    }
+                }
             }
             
             // 🔥 ДОБАВЛЕНО: Синхронизация розыгрышей в фоне 🔥
@@ -2723,9 +2748,17 @@ function renderItems(items) {
     // 🔥 Защита от краша
     if (!Array.isArray(items)) items = []; 
 
-    // ✅ НОВАЯ УМНАЯ ПРОВЕРКА ПО ТАБЛИЦЕ cs_codes
+    const activeUpg = (window.activeCaseUpgrade && ['active', 'ready'].includes(window.activeCaseUpgrade.status))
+        ? window.activeCaseUpgrade
+        : null;
+
     const isItemFree = (itemName) => {
         return getAvailableCouponsForCase(itemName).length > 0;
+    };
+
+    const isItemUpgrading = (itemName) => {
+        if (!activeUpg) return false;
+        return String(activeUpg.current_case_tag || '').trim().toLowerCase() === String(itemName || '').trim().toLowerCase();
     };
 
     // ============================================================
@@ -2733,7 +2766,7 @@ function renderItems(items) {
     // ============================================================
     items = items.filter(item => {
         if (item.is_secret) {
-            return isItemFree(item.name); // ✅ ИСПОЛЬЗУЕМ НАШУ ФУНКЦИЮ
+            return isItemFree(item.name) || isItemUpgrading(item.name);
         }
         return true; 
     });
@@ -2765,7 +2798,7 @@ function renderItems(items) {
         items = items.filter(item => {
             if (item.is_folder) return true; 
             
-            if (isItemFree(item.name)) return true; // ✅ ИСПОЛЬЗУЕМ НАШУ ФУНКЦИЮ
+            if (isItemFree(item.name) || isItemUpgrading(item.name)) return true;
 
             const originalPrice = parseFloat(item.price) || 0;
             if (originalPrice === 9999) return false;
@@ -2788,13 +2821,18 @@ function renderItems(items) {
         return;
     }
 
-    // 🔥 УЛУЧШЕННАЯ СОРТИРОВКА: БЕСПЛАТНЫЕ ВСЕГДА ПЕРВЫЕ 🔥
+    // 🔥 УЛУЧШЕННАЯ СОРТИРОВКА: АПГРЕЙД И БЕСПЛАТНЫЕ ВСЕГДА ПЕРВЫЕ 🔥
     items.sort((a, b) => {
         if (a.is_folder && !b.is_folder) return -1;
         if (!a.is_folder && b.is_folder) return 1;
 
-        const isFreeA = isItemFree(a.name); // ✅ ИСПОЛЬЗУЕМ НАШУ ФУНКЦИЮ
-        const isFreeB = isItemFree(b.name); // ✅ ИСПОЛЬЗУЕМ НАШУ ФУНКЦИЮ
+        const isUpgA = isItemUpgrading(a.name);
+        const isUpgB = isItemUpgrading(b.name);
+        if (isUpgA && !isUpgB) return -1;
+        if (!isUpgA && isUpgB) return 1;
+
+        const isFreeA = isItemFree(a.name);
+        const isFreeB = isItemFree(b.name);
 
         if (isFreeA && !isFreeB) return -1;
         if (!isFreeA && isFreeB) return 1;
@@ -2848,7 +2886,7 @@ function renderItems(items) {
         `;
     };
 
-items.forEach(item => {
+    items.forEach(item => {
         const el = document.createElement('div');
         el.className = 'shop-item';
         
@@ -2874,16 +2912,24 @@ items.forEach(item => {
         const availableCoupons = getAvailableCouponsForCase(item.name);
         const userOwnedCount = availableCoupons.length;
         const isFreeItem = userOwnedCount > 0;
+        const isUpgradingThis = isCase && isItemUpgrading(item.name);
+        const isTopGroup = isFreeItem || isUpgradingThis;
         const bypassCount = availableCoupons.filter(c => typeof c === 'object' && c.bypass_lock === true).length;
-
-        if (isCase) {
-            console.log(`[DEBUG] Витрина: "${item.name}" | Всего: ${userOwnedCount} | Без условий: ${bypassCount} | Массив купонов:`, window.activeFreeCases);
-        }
 
         let availableCountHtml = '';
         let titleTop = '4px'; 
-        
-        if (isCase && userOwnedCount >= 1) {
+
+        if (isUpgradingThis) {
+            const done = Math.max(0, Number(activeUpg.progress || 0));
+            const target = Math.max(1, Number(activeUpg.target_count || 1));
+            const isReady = done >= target || activeUpg.status === 'ready';
+            const stepNum = activeUpg.step_level || 1;
+
+            // Перекрываем все верхние плашки («Доступно» / «БЕЗ УСЛОВИЙ») статусом апгрейда
+            availableCountHtml = isReady
+                ? `<div class="upg-top-badge is-ready"><i class="fa-solid fa-bolt"></i> Улучшение готово</div>`
+                : `<div class="upg-top-badge is-active"><i class="fa-solid fa-angles-up"></i> Апгрейд · Шаг ${stepNum}</div>`;
+        } else if (isCase && userOwnedCount >= 1) {
             // Эта плашка висит СНАРУЖИ обертки, поэтому ее ничего не обрезает
             let wrapperStyle = `position: absolute; top: -2px; left: 50%; transform: translate(-50%, -100%); z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap;`;
 
@@ -2904,39 +2950,37 @@ items.forEach(item => {
             }
         }
 
-// 1. ЗАГОЛОВОК: БЕСПЛАТНОЕ ОТКРЫТИЕ
-    if (isFreeItem && !freeHeaderAdded && !item.is_folder) {
-        const headerEl = document.createElement('div');
-        headerEl.style.cssText = "grid-column: 1 / -1; position: relative; margin: 20px 0 25px 0; display: flex; align-items: center; justify-content: center; gap: 15px;";
-        headerEl.innerHTML = `
-            ${getToggleHtml()}
-            <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15));"></div>
-            <span style="font-size: 14px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Бесплатное открытие</span>
-            <div style="flex-grow: 1; height: 1px; background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.15));"></div>
-        `;
-        fragment.appendChild(headerEl);
-        freeHeaderAdded = true;
-    }
+        // 1. ЗАГОЛОВОК: БЕСПЛАТНОЕ ОТКРЫТИЕ / АПГРЕЙД
+        if (isTopGroup && !freeHeaderAdded && !item.is_folder) {
+            const headerEl = document.createElement('div');
+            headerEl.style.cssText = "grid-column: 1 / -1; position: relative; margin: 20px 0 25px 0; display: flex; align-items: center; justify-content: center; gap: 15px;";
+            headerEl.innerHTML = `
+                ${getToggleHtml()}
+                <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15));"></div>
+                <span style="font-size: 14px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Бесплатное открытие</span>
+                <div style="flex-grow: 1; height: 1px; background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.15));"></div>
+            `;
+            fragment.appendChild(headerEl);
+            freeHeaderAdded = true;
+        }
 
         // 2. ЗАГОЛОВОК: ОСНОВНЫЕ КЕЙСЫ
-    if (!isFreeItem && originalPrice !== 9999 && !regularHeaderAdded && !item.is_folder) {
-        const sepEl = document.createElement('div');
-        // Изменили нижний margin с 35px на 15px
-        sepEl.style.cssText = "grid-column: 1 / -1; position: relative; margin: 25px 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px;";
-        sepEl.innerHTML = `
-            ${getToggleHtml()}
-            <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15));"></div>
-            <span style="font-size: 14px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Основные кейсы</span>
-            <div style="flex-grow: 1; height: 1px; background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.15));"></div>
-        `;
-        fragment.appendChild(sepEl);
-        regularHeaderAdded = true;
-    }
+        if (!isTopGroup && originalPrice !== 9999 && !regularHeaderAdded && !item.is_folder) {
+            const sepEl = document.createElement('div');
+            sepEl.style.cssText = "grid-column: 1 / -1; position: relative; margin: 25px 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px;";
+            sepEl.innerHTML = `
+                ${getToggleHtml()}
+                <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15));"></div>
+                <span style="font-size: 14px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Основные кейсы</span>
+                <div style="flex-grow: 1; height: 1px; background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.15));"></div>
+            `;
+            fragment.appendChild(sepEl);
+            regularHeaderAdded = true;
+        }
 
         // 3. ЗАГОЛОВОК: КУПОННЫЕ КЕЙСЫ
-        if (!isFreeItem && originalPrice === 9999 && !couponHeaderAdded && !item.is_folder) {
+        if (!isTopGroup && originalPrice === 9999 && !couponHeaderAdded && !item.is_folder) {
             const headerEl = document.createElement('div');
-            // Изменили нижний margin с 25px на 15px
             headerEl.style.cssText = "grid-column: 1 / -1; position: relative; margin: 20px 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px;";
             headerEl.innerHTML = `
                 <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15));"></div>
@@ -2962,20 +3006,44 @@ items.forEach(item => {
                 </div>
             `;
             
-       } else if (isCase) {
-            let showFreeButton = isFreeItem;
-            
-            // ⚡ 1. Кнопки снова чистые и прозрачные (без лишних фонов)
-            if (showFreeButton) {
-    buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
-        <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
-            <i class="fa-solid fa-bolt rfl-free-bolt"></i>
-            <span class="rfl-free-col" style="display:flex; flex-direction:column; gap:3px; transform:translateY(-1.5px);">
-                <span class="rfl-free-top">Открыть</span>
-                <span class="rfl-free-main">Бесплатно</span>
-            </span>
-        </button>
-    </div>`;
+        } else if (isCase) {
+            if (isUpgradingThis) {
+                const done = Math.max(0, Number(activeUpg.progress || 0));
+                const target = Math.max(1, Number(activeUpg.target_count || 1));
+                const isReady = done >= target || activeUpg.status === 'ready';
+                const pct = Math.min(100, Math.round((done / target) * 100));
+                const stepNum = activeUpg.step_level || 1;
+
+                buttonHtml = `
+                    <div class="upg-card-progress ${isReady ? 'is-ready' : ''}">
+                        <div class="upg-card-progress-row">
+                            <span class="upg-step-lbl">Шаг ${stepNum}</span>
+                            <span class="upg-count-lbl">${Math.min(done, target)}/${target}</span>
+                        </div>
+                        <div class="upg-card-bar-track">
+                            <div class="upg-card-bar-fill" style="width:${pct}%;"></div>
+                        </div>
+                    </div>
+                    <div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
+                        <button class="action-btn rfl-upg-btn ${isReady ? 'is-ready' : ''}" onclick="openCaseUpgradeModal()">
+                            <i class="fa-solid ${isReady ? 'fa-bolt' : 'fa-angles-up'} rfl-upg-ico"></i>
+                            <span class="rfl-free-col">
+                                <span class="rfl-free-top">Открыть</span>
+                                <span class="rfl-free-main">Улучшение</span>
+                            </span>
+                        </button>
+                    </div>
+                `;
+            } else if (isFreeItem) {
+                buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; align-items:center; justify-content:center;">
+                    <button class="action-btn rfl-free-btn" onclick="openCase(${item.id}, ${originalPrice}, '${safeName}', '${safeImg}', 'coins')">
+                        <i class="fa-solid fa-bolt rfl-free-bolt"></i>
+                        <span class="rfl-free-col" style="display:flex; flex-direction:column; gap:3px; transform:translateY(-1.5px);">
+                            <span class="rfl-free-top">Открыть</span>
+                            <span class="rfl-free-main">Бесплатно</span>
+                        </span>
+                    </button>
+                </div>`;
             } else if (originalPrice === 9999) {
                 buttonHtml = `<div class="case-buttons-container" style="display:flex; width:100%; height:35px; align-items:center; justify-content:center;">
                     <button class="action-btn" onclick="showCouponCaseInfo('${safeName}')" style="background: transparent; color: #9146FF; border: none; width: 100%; height: 100%; border-radius: 12px; font-weight: 900; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-transform: uppercase; cursor: pointer; transition: 0.2s ease;"><i class="fa-solid fa-lock" style="font-size: 14px; margin-bottom: 2px;"></i>КУПОННЫЙ</button>
@@ -3049,7 +3117,6 @@ items.forEach(item => {
         }
     });
 }
-
 async function validateUserTradeLink() {
     // Если валидная ссылка уже есть в памяти — пропускаем за 0 мс без моргания лоадера
     if (userData?.trade_link && userData.trade_link.includes("partner=") && userData.trade_link.includes("token=")) {
@@ -3091,7 +3158,7 @@ window.showGuaranteeInfo = function() {
     }
 };
 
-window.openCase = async function(id, price, name, imageUrl, currency = 'coins') {
+window.openCase = async function(id, price, name, imageUrl, currency = 'coins', skipUpgradeChoice = false) {
     // 👇 ПРОВЕРКА ГОСТЯ В БРАУЗЕРЕ
     if (document.body.classList.contains('browser-mode') && !localStorage.getItem('tg_web_auth_token')) {
         return typeof showWebAuthModal === 'function' ? showWebAuthModal() : customAlert("Авторизуйтесь через Telegram!");
@@ -3122,6 +3189,26 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
     if (isFreeOpen) {
         activeCouponObj = availableCoupons[0];
         activeCoupon = (typeof activeCouponObj === 'object' && activeCouponObj.code) ? activeCouponObj.code : "FREE_BY_ID";
+    }
+
+    // Поэтапный выбор: если кейс можно апнуть и нет активного апгрейда — сначала показываем диалог выбора в стиле contents
+    if (!skipUpgradeChoice && !window.activeCaseUpgrade) {
+        const upgradeRule = getUpgradeRuleForCase(name);
+        if (upgradeRule && upgradeRule.enabled && upgradeRule.target_case_tag) {
+            openCaseUpgradeChoiceModal({
+                id,
+                price,
+                displayPrice,
+                name,
+                imageUrl,
+                currency,
+                isFreeOpen,
+                activeCoupon,
+                activeCouponObj,
+                rule: upgradeRule
+            });
+            return;
+        }
     }
     
     // ================================================================
@@ -3276,8 +3363,7 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
             
             ${priceBlockHtml}
             
-            ${statsBlockHTML}
-            ${buildCaseUpgradeOfferHtml(name)}
+           ${statsBlockHTML}
             
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button id="case-cancel-btn" style="flex: 1; background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 14px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase; backdrop-filter: blur(10px); transition: 0.2s;">Отмена</button>
@@ -3322,23 +3408,6 @@ window.openCase = async function(id, price, name, imageUrl, currency = 'coins') 
 
     cancelBtn.onclick = closeDialog;
 
-    const upgradeStartBtn = overlay.querySelector('#case-upgrade-start-btn');
-    if (upgradeStartBtn) {
-        upgradeStartBtn.onclick = () => {
-            closeDialog();
-            startCaseUpgradeChallenge({
-                item_id: id,
-                price: price,
-                title: name,
-                image_url: imageUrl,
-                currency: currency,
-                coupon_code: activeCoupon,
-                is_free_open: isFreeOpen,
-                active_coupon_obj: activeCouponObj
-            });
-        };
-    }
-    
     confirmBtn.onclick = async () => {
         closeDialog();
         
@@ -4254,8 +4323,8 @@ function initSwipeTabs() {
 
 // 1. Свайп-защита
 document.body.addEventListener('touchmove', (e) => {
-    // Добавили .custom-confirm-box и #wl-tasks-list в исключения!
-    const isScrollable = e.target.closest('.main-content-scrollable') || e.target.closest('.modal-content') || e.target.closest('.case-contents-grid') || e.target.closest('.custom-confirm-box') || e.target.closest('#wl-tasks-list');
+    // Добавили .custom-confirm-box, #wl-tasks-list и .rfl-upg-box в исключения!
+    const isScrollable = e.target.closest('.main-content-scrollable') || e.target.closest('.modal-content') || e.target.closest('.case-contents-grid') || e.target.closest('.custom-confirm-box') || e.target.closest('#wl-tasks-list') || e.target.closest('.rfl-upg-box');
     if (!isScrollable && e.cancelable) e.preventDefault();
 }, { passive: false });
 
@@ -5224,16 +5293,43 @@ if (isBrowserMode) {
                             setupSlider();
                         }
 
-                        // 🔥 Проверяем, не прилетел ли нам бесплатный кейс пока нас не было
-                        if (freshBoot && freshBoot.my_active_cases) {
-                            const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
-                            const newFreeCases = JSON.stringify(freshBoot.my_active_cases);
-                            if (oldFreeCases !== newFreeCases) {
-                                window.activeFreeCases = freshBoot.my_active_cases;
-                                // Если витрина открыта — перерисовываем, чтобы кейс стал бесплатным
-                                if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
-                                    renderItems(itemsCache[window.currentCategoryId]);
+                        if (freshBoot) {
+                            let needShopRerender = false;
+
+                            if (Array.isArray(freshBoot.case_upgrade_rules)) {
+                                window.caseUpgradeRulesMap = {};
+                                freshBoot.case_upgrade_rules.forEach(r => {
+                                    if (r && r.enabled && r.case_tag && r.target_case_tag) {
+                                        window.caseUpgradeRulesMap[r.case_tag.trim().toLowerCase()] = r;
+                                    }
+                                });
+                            }
+
+                            if (freshBoot.active_case_upgrade !== undefined) {
+                                const prevUpg = JSON.stringify(window.activeCaseUpgrade || null);
+                                const nextUpg = JSON.stringify(freshBoot.active_case_upgrade || null);
+                                if (prevUpg !== nextUpg) {
+                                    window.activeCaseUpgrade = freshBoot.active_case_upgrade;
+                                    needShopRerender = true;
                                 }
+                            }
+
+                            if (freshBoot.my_active_cases) {
+                                const oldFreeCases = JSON.stringify(window.activeFreeCases || []);
+                                const newFreeCases = JSON.stringify(freshBoot.my_active_cases);
+                                if (oldFreeCases !== newFreeCases) {
+                                    window.activeFreeCases = freshBoot.my_active_cases;
+                                    needShopRerender = true;
+                                }
+                            }
+
+                            // Перезаписываем свежий бутстрап в кэш, чтобы старый статус не воскресал
+                            freshBoot._ts = Date.now();
+                            localStorage.setItem('cache_bootstrap', JSON.stringify(freshBoot));
+                            sessionStorage.setItem('session_bootstrap', JSON.stringify(freshBoot));
+
+                            if (needShopRerender && window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+                                renderItems(itemsCache[window.currentCategoryId]);
                             }
                         }
 
@@ -7595,8 +7691,10 @@ window.showActivityWallModal = function(currentMsgs, requiredMsgs) {
 };
 
 // ================================================================
-// 🚀 АПГРЕЙД КЕЙСОВ (ЛЕСЕНКА ИСПЫТАНИЙ)
+// 🚀 АПГРЕЙД КЕЙСОВ (ЛЕСЕНКА ИСПЫТАНИЙ — ВНУТРИ КАРТОЧКИ + СТИЛЬ CONTENTS)
 // ================================================================
+window._upgradeActionLock = false;
+
 function getUpgradeRuleForCase(caseName) {
     const key = String(caseName || '').trim().toLowerCase();
     return (window.caseUpgradeRulesMap && window.caseUpgradeRulesMap[key]) || null;
@@ -7617,34 +7715,369 @@ function cleanUpgradeCaseName(name) {
     return String(name || '').replace(/^(Кейс|Case)\s*\|\s*/i, '').trim();
 }
 
-function buildCaseUpgradeOfferHtml(caseName) {
-    if (window.activeCaseUpgrade) return '';
-    const rule = getUpgradeRuleForCase(caseName);
-    if (!rule || !rule.enabled || !rule.target_case_tag) return '';
+function findCaseImageByTag(caseTag) {
+    const target = String(caseTag || '').trim().toLowerCase();
+    if (!target) return '';
 
-    const targetClean = escapeHTML(cleanUpgradeCaseName(rule.target_case_tag));
-    const srcText = formatUpgradeSourceRu(rule.msg_source);
-    const periodText = formatUpgradePeriodRu(rule.period);
+    const sources = [];
+    if (typeof itemsCache !== 'undefined' && Array.isArray(itemsCache[window.currentCategoryId || 2716312])) {
+        sources.push(...itemsCache[window.currentCategoryId || 2716312]);
+    }
+    try {
+        const rawShop = JSON.parse(sessionStorage.getItem('session_shop_items') || localStorage.getItem('shop_items_cache') || '{}');
+        Object.values(rawShop).forEach(arr => { if (Array.isArray(arr)) sources.push(...arr); });
+    } catch (e) {}
 
-    return `
-        <div style="width: 100%; margin-bottom: 14px; background: linear-gradient(135deg, rgba(136, 71, 255, 0.16) 0%, rgba(211, 44, 230, 0.08) 100%); border: 1px solid rgba(192, 132, 252, 0.42); border-radius: 14px; padding: 11px 12px; box-sizing: border-box; text-align: left;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
-                <span style="font-size: 10px; font-weight: 900; color: #d8b4fe; text-transform: uppercase; letter-spacing: 0.4px;">
-                    <i class="fa-solid fa-angles-up"></i> Можно улучшить кейс
-                </span>
-                <span style="font-size: 9px; font-weight: 700; color: #fbbf24;">+${rule.target_count} сообщ.</span>
+    const found = sources.find(it => String(it?.name || '').trim().toLowerCase() === target);
+    return found ? (found.replaced_image_url || found.image_url || '') : '';
+}
+
+function closeUpgradeOverlay(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('visible');
+    setTimeout(() => el.remove(), 180);
+}
+
+function createRflUpgradeModal(id, innerHtml) {
+    const old = document.getElementById(id);
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = id;
+    overlay.className = 'rfl-upg-modal';
+    overlay.innerHTML = `<div class="rfl-upg-box">${innerHtml}</div>`;
+    overlay.onclick = (e) => { if (e.target === overlay) closeUpgradeOverlay(id); };
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+    return overlay;
+}
+
+// Шаг 1: Диалог выбора при нажатии на кейс (Улучшить или Открыть сразу)
+function openCaseUpgradeChoiceModal(opts) {
+    const curClean = escapeHTML(cleanUpgradeCaseName(opts.name));
+    const tgtClean = escapeHTML(cleanUpgradeCaseName(opts.rule.target_case_tag));
+    const curImg = opts.imageUrl || findCaseImageByTag(opts.name);
+    const tgtImg = findCaseImageByTag(opts.rule.target_case_tag) || curImg;
+    const srcText = escapeHTML(formatUpgradeSourceRu(opts.rule.msg_source));
+    const periodText = escapeHTML(formatUpgradePeriodRu(opts.rule.period) || 'без срока');
+
+    const priceTag = opts.isFreeOpen
+        ? `<span style="color:#4ade80;">Бесплатно</span>`
+        : `${opts.displayPrice} ${opts.currency === 'coins' ? '<i class="fa-solid fa-coins" style="color:#fbbf24; font-size:11px;"></i>' : '🎟️'}`;
+
+    const html = `
+        <div class="rfl-modal-icon">
+            <i class="fa-solid fa-angles-up"></i>
+        </div>
+        <div class="rfl-modal-head">Улучшение кейса</div>
+        <div class="rfl-modal-sub">Открой сразу или прокачай до кейса выше</div>
+
+        <div class="rfl-upg-route">
+            <div class="rfl-upg-case-tile">
+                <span class="rfl-upg-case-tag">Сейчас</span>
+                ${curImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(curImg)}" alt="">` : '<i class="fa-solid fa-box-open" style="font-size:32px; color:#a1a1aa; margin:16px 0;"></i>'}
+                <div class="rfl-upg-case-name">${curClean}</div>
             </div>
-            <div style="font-size: 11px; color: #e4e4e7; line-height: 1.35; margin-bottom: 9px;">
-                Напиши <b>+${rule.target_count}</b> сообщений (${srcText}, ${periodText}) и получи вместо этого <b style="color:#fbbf24;">${targetClean}</b>. Отказаться и забрать текущий можно в любой момент.
+            <div class="rfl-upg-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="rfl-upg-case-tile is-target">
+                <span class="rfl-upg-case-tag">После апгрейда</span>
+                ${tgtImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(tgtImg)}" alt="">` : '<i class="fa-solid fa-gift" style="font-size:32px; color:#d8b4fe; margin:16px 0;"></i>'}
+                <div class="rfl-upg-case-name">${tgtClean}</div>
             </div>
-            <button id="case-upgrade-start-btn" type="button" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(216, 180, 254, 0.55); background: linear-gradient(135deg, #8847ff 0%, #d32ce6 100%); color: #fff; font-size: 11px; font-weight: 900; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(136, 71, 255, 0.35);">
-                <i class="fa-solid fa-bolt"></i> Апнуть до «${targetClean}»
+        </div>
+
+        <div class="rfl-stats-card" style="width:100%;">
+            <div class="rfl-stats-row">
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Цель (${srcText})</div>
+                    <div class="rfl-stat-val" style="color:#fbbf24;">+${opts.rule.target_count}</div>
+                </div>
+                <div class="rfl-stat-divider"></div>
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Срок</div>
+                    <div class="rfl-stat-val" style="color:#d8b4fe; font-size:12.5px;">${periodText}</div>
+                </div>
+                <div class="rfl-stat-divider"></div>
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Вход</div>
+                    <div class="rfl-stat-val" style="color:#fff; font-size:13px;">${priceTag}</div>
+                </div>
+            </div>
+            <div class="rfl-upg-hint">
+                Напиши <b>+${opts.rule.target_count}</b> сообщений (${srcText}, ${periodText}), чтобы получить <b style="color:#fbbf24;">${tgtClean}</b>. Отказаться и забрать текущий кейс можно в любой момент.
+            </div>
+        </div>
+
+        <div class="rfl-upg-actions">
+            <button type="button" id="rfl-choice-upgrade-btn" class="rfl-upg-btn-primary">
+                <i class="fa-solid fa-bolt"></i> Улучшить до «${tgtClean}»
+            </button>
+            <button type="button" id="rfl-choice-open-btn" class="rfl-upg-btn-gold">
+                <i class="fa-solid fa-box-open"></i> Открыть «${curClean}» сразу
             </button>
         </div>
+
+        <button type="button" class="rfl-close-btn" id="rfl-choice-cancel-btn">Закрыть</button>
     `;
+
+    const modal = createRflUpgradeModal('case-upgrade-choice-modal', html);
+
+    modal.querySelector('#rfl-choice-cancel-btn').onclick = () => closeUpgradeOverlay('case-upgrade-choice-modal');
+
+    modal.querySelector('#rfl-choice-open-btn').onclick = () => {
+        closeUpgradeOverlay('case-upgrade-choice-modal');
+        window.openCase(opts.id, opts.price, opts.name, opts.imageUrl, opts.currency, true);
+    };
+
+    modal.querySelector('#rfl-choice-upgrade-btn').onclick = () => {
+        closeUpgradeOverlay('case-upgrade-choice-modal');
+        startCaseUpgradeChallenge({
+            item_id: opts.id,
+            price: opts.price,
+            title: opts.name,
+            image_url: opts.imageUrl,
+            currency: opts.currency,
+            coupon_code: opts.activeCoupon,
+            is_free_open: opts.isFreeOpen,
+            active_coupon_obj: opts.activeCouponObj
+        });
+    };
+}
+
+// Шаг 2: Диалог активного апгрейда (открывается по кнопке «Открыть улучшение» внутри кейса)
+window.openCaseUpgradeModal = function() {
+    const upg = window.activeCaseUpgrade;
+    if (!upg || !['active', 'ready'].includes(upg.status)) {
+        closeUpgradeOverlay('case-upgrade-manage-modal');
+        return;
+    }
+
+    const done = Math.max(0, Number(upg.progress || 0));
+    const target = Math.max(1, Number(upg.target_count || 1));
+    const isCompleted = done >= target || upg.status === 'ready';
+    const pct = Math.min(100, Math.round((done / target) * 100));
+
+    const curClean = escapeHTML(cleanUpgradeCaseName(upg.current_case_tag));
+    const tgtClean = escapeHTML(cleanUpgradeCaseName(upg.target_case_tag));
+    const curImg = findCaseImageByTag(upg.current_case_tag);
+    const tgtImg = findCaseImageByTag(upg.target_case_tag) || curImg;
+    const srcText = escapeHTML(formatUpgradeSourceRu(upg.msg_source));
+
+    let deadlineText = 'Без срока';
+    let deadlineColor = '#d8b4fe';
+    if (upg.expires_at) {
+        const diffMs = new Date(upg.expires_at) - Date.now();
+        if (diffMs <= 0) {
+            deadlineText = 'Время вышло';
+            deadlineColor = '#ff453a';
+        } else {
+            const hrs = Math.floor(diffMs / 3600000);
+            const mins = Math.floor((diffMs % 3600000) / 60000);
+            deadlineText = hrs > 24 ? `${Math.floor(hrs / 24)}д ${hrs % 24}ч` : `${hrs}ч ${mins}м`;
+        }
+    }
+
+    const html = `
+        <div class="rfl-modal-icon" style="${isCompleted ? 'color:#4ade80; filter:drop-shadow(0 0 12px rgba(74, 222, 128, 0.6));' : ''}">
+            <i class="fa-solid ${isCompleted ? 'fa-circle-check' : 'fa-angles-up'}"></i>
+        </div>
+        <div class="rfl-modal-head">${isCompleted ? 'Улучшение готово' : `Апгрейд кейса · Шаг ${upg.step_level || 1}`}</div>
+        <div class="rfl-modal-sub">${isCompleted ? 'Задание выполнено — забирай улучшенный кейс' : `Общайся в ${srcText}, чтобы забрать кейс выше`}</div>
+
+        <div class="rfl-upg-route">
+            <div class="rfl-upg-case-tile">
+                <span class="rfl-upg-case-tag">Текущий</span>
+                ${curImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(curImg)}" alt="">` : '<i class="fa-solid fa-box-open" style="font-size:32px; color:#a1a1aa; margin:16px 0;"></i>'}
+                <div class="rfl-upg-case-name">${curClean}</div>
+            </div>
+            <div class="rfl-upg-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="rfl-upg-case-tile ${isCompleted ? 'is-ready' : 'is-target'}">
+                <span class="rfl-upg-case-tag">${isCompleted ? 'Готово' : 'Цель'}</span>
+                ${tgtImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(tgtImg)}" alt="">` : '<i class="fa-solid fa-gift" style="font-size:32px; color:#d8b4fe; margin:16px 0;"></i>'}
+                <div class="rfl-upg-case-name">${tgtClean}</div>
+            </div>
+        </div>
+
+        <div class="rfl-stats-card" style="width:100%;">
+            <div class="rfl-stats-row">
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Этап</div>
+                    <div class="rfl-stat-val" style="color:#fff;">Шаг ${upg.step_level || 1}</div>
+                </div>
+                <div class="rfl-stat-divider"></div>
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Осталось времени</div>
+                    <div class="rfl-stat-val" style="color:${deadlineColor}; font-size:13px;">${deadlineText}</div>
+                </div>
+            </div>
+
+            <div class="rfl-upg-progress-wrap">
+                <div class="rfl-upg-progress-head">
+                    <span>Сообщения (${srcText})</span>
+                    <span style="color:${isCompleted ? '#4ade80' : '#fbbf24'};">${Math.min(done, target)} / ${target}</span>
+                </div>
+                <div class="rfl-upg-progress-track">
+                    <div class="rfl-upg-progress-fill ${isCompleted ? 'is-ready' : ''}" style="width:${pct}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rfl-upg-actions">
+            ${isCompleted
+                ? `<button type="button" id="rfl-upg-claim-btn" class="rfl-upg-btn-success"><i class="fa-solid fa-bolt"></i> Забрать «${tgtClean}»</button>`
+                : (upg.can_simulate
+                    ? `<button type="button" id="rfl-upg-admin-btn" class="rfl-upg-btn-admin"><i class="fa-solid fa-flask"></i> [ADMIN] Выполнить</button>`
+                    : '')
+            }
+            <button type="button" id="rfl-upg-open-current-btn" class="rfl-upg-btn-gold">
+                <i class="fa-solid fa-box-open"></i> Открыть «${curClean}»
+            </button>
+        </div>
+
+        <button type="button" class="rfl-close-btn" id="rfl-upg-close-btn">Закрыть</button>
+    `;
+
+    const modal = createRflUpgradeModal('case-upgrade-manage-modal', html);
+
+    modal.querySelector('#rfl-upg-close-btn').onclick = () => closeUpgradeOverlay('case-upgrade-manage-modal');
+
+    const claimBtn = modal.querySelector('#rfl-upg-claim-btn');
+    if (claimBtn) {
+        claimBtn.onclick = () => {
+            claimBtn.disabled = true;
+            closeUpgradeOverlay('case-upgrade-manage-modal');
+            window.claimCaseUpgradeStep();
+        };
+    }
+
+    const adminBtn = modal.querySelector('#rfl-upg-admin-btn');
+    if (adminBtn) {
+        adminBtn.onclick = () => {
+            adminBtn.disabled = true;
+            window.adminSimulateUpgradeComplete();
+        };
+    }
+
+    modal.querySelector('#rfl-upg-open-current-btn').onclick = () => {
+        closeUpgradeOverlay('case-upgrade-manage-modal');
+        window.openCurrentUpgradingCase(false);
+    };
+};
+
+// Переход на следующий шаг лесенки (стиль contents)
+function openUpgradeStepSuccessModal(res) {
+    const newName = escapeHTML(cleanUpgradeCaseName(res.upgraded_case_tag));
+    const nextTgt = escapeHTML(cleanUpgradeCaseName(res.next_rule.target_case_tag));
+    const curImg = findCaseImageByTag(res.upgraded_case_tag);
+    const nextImg = findCaseImageByTag(res.next_rule.target_case_tag) || curImg;
+    const srcText = escapeHTML(formatUpgradeSourceRu(res.next_rule.msg_source));
+    const periodText = escapeHTML(formatUpgradePeriodRu(res.next_rule.period) || 'без срока');
+
+    const html = `
+        <div class="rfl-modal-icon" style="color:#4ade80; filter:drop-shadow(0 0 12px rgba(74, 222, 128, 0.6));">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div class="rfl-modal-head">Кейс улучшен!</div>
+        <div class="rfl-modal-sub">Открой «${newName}» сейчас или иди выше по лесенке</div>
+
+        <div class="rfl-upg-route">
+            <div class="rfl-upg-case-tile is-ready">
+                <span class="rfl-upg-case-tag">Получен</span>
+                ${curImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(curImg)}" alt="">` : ''}
+                <div class="rfl-upg-case-name">${newName}</div>
+            </div>
+            <div class="rfl-upg-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="rfl-upg-case-tile is-target">
+                <span class="rfl-upg-case-tag">Следующий шаг</span>
+                ${nextImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(nextImg)}" alt="">` : ''}
+                <div class="rfl-upg-case-name">${nextTgt}</div>
+            </div>
+        </div>
+
+        <div class="rfl-stats-card" style="width:100%;">
+            <div class="rfl-stats-row">
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Цель (${srcText})</div>
+                    <div class="rfl-stat-val" style="color:#fbbf24;">+${res.next_rule.target_count}</div>
+                </div>
+                <div class="rfl-stat-divider"></div>
+                <div class="rfl-stat-col">
+                    <div class="rfl-stat-lbl">Срок</div>
+                    <div class="rfl-stat-val" style="color:#d8b4fe; font-size:12.5px;">${periodText}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rfl-upg-actions">
+            <button type="button" id="rfl-next-ladder-btn" class="rfl-upg-btn-primary">
+                <i class="fa-solid fa-bolt"></i> Апнуть до «${nextTgt}»
+            </button>
+            <button type="button" id="rfl-next-open-btn" class="rfl-upg-btn-success">
+                <i class="fa-solid fa-box-open"></i> Открыть «${newName}»
+            </button>
+        </div>
+
+        <button type="button" class="rfl-close-btn" id="rfl-next-close-btn">Решить позже</button>
+    `;
+
+    const modal = createRflUpgradeModal('case-upgrade-next-modal', html);
+
+    modal.querySelector('#rfl-next-close-btn').onclick = () => closeUpgradeOverlay('case-upgrade-next-modal');
+
+    modal.querySelector('#rfl-next-ladder-btn').onclick = async () => {
+        closeUpgradeOverlay('case-upgrade-next-modal');
+        await continueUpgradeLadder();
+    };
+
+    modal.querySelector('#rfl-next-open-btn').onclick = async () => {
+        closeUpgradeOverlay('case-upgrade-next-modal');
+        await window.openCurrentUpgradingCase(true);
+    };
+}
+
+// Подтверждение досрочного открытия текущего кейса (стиль contents)
+function openConfirmCurrentUpgradeModal(caseTag, onConfirm) {
+    const curClean = escapeHTML(cleanUpgradeCaseName(caseTag));
+    const curImg = findCaseImageByTag(caseTag);
+
+    const html = `
+        <div class="rfl-modal-icon" style="color:#fbbf24; filter:drop-shadow(0 0 12px rgba(251, 191, 36, 0.5));">
+            <i class="fa-solid fa-box-open"></i>
+        </div>
+        <div class="rfl-modal-head">Открыть «${curClean}»?</div>
+        <div class="rfl-modal-sub">Текущее испытание апгрейда отменится</div>
+
+        ${curImg ? `<img class="rfl-upg-case-img" src="${escapeHTML(curImg)}" style="width:88px; height:88px; margin-bottom:10px;" alt="">` : ''}
+
+        <div class="rfl-stats-card" style="width:100%;">
+            <div class="rfl-upg-hint" style="margin-top:0; border:none; background:transparent; padding:0; text-align:center;">
+                Прогресс текущего шага сбросится, и ты сразу откроешь <b style="color:#fff;">${curClean}</b>, который уже на руках.
+            </div>
+        </div>
+
+        <div class="rfl-upg-actions">
+            <button type="button" id="rfl-confirm-open-now" class="rfl-upg-btn-gold">
+                <i class="fa-solid fa-bolt"></i> Открыть сейчас
+            </button>
+        </div>
+
+        <button type="button" class="rfl-close-btn" id="rfl-confirm-cancel">Отмена</button>
+    `;
+
+    const modal = createRflUpgradeModal('case-upgrade-confirm-modal', html);
+    modal.querySelector('#rfl-confirm-cancel').onclick = () => closeUpgradeOverlay('case-upgrade-confirm-modal');
+    modal.querySelector('#rfl-confirm-open-now').onclick = () => {
+        closeUpgradeOverlay('case-upgrade-confirm-modal');
+        onConfirm();
+    };
 }
 
 async function startCaseUpgradeChallenge(opts) {
+    if (window._upgradeActionLock) return;
+    window._upgradeActionLock = true;
+
     const loader = document.getElementById('purchase-loader');
     if (loader) {
         loader.querySelector('.loader-text').innerText = "Запускаем испытание...";
@@ -7673,110 +8106,57 @@ async function startCaseUpgradeChallenge(opts) {
                     return typeof c === 'string' && c.trim().toLowerCase() === (opts.title || '').trim().toLowerCase();
                 });
                 if (idx > -1) window.activeFreeCases.splice(idx, 1);
-                resetCasesCache();
-                if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
-                    renderItems(itemsCache[window.currentCategoryId]);
-                }
             } else if (typeof checkBalance === 'function') {
                 checkBalance(true, true);
             }
 
+            syncUpgradeStateToCache(window.activeCaseUpgrade);
+            resetCasesCache();
             renderActiveUpgradeBanner();
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
-            customAlert(`⚡ Испытание запущено!\nНапиши +${res.upgrade.target_count} сообщений, чтобы улучшить кейс до «${cleanUpgradeCaseName(res.upgrade.target_case_tag)}».`);
         }
     } catch (e) {
         // Ошибка уже обработана внутри makeApiRequest
     } finally {
+        window._upgradeActionLock = false;
         if (loader) loader.classList.remove('active');
     }
 }
 
+// Старый верхний баннер больше не рисуем — вместо него перерисовываем карточку в сетке кейсов
 function renderActiveUpgradeBanner() {
-    const shopGrid = document.getElementById('shop-grid');
-    if (!shopGrid) return;
+    const legacyBanner = document.getElementById('active-case-upgrade-banner');
+    if (legacyBanner) legacyBanner.remove();
 
-    let banner = document.getElementById('active-case-upgrade-banner');
-    const upg = window.activeCaseUpgrade;
-
-    if (!upg || !['active', 'ready'].includes(upg.status)) {
-        if (banner) banner.remove();
-        return;
+    if (window.currentCategoryId && itemsCache[window.currentCategoryId]) {
+        renderItems(itemsCache[window.currentCategoryId]);
     }
-
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'active-case-upgrade-banner';
-        shopGrid.parentNode.insertBefore(banner, shopGrid);
-    }
-
-    const done = Math.max(0, Number(upg.progress || 0));
-    const target = Math.max(1, Number(upg.target_count || 1));
-    const isCompleted = done >= target || upg.status === 'ready';
-    const pct = Math.min(100, Math.round((done / target) * 100));
-
-    const curName = escapeHTML(cleanUpgradeCaseName(upg.current_case_tag));
-    const tgtName = escapeHTML(cleanUpgradeCaseName(upg.target_case_tag));
-    const srcText = formatUpgradeSourceRu(upg.msg_source);
-
-    let deadlineHtml = '';
-    if (upg.expires_at) {
-        const diffMs = new Date(upg.expires_at) - Date.now();
-        if (diffMs <= 0) {
-            deadlineHtml = `<span style="color:#ff453a;">Время вышло</span>`;
-        } else {
-            const hrs = Math.floor(diffMs / 3600000);
-            const mins = Math.floor((diffMs % 3600000) / 60000);
-            deadlineHtml = `<span>Осталось: ${hrs > 24 ? Math.floor(hrs / 24) + 'д ' + (hrs % 24) + 'ч' : hrs + 'ч ' + mins + 'м'}</span>`;
-        }
-    } else {
-        deadlineHtml = `<span>Без срока</span>`;
-    }
-
-    banner.style.cssText = "margin: 8px 0 14px; padding: 12px 13px; border-radius: 15px; background: linear-gradient(135deg, rgba(136, 71, 255, 0.18) 0%, rgba(24, 24, 28, 0.92) 100%); border: 1px solid rgba(192, 132, 252, 0.42); box-shadow: 0 6px 20px rgba(0,0,0,0.4);";
-    banner.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-            <div style="font-size:11px; font-weight:900; color:#d8b4fe; text-transform:uppercase;">
-                <i class="fa-solid fa-angles-up"></i> Апгрейд кейса · Шаг ${upg.step_level || 1}
-            </div>
-            <div style="font-size:10px; color:#a1a1aa; font-weight:700;">${deadlineHtml}</div>
-        </div>
-        <div style="font-size:12px; color:#fff; font-weight:700; margin-bottom:8px;">
-            ${curName} <i class="fa-solid fa-arrow-right" style="color:#c084fc; font-size:10px; margin:0 4px;"></i> <span style="color:#fbbf24;">${tgtName}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:10px; color:#ccc; font-weight:700; margin-bottom:5px;">
-            <span>Сообщения (${srcText})</span>
-            <span style="color:${isCompleted ? '#4ade80' : '#fbbf24'};">${Math.min(done, target)} / ${target}</span>
-        </div>
-        <div style="width:100%; height:7px; background:rgba(0,0,0,0.55); border-radius:4px; overflow:hidden; margin-bottom:10px;">
-            <div style="width:${pct}%; height:100%; background:${isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, #8847ff, #d32ce6)'}; border-radius:4px; transition:width 0.3s ease;"></div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            ${isCompleted
-                ? `<button type="button" onclick="claimCaseUpgradeStep()" style="flex:1.4; padding:10px; border:none; border-radius:10px; background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;"><i class="fa-solid fa-bolt"></i> Забрать «${tgtName}»</button>`
-                : (upg.can_simulate
-                    ? `<button type="button" onclick="adminSimulateUpgradeComplete()" style="flex:1; padding:10px; border:1px dashed #fbbf24; border-radius:10px; background:rgba(251,191,36,0.14); color:#fbbf24; font-size:10px; font-weight:900; text-transform:uppercase; cursor:pointer;"><i class="fa-solid fa-flask"></i> [ADMIN] Выполнить</button>`
-                    : '')
-            }
-            <button type="button" onclick="openCurrentUpgradingCase()" style="flex:1; padding:10px; border:1px solid rgba(255,255,255,0.14); border-radius:10px; background:rgba(255,255,255,0.06); color:#fff; font-size:10px; font-weight:800; text-transform:uppercase; cursor:pointer;">
-                Открыть «${curName}»
-            </button>
-        </div>
-    `;
 }
 
 window.adminSimulateUpgradeComplete = async function() {
+    if (window._upgradeActionLock) return;
+    window._upgradeActionLock = true;
     try {
         const res = await makeApiRequest('/api/v1/admin/cases/upgrade/simulate_complete', {}, 'POST', true);
         if (res && res.upgrade) {
             window.activeCaseUpgrade = res.upgrade;
+            syncUpgradeStateToCache(window.activeCaseUpgrade);
             renderActiveUpgradeBanner();
+            if (document.getElementById('case-upgrade-manage-modal')) {
+                window.openCaseUpgradeModal();
+            }
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
         }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+        window._upgradeActionLock = false;
+    }
 };
 
 window.claimCaseUpgradeStep = async function() {
+    if (window._upgradeActionLock) return;
+    window._upgradeActionLock = true;
+
     const loader = document.getElementById('purchase-loader');
     if (loader) {
         loader.querySelector('.loader-text').innerText = "Улучшаем кейс...";
@@ -7785,38 +8165,30 @@ window.claimCaseUpgradeStep = async function() {
     try {
         const res = await makeApiRequest('/api/v1/cases/upgrade/advance', {}, 'POST', true);
         window.activeCaseUpgrade = res.upgrade || null;
+        syncUpgradeStateToCache(window.activeCaseUpgrade);
+        resetCasesCache();
         renderActiveUpgradeBanner();
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
 
-        const newName = cleanUpgradeCaseName(res.upgraded_case_tag);
         if (res.next_rule && res.next_rule.enabled && res.next_rule.target_case_tag) {
-            const nextTgt = cleanUpgradeCaseName(res.next_rule.target_case_tag);
-            showShopModal({
-                title: `🎉 Кейс улучшен до «${newName}»!`,
-                subtitle: `Можно открыть <b>${escapeHTML(newName)}</b> прямо сейчас или пойти выше по лесенке до <b style="color:#fbbf24;">${escapeHTML(nextTgt)}</b> за <b>+${res.next_rule.target_count}</b> сообщений (${formatUpgradeSourceRu(res.next_rule.msg_source)}, ${formatUpgradePeriodRu(res.next_rule.period)}).`,
-                confirmText: `АПНУТЬ ДО «${nextTgt}»`,
-                confirmClass: "btn-purple-modal",
-                cancelText: `ОТКРЫТЬ «${newName}»`,
-                showCancel: true,
-                onConfirm: async (close) => {
-                    close();
-                    await continueUpgradeLadder();
-                },
-                onCancel: async () => {
-                    await openCurrentUpgradingCase(true);
-                }
-            });
+            window._upgradeActionLock = false;
+            openUpgradeStepSuccessModal(res);
         } else {
             // Последняя ступенька лесенки — сразу открываем улучшенный кейс
-            await openCurrentUpgradingCase(true);
+            window._upgradeActionLock = false;
+            await window.openCurrentUpgradingCase(true);
         }
     } catch (e) {
+        window._upgradeActionLock = false;
     } finally {
         if (loader) loader.classList.remove('active');
     }
 };
 
 async function continueUpgradeLadder() {
+    if (window._upgradeActionLock) return;
+    window._upgradeActionLock = true;
+
     const loader = document.getElementById('purchase-loader');
     if (loader) {
         loader.querySelector('.loader-text').innerText = "Запускаем следующий шаг...";
@@ -7826,20 +8198,26 @@ async function continueUpgradeLadder() {
         const res = await makeApiRequest('/api/v1/cases/upgrade/next_step', {}, 'POST', true);
         if (res && res.upgrade) {
             window.activeCaseUpgrade = res.upgrade;
+            syncUpgradeStateToCache(window.activeCaseUpgrade);
+            resetCasesCache();
             renderActiveUpgradeBanner();
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success');
         }
     } catch (e) {
     } finally {
+        window._upgradeActionLock = false;
         if (loader) loader.classList.remove('active');
     }
 }
 
 window.openCurrentUpgradingCase = async function(skipConfirm = false) {
     const upg = window.activeCaseUpgrade;
-    if (!upg) return;
+    if (!upg || window._upgradeActionLock) return;
 
     const doOpen = async () => {
+        if (window._upgradeActionLock) return;
+        window._upgradeActionLock = true;
+
         const loader = document.getElementById('purchase-loader');
         if (loader) {
             loader.querySelector('.loader-text').innerText = "Крутим барабан...";
@@ -7847,13 +8225,19 @@ window.openCurrentUpgradingCase = async function(skipConfirm = false) {
         }
         try {
             const caseTag = upg.current_case_tag;
+            const paidCurrency = upg.paid_currency;
+
             const [contentsResp, resData] = await Promise.all([
                 makeApiRequest(`/api/v1/shop/case_contents?case_name=${encodeURIComponent(caseTag)}`, {}, 'GET', true),
                 makeApiRequest('/api/v1/cases/upgrade/open_current', {}, 'POST', true)
             ]);
 
+            // Мгновенно зачищаем состояние и кэш, чтобы кейс нельзя было забрать повторно
             window.activeCaseUpgrade = null;
+            syncUpgradeStateToCache(null);
+            resetCasesCache();
             renderActiveUpgradeBanner();
+            window._needsShopRerenderAfterRoulette = true;
 
             const possibleItems = (contentsResp && contentsResp.length > 0)
                 ? contentsResp
@@ -7864,27 +8248,18 @@ window.openCurrentUpgradingCase = async function(skipConfirm = false) {
             for (let i = 0; i < 80; i++) strip.push(possibleItems[Math.floor(Math.random() * possibleItems.length)]);
             strip[60] = winner;
 
-            launchRoulette(strip, winner, resData.messages || [], resData.lacky || 0, caseTag, resData.max_lacky || 5, upg.paid_currency === 'coupon', 0);
+            launchRoulette(strip, winner, resData.messages || [], resData.lacky || 0, caseTag, resData.max_lacky || 5, paidCurrency === 'coupon', 0);
         } catch (e) {
+            // Если бэкенд вернул ошибку (например, уже забран) — принудительно синхронизируемся
+            if (typeof refreshDataSilently === 'function') refreshDataSilently();
         } finally {
+            window._upgradeActionLock = false;
             if (loader) loader.classList.remove('active');
         }
     };
 
     if (skipConfirm) return doOpen();
-
-    const curName = cleanUpgradeCaseName(upg.current_case_tag);
-    showShopModal({
-        title: `Открыть «${curName}»?`,
-        subtitle: "Текущее испытание апгрейда отменится, и ты сразу откроешь кейс, который уже на руках.",
-        confirmText: "ОТКРЫТЬ СЕЙЧАС",
-        confirmClass: "btn-yellow-modal",
-        showCancel: true,
-        onConfirm: (close) => {
-            close();
-            doOpen();
-        }
-    });
+    openConfirmCurrentUpgradeModal(upg.current_case_tag, doOpen);
 };
 
 // ================================================================
